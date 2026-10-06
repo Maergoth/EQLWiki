@@ -19,6 +19,8 @@
 /bb/uploads/
 /bb/exports/
 /bb/Packages/
+/bb/Themes/**/minified_*.css
+/bb/Themes/**/minified_*.js
 /eql-static/
 /.well-known/
 /cgi-bin/
