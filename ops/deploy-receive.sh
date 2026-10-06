@@ -13,6 +13,9 @@ if [[ ! "$COMMAND" =~ ^deploy\ ([a-f0-9]{40})$ ]]; then
   exit 2
 fi
 SHA=${BASH_REMATCH[1]}
+if [[ "${EQL_DEPLOY_ENV:-production}" == staging && -f "$STATE/refresh-in-progress" ]]; then
+  echo 'A staging refresh did not complete; run a forced refresh before deployment.' >&2; exit 4
+fi
 mkdir -p "$STATE/releases" "$STATE/backups"
 exec 9>"$STATE/deploy.lock"
 flock -n 9 || { echo 'A deployment is already running.' >&2; exit 3; }

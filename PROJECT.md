@@ -139,6 +139,9 @@ explicit file list when introducing other custom files with absolute site URLs.
 During database replacement staging returns HTTP 403. A failed refresh leaves
 staging in maintenance mode and does not advance its timestamp. Review the private
 `refresh.log`, fix the problem, then rerun the manual refresh. Previous staging
+refresh failures also block deployments and bypassing the failure via the daily
+skip check. A forced retry keeps the original recovery dumps until it succeeds.
+Previous staging
 database dumps are retained at `refresh/wiki-previous.sql` and
 `refresh/forum-previous.sql`; only the latest recovery point is kept. Access
 credentials and SQL dumps are stored outside document roots and outside Git.

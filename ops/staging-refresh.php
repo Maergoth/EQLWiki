@@ -7,6 +7,8 @@ $mode = $argv[1] ?? '';
 if (!in_array($mode, ['if-stale', 'force'], true)) { throw new RuntimeException('Expected if-stale or force'); }
 $lock = fopen("$state/deploy.lock", 'c');
 if (!flock($lock, LOCK_EX | LOCK_NB)) { throw new RuntimeException('Another staging operation is running'); }
+$recovering = is_file("$state/refresh-in-progress");
+if ($mode === 'if-stale' && $recovering) { throw new RuntimeException('Previous refresh did not complete; run the manual forced refresh'); }
 $last = is_file("$state/last-refresh") ? (int)file_get_contents("$state/last-refresh") : 0;
 if ($mode === 'if-stale' && time() - $last < 86400) {
     echo 'Database refresh skipped: last successful refresh was less than 24 hours ago.' . PHP_EOL;
@@ -39,8 +41,14 @@ function publicDirectory(string $path): void {
 // Block requests while tables are replaced. On failure leave maintenance protection in place.
 $access = file_get_contents("$production/.htaccess") . file_get_contents("$state/staging.htaccess");
 file_put_contents("$state/pre-refresh.htaccess", $access);
+file_put_contents("$state/refresh-in-progress", (string)time());
 file_put_contents("$root/.htaccess", "Require all denied\n");
 chmod("$root/.htaccess", 0644);
+register_shutdown_function(static function() use ($state, $root) {
+    if (is_file("$state/refresh-in-progress")) {
+        file_put_contents("$root/.htaccess", "Require all denied\n"); chmod("$root/.htaccess", 0644);
+    }
+});
 $work = "$state/refresh";
 if (!is_dir($work)) { mkdir($work, 0700); }
 $wiki = file_get_contents("$production/LocalSettings.php");
@@ -52,7 +60,9 @@ foreach ([['wiki', $wiki, 'wgDBserver', 'wgDBuser', 'wgDBpassword', 'wgDBname', 
     file_put_contents($config, "[client]\nhost=" . $escape(literal($source, $host)) . "\nuser=" . $escape(literal($source, $user)) . "\npassword=" . $escape(literal($source, $password)) . "\n");
     try {
         // The previous staging dump provides a private recovery point before a refresh.
-        run(['/bin/mysqldump', "--defaults-extra-file=$state/client.cnf", '--single-transaction', '--quick', '--hex-blob', '--no-tablespaces', $target], '/dev/null', "$work/$label-previous.sql", "$state/refresh.log");
+        if (!$recovering || !is_file("$work/$label-previous.sql")) {
+            run(['/bin/mysqldump', "--defaults-extra-file=$state/client.cnf", '--single-transaction', '--quick', '--hex-blob', '--no-tablespaces', $target], '/dev/null', "$work/$label-previous.sql", "$state/refresh.log");
+        }
         run(['/bin/mysqldump', "--defaults-extra-file=$config", '--single-transaction', '--quick', '--hex-blob', '--skip-lock-tables', '--no-tablespaces', literal($source, $database)], '/dev/null', "$work/$label-current.sql", "$state/refresh.log");
         $targetConnection = new mysqli('localhost', $settings['databaseUser'], $settings['databasePassword'], $target);
         $targetConnection->query('SET FOREIGN_KEY_CHECKS=0');
@@ -136,4 +146,5 @@ if (is_file("$root/index.php")) {
     }
 }
 file_put_contents("$state/last-refresh", (string)time());
+unlink("$state/refresh-in-progress");
 echo "Refresh complete; copied $copied missing runtime files. Existing files retained.\n";
