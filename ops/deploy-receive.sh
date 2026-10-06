@@ -30,6 +30,7 @@ fi
 mkdir "$STAGE/site"
 tar -xzf "$STAGE/release.tar.gz" -C "$STAGE/site" --no-same-owner
 if [[ "${EQL_DEPLOY_ENV:-production}" == staging ]]; then
+  cp "$STAGE/site/.htaccess" "$STAGE/htaccess-base"
   php "$STATE/staging-prepare.php" "$STAGE/site"
 fi
 MANIFEST="$STAGE/site/.eql-deployment-manifest"
@@ -92,6 +93,7 @@ while IFS= read -r FILE; do rm -f -- "$ROOT/$FILE"; done < "$BACKUP/deleted-path
 curl --fail --silent --show-error --retry 2 "${HEALTH_AUTH[@]}" "$HEALTH_URL/api.php?action=query&meta=siteinfo&format=json" \
   | php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!isset($j["query"]["general"]["sitename"])) { exit(1); } echo "Wiki API health check passed\n";'
 cp "$MANIFEST" "$STATE/manifest"
+if [[ "${EQL_DEPLOY_ENV:-production}" == staging ]]; then cp "$STAGE/htaccess-base" "$STATE/htaccess-base"; fi
 printf '%s\n' "$SHA" > "$STATE/current-sha"
 trap - ERR
 echo "Deployed $SHA; rollback archive: $BACKUP/files.tar.gz"

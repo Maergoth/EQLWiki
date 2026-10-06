@@ -117,10 +117,26 @@ existing staging files are kept, and production deletions are not propagated.
 Replaced production images can therefore remain older on staging.
 
 Staging uses a separate document root, SQL user restricted to two staging
-databases, login cookies, bridge secrets, cache directories, and password gate.
+databases, login cookies, bridge secrets, cache directories, and access gate.
 Outgoing wiki/forum email, automatic wiki jobs, and CAPTCHA challenges are
 disabled. Staging is excluded from indexing. Production cron jobs remain separate.
 Server-side forum bridge calls authenticate through the password gate.
+
+Administrators enter staging with their existing live wiki login. The access page
+verifies their live MediaWiki session through the production session bridge, then
+checks current live groups: `sysop`, `bureaucrat`, `interface-admin`, or `suppress`.
+Ordinary users, bots, and blocked users cannot enter. Passwords and two-factor
+authentication remain on the live wiki; staging does not request or verify them.
+The matching staging user is signed in automatically, and missing staging users
+are provisioned. Elevated staging groups are synchronized from the live identity.
+This works even when the staging database snapshot is older than the live account.
+
+Host-only, Secure, HttpOnly access cookies last one hour. A minute cron expires
+their web-server allow-list entries. LiteSpeed briefly caches access rules, so the
+sign-in page waits 12 seconds before opening staging. Existing production jobs
+are preserved. Refresh/deployment locks also protect access-rule updates.
+The private Basic Auth account remains for deployment health checks and internal
+forum bridge calls; wiki administrators do not need its shared password.
 
 Deployment keys are scoped to GitHub environments. `production` accepts only
 `main`; `staging` accepts `staging` and `main` (for the manual refresh workflow).
@@ -130,7 +146,9 @@ Pull-request checks receive no deployment secrets.
 Server staging operations are installed at `/home/eqlwikdq/deploy/EQLWiki-staging`:
 `staging-command.sh`, `staging-refresh.php`, `staging-prepare.php`, and
 `deploy-receive.sh`, with `staging.htaccess` providing the HTTPS redirect and
-password gate. Changes to these operational scripts must be reviewed and
+access gate. The `access-handler.php`, `staging-access-lib.php`, and
+`staging-access-cleanup.php` files provide the live-login flow and token expiry.
+Changes to these operational scripts must be reviewed and
 installed by the owner over administrator SSH; application deploys do not install
 them. `staging-prepare.php` substitutes production URLs in the custom bridge,
 theme, logout, image-upload, and skin files in the staging release only. It also

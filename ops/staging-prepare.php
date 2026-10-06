@@ -26,5 +26,6 @@ foreach ($files as $file) {
     file_put_contents("$root/$file", $source);
 }
 // Persist access protection when a release replaces the production .htaccess.
-file_put_contents("$root/.htaccess", file_get_contents('/home/eqlwikdq/deploy/EQLWiki-staging/staging.htaccess') . file_get_contents("$root/.htaccess"));
+require_once '/home/eqlwikdq/deploy/EQLWiki-staging/staging-access-lib.php';
+file_put_contents("$root/.htaccess", eql_staging_access_rules(file_get_contents("$root/.htaccess")));
 echo "Staging URLs, authentication headers, and cookie isolation prepared\n";
