@@ -41,9 +41,9 @@ error_log
 *.before-*
 *~
 node_modules/
-/[
-/[[Studded
-/{{_Studded
+/\[
+/\[\[Studded
+/\{\{_Studded
 /armorRoots
 
 /ops/local-runtime.json
