@@ -2,7 +2,7 @@
 // Environment substitutions in a staged release, never in production files.
 $root = $argv[1] ?? '';
 if (!is_file("$root/.eql-deployment-manifest")) { throw new RuntimeException('Missing release manifest'); }
-$files = ['eql_logout.php', 'bb/smf_mediawiki_login.php', 'bb/smf_mediawiki_auto_login.php',
+$files = ['eql_logout.php', 'wiki_auth_bridge.php', 'bb/smf_mediawiki_login.php', 'bb/smf_mediawiki_auto_login.php',
     'bb/smf_mediawiki_logout.php', 'bb/eql_inline_image_upload.php', 'bb/eql_inline_image_finalize.php',
     'bb/Themes/PurpleHaze/index.template.php', 'skins/EQLImmersive/resources/contribute.js',
     'skins/EQLImmersive/resources/item-hover.js', 'skins/EQLImmersive/resources/main.js',

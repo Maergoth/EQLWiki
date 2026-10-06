@@ -119,6 +119,7 @@ function eql_staging_html(string $html): string {
     return str_replace(['https://www.eqlwiki.com', 'https://eqlwiki.com'], 'https://test.eqlwiki.com', $html);
 }
 if (session_status() === PHP_SESSION_NONE) { session_name('EQLStagingSession'); }
+require_once '/home/eqlwikdq/deploy/EQLWiki-staging/staging-login-policy.php';
 putenv('EQL_WIKI_URL=https://test.eqlwiki.com');
 PHP;
 $bootstrap .= "\ndefine('EQL_STAGING_HTTP_AUTH', " . var_export(base64_encode($settings['httpUser'].':'.$settings['httpPassword']), true) . ");\n";

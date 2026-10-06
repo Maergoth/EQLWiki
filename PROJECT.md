@@ -124,7 +124,7 @@ Server-side forum bridge calls authenticate through the password gate.
 
 Administrators enter staging with their existing live wiki login. The access page
 verifies their live MediaWiki session through the production session bridge, then
-checks current live groups: `sysop`, `bureaucrat`, `interface-admin`, or `suppress`.
+checks current live groups: `sysop` (administrator) or `bureaucrat`.
 Ordinary users, bots, and blocked users cannot enter. Passwords and two-factor
 authentication remain on the live wiki; staging does not request or verify them.
 The matching staging user is signed in automatically, and missing staging users
@@ -132,11 +132,21 @@ are provisioned. Elevated staging groups are synchronized from the live identity
 This works even when the staging database snapshot is older than the live account.
 
 Host-only, Secure, HttpOnly access cookies last one hour. A minute cron expires
-their web-server allow-list entries. LiteSpeed briefly caches access rules, so the
+their web-server allow-list entries and rechecks the live session and roles.
+Logging out of production, losing these roles, or becoming blocked revokes staging
+access at the next check (normally within a minute plus the server cache delay).
+The verification cookie is kept in private, mode-0600 server token files, outside
+Git and the web root, and deleted when access expires or is revoked.
+LiteSpeed briefly caches access rules, so the
 sign-in page waits 12 seconds before opening staging. Existing production jobs
 are preserved. Refresh/deployment locks also protect access-rule updates.
 The private Basic Auth account remains for deployment health checks and internal
 forum bridge calls; wiki administrators do not need its shared password.
+Normal staging wiki/API/forum password logins and registration routes redirect
+to the live-login gate or reject authentication requests. This policy is loaded
+only by staging's ignored `EQLStaging.php`; the source `ops/staging-login-policy.php`
+is excluded from every deployment archive. Production and local development do
+not load it. Server operations must be installed privately by the owner.
 
 Deployment keys are scoped to GitHub environments. `production` accepts only
 `main`; `staging` accepts `staging` and `main` (for the manual refresh workflow).

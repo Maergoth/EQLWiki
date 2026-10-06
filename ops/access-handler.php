@@ -33,7 +33,7 @@ if (preg_match('/(?:^|;\s*)eqlwikdq_mw14188_[^=;]*=/', $cookie)) {
                 header('Refresh: 12; url=' . $return);
                 echo '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Opening staging</title><body style="background:#101b29;color:#e4ebf4;font:20px system-ui;padding:12vh 24px"><p>Signed in. Opening staging…</p></body></html>'; exit;
             }
-            $message = 'Your live wiki account needs an administrator or other elevated role to access staging.';
+            $message = 'Your live wiki account must be an administrator or bureaucrat to access staging.';
         }
     } catch (Throwable $error) {
         // Never display bridge secrets, cookie values, or database diagnostics to visitors.

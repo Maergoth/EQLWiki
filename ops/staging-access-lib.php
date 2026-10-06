@@ -1,5 +1,5 @@
 <?php
-const EQL_STAGING_PRIVILEGED_GROUPS = ['sysop', 'bureaucrat', 'interface-admin', 'suppress'];
+const EQL_STAGING_PRIVILEGED_GROUPS = ['sysop', 'bureaucrat'];
 const EQL_STAGING_ACCESS_TOKENS = '/home/eqlwikdq/staging-access/tokens';
 
 function eql_staging_access_rules(string $base): string {
@@ -28,6 +28,17 @@ function eql_staging_access_identity(array $session, array $user): ?array {
         isset($user['blockedby']) || isset($user['blockid'])) { return null; }
     $groups = array_values(array_intersect(EQL_STAGING_PRIVILEGED_GROUPS, $user['groups'] ?? []));
     return $groups ? ['name'=>$user['name'], 'groups'=>$groups, 'email'=>$session['email'] ?? ''] : null;
+}
+
+function eql_staging_live_identity(string $cookie): ?array {
+    if (!$cookie || preg_match('/[\r\n]/', $cookie)) { return null; }
+    $secret = (require '/home/eqlwikdq/public_html/BridgeSecrets.php')['wikiSession'];
+    $context = stream_context_create(['http'=>['method'=>'POST', 'header'=>"Content-Type: application/x-www-form-urlencoded\r\nCookie: $cookie\r\n", 'content'=>http_build_query(['secret'=>$secret]), 'timeout'=>10, 'follow_location'=>0, 'ignore_errors'=>true]]);
+    $session = json_decode(@file_get_contents('https://eqlwiki.com/wiki_session_bridge.php', false, $context), true) ?: [];
+    if (($session['status'] ?? '') !== 'OK') { return null; }
+    $url = 'https://eqlwiki.com/api.php?' . http_build_query(['action'=>'query', 'list'=>'users', 'ususers'=>$session['name'], 'usprop'=>'groups|blockinfo', 'format'=>'json']);
+    $response = json_decode(@file_get_contents($url, false, stream_context_create(['http'=>['timeout'=>10, 'follow_location'=>0]])), true) ?: [];
+    return eql_staging_access_identity($session, $response['query']['users'][0] ?? []);
 }
 
 function eql_staging_access_login(array $identity): string {
@@ -59,7 +70,8 @@ function eql_staging_access_login(array $identity): string {
     foreach (new DirectoryIterator(EQL_STAGING_ACCESS_TOKENS) as $file) {
         if ($file->isFile() && preg_match('/^([0-9]{14})-[a-f0-9]{64}$/', $file->getFilename(), $match) && $match[1] < gmdate('YmdHis')) { unlink($file->getPathname()); }
     }
-    file_put_contents(EQL_STAGING_ACCESS_TOKENS . '/' . $token, $identity['name'], LOCK_EX);
+    $cookies = array_filter(explode(';', $_SERVER['HTTP_COOKIE'] ?? ''), static fn($value) => preg_match('/^\s*eqlwikdq_mw14188_[^=;]*=/', $value));
+    file_put_contents(EQL_STAGING_ACCESS_TOKENS . '/' . $token, json_encode(['name'=>$identity['name'], 'cookie'=>implode(';', $cookies)]), LOCK_EX);
     chmod(EQL_STAGING_ACCESS_TOKENS . '/' . $token, 0600);
     eql_staging_access_render();
     setcookie('EQLStagingAccess', $token, ['expires'=>$expires, 'path'=>'/', 'secure'=>true, 'httponly'=>true, 'samesite'=>'Lax']);
