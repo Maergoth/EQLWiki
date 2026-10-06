@@ -11,7 +11,7 @@ flock -n 9 || { echo 'Deployment is running.' >&2; exit 3; }
 while IFS= read -r FILE; do
   [[ "$FILE" != /* && "$FILE" != *'..'* ]] || exit 4
   rm -f -- "$ROOT/$FILE"
-done < <(comm -23 <(sort "$BACKUP/new-manifest") <(sort "$BACKUP/existing-paths"))
+done < "$BACKUP/new-paths"
 tar -xzf "$BACKUP/files.tar.gz" -C "$ROOT" --no-same-owner
 cp "$BACKUP/previous-manifest" "$STATE/manifest"
 if [[ -f "$BACKUP/previous-sha" ]]; then cp "$BACKUP/previous-sha" "$STATE/current-sha"; else rm -f "$STATE/current-sha"; fi
