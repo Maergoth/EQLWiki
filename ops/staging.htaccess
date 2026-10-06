@@ -1,0 +1,16 @@
+# Installed outside the document root and prepended to each staging release.
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+RewriteRule ^ https://test.eqlwiki.com%{REQUEST_URI} [R=301,L,NE]
+
+AuthType Basic
+AuthName "EQLWiki Staging"
+AuthUserFile /home/eqlwikdq/.htpasswds/test.eqlwiki.com/passwd
+<RequireAny>
+    # Allow HTTP only to reach the HTTPS redirect without a password prompt.
+    Require expr %{HTTPS} != 'on'
+    Require expr %{REQUEST_URI} =~ m#^/.well-known/acme-challenge/#
+    Require valid-user
+</RequireAny>
+Header always set X-Robots-Tag "noindex, nofollow, noarchive"

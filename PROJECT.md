@@ -129,7 +129,8 @@ Pull-request checks receive no deployment secrets.
 
 Server staging operations are installed at `/home/eqlwikdq/deploy/EQLWiki-staging`:
 `staging-command.sh`, `staging-refresh.php`, `staging-prepare.php`, and
-`deploy-receive.sh`. Changes to these operational scripts must be reviewed and
+`deploy-receive.sh`, with `staging.htaccess` providing the HTTPS redirect and
+password gate. Changes to these operational scripts must be reviewed and
 installed by the owner over administrator SSH; application deploys do not install
 them. `staging-prepare.php` substitutes production URLs in the custom bridge,
 theme, logout, image-upload, and skin files in the staging release only. It also

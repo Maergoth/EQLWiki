@@ -39,7 +39,7 @@ function publicDirectory(string $path): void {
     chmod($path, 0755);
 }
 // Block requests while tables are replaced. On failure leave maintenance protection in place.
-$access = file_get_contents("$production/.htaccess") . file_get_contents("$state/staging.htaccess");
+$access = file_get_contents("$state/staging.htaccess") . file_get_contents("$production/.htaccess");
 file_put_contents("$state/pre-refresh.htaccess", $access);
 file_put_contents("$state/refresh-in-progress", (string)time());
 file_put_contents("$root/.htaccess", "Require all denied\n");
