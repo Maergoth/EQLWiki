@@ -11,6 +11,7 @@ jobs:
     environment: staging
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Configure staging SSH
         env:
           DEPLOY_KEY: ${{ secrets.CPANEL_STAGING_DEPLOY_KEY }}
@@ -22,5 +23,4 @@ jobs:
           printf '%s\n' "$HOST_KEYS" > ~/.ssh/known_hosts
       - name: Force a fresh production snapshot into staging
         run: |
-          ssh -i ~/.ssh/eqlwiki_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            eqlwikdq@us2.ableshared.com 'refresh force'
+          bash ops/ssh-command.sh 'refresh force'

@@ -29,9 +29,7 @@ jobs:
       - name: Refresh staging data if older than 24 hours
         if: github.ref_name == 'staging'
         run: |
-          ssh -i ~/.ssh/eqlwiki_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            eqlwikdq@us2.ableshared.com 'refresh if-stale'
+          bash ops/ssh-command.sh 'refresh if-stale'
       - name: Deploy and verify wiki
         run: |
-          ssh -i ~/.ssh/eqlwiki_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            eqlwikdq@us2.ableshared.com "deploy $GITHUB_SHA" < "$RUNNER_TEMP/release.tar.gz"
+          bash ops/ssh-command.sh "deploy $GITHUB_SHA" "$RUNNER_TEMP/release.tar.gz"
