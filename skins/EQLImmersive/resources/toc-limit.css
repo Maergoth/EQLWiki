@@ -1,0 +1,72 @@
+/* EQLImmersive — TOC Limit Support
+ * Hides TOC entries beyond the level set by {{TOC limit|N}}.
+ * Supports both the custom .eql-main-menu-toc and native .vector-toc classes.
+ */
+/* =====================================================
+   EQL Wiki â€” TOC limit support for custom/external TOCs
+   Heading mapping:
+   = h1 =          => TOC level 1
+   == h2 ==        => TOC level 2
+   === h3 ===      => TOC level 3
+   ==== h4 ====    => TOC level 4
+   ===== h5 =====  => TOC level 5
+   ====== h6 ====== => TOC level 6
+   ===================================================== */
+
+/* {{TOC limit|1}} = show only = h1 = */
+body.eql-page-toclimit-1 .eql-main-menu-toc-level-2,
+body.eql-page-toclimit-1 .eql-main-menu-toc-level-3,
+body.eql-page-toclimit-1 .eql-main-menu-toc-level-4,
+body.eql-page-toclimit-1 .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-1 .eql-main-menu-toc-level-6,
+body.eql-page-toclimit-1 .vector-toc-level-2,
+body.eql-page-toclimit-1 .vector-toc-level-3,
+body.eql-page-toclimit-1 .vector-toc-level-4,
+body.eql-page-toclimit-1 .vector-toc-level-5,
+body.eql-page-toclimit-1 .vector-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|2}} = show = h1 = and == h2 == */
+body.eql-page-toclimit-2 .eql-main-menu-toc-level-3,
+body.eql-page-toclimit-2 .eql-main-menu-toc-level-4,
+body.eql-page-toclimit-2 .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-2 .eql-main-menu-toc-level-6,
+body.eql-page-toclimit-2 .vector-toc-level-3,
+body.eql-page-toclimit-2 .vector-toc-level-4,
+body.eql-page-toclimit-2 .vector-toc-level-5,
+body.eql-page-toclimit-2 .vector-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|3}} = show through === h3 === */
+body.eql-page-toclimit-3 .eql-main-menu-toc-level-4,
+body.eql-page-toclimit-3 .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-3 .eql-main-menu-toc-level-6,
+body.eql-page-toclimit-3 .vector-toc-level-4,
+body.eql-page-toclimit-3 .vector-toc-level-5,
+body.eql-page-toclimit-3 .vector-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|4}} = show through ==== h4 ==== */
+body.eql-page-toclimit-4 .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-4 .eql-main-menu-toc-level-6,
+body.eql-page-toclimit-4 .vector-toc-level-5,
+body.eql-page-toclimit-4 .vector-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|5}} = show through ===== h5 ===== */
+body.eql-page-toclimit-5 .eql-main-menu-toc-level-6,
+body.eql-page-toclimit-5 .vector-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|6}} = show through ====== h6 ====== */
+/* No hiding needed for level 6. This rule is kept as documentation. */
+
+/* Optional: hide TOC numbers only on very shallow custom TOCs */
+body.eql-page-toclimit-1 .eql-main-menu-toc-number {
+	display: none !important;
+}

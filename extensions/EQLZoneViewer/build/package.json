@@ -1,0 +1,16 @@
+{
+  "name": "eql-zone-viewer-build",
+  "private": true,
+  "version": "1.15.0",
+  "scripts": {
+    "build": "bash rebuild.sh"
+  },
+  "dependencies": {
+    "sage-core": "0.0.38",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  },
+  "type": "module"
+}

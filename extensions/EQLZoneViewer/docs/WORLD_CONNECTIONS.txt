@@ -1,0 +1,1205 @@
+EQL ZONE VIEWER 1.15.0 — VALIDATED WORLD CONNECTION INVENTORY
+========================================================================
+
+Source analyzed: maps(1).zip
+
+1.15.0 visual-route validation
+------------------------------
+• 158 validated source pairs remain in the map-file audit.
+• Tutorial Zone → South Qeynos is intentionally omitted from the atlas.
+• 146 ordinary/water/portal edges are drawn through obstacle-aware routes.
+• 11 Timorous Deep firepot edges are represented in the clickable firepot inset.
+• Automated geometry validation found 0 overlapping cards, 0 routes crossing an unrelated zone card, and 0 shared route lanes.
+• Three necessary geometric line crossings use visible bridge arcs and do not represent connections.
+• Skyfire Mountains ↔ The Overthere now bends around Temple of Droga; no Skyfire Mountains ↔ Temple of Droga edge exists.
+• Eastern Wastes is included in the Velious layout and has validated routes to Crystal Caverns, Iceclad Ocean, Kael Drakkal, Sleeper's Tomb, and The Great Divide.
+
+Scope: recognized Classic/Kunark/Velious zone IDs used by the plugin.
+Map layers read: base .txt and _1.txt for every recognized zone family.
+
+Validation rules
+----------------
+1. Only labels beginning with “to” are treated as external route evidence.
+2. Targets must match the exact zone/alias table. Substring guessing is disabled.
+3. Multi-target labels joined by “&” or “and” are split and validated separately.
+4. Labels that resolve only to expansions, internal rooms, or unknown zones are excluded.
+5. A label on only one map proves the pair exists, but does not automatically prove a one-way mechanic.
+6. Arrowheads are reserved for explicitly validated one-way portals/exits/firepots.
+
+Key corrected access routes
+---------------------------
+• Oasis of Marr → Plane of Hate
+• East Freeport → Plane of Sky
+• The previous Neriak Third Gate → Plane of Hate route was removed.
+• The previous Greater Faydark → Plane of Sky route was removed.
+
+Final visual graph: 157 unique zone pairs (Tutorial Zone excluded).
+Map label records resolved: 542.
+External/internal labels intentionally unresolved or out of scope: 81.
+
+
+Odus
+----
+001. Erudin ↔ Erud's Crossing
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: erudnext_1.txt:6 [Erudin] “to Erud`s Crossing”
+     Map: erudnext_1.txt:8 [Erudin] “to Erud`s Crossing (boat)”
+     Map: erudnext_1.txt:46 [Erudin] “to Erud`s Crossing (Translocator Eniela)”
+     Map: erudsxing_1.txt:1 [Erud's Crossing] “to Erudin”
+     Map: erudsxing_1.txt:5 [Erud's Crossing] “to Erudin & South Qeynos (Translocator Jempar)”
+     Rule: fallback validation — Erud's Crossing boat / translocator route
+
+002. Erudin ↔ Erudin Palace
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: erudnext.txt:2309 [Erudin] “to Erudin Palace”
+     Map: erudnext_1.txt:5 [Erudin] “to Erudin Palace”
+     Map: erudnint.txt:1894 [Erudin Palace] “to Erudin”
+     Map: erudnint_1.txt:1 [Erudin Palace] “to Erudin”
+
+003. Erudin ↔ Toxxulia Forest
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: erudnext.txt:2287 [Erudin] “to Toxxulia Forest”
+     Map: erudnext_1.txt:1 [Erudin] “to Toxxulia Forest”
+     Map: tox.txt:700 [Toxxulia Forest] “to Erudin”
+     Map: tox_1.txt:2 [Toxxulia Forest] “to Erudin”
+
+004. The Hole → Erudin Palace
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: hole_1.txt:1 [The Hole] “to Erudin Palace (portal)”
+
+005. Kerra Island ↔ Toxxulia Forest
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: kerraridge.txt:1056 [Kerra Island] “to Toxxulia Forest”
+     Map: kerraridge_1.txt:1 [Kerra Island] “to Toxxulia Forest”
+
+006. Paineel ↔ The Warrens
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: paineel.txt:3447 [Paineel] “to The Warrens”
+     Map: paineel_1.txt:2 [Paineel] “to The Warrens”
+     Map: warrens_1.txt:2 [The Warrens] “to Paineel”
+
+007. Paineel ↔ Toxxulia Forest
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: paineel.txt:3448 [Paineel] “to Toxullia Forest”
+     Map: paineel_1.txt:3 [Paineel] “to Toxullia Forest”
+     Map: tox.txt:701 [Toxxulia Forest] “to Paineel”
+     Map: tox_1.txt:3 [Toxxulia Forest] “to Paineel”
+
+008. Stonebrunt Mountains ↔ The Warrens
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: stonebrunt.txt:1301 [Stonebrunt Mountains] “to The Warrens”
+     Map: stonebrunt_1.txt:2 [Stonebrunt Mountains] “to The Warrens”
+     Map: warrens_1.txt:1 [The Warrens] “to The Stonebrunt Mountains”
+
+009. The Hole ↔ Paineel
+     Type: portal | Visual: two-way line | Evidence: bilateral map labels
+     Map: hole_1.txt:2 [The Hole] “to Paineel”
+     Map: hole_1.txt:4 [The Hole] “to Paineel (portal)”
+     Map: paineel.txt:3446 [Paineel] “to The Hole”
+
+
+Odus / Antonica
+---------------
+010. Erud's Crossing ↔ South Qeynos
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: erudsxing_1.txt:3 [Erud's Crossing] “to South Qeynos”
+     Map: erudsxing_1.txt:5 [Erud's Crossing] “to Erudin & South Qeynos (Translocator Jempar)”
+     Map: qeynos_1.txt:7 [South Qeynos] “to Erud`s Crossing (Translocator Sedina)”
+     Rule: fallback validation — Erud's Crossing boat / translocator route
+
+011. The Hole → Neriak - Third Gate
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: hole_1.txt:3 [The Hole] “to Neriak - Third Gate (portal)”
+
+
+Odus / Kunark
+-------------
+012. Timorous Deep → Erudin
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:16 [Timorous Deep] “to Erudin”
+
+
+Antonica
+--------
+013. Befallen ↔ West Commonlands
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: befallen_1.txt:1 [Befallen] “to The Commonlands”
+     Map: commons.txt:1305 [West Commonlands] “to Befallen”
+     Map: commons_1.txt:2 [West Commonlands] “to Befallen”
+
+014. Blackburrow ↔ Everfrost Peaks
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: blackburrow_1.txt:319 [Blackburrow] “to Everfrost Peaks”
+     Map: everfrost.txt:4960 [Everfrost Peaks] “to Blackburrow”
+     Map: everfrost_1.txt:3 [Everfrost Peaks] “to Blackburrow”
+
+015. Blackburrow ↔ Jaggedpine Forest
+     Type: portal | Visual: two-way line | Evidence: bilateral map labels
+     Map: blackburrow_1.txt:318 [Blackburrow] “to Jaggedpine Forest (Click Gem)”
+     Map: jaggedpine_1.txt:3 [Jaggedpine Forest] “to Blackburrow (Click Gem)”
+
+016. Blackburrow ↔ Qeynos Hills
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: blackburrow_1.txt:320 [Blackburrow] “to Qeynos Hills”
+     Map: qeytoqrg.txt:1349 [Qeynos Hills] “to Blackburrow”
+     Map: qeytoqrg_1.txt:2 [Qeynos Hills] “to Blackburrow”
+
+017. Cazic Thule ↔ The Feerrott
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cazicthule_1.txt:1 [Cazic Thule] “to The Feerrott”
+     Map: feerrott.txt:2898 [The Feerrott] “to Temple of Cazic Thule”
+     Map: feerrott_1.txt:6 [The Feerrott] “to Temple of Cazic-Thule”
+
+018. East Commonlands ↔ Nektulos Forest
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: ecommons.txt:1008 [East Commonlands] “to Nektulos”
+     Map: ecommons_1.txt:2 [East Commonlands] “to Nektulos Forest”
+     Map: nektulos.txt:444 [Nektulos Forest] “to East Commons”
+     Map: nektulos_1.txt:3 [Nektulos Forest] “to The Commonlands”
+
+019. East Commonlands ↔ North Ro
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: ecommons.txt:1009 [East Commonlands] “to North Ro”
+     Map: ecommons_1.txt:3 [East Commonlands] “to North Desert of Ro”
+     Map: nro.txt:1527 [North Ro] “to East Commons”
+     Map: nro_1.txt:4 [North Ro] “to East Commonlands”
+
+020. East Commonlands ↔ West Freeport
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: ecommons.txt:1007 [East Commonlands] “to West Freeport”
+     Map: ecommons_1.txt:1 [East Commonlands] “to West Freeport”
+     Map: freportw.txt:1951 [West Freeport] “to East Commons”
+     Map: freportw_1.txt:1 [West Freeport] “to East Commonlands”
+
+021. East Freeport ↔ North Ro
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: freporte.txt:3757 [East Freeport] “to Northern Desert of Ro”
+     Map: freporte_1.txt:4 [East Freeport] “to North Desert of Ro”
+     Map: nro.txt:1526 [North Ro] “to East Freeport”
+     Map: nro_1.txt:3 [North Ro] “to East Freeport”
+
+022. East Freeport ↔ West Freeport
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: freporte.txt:3701 [East Freeport] “to West Freeport”
+     Map: freporte.txt:3720 [East Freeport] “to West Freeport”
+     Map: freporte.txt:3721 [East Freeport] “to West Freeport”
+     Map: freporte_1.txt:1 [East Freeport] “to West Freeport”
+     Map: freporte_1.txt:2 [East Freeport] “to West Freeport”
+     Map: freporte_1.txt:3 [East Freeport] “to West Freeport”
+     Map: freportw.txt:1953 [West Freeport] “to East Freeport”
+     Map: freportw.txt:1954 [West Freeport] “to East Freeport”
+     Map: freportw.txt:1955 [West Freeport] “to East Freeport”
+     Map: freportw_1.txt:3 [West Freeport] “to East Freeport”
+     Map: freportw_1.txt:4 [West Freeport] “to East Freeport”
+     Map: freportw_1.txt:5 [West Freeport] “to East Freeport”
+
+023. East Karana ↔ Highpass Hold
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: eastkarana_1.txt:4 [East Karana] “to Highpass Hold”
+     Map: highpass.txt:1955 [Highpass Hold] “to East Karana”
+     Map: highpass_1.txt:3 [Highpass Hold] “to East Karana”
+
+024. East Karana ↔ North Karana
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: eastkarana_1.txt:1 [East Karana] “to The Northern Plains of Karana”
+     Map: northkarana.txt:306 [North Karana] “to East Karana”
+     Map: northkarana_1.txt:2 [North Karana] “to The Eastern Plains of Karana”
+
+025. Everfrost Peaks ↔ Halas
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: everfrost.txt:4963 [Everfrost Peaks] “to Halas”
+     Map: everfrost_1.txt:2 [Everfrost Peaks] “to Halas”
+     Map: halas.txt:2331 [Halas] “to Everfrost Peaks”
+     Map: halas_1.txt:1 [Halas] “to Everfrost Peaks”
+
+026. Everfrost Peaks ↔ Permafrost
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: everfrost.txt:4959 [Everfrost Peaks] “to Permafrost Caverns”
+     Map: everfrost_1.txt:1 [Everfrost Peaks] “to Permafrost Keep”
+     Map: permafrost_1.txt:1 [Permafrost] “to Everfrost Peaks”
+
+027. Gorge of King Xorbb ↔ East Karana
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: beholder.txt:382 [Gorge of King Xorbb] “to East Karana”
+     Map: beholder_1.txt:1 [Gorge of King Xorbb] “to The Eastern Plains of Karana”
+     Map: eastkarana_1.txt:2 [East Karana] “to The Gorge of King Xorbb”
+
+028. Gorge of King Xorbb ↔ Runnyeye Citadel
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: beholder.txt:383 [Gorge of King Xorbb] “to Runnyeye Citadel”
+     Map: beholder_1.txt:2 [Gorge of King Xorbb] “to The Liberated Citadel of Runnyeye”
+     Map: runnyeye_1.txt:1 [Runnyeye Citadel] “to The Gorge of King Xorbb”
+
+029. Grobb ↔ Innothule Swamp
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: innothule_1.txt:5 [Innothule Swamp] “to Grobb”
+
+030. High Keep ↔ Highpass Hold
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: highkeep.txt:2693 [High Keep] “to Highpass Hold”
+     Map: highkeep.txt:2694 [High Keep] “to Highpass Hold”
+     Map: highkeep_1.txt:1 [High Keep] “to Highpass Hold”
+     Map: highkeep_1.txt:2 [High Keep] “to Highpass Hold”
+     Map: highpass.txt:1953 [Highpass Hold] “to High Keep”
+     Map: highpass_1.txt:1 [Highpass Hold] “to High Keep”
+
+031. Highpass Hold ↔ Kithicor Forest
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: highpass_1.txt:2 [Highpass Hold] “to Kithicor Forest”
+     Map: kithicor.txt:560 [Kithicor Forest] “to Highpass Hold”
+     Map: kithicor_1.txt:2 [Kithicor Forest] “to Highpass Hold”
+
+032. Innothule Swamp ↔ South Ro
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: innothule_1.txt:3 [Innothule Swamp] “to South Desert of Ro”
+     Map: sro.txt:662 [South Ro] “to Innothule Swamp”
+     Map: sro_1.txt:1 [South Ro] “to Innothule Swamp”
+
+033. Jaggedpine Forest ↔ Surefall Glade
+     Type: portal | Visual: two-way line | Evidence: bilateral map labels
+     Map: jaggedpine_1.txt:1 [Jaggedpine Forest] “to Surefall Glade (Click Gem)”
+     Map: qrg.txt:1222 [Surefall Glade] “to Jaggedpine Forest”
+     Map: qrg_1.txt:1 [Surefall Glade] “to Jaggedpine Forest (click)”
+
+034. Kithicor Forest ↔ Rivervale
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: kithicor.txt:559 [Kithicor Forest] “to Rivervale”
+     Map: kithicor_1.txt:1 [Kithicor Forest] “to Rivervale”
+     Map: rivervale.txt:1294 [Rivervale] “to Kithicor Forest”
+     Map: rivervale_1.txt:1 [Rivervale] “to Kithicor Forest”
+
+035. Lake Rathetear ↔ Rathe Mountains
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lakerathe.txt:1582 [Lake Rathetear] “to Rathe Mountains”
+     Map: lakerathe_1.txt:3 [Lake Rathetear] “to The Rathe Mountains”
+     Map: rathemtn.txt:4448 [Rathe Mountains] “to Lake Rathetear”
+
+036. Lake Rathetear ↔ South Karana
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lakerathe.txt:1575 [Lake Rathetear] “to Southern Plains of Karana”
+     Map: lakerathe_1.txt:2 [Lake Rathetear] “to The Southern Plains of Karana”
+     Map: southkarana.txt:373 [South Karana] “to Lake Rathetear”
+     Map: southkarana_1.txt:3 [South Karana] “to Lake Rathetear”
+
+037. Lavastorm Mountains ↔ Nagafen's Lair (Sol B)
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lavastorm.txt:422 [Lavastorm Mountains] “to Nagafen's Lair”
+     Map: lavastorm_1.txt:4 [Lavastorm Mountains] “to Nagafen`s Lair”
+     Map: soldungb_1.txt:8 [Nagafen's Lair (Sol B)] “to The Lavastorm Mountains”
+
+038. Lavastorm Mountains ↔ Najena
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lavastorm.txt:420 [Lavastorm Mountains] “to Najena”
+     Map: lavastorm_1.txt:7 [Lavastorm Mountains] “to Najena”
+     Map: najena_1.txt:1 [Najena] “to The Lavastorm Mountains”
+
+039. Lavastorm Mountains ↔ Nektulos Forest
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lavastorm.txt:419 [Lavastorm Mountains] “to Nektulos”
+     Map: nektulos.txt:443 [Nektulos Forest] “to Lavastorm”
+     Map: nektulos_1.txt:4 [Nektulos Forest] “to Lavastorm Mountains”
+
+040. Lavastorm Mountains ↔ Solusek's Eye (Sol A)
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lavastorm.txt:421 [Lavastorm Mountains] “to Solusek's Eye”
+     Map: lavastorm_1.txt:1 [Lavastorm Mountains] “to Solusek`s Eye”
+     Map: soldunga_1.txt:1 [Solusek's Eye (Sol A)] “to The Lavastorm Mountains”
+
+041. Lavastorm Mountains ↔ The Temple of Solusek Ro
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lavastorm.txt:423 [Lavastorm Mountains] “to Temple of Solusek Ro”
+     Map: lavastorm_1.txt:6 [Lavastorm Mountains] “to The Temple of Solusek Ro”
+     Map: soltemple.txt:795 [The Temple of Solusek Ro] “to Lavastorm Mountains”
+     Map: soltemple_1.txt:1 [The Temple of Solusek Ro] “to The Lavastorm Mountains”
+
+042. Lower Guk ↔ Innothule Swamp
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: gukbottom_1.txt:4 [Lower Guk] “to Innothule Swamp”
+
+043. Lower Guk ↔ Upper Guk
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: gukbottom_1.txt:1 [Lower Guk] “to The City of Guk”
+     Map: gukbottom_1.txt:2 [Lower Guk] “to The City of Guk”
+     Map: gukbottom_1.txt:3 [Lower Guk] “to The City of Guk”
+     Map: gukbottom_1.txt:5 [Lower Guk] “to The City of Guk”
+     Map: guktop_1.txt:1 [Upper Guk] “to The Ruins of Old Guk”
+     Map: guktop_1.txt:2 [Upper Guk] “to The Ruins of Old Guk”
+     Map: guktop_1.txt:3 [Upper Guk] “to The Ruins of Old Guk”
+     Map: guktop_1.txt:4 [Upper Guk] “to The Ruins of Old Guk”
+
+044. Misty Thicket ↔ Rivervale
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: misty.txt:608 [Misty Thicket] “to Rivervale”
+     Map: misty_1.txt:3 [Misty Thicket] “to Rivervale”
+     Map: rivervale.txt:1289 [Rivervale] “to Misty Thicket”
+     Map: rivervale_1.txt:2 [Rivervale] “to Misty Thicket”
+
+045. Misty Thicket ↔ Runnyeye Citadel
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: misty.txt:607 [Misty Thicket] “to Runnyeye Citadel”
+     Map: misty_1.txt:2 [Misty Thicket] “to The Liberated Citadel of Runnyeye”
+     Map: runnyeye_1.txt:2 [Runnyeye Citadel] “to Misty Thicket”
+
+046. Nektulos Forest ↔ Neriak - Foreign Quarter
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: nektulos.txt:440 [Nektulos Forest] “to Neriak”
+     Map: nektulos_1.txt:1 [Nektulos Forest] “to Neriak - Foreign Quarter”
+     Map: neriaka.txt:2983 [Neriak - Foreign Quarter] “to Nektulos Forest”
+     Map: neriaka_1.txt:1 [Neriak - Foreign Quarter] “to Nektulos Forest”
+
+047. Neriak - Commons ↔ Neriak - Third Gate
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: neriakb_1.txt:1 [Neriak - Commons] “to Neriak - Third Gate”
+     Map: neriakc.txt:3772 [Neriak - Third Gate] “to Neriak Commons”
+     Map: neriakc_1.txt:1 [Neriak - Third Gate] “to Neriak - Commons”
+
+048. Neriak - Foreign Quarter ↔ Neriak - Commons
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: neriaka.txt:2984 [Neriak - Foreign Quarter] “to Neriak Commons”
+     Map: neriaka_1.txt:2 [Neriak - Foreign Quarter] “to Neriak - Commons”
+     Map: neriaka_1.txt:3 [Neriak - Foreign Quarter] “to Neriak Commons”
+     Map: neriakb.txt:3170 [Neriak - Commons] “to Neriak Foreign Quarter”
+     Map: neriakb.txt:3171 [Neriak - Commons] “to Neriak Foreign Quarter”
+     Map: neriakb_1.txt:2 [Neriak - Commons] “to Neriak - Foreign Quarter”
+     Map: neriakb_1.txt:3 [Neriak - Commons] “to Neriak - Foreign Quarter”
+
+049. North Freeport ↔ West Freeport
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: freportn.txt:2203 [North Freeport] “to West Freeport”
+     Map: freportn.txt:2204 [North Freeport] “to West Freeport”
+     Map: freportn.txt:2205 [North Freeport] “to West Freeport”
+     Map: freportn_1.txt:1 [North Freeport] “to West Freeport”
+     Map: freportn_1.txt:2 [North Freeport] “to West Freeport”
+     Map: freportn_1.txt:3 [North Freeport] “to West Freeport”
+     Map: freportw.txt:1947 [West Freeport] “to North Freeport”
+     Map: freportw.txt:1949 [West Freeport] “to North Freeport”
+     Map: freportw.txt:1952 [West Freeport] “to North Freeport”
+     Map: freportw_1.txt:2 [West Freeport] “to North Freeport”
+     Map: freportw_1.txt:6 [West Freeport] “to North Freeport”
+     Map: freportw_1.txt:7 [West Freeport] “to North Freeport”
+
+050. North Karana ↔ South Karana
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: northkarana.txt:307 [North Karana] “to South Karana”
+     Map: northkarana_1.txt:3 [North Karana] “to The Southern Plains of Karana”
+     Map: southkarana.txt:374 [South Karana] “to North Karana”
+     Map: southkarana_1.txt:2 [South Karana] “to The Northern Plains of Karana”
+
+051. North Karana ↔ West Karana
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: northkarana.txt:305 [North Karana] “to West Karana”
+     Map: northkarana_1.txt:1 [North Karana] “to The Western Plains of Karana”
+     Map: qey2hh1.txt:3415 [West Karana] “to North Karana”
+     Map: qey2hh1_1.txt:2 [West Karana] “to The Northern Plains of Karana”
+
+052. North Qeynos ↔ Qeynos Hills
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: qeynos2.txt:2029 [North Qeynos] “to Qeynos Hills”
+     Map: qeynos2_1.txt:3 [North Qeynos] “to Qeynos Hills”
+     Map: qeytoqrg.txt:1347 [Qeynos Hills] “to Northern Qeynos”
+     Map: qeytoqrg_1.txt:4 [Qeynos Hills] “to North Qeynos”
+
+053. North Ro ↔ Oasis of Marr
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: nro.txt:1525 [North Ro] “to Oasis”
+     Map: nro_1.txt:2 [North Ro] “to Oasis of Marr”
+     Map: oasis.txt:876 [Oasis of Marr] “to Northern Ro”
+     Map: oasis_1.txt:1 [Oasis of Marr] “to North Desert of Ro”
+
+054. Oasis of Marr ↔ South Ro
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: oasis.txt:877 [Oasis of Marr] “to Southern Ro”
+     Map: oasis_1.txt:2 [Oasis of Marr] “to South Desert of Ro”
+     Map: sro.txt:663 [South Ro] “to The Oasis of Marr”
+     Map: sro_1.txt:2 [South Ro] “to Oasis of Marr”
+
+055. Qeynos Aqueducts ↔ North Qeynos
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: qcat.txt:1303 [Qeynos Aqueducts] “to North Qeynos”
+     Map: qcat.txt:1304 [Qeynos Aqueducts] “to North Qeynos”
+     Map: qcat.txt:1305 [Qeynos Aqueducts] “to North Qeynos”
+     Map: qcat.txt:1306 [Qeynos Aqueducts] “to North Qeynos”
+     Map: qcat_1.txt:4 [Qeynos Aqueducts] “to North Qeynos (NE Pool)”
+     Map: qcat_1.txt:5 [Qeynos Aqueducts] “to North Qeynos (Crow`s Bar)”
+     Map: qcat_1.txt:6 [Qeynos Aqueducts] “to North Qeynos (Rogue`s Guild)”
+     Map: qcat_1.txt:8 [Qeynos Aqueducts] “to North Qeynos (East)”
+     Map: qeynos2.txt:2031 [North Qeynos] “to Qeynos Catacombs”
+     Map: qeynos2.txt:2032 [North Qeynos] “to Qeynos Catacombs”
+     Map: qeynos2.txt:2071 [North Qeynos] “to Qeynos Catacombs”
+     Map: qeynos2_1.txt:5 [North Qeynos] “to The Qeynos Aqueduct System”
+     Map: qeynos2_1.txt:6 [North Qeynos] “to The Qeynos Aqueduct System”
+     Map: qeynos2_1.txt:7 [North Qeynos] “to The Qeynos Aqueduct System”
+
+056. Qeynos Aqueducts ↔ South Qeynos
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: qcat.txt:1295 [Qeynos Aqueducts] “to South Qeynos”
+     Map: qcat.txt:1307 [Qeynos Aqueducts] “to South Qeynos”
+     Map: qcat_1.txt:2 [Qeynos Aqueducts] “to South Qeynos (Bank Bridge)”
+     Map: qcat_1.txt:3 [Qeynos Aqueducts] “to South Qeynos (Arena Area)”
+     Map: qcat_1.txt:7 [Qeynos Aqueducts] “to South Qeynos (Docks)”
+     Map: qeynos.txt:3185 [South Qeynos] “to Qeynos Aqueduct System”
+     Map: qeynos_1.txt:1 [South Qeynos] “to The Qeynos Aqueduct System”
+     Map: qeynos_1.txt:2 [South Qeynos] “to The Qeynos Aqueduct System”
+     Map: qeynos_1.txt:3 [South Qeynos] “to The Qeynos Aquaduct System”
+     Map: qeynos_1.txt:6 [South Qeynos] “to The Qeynos Aqueduct System”
+
+057. Qeynos Hills ↔ Surefall Glade
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: qeytoqrg.txt:1348 [Qeynos Hills] “to Surefall Glade”
+     Map: qeytoqrg_1.txt:3 [Qeynos Hills] “to Surefall Glade”
+     Map: qrg.txt:1223 [Surefall Glade] “to Qeynos Hills”
+     Map: qrg_1.txt:2 [Surefall Glade] “to Qeynos Hills”
+
+058. Solusek's Eye (Sol A) ↔ Nagafen's Lair (Sol B)
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: soldunga_1.txt:3 [Solusek's Eye (Sol A)] “to Nagafen`s Lair (6)”
+     Map: soldunga_1.txt:4 [Solusek's Eye (Sol A)] “to Nagafen`s Lair (4)”
+     Map: soldunga_1.txt:5 [Solusek's Eye (Sol A)] “to Nagafen`s Lair (3)”
+     Map: soldunga_1.txt:6 [Solusek's Eye (Sol A)] “to Nagafen`s Lair (1)”
+     Map: soldunga_1.txt:7 [Solusek's Eye (Sol A)] “to Nagafen`s Lair (2)”
+     Map: soldunga_1.txt:8 [Solusek's Eye (Sol A)] “to Nagafen`s Lair (5)”
+     Map: soldungb_1.txt:1 [Nagafen's Lair (Sol B)] “to Solusek`s Eye (1)”
+     Map: soldungb_1.txt:2 [Nagafen's Lair (Sol B)] “to Solusek`s Eye (2)”
+     Map: soldungb_1.txt:3 [Nagafen's Lair (Sol B)] “to Solusek`s Eye (3)”
+     Map: soldungb_1.txt:5 [Nagafen's Lair (Sol B)] “to Solusek`s Eye (5)”
+     Map: soldungb_1.txt:6 [Nagafen's Lair (Sol B)] “to Solusek`s Eye (6)”
+
+059. South Qeynos ↔ North Qeynos
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: qeynos.txt:3164 [South Qeynos] “to North Qeynos”
+     Map: qeynos.txt:3165 [South Qeynos] “to North Qeynos”
+     Map: qeynos_1.txt:4 [South Qeynos] “to North Qeynos”
+     Map: qeynos_1.txt:5 [South Qeynos] “to North Qeynos”
+     Map: qeynos2.txt:2028 [North Qeynos] “to South Qeynos”
+     Map: qeynos2.txt:2072 [North Qeynos] “to South Qeynos”
+     Map: qeynos2_1.txt:1 [North Qeynos] “to South Qeynos”
+     Map: qeynos2_1.txt:2 [North Qeynos] “to South Qeynos”
+
+060. Tutorial Zone → South Qeynos
+     Type: teleport | Visual: one-way arrow | Evidence: manual/access-rule only
+     Rule: validated fallback — Tutorial exit to South Qeynos
+
+061. Splitpaw Lair ↔ South Karana
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: paw_1.txt:1 [Splitpaw Lair] “to The Southern Plains of Karana”
+     Map: southkarana.txt:375 [South Karana] “to Lair of the Splitpaw”
+     Map: southkarana_1.txt:1 [South Karana] “to The Lair of the Splitpaw”
+
+062. The Arena ↔ Lake Rathetear
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: arena_1.txt:1 [The Arena] “to Lake Rathetear”
+     Map: lakerathe.txt:1576 [Lake Rathetear] “to The Arena”
+     Map: lakerathe_1.txt:1 [Lake Rathetear] “to The Arena”
+
+063. The Feerrott ↔ Innothule Swamp
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: feerrott.txt:2899 [The Feerrott] “to Innothule Swamp”
+     Map: feerrott_1.txt:7 [The Feerrott] “to Innothule Swamp”
+     Map: innothule.txt:1177 [Innothule Swamp] “to Feerott”
+     Map: innothule_1.txt:2 [Innothule Swamp] “to The Feerott”
+
+064. The Feerrott ↔ Oggok
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: feerrott.txt:2895 [The Feerrott] “to Oggok”
+     Map: feerrott_1.txt:3 [The Feerrott] “to Oggok”
+     Map: oggok.txt:1219 [Oggok] “to Feerrott”
+     Map: oggok_1.txt:1 [Oggok] “to The Feerrott”
+
+065. The Feerrott ↔ Rathe Mountains
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: feerrott.txt:2896 [The Feerrott] “to Rathe Mountains”
+     Map: feerrott_1.txt:4 [The Feerrott] “to The Rathe Mountains”
+     Map: rathemtn.txt:4447 [Rathe Mountains] “to Feerrott”
+
+066. Upper Guk ↔ Innothule Swamp
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: innothule.txt:1179 [Innothule Swamp] “to Upper Guk”
+     Map: innothule_1.txt:4 [Innothule Swamp] “to The City of Guk”
+
+067. West Commonlands ↔ East Commonlands
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: commons.txt:1304 [West Commonlands] “to East Commons”
+     Map: commons_1.txt:1 [West Commonlands] “to East Commonlands”
+     Map: ecommons.txt:1010 [East Commonlands] “to West Commonlands”
+     Map: ecommons_1.txt:4 [East Commonlands] “to West Commonlands”
+
+068. West Commonlands ↔ Kithicor Forest
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: commons.txt:1306 [West Commonlands] “to Kithicor Forest”
+     Map: commons_1.txt:3 [West Commonlands] “to Kithicor Forest”
+     Map: kithicor.txt:561 [Kithicor Forest] “to Commonlands”
+     Map: kithicor_1.txt:3 [Kithicor Forest] “to The Commonlands”
+
+069. West Commonlands ↔ New Sebilis Expedition
+     Type: land | Visual: two-way line | Evidence: manual/access-rule only
+     Rule: user-validated access rule — New Sebilis entrance from West Commonlands
+
+070. West Karana ↔ Qeynos Hills
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: qey2hh1.txt:3414 [West Karana] “to Qeynos Hills”
+     Map: qey2hh1_1.txt:1 [West Karana] “to Qeynos Hills”
+     Map: qeytoqrg.txt:1346 [Qeynos Hills] “to West Karana”
+     Map: qeytoqrg_1.txt:1 [Qeynos Hills] “to The Western Plains of Karana”
+
+
+Antonica / Faydwer
+------------------
+071. East Freeport ↔ Ocean of Tears
+     Type: water | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: oceanoftears_1.txt:1 [Ocean of Tears] “to East Freeport & The Butcherblock Mountains (Translocator Narrik)”
+     Rule: fallback validation — Ocean of Tears boat / translocator route
+
+
+Antonica / Kunark
+-----------------
+072. Timorous Deep → East Freeport
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:9 [Timorous Deep] “to East Freeport”
+
+073. Timorous Deep → Halas
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:8 [Timorous Deep] “to Halas”
+
+074. Timorous Deep → Neriak - Commons
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:17 [Timorous Deep] “to Neriak Commons”
+
+075. Timorous Deep → Oggok
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:15 [Timorous Deep] “to Oggok”
+
+076. Timorous Deep → Rivervale
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:13 [Timorous Deep] “to Rivervale”
+
+077. South Ro ↔ Timorous Deep
+     Type: water | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:1 [Timorous Deep] “to The Overthere & South Desert of Ro (Translocator Jorbin)”
+     Map: timorous_1.txt:20 [Timorous Deep] “to South Ro”
+     Rule: fallback validation — Timorous Deep translocator route
+
+
+Velious / Antonica
+------------------
+078. Iceclad Ocean ↔ North Ro
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: iceclad_1.txt:2 [Iceclad Ocean] “to North Desert of Ro”
+     Map: iceclad_1.txt:30 [Iceclad Ocean] “to North Ro (Translocator Kurione)”
+     Map: nro.txt:1524 [North Ro] “to  Iceclad”
+     Map: nro_1.txt:1 [North Ro] “to Iceclad Ocean”
+     Rule: fallback validation — North Ro / Iceclad translocator route
+
+
+Planes / Antonica
+-----------------
+079. Plane of Fear ↔ The Feerrott
+     Type: teleport | Visual: two-way line | Evidence: bilateral map labels
+     Map: fearplane_1.txt:2 [Plane of Fear] “to The Feerrott”
+     Map: feerrott.txt:2897 [The Feerrott] “to Plane of Fear”
+     Map: feerrott_1.txt:5 [The Feerrott] “to The Plane of Fear”
+
+080. Oasis of Marr → Plane of Hate
+     Type: teleport | Visual: one-way arrow | Evidence: manual/access-rule only
+     Rule: user-validated access rule — Plane of Hate access from Oasis
+
+081. East Freeport → Plane of Sky
+     Type: teleport | Visual: one-way arrow | Evidence: manual/access-rule only
+     Rule: user-validated access rule — Plane of Sky access from East Freeport
+
+
+Faydwer
+-------
+082. Ak'Anon ↔ Steamfont Mountains
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: akanon.txt:2760 [Ak'Anon] “to Steamfont Mountains”
+     Map: akanon_1.txt:1 [Ak'Anon] “to The Steamfont Mountains”
+     Map: steamfont.txt:4495 [Steamfont Mountains] “to Ak`Anon”
+     Map: steamfont_1.txt:2 [Steamfont Mountains] “to Ak`Anon”
+
+083. Butcherblock Mountains ↔ Dagnor's Cauldron
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: butcher_1.txt:2 [Butcherblock Mountains] “to Dagnor`s Cauldron”
+     Map: cauldron.txt:952 [Dagnor's Cauldron] “to Butcherblock Mountains”
+     Map: cauldron_1.txt:1 [Dagnor's Cauldron] “to The Butcherblock Mountains”
+
+084. Butcherblock Mountains ↔ Greater Faydark / Kelethin
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: butcher_1.txt:1 [Butcherblock Mountains] “to The Greater Faydark”
+     Map: gfaydark.txt:1738 [Greater Faydark / Kelethin] “to Butcherblock”
+     Map: gfaydark_1.txt:1 [Greater Faydark / Kelethin] “to Butcherblock Mountains”
+
+085. Butcherblock Mountains ↔ Ocean of Tears
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: butcher_1.txt:7 [Butcherblock Mountains] “to The Ocean of Tears (Translocator Fithop)”
+     Map: oceanoftears_1.txt:1 [Ocean of Tears] “to East Freeport & The Butcherblock Mountains (Translocator Narrik)”
+     Rule: fallback validation — Ocean of Tears boat / translocator route
+
+086. Butcherblock Mountains ↔ South Kaladim
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: butcher_1.txt:4 [Butcherblock Mountains] “to South Kaladim”
+     Map: kaladima.txt:1493 [South Kaladim] “to Butcher Block”
+     Map: kaladima_1.txt:1 [South Kaladim] “to Butcherblock Mountains”
+
+087. Crushbone ↔ Greater Faydark / Kelethin
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: crushbone_1.txt:1 [Crushbone] “to The Greater Faydark”
+     Map: gfaydark.txt:1810 [Greater Faydark / Kelethin] “to Crushbone”
+     Map: gfaydark_1.txt:2 [Greater Faydark / Kelethin] “to Clan Crushbone”
+
+088. Dagnor's Cauldron ↔ Kedge Keep
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cauldron.txt:953 [Dagnor's Cauldron] “to Kedge Keep”
+     Map: cauldron_1.txt:2 [Dagnor's Cauldron] “to Kedge Keep”
+     Map: kedge_1.txt:1 [Kedge Keep] “to Dagnor`s Cauldron”
+
+089. Dagnor's Cauldron ↔ The Estate of Unrest
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cauldron.txt:954 [Dagnor's Cauldron] “to The Estate of Unrest”
+     Map: cauldron_1.txt:3 [Dagnor's Cauldron] “to The Estate of Unrest”
+     Map: unrest_1.txt:1 [The Estate of Unrest] “to Dagnor`s Cauldron”
+
+090. Greater Faydark / Kelethin ↔ Lesser Faydark
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: gfaydark.txt:1739 [Greater Faydark / Kelethin] “to Lesser Faydark”
+     Map: gfaydark_1.txt:3 [Greater Faydark / Kelethin] “to The Lesser Faydark”
+     Map: lfaydark.txt:1416 [Lesser Faydark] “to Greater Faydark”
+     Map: lfaydark_1.txt:3 [Lesser Faydark] “to The Greater Faydark”
+
+091. Lesser Faydark ↔ Mistmoore Castle
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lfaydark.txt:1415 [Lesser Faydark] “to Castle Mistmoore”
+     Map: mistmoore_1.txt:1 [Mistmoore Castle] “to The Lesser Faydark”
+
+092. Lesser Faydark ↔ Steamfont Mountains
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lfaydark.txt:1421 [Lesser Faydark] “to Steamfont Mountains”
+     Map: lfaydark_1.txt:2 [Lesser Faydark] “to The Steamfont Mountains”
+     Map: steamfont.txt:4494 [Steamfont Mountains] “to Lesser Faydark”
+     Map: steamfont_1.txt:1 [Steamfont Mountains] “to The Lesser Faydark”
+
+093. Northern Felwithe ↔ Greater Faydark / Kelethin
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: felwithea.txt:1519 [Northern Felwithe] “to Greater Faydark”
+     Map: felwithea_1.txt:1 [Northern Felwithe] “to The Greater Faydark”
+     Map: gfaydark.txt:1811 [Greater Faydark / Kelethin] “to Felwithe”
+     Map: gfaydark_1.txt:4 [Greater Faydark / Kelethin] “to Northern Felwithe”
+
+094. Northern Felwithe ↔ Southern Felwithe
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: felwithea.txt:1548 [Northern Felwithe] “to Southern Felwithe”
+     Map: felwithea_1.txt:2 [Northern Felwithe] “to Southern Felwithe”
+     Map: felwitheb.txt:806 [Southern Felwithe] “to Northern Felwithe”
+     Map: felwitheb_1.txt:1 [Southern Felwithe] “to Northern Felwithe”
+
+095. South Kaladim ↔ North Kaladim
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: kaladima.txt:1494 [South Kaladim] “to North Kaladim”
+     Map: kaladima.txt:1495 [South Kaladim] “to North Kaladim”
+     Map: kaladima_1.txt:2 [South Kaladim] “to North Kaladim”
+     Map: kaladima_1.txt:3 [South Kaladim] “to North Kaladim”
+     Map: kaladimb.txt:1440 [North Kaladim] “to South Kaladim”
+     Map: kaladimb.txt:1441 [North Kaladim] “to South Kaladim”
+     Map: kaladimb_1.txt:1 [North Kaladim] “to South Kaladim”
+     Map: kaladimb_1.txt:2 [North Kaladim] “to South Kaladim”
+
+
+Faydwer / Kunark
+----------------
+096. Timorous Deep → Ak'Anon
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:12 [Timorous Deep] “to Ak`Anon”
+
+097. Butcherblock Mountains ↔ Timorous Deep
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: butcher_1.txt:5 [Butcherblock Mountains] “to Timorous Deep”
+     Map: butcher_1.txt:8 [Butcherblock Mountains] “to Timorous Deep (Translocator Gethia)”
+     Map: timorous_1.txt:21 [Timorous Deep] “to Butcherblock”
+     Map: timorous_1.txt:22 [Timorous Deep] “to Butcherblock & Firiona Vie (Translocator Deela)”
+     Rule: fallback validation — Timorous Deep translocator route
+
+098. Timorous Deep → Greater Faydark / Kelethin
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:18 [Timorous Deep] “to Greater Faydark”
+
+099. Timorous Deep → Northern Felwithe
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:19 [Timorous Deep] “to North Felwithe”
+
+100. Timorous Deep → South Kaladim
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:11 [Timorous Deep] “to South Kaladim”
+
+
+Kunark
+------
+101. Burning Wood ↔ Chardok
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: burningwood.txt:2532 [Burning Wood] “to Chardok”
+     Map: burningwood_1.txt:3 [Burning Wood] “to Chardok”
+
+102. Burning Wood ↔ Dreadlands
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: burningwood.txt:2533 [Burning Wood] “to The Dreadlands”
+     Map: burningwood_1.txt:4 [Burning Wood] “to The Dreadlands”
+
+103. Burning Wood ↔ Frontier Mountains
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: burningwood.txt:2530 [Burning Wood] “to Frontier Mountains”
+     Map: burningwood_1.txt:1 [Burning Wood] “to Frontier Mountains”
+
+104. Burning Wood ↔ Skyfire Mountains
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: burningwood.txt:2531 [Burning Wood] “to Skyfire Mountains”
+     Map: burningwood_1.txt:2 [Burning Wood] “to Skyfire Mountains”
+
+105. City of Mist ↔ Emerald Jungle
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: citymist_1.txt:1 [City of Mist] “to The Emerald Jungle”
+     Map: emeraldjungle.txt:3408 [Emerald Jungle] “to The City of Mist”
+     Map: emeraldjungle_1.txt:3 [Emerald Jungle] “to The City of Mist”
+
+106. Dalnir ↔ Warsliks Woods
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: dalnir_1.txt:1 [Dalnir] “to The Warsliks Woods”
+     Map: dalnir_1.txt:2 [Dalnir] “to The Warsliks Woods”
+     Map: dalnir_1.txt:3 [Dalnir] “to The Warsliks Woods”
+     Map: warslikswood_1.txt:3 [Warsliks Woods] “to The Crypt of Dalnir”
+
+107. Dreadlands ↔ Firiona Vie
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: dreadlands.txt:4609 [Dreadlands] “to Firiona Vie”
+     Map: dreadlands_1.txt:3 [Dreadlands] “to Firiona Vie”
+     Map: firiona.txt:5914 [Firiona Vie] “to The Dreadlands”
+     Map: firiona_1.txt:4 [Firiona Vie] “to The Dreadlands”
+
+108. Dreadlands ↔ Frontier Mountains
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: dreadlands.txt:4608 [Dreadlands] “to Frontier Mountains”
+     Map: dreadlands_1.txt:2 [Dreadlands] “to Frontier Mountains”
+     Map: frontiermtns_1.txt:5 [Frontier Mountains] “to The Dreadlands”
+
+109. Dreadlands ↔ Karnor's Castle
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: dreadlands.txt:4612 [Dreadlands] “to Karnor's Castle”
+     Map: dreadlands.txt:4613 [Dreadlands] “to Karnor's Castle”
+     Map: dreadlands_1.txt:5 [Dreadlands] “to Karnor`s Castle”
+     Map: dreadlands_1.txt:6 [Dreadlands] “to Karnor`s Castle”
+     Map: karnor_1.txt:1 [Karnor's Castle] “to The Dreadlands”
+     Map: karnor_1.txt:2 [Karnor's Castle] “to The Dreadlands”
+
+110. East Cabilis ↔ Field of Bone
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cabeast.txt:3675 [East Cabilis] “to Field of Bone”
+     Map: cabeast.txt:3744 [East Cabilis] “to Field of Bone”
+     Map: cabeast_1.txt:1 [East Cabilis] “to The Field of Bone”
+     Map: cabeast_1.txt:4 [East Cabilis] “to The Field of Bone”
+     Map: fieldofbone.txt:5245 [Field of Bone] “to East Cabilis”
+     Map: fieldofbone_1.txt:3 [Field of Bone] “to Cabilis East”
+
+111. East Cabilis ↔ Swamp of No Hope
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cabeast.txt:3672 [East Cabilis] “to Swamp of No Hope”
+     Map: cabeast.txt:3673 [East Cabilis] “to Swamp of No Hope”
+     Map: cabeast_1.txt:2 [East Cabilis] “to The Swamp of No Hope”
+     Map: cabeast_1.txt:5 [East Cabilis] “to The Swamp of No Hope”
+     Map: swampofnohope.txt:4274 [Swamp of No Hope] “to East Cabilis”
+     Map: swampofnohope_1.txt:5 [Swamp of No Hope] “to Cabilis East”
+
+112. East Cabilis ↔ West Cabilis
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cabeast.txt:3674 [East Cabilis] “to Western Cabilis”
+     Map: cabeast_1.txt:3 [East Cabilis] “to Cabilis West”
+     Map: cabwest.txt:1023 [West Cabilis] “to East Cabilis”
+     Map: cabwest_1.txt:1 [West Cabilis] “to Cabilis East”
+
+113. Emerald Jungle ↔ Field of Bone
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: emeraldjungle.txt:3404 [Emerald Jungle] “to Field of Bone”
+     Map: emeraldjungle_1.txt:1 [Emerald Jungle] “to The Field of Bone”
+     Map: fieldofbone.txt:5248 [Field of Bone] “to Emerald Jungle”
+     Map: fieldofbone_1.txt:6 [Field of Bone] “to The Emerald Jungle”
+
+114. Emerald Jungle ↔ Trakanon's Teeth
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: emeraldjungle.txt:3407 [Emerald Jungle] “to Trakanon's Teeth”
+     Map: emeraldjungle_1.txt:2 [Emerald Jungle] “to Trakanon`s Teeth”
+     Map: trakanon_1.txt:1 [Trakanon's Teeth] “to The Emerald Jungle”
+
+115. Field of Bone ↔ Kaesora
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: fieldofbone.txt:5244 [Field of Bone] “to Kaesora”
+     Map: fieldofbone_1.txt:2 [Field of Bone] “to Kaesora”
+     Map: kaesora_1.txt:17 [Kaesora] “to The Field of Bone”
+
+116. Field of Bone ↔ Kurn's Tower
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: fieldofbone.txt:5243 [Field of Bone] “to Kurn's Tower”
+     Map: fieldofbone_1.txt:1 [Field of Bone] “to Kurn`s Tower”
+     Map: kurn_1.txt:1 [Kurn's Tower] “to The Field of Bone”
+     Map: kurn_1.txt:2 [Kurn's Tower] “to The Field of Bone”
+
+117. Field of Bone ↔ Swamp of No Hope
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: fieldofbone.txt:5247 [Field of Bone] “to Swamp of No Hope”
+     Map: fieldofbone_1.txt:5 [Field of Bone] “to The Swamp of No Hope”
+     Map: swampofnohope.txt:4272 [Swamp of No Hope] “to Field of Bone”
+     Map: swampofnohope_1.txt:3 [Swamp of No Hope] “to The Field of Bone”
+
+118. Field of Bone ↔ Warsliks Woods
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: fieldofbone.txt:5246 [Field of Bone] “to Warsliks Woods”
+     Map: fieldofbone_1.txt:4 [Field of Bone] “to The Warsliks Woods”
+     Map: warslikswood_1.txt:5 [Warsliks Woods] “to The Field of Bone”
+
+119. Firiona Vie ↔ Lake of Ill Omen
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: firiona.txt:5913 [Firiona Vie] “to Lake of Ill Omen”
+     Map: firiona_1.txt:1 [Firiona Vie] “to Lake of Ill Omen”
+     Map: lakeofillomen_1.txt:1 [Lake of Ill Omen] “to Firiona Vie”
+
+120. Firiona Vie ↔ Swamp of No Hope
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: firiona.txt:5911 [Firiona Vie] “to Swamp of No Hope”
+     Map: firiona.txt:5912 [Firiona Vie] “to Swamp of No Hope”
+     Map: firiona_1.txt:2 [Firiona Vie] “to The Swamp of No Hope”
+     Map: firiona_1.txt:3 [Firiona Vie] “to The Swamp of No Hope”
+     Map: swampofnohope.txt:4271 [Swamp of No Hope] “to Firiona Vie”
+     Map: swampofnohope.txt:4273 [Swamp of No Hope] “to Firiona Vie”
+     Map: swampofnohope_1.txt:2 [Swamp of No Hope] “to Firiona Vie”
+     Map: swampofnohope_1.txt:4 [Swamp of No Hope] “to Firiona Vie”
+
+121. Firiona Vie ↔ Timorous Deep
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: firiona_1.txt:5 [Firiona Vie] “to Timorous Deep”
+     Map: firiona_1.txt:6 [Firiona Vie] “to Timorous Deep (Translocator Drabilt)”
+     Map: timorous_1.txt:5 [Timorous Deep] “to Firiona Vie”
+     Map: timorous_1.txt:22 [Timorous Deep] “to Butcherblock & Firiona Vie (Translocator Deela)”
+     Rule: fallback validation — Timorous Deep translocator route
+
+122. Frontier Mountains ↔ Lake of Ill Omen
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: frontiermtns_1.txt:1 [Frontier Mountains] “to Lake of Ill Omen”
+     Map: lakeofillomen_1.txt:4 [Lake of Ill Omen] “to Frontier Mountains”
+
+123. Frontier Mountains ↔ Mines of Nurga
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: frontiermtns_1.txt:3 [Frontier Mountains] “to The Mines of Nurga”
+     Map: nurga_1.txt:1 [Mines of Nurga] “to Frontier Mountains”
+
+124. Frontier Mountains ↔ The Overthere
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: frontiermtns_1.txt:2 [Frontier Mountains] “to The Overthere”
+     Map: overthere.txt:4987 [The Overthere] “to Frontier Mountains”
+     Map: overthere_1.txt:1 [The Overthere] “to Frontier Mountains”
+
+125. Howling Stones (Charasis) ↔ The Overthere
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: charasis_1.txt:2 [Howling Stones (Charasis)] “to The Overthere”
+     Map: charasis_1.txt:3 [Howling Stones (Charasis)] “to The Overthere”
+     Map: overthere.txt:4972 [The Overthere] “to Howling Stones”
+     Map: overthere_1.txt:2 [The Overthere] “to The Howling Stones”
+
+126. Lake of Ill Omen ↔ Warsliks Woods
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: lakeofillomen_1.txt:3 [Lake of Ill Omen] “to Warsliks Woods”
+     Map: warslikswood_1.txt:2 [Warsliks Woods] “to Lake of Ill Omen”
+
+127. Old Sebilis ↔ Trakanon's Teeth
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: sebilis_1.txt:1 [Old Sebilis] “to Trakanon`s Teeth”
+     Map: sebilis_1.txt:2 [Old Sebilis] “to Trakanon`s Teeth”
+     Map: trakanon_1.txt:3 [Trakanon's Teeth] “to The Ruins of Sebilis”
+
+128. Skyfire Mountains ↔ Veeshan's Peak
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: skyfire_1.txt:4 [Skyfire Mountains] “to Veeshan`s Peak”
+     Map: veeshan_1.txt:1 [Veeshan's Peak] “to The Skyfire Mountains”
+     Map: veeshan_1.txt:2 [Veeshan's Peak] “to The Skyfire Mountains”
+     Map: veeshan_1.txt:3 [Veeshan's Peak] “to The Skyfire Mountains”
+     Map: veeshan_1.txt:4 [Veeshan's Peak] “to The Skyfire Mountains”
+
+129. Swamp of No Hope ↔ Trakanon's Teeth
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: swampofnohope.txt:4270 [Swamp of No Hope] “to Trakanon's Teeth”
+     Map: swampofnohope_1.txt:1 [Swamp of No Hope] “to Trakanon`s Teeth”
+     Map: trakanon_1.txt:2 [Trakanon's Teeth] “to The Swamp of No Hope”
+
+130. Temple of Droga ↔ Frontier Mountains
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: droga_1.txt:1 [Temple of Droga] “to Frontier Mountains”
+     Map: frontiermtns_1.txt:6 [Frontier Mountains] “to The Temple of Droga”
+
+131. Temple of Droga ↔ Mines of Nurga
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: droga_1.txt:2 [Temple of Droga] “to The Mines of Nurga”
+     Map: droga_1.txt:3 [Temple of Droga] “to The Mines of Nurga”
+     Map: nurga_1.txt:2 [Mines of Nurga] “to The Temple of Droga”
+     Map: nurga_1.txt:3 [Mines of Nurga] “to The Temple of Droga”
+
+132. The Overthere ↔ Skyfire Mountains
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: overthere.txt:4988 [The Overthere] “to Skyfire Mountains”
+     Map: overthere_1.txt:4 [The Overthere] “to The Skyfire Mountains”
+     Map: skyfire_1.txt:2 [Skyfire Mountains] “to The Overthere”
+
+133. The Overthere ↔ Timorous Deep
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: overthere.txt:4989 [The Overthere] “to Timorous Deep”
+     Map: overthere_1.txt:6 [The Overthere] “to Timorous Deep (Translocator Breya)”
+     Map: timorous_1.txt:1 [Timorous Deep] “to The Overthere & South Desert of Ro (Translocator Jorbin)”
+     Map: timorous_1.txt:3 [Timorous Deep] “to The Overthere”
+     Rule: fallback validation — Timorous Deep translocator route
+
+134. The Overthere ↔ Warsliks Woods
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: overthere.txt:4971 [The Overthere] “to Warslik's Woods”
+     Map: overthere_1.txt:5 [The Overthere] “to The Warsliks Woods”
+     Map: warslikswood_1.txt:1 [Warsliks Woods] “to The Overthere”
+
+135. West Cabilis ↔ Lake of Ill Omen
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cabwest.txt:1026 [West Cabilis] “to Lake of ill Omen”
+     Map: cabwest.txt:1027 [West Cabilis] “to Lake of ill Omen”
+     Map: cabwest_1.txt:4 [West Cabilis] “to Lake of Ill Omen”
+     Map: cabwest_1.txt:5 [West Cabilis] “to Lake of Ill Omen”
+     Map: lakeofillomen_1.txt:2 [Lake of Ill Omen] “to Cabilis West”
+
+136. Timorous Deep → West Cabilis
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: timorous_1.txt:10 [Timorous Deep] “to Cablis West”
+
+137. West Cabilis ↔ Warsliks Woods
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cabwest.txt:1024 [West Cabilis] “to Warslik's Woods”
+     Map: cabwest.txt:1025 [West Cabilis] “to Warslik's Woods”
+     Map: cabwest_1.txt:2 [West Cabilis] “to The Warsliks Woods”
+     Map: cabwest_1.txt:3 [West Cabilis] “to The Warsliks Woods”
+     Map: warslikswood_1.txt:4 [Warsliks Woods] “to Cabilis West”
+
+
+Velious
+-------
+138. Cobalt Scar ↔ Siren's Grotto
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cobaltscar.txt:2381 [Cobalt Scar] “to Siren's Grotto”
+     Map: cobaltscar_1.txt:2 [Cobalt Scar] “to Siren's Grotto”
+     Map: sirens_1.txt:1 [Siren's Grotto] “to Cobalt Scar”
+
+139. Cobalt Scar ↔ Skyshrine
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: cobaltscar.txt:2380 [Cobalt Scar] “to Skyshrine”
+     Map: cobaltscar_1.txt:1 [Cobalt Scar] “to Skyshrine”
+     Map: skyshrine_1.txt:2 [Skyshrine] “to Cobalt Scar (Shrine Key,unpickable)”
+
+140. Crystal Caverns ↔ Eastern Wastes
+     Type: portal | Visual: two-way line | Evidence: bilateral map labels
+     Map: crystal_1.txt:1 [Crystal Caverns] “to Eastern Wastes”
+     Map: crystal_1.txt:2 [Crystal Caverns] “to Eastern Wastes”
+     Map: eastwastes_1.txt:24 [Eastern Wastes] “to Crystal Caverns (click orb)”
+
+141. Dragon Necropolis ↔ Western Wastes
+     Type: portal | Visual: two-way line | Evidence: bilateral map labels
+     Map: necropolis_1.txt:1 [Dragon Necropolis] “to The Western Wastes (touch pedestal)”
+     Map: westwastes_1.txt:3 [Western Wastes] “to Dragon Necropolis (click pedestal)”
+
+142. Eastern Wastes ↔ Iceclad Ocean
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: eastwastes_1.txt:23 [Eastern Wastes] “to The Iceclad Ocean”
+     Map: iceclad_1.txt:1 [Iceclad Ocean] “to Eastern Wastes”
+
+143. Eastern Wastes ↔ Kael Drakkal
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: eastwastes_1.txt:27 [Eastern Wastes] “to Kael Drakkel”
+     Map: kael.txt:4051 [Kael Drakkal] “to Eastern Wastes”
+     Map: kael_1.txt:1 [Kael Drakkal] “to Eastern Wastes”
+
+144. Eastern Wastes ↔ Sleeper's Tomb
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: eastwastes_1.txt:29 [Eastern Wastes] “to The Sleeper`s Tomb”
+     Map: sleeper_1.txt:1 [Sleeper's Tomb] “to Eastern Wastes”
+
+145. Eastern Wastes ↔ The Great Divide
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: eastwastes_1.txt:26 [Eastern Wastes] “to The Great Divide”
+     Map: greatdivide.txt:1987 [The Great Divide] “to Eastern Wastes”
+     Map: greatdivide_1.txt:1 [The Great Divide] “to Eastern Wastes”
+
+146. Kael Drakkal ↔ Wakening Land
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: kael.txt:4052 [Kael Drakkal] “to Wakening Lands”
+     Map: kael_1.txt:2 [Kael Drakkal] “to The Wakening Land”
+     Map: wakening_1.txt:1 [Wakening Land] “to Kael Drakkel”
+
+147. Siren's Grotto ↔ Western Wastes
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: sirens_1.txt:2 [Siren's Grotto] “to The Western Wastes”
+     Map: westwastes_1.txt:2 [Western Wastes] “to Siren`s Grotto”
+
+148. Skyshrine ↔ Wakening Land
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: skyshrine_1.txt:1 [Skyshrine] “to The Wakening Land”
+     Map: wakening_1.txt:2 [Wakening Land] “to Skyshrine”
+
+149. Temple of Veeshan ↔ Western Wastes
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: templeveeshan_1.txt:1 [Temple of Veeshan] “to The Western Wastes”
+     Map: templeveeshan_1.txt:2 [Temple of Veeshan] “to The Western Wastes”
+     Map: templeveeshan_1.txt:3 [Temple of Veeshan] “to The Western Wastes”
+     Map: westwastes_1.txt:1 [Western Wastes] “to The Temple of Veeshan”
+
+150. The Great Divide ↔ Icewell Keep
+     Type: land | Visual: two-way line | Evidence: one-sided map label evidence
+     Map: thurgadinb_1.txt:3 [Icewell Keep] “to The Great Divide”
+
+151. The Great Divide ↔ Thurgadin
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: greatdivide.txt:1988 [The Great Divide] “to The City of Thurgadin”
+     Map: greatdivide_1.txt:2 [The Great Divide] “to The City of Thurgadin”
+     Map: thurgadina.txt:3729 [Thurgadin] “to Great Divide”
+     Map: thurgadina_1.txt:3 [Thurgadin] “to The Great Divide”
+
+152. The Great Divide ↔ Velketor's Labyrinth
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: greatdivide.txt:1989 [The Great Divide] “to Velketor's Labyrinth”
+     Map: greatdivide_1.txt:4 [The Great Divide] “to Velketor`s Labyrinth”
+     Map: velketor_1.txt:1 [Velketor's Labyrinth] “to The Great Divide”
+
+153. Thurgadin ↔ Icewell Keep
+     Type: land | Visual: two-way line | Evidence: bilateral map labels
+     Map: thurgadina.txt:3727 [Thurgadin] “to Icewell Keep”
+     Map: thurgadina.txt:3728 [Thurgadin] “to Icewell Keep”
+     Map: thurgadina_1.txt:1 [Thurgadin] “to Icewell Keep”
+     Map: thurgadina_1.txt:2 [Thurgadin] “to Icewell Keep”
+     Map: thurgadinb.txt:3160 [Icewell Keep] “to The City of Thurgadin”
+     Map: thurgadinb.txt:3161 [Icewell Keep] “to The City of Thurgadin”
+     Map: thurgadinb_1.txt:1 [Icewell Keep] “to The City of Thurgadin”
+     Map: thurgadinb_1.txt:2 [Icewell Keep] “to The City of Thurgadin”
+
+154. Tower of Frozen Shadow ↔ Iceclad Ocean
+     Type: water | Visual: two-way line | Evidence: bilateral map labels
+     Map: frozenshadow_1.txt:1 [Tower of Frozen Shadow] “to The Iceclad Ocean (ZI)”
+     Map: frozenshadow_1.txt:2 [Tower of Frozen Shadow] “to The Iceclad Ocean”
+     Map: frozenshadow_1.txt:3 [Tower of Frozen Shadow] “to The Iceclad Ocean”
+     Map: frozenshadow_1.txt:4 [Tower of Frozen Shadow] “to The Iceclad Ocean”
+     Map: frozenshadow_1.txt:5 [Tower of Frozen Shadow] “to The Iceclad Ocean”
+     Map: frozenshadow_1.txt:6 [Tower of Frozen Shadow] “to The Iceclad Ocean”
+     Map: frozenshadow_1.txt:7 [Tower of Frozen Shadow] “to The Iceclad Ocean”
+     Map: iceclad_1.txt:3 [Iceclad Ocean] “to The Tower of Frozen Shadow”
+
+
+Velious / Planes
+----------------
+155. Plane of Mischief → Cobalt Scar
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: mischiefplane_1.txt:2 [Plane of Mischief] “to Cobalt Scar (click tree)”
+
+
+Planes / Velious
+----------------
+156. Wakening Land → Plane of Growth
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: wakening_1.txt:3 [Wakening Land] “to The Plane of Growth”
+
+157. Temple of Veeshan → Plane of Mischief
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: templeveeshan_1.txt:4 [Temple of Veeshan] “to The Plane of Mischief (click)”
+
+
+Velious / Planes
+----------------
+158. The Great Divide → Plane of Mischief
+     Type: portal | Visual: one-way arrow | Evidence: one-sided map label evidence
+     Map: greatdivide_1.txt:6 [The Great Divide] “to The Plane of Mischief”
+
+
+UNRESOLVED / OUT-OF-SCOPE “TO” LABELS
+========================================================================
+These labels were not allowed to create edges in the visual graph.
+
+- butcher_1.txt:3 [Butcherblock Mountains] “to The Plane of Knowledge (Click Book)”
+- chardok_1.txt:2 [Chardok] “to The Burning Woods”
+- chardok_1.txt:3 [Chardok] “to Chardok: The Halls of Betrayal (pull lever)”
+- necropolis_1.txt:2 [Dragon Necropolis] “to The Breeding Grounds”
+- dreadlands.txt:4607 [Dreadlands] “to Burning Woods”
+- dreadlands_1.txt:1 [Dreadlands] “to The Burning Woods”
+- eastwastes_1.txt:28 [Eastern Wastes] “to East Wastes: Zeixshi-Kar`s Awakening”
+- erudnext.txt:2316 [Erudin] “to Erudin Docks”
+- erudnext.txt:2317 [Erudin] “to Erudin City”
+- erudnext_1.txt:2 [Erudin] “to Erudin Docks”
+- erudnext_1.txt:4 [Erudin] “to Erudin City”
+- everfrost_1.txt:4 [Everfrost Peaks] “to The Plane of Knowledge (Click Book)”
+- fieldofbone_1.txt:7 [Field of Bone] “to The Plane of Knowledge (Click Book)”
+- firiona_1.txt:7 [Firiona Vie] “to The Plane of Knowledge (Click Book)”
+- frontiermtns_1.txt:4 [Frontier Mountains] “to The Burning Woods”
+- beholder_1.txt:3 [Gorge of King Xorbb] “to Valley of King Xorbb”
+- gfaydark_1.txt:5 [Greater Faydark / Kelethin] “to The Plane of Knowledge (Click Book)”
+- gfaydark_1.txt:6 [Greater Faydark / Kelethin] “to The Plane of Knowledge (Click Book)”
+- highpass.txt:1954 [Highpass Hold] “to Kithicor Woods”
+- innothule.txt:1180 [Innothule Swamp] “to Gukta”
+- innothule_1.txt:1 [Innothule Swamp] “to The Plane of Knowledge (Click Book)”
+- jaggedpine_1.txt:2 [Jaggedpine Forest] “to Nedaria`s Landing”
+- lakeofillomen_1.txt:6 [Lake of Ill Omen] “to Veksar”
+- lavastorm_1.txt:2 [Lavastorm Mountains] “to Lavaspinner`s Lair”
+- lavastorm_1.txt:3 [Lavastorm Mountains] “to The Broodlands”
+- lavastorm_1.txt:5 [Lavastorm Mountains] “to Nektulos Forrest”
+- lfaydark_1.txt:1 [Lesser Faydark] “to The Castle of Mistmoore”
+- mistmoore_1.txt:61 [Mistmoore Castle] “to Bloodfalls”
+- misty_1.txt:1 [Misty Thicket] “to The Plane of Knowledge (Click Book)”
+- soldungb_1.txt:7 [Nagafen's Lair (Sol B)] “to The Caverns of Excile”
+- nektulos_1.txt:2 [Nektulos Forest] “to Corathus Creep”
+- nektulos_1.txt:5 [Nektulos Forest] “to The Plane of Knowledge (Click Book)”
+- neriakb.txt:3122 [Neriak - Commons] “To Neriak 3rd Gate”
+- neriakc.txt:3773 [Neriak - Third Gate] “to Neriak Fourth Gate”
+- neriakc_1.txt:2 [Neriak - Third Gate] “to Neriak - Fourth Gate”
+- qeynos2_1.txt:4 [North Qeynos] “to The Plane of Knowledge (Click Book)”
+- paineel_1.txt:1 [Paineel] “to The Ruins of Old Paineel”
+- paineel_1.txt:48 [Paineel] “to The Ruins of Old Paineel (fall down)”
+- mischiefplane_1.txt:24 [Plane of Mischief] “to Alice (click chair)”
+- mischiefplane_1.txt:25 [Plane of Mischief] “to Black and White Room (click book)”
+- mischiefplane_1.txt:26 [Plane of Mischief] “to Chessboard”
+- mischiefplane_1.txt:27 [Plane of Mischief] “to Doors Room (click painting)”
+- mischiefplane_1.txt:28 [Plane of Mischief] “to Entry (click torch)”
+- mischiefplane_1.txt:29 [Plane of Mischief] “to Entry (click painting)”
+- mischiefplane_1.txt:30 [Plane of Mischief] “to Entry (click painting)”
+- mischiefplane_1.txt:31 [Plane of Mischief] “to Entry (click vase)”
+- mischiefplane_1.txt:32 [Plane of Mischief] “to East Wing (click vase)”
+- mischiefplane_1.txt:33 [Plane of Mischief] “to Garden (click pot)”
+- mischiefplane_1.txt:34 [Plane of Mischief] “to Theatre (click book)”
+- mischiefplane_1.txt:35 [Plane of Mischief] “to Throne Room”
+- mischiefplane_1.txt:36 [Plane of Mischief] “to Upside-Down Wing-1 (click chandolier)”
+- mischiefplane_1.txt:37 [Plane of Mischief] “to Upside-Down Wing-2”
+- mischiefplane_1.txt:38 [Plane of Mischief] “to Upside-Down Wing-1 (click vase)”
+- mischiefplane_1.txt:39 [Plane of Mischief] “to Upside-Down Wing-1 (click chair)”
+- mischiefplane_1.txt:40 [Plane of Mischief] “to West Wing-3 (click torch)”
+- mischiefplane_1.txt:41 [Plane of Mischief] “to West Wing-2 (click painting)”
+- skyfire_1.txt:3 [Skyfire Mountains] “to The Burning Woods”
+- skyshrine_1.txt:11 [Skyshrine] “to Skyshrine Lower Level”
+- skyshrine_1.txt:12 [Skyshrine] “to Quest Hall”
+- soldunga_1.txt:2 [Solusek's Eye (Sol A)] “to The Caverns of Exile”
+- soldunga_1.txt:9 [Solusek's Eye (Sol A)] “to Nagafen`s Lair (5) One-Way”
+- felwitheb_1.txt:13 [Southern Felwithe] “to Enchanter Guild”
+- felwitheb_1.txt:14 [Southern Felwithe] “to Magician Guild”
+- felwitheb_1.txt:16 [Southern Felwithe] “to Wizard Guild”
+- felwitheb_1.txt:18 [Southern Felwithe] “to Entrance Area”
+- felwitheb_1.txt:20 [Southern Felwithe] “to Entrance Area”
+- felwitheb_1.txt:21 [Southern Felwithe] “to Entrance Area”
+- steamfont_1.txt:3 [Steamfont Mountains] “to The Plane of Knowledge (Click Book)”
+- stonebrunt.txt:1300 [Stonebrunt Mountains] “to The Gulf of Gunthak”
+- stonebrunt_1.txt:1 [Stonebrunt Mountains] “to The Gulf of Gunthak”
+- feerrott_1.txt:1 [The Feerrott] “to The Plane of Knowledge (Click Book)”
+- feerrott_1.txt:8 [The Feerrott] “to Feerott the Dream (click)”
+- greatdivide_1.txt:3 [The Great Divide] “to The Plane of Knowledge (Click Book)”
+- hole_1.txt:5 [The Hole] “to Brell`s Rest”
+- overthere_1.txt:3 [The Overthere] “to The Plane of Knowledge (Click Book)”
+- timorous_1.txt:14 [Timorous Deep] “to Gukta”
+- tox.txt:710 [Toxxulia Forest] “to Kerra Ridge”
+- tox_1.txt:1 [Toxxulia Forest] “to Kerra Ridge”
+- tox_1.txt:4 [Toxxulia Forest] “to The Plane of Knowledge (Click Book)”
+- tox_1.txt:5 [Toxxulia Forest] “to The Plane of Knowledge (Click Book)”
+- qey2hh1_1.txt:3 [West Karana] “to Ethernere Tainted West Karana”
+
+MAP FAMILY ALIASES USED
+========================================================================
+- Kerra Island (kerra) → kerraridge.txt / kerraridge_1.txt
+- New Sebilis Expedition (newsebilis) → newsebexp.txt / newsebexp_1.txt
+- Ocean of Tears (oot) → oceanoftears.txt / oceanoftears_1.txt

@@ -1,0 +1,27 @@
+/* EQLImmersive — Grayout, Auction Tracker, Contribution Scores
+ * .grayout: dims content not yet implemented in-game.
+ * .auctrackerbox: floating box for auction tracker embeds.
+ * .contributionscores-wrapper: border for ContributionScores extension output.
+ */
+/* --- grayout for content not yet implemented --- */
+
+.grayout { color: #bbbbbb; }
+.grayout a { color: #bbbbbb; }
+.grayout a.new { color: #bbb; }
+.grayout h3 { color: #bbb; }
+.grayout h2 { color: #bbb; }
+.grayout h1 { color: #bbb; }
+
+/* --- new itemhover --- */
+
+#itemHoverContainer { position:absolute; left:0; top:0; display:none; z-index: 1000; }
+#itemHoverContent { }
+.itemHoverPopup { }
+
+/* --- auction tracker --- */
+
+.auctrackerbox { padding: 5px; border: 1px solid #b3c0cf; float: right; margin-bottom: 10px; margin-left: 15px; }
+
+/* --- contribs --- */
+
+.contributionscores-wrapper { border: 1px solid #bbb; padding: 3px; }

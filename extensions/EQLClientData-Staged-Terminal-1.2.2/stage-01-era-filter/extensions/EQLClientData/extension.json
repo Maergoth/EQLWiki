@@ -1,0 +1,72 @@
+{
+  "name": "EQLClientData",
+  "version": "1.1.2",
+  "author": "EverQuest Legends Wiki",
+  "description": "Provides staged, revision-aware cached client metadata and batched era status for EQLImmersive.",
+  "type": "other",
+  "license-name": "GPL-2.0-or-later",
+  "requires": {
+    "MediaWiki": ">= 1.45"
+  },
+  "AutoloadNamespaces": {
+    "EQLClientData\\": "includes/"
+  },
+  "ServiceWiringFiles": [
+    "includes/ServiceWiring.php"
+  ],
+  "APIModules": {
+    "eqlmetadata": {
+      "class": "EQLClientData\\ApiMetadata",
+      "services": [
+        "EQLClientData.ConfigRepository",
+        "MainConfig",
+        "TitleFactory"
+      ]
+    }
+  },
+  "HookHandlers": {
+    "main": {
+      "class": "EQLClientData\\Hooks",
+      "services": [
+        "EQLClientData.ConfigRepository",
+        "MainConfig"
+      ]
+    }
+  },
+  "Hooks": {
+    "BeforePageDisplay": "main",
+    "PageSaveComplete": "main",
+    "PageDeleteComplete": "main",
+    "PageMoveComplete": "main"
+  },
+  "config": {
+    "EQLClientDataEnableEra": {
+      "value": false
+    },
+    "EQLClientDataEnableVerification": {
+      "value": false
+    },
+    "EQLClientDataEnableSpellOverrides": {
+      "value": false
+    },
+    "EQLClientDataVerificationModuleName": {
+      "value": ""
+    },
+    "EQLClientDataVerifiedPagesTitle": {
+      "value": "VerifiedPages"
+    },
+    "EQLClientDataPageEraTitle": {
+      "value": "Template:PageEra"
+    },
+    "EQLClientDataSpellOverridesTitle": {
+      "value": "SpellLevelSliderOverrides"
+    },
+    "EQLClientDataEraStatusClientTtlSeconds": {
+      "value": 30
+    },
+    "EQLClientDataApiMaxTitles": {
+      "value": 500
+    }
+  },
+  "manifest_version": 2
+}

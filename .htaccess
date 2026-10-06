@@ -1,0 +1,57 @@
+
+
+# Short Wiki URL setup
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTP_HOST} ^www\.eqlwiki\.com$ [NC]
+RewriteRule ^(.*)$ https://eqlwiki.com/$1 [R=301,L]
+RewriteRule ^/(/.*)?$ %{DOCUMENT_ROOT}/index.php [L]
+
+
+# ============================================================
+# EQL_STATIC_ASSET_404_GUARD_V1
+#
+# Missing static resources should return 404 directly rather
+# than falling through MediaWiki's short-URL rewrite.
+#
+# Existing files are unaffected.
+# ============================================================
+
+RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-f
+RewriteRule ^(?:skins|extensions|images|resources)/.*\.(?:css|js|mjs|map|png|gif|jpe?g|webp|svg|ico|woff2?|ttf|otf|eot)$ - [R=404,L,NC]
+
+RewriteCond %{REQUEST_URI} !^/rest\.php
+RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-f
+RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-d
+RewriteRule ^(.*)$ %{DOCUMENT_ROOT}/index.php [L]
+# Short Wiki URL 
+
+# BEGIN cPanel-generated php ini directives, do not edit
+# Manual editing of this file may result in unexpected behavior.
+# To make changes to this file, use the cPanel MultiPHP INI Editor (Home >> Software >> MultiPHP INI Editor)
+# For more information, read our documentation (https://go.cpanel.net/EA4ModifyINI)
+<IfModule php8_module>
+   php_flag display_errors Off
+   php_value max_execution_time 6000
+   php_value max_input_time 6000
+   php_value max_input_vars 1000
+   php_value memory_limit 512M
+   php_value post_max_size 128M
+   php_value session.gc_maxlifetime 1440
+   php_value session.save_path "/var/cpanel/php/sessions/ea-php82"
+   php_value upload_max_filesize 128M
+   php_flag zlib.output_compression Off
+</IfModule>
+<IfModule lsapi_module>
+   php_flag display_errors Off
+   php_value max_execution_time 6000
+   php_value max_input_time 6000
+   php_value max_input_vars 1000
+   php_value memory_limit 512M
+   php_value post_max_size 128M
+   php_value session.gc_maxlifetime 1440
+   php_value session.save_path "/var/cpanel/php/sessions/ea-php82"
+   php_value upload_max_filesize 128M
+   php_flag zlib.output_compression Off
+</IfModule>
+# END cPanel-generated php ini directives, do not edit

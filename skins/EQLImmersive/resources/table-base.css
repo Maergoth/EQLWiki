@@ -1,0 +1,77 @@
+/* EQLImmersive — Base Table Styling
+ * Unified styling for .eoTable, .eoTable2, .eoTable3, .wikitable, table.sortable.
+ * Defines borders, padding, header backgrounds, alternating row colors, hover states.
+ * Also includes .class-guides-dropdown select margin.
+ */
+/* --- General result/equipment table cleanup --- */
+.eoTable,
+.eoTable2,
+.eoTable3,
+.wikitable,
+table.sortable {
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 0.75em 0 1.25em;
+  background: #fff;
+  color: #202122;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.eoTable th,
+.eoTable2 th,
+.eoTable3 th,
+.wikitable th,
+table.sortable th {
+  background: #dfeaf5;
+  color: #202122;
+  border: 1px solid #a2a9b1;
+  padding: 7px 10px;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.eoTable td,
+.eoTable2 td,
+.eoTable3 td,
+.wikitable td,
+table.sortable td {
+  border: 1px solid #c8ccd1;
+  padding: 6px 10px;
+  vertical-align: middle;
+}
+
+.eoTable tr:nth-child(even) td,
+.eoTable2 tr:nth-child(even) td,
+.eoTable3 tr:nth-child(even) td,
+.wikitable tr:nth-child(even) td,
+table.sortable tr:nth-child(even) td {
+  background: #f8f9fa;
+}
+
+.eoTable tr:hover td,
+.eoTable2 tr:hover td,
+.eoTable3 tr:hover td,
+.wikitable tr:hover td,
+table.sortable tr:hover td {
+  background: #eef3f8;
+}
+
+.eoTable img,
+.eoTable2 img,
+.eoTable3 img,
+.wikitable img,
+table.sortable img {
+  vertical-align: middle;
+}
+
+.eoTable td:first-child,
+.eoTable2 td:first-child,
+.eoTable3 td:first-child {
+  white-space: nowrap;
+}
+
+.class-guides-dropdown select {
+  margin-right: 0.5em;
+}

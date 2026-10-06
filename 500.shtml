@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>500 Internal Server Error</title>
+<style>
+    body {
+        background-color: #0d0d0d;
+        color: #e0e0e0;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 60px 20px;
+    }
+    .box {
+        max-width: 600px;
+        margin: auto;
+        background: #1a1a1a;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: #ffcc66;
+    }
+    p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    a {
+        color: #66aaff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
+</head>
+<body>
+
+<div class="box">
+    <h1>500 — Internal Server Error</h1>
+
+    <p>
+        Something unexpected occurred while processing your request.<br>
+        This is a server-side issue, not a problem with your browser.
+    </p>
+
+    <p>
+        Please try again in a few moments.<br>
+        If the issue persists, contact the site administrator.
+    </p>
+
+    <p>
+        You may return to the <a href="/">EverQuest Legends Wiki</a>.
+    </p>
+</div>
+
+</body>
+</html>

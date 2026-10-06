@@ -1,0 +1,255 @@
+/* =====================================================
+   EQL Immersive — layout-reset.css
+
+   Loaded LAST.
+
+   Purpose:
+   - Pin the footer to the bottom-left of the viewport.
+   - Keep the footer thin and single-line.
+   - Hide footer icon badges.
+   - Do NOT alter page/content/container layout.
+   ===================================================== */
+
+
+/* =====================================================
+   Fixed footer reserve space
+   ===================================================== */
+
+body.skin-eqlimmersive {
+	padding-bottom: 2.55rem !important;
+}
+
+
+/* =====================================================
+   Fixed footer — bottom-left
+   ===================================================== */
+
+body.skin-eqlimmersive .mw-footer-container {
+	position: fixed !important;
+
+	left: 0 !important;
+	right: 0 !important;
+	bottom: 0 !important;
+
+	width: 100% !important;
+	max-width: none !important;
+	min-width: 0 !important;
+
+	height: 2.25rem !important;
+	min-height: 2.25rem !important;
+	max-height: 2.25rem !important;
+
+	margin: 0 !important;
+	padding: 0 1rem !important;
+
+	display: flex !important;
+	align-items: center !important;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 8, 12, 18, 0.76 ),
+			rgba( 8, 12, 18, 0.94 )
+		) !important;
+
+	border-top: 1px solid rgba( 255, 255, 255, 0.10 ) !important;
+
+	backdrop-filter: blur( 8px );
+	-webkit-backdrop-filter: blur( 8px );
+
+	box-shadow:
+		0 -6px 18px rgba( 0, 0, 0, 0.28 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+
+	z-index: 5000 !important;
+	box-sizing: border-box;
+	overflow: hidden !important;
+}
+
+
+/* =====================================================
+   Footer contents — one line, left-aligned
+   ===================================================== */
+
+body.skin-eqlimmersive #footer,
+body.skin-eqlimmersive .vector-footer {
+	width: 100% !important;
+	max-width: none !important;
+	min-width: 0 !important;
+
+	height: 100% !important;
+	min-height: 0 !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	display: flex !important;
+	align-items: center !important;
+	justify-content: flex-start !important;
+	gap: 1rem !important;
+
+	background: transparent !important;
+	border-top: 0 !important;
+	box-shadow: none !important;
+
+	text-align: left !important;
+
+	box-sizing: border-box;
+	overflow: hidden !important;
+}
+
+body.skin-eqlimmersive #footer ul,
+body.skin-eqlimmersive .vector-footer ul,
+body.skin-eqlimmersive #footer-info,
+body.skin-eqlimmersive #footer-places,
+body.skin-eqlimmersive #footer-icons {
+	display: flex !important;
+	flex-wrap: nowrap !important;
+	align-items: center !important;
+	justify-content: flex-start !important;
+
+	gap: 0.75rem !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	list-style: none !important;
+
+	white-space: nowrap !important;
+	overflow: hidden !important;
+
+	text-align: left !important;
+}
+
+body.skin-eqlimmersive #footer li,
+body.skin-eqlimmersive .vector-footer li {
+	display: inline-flex !important;
+	align-items: center !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	font-size: 0.72rem !important;
+	line-height: 1.1 !important;
+
+	white-space: nowrap !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+
+	max-width: 52vw;
+}
+
+body.skin-eqlimmersive #footer-info {
+	flex: 1 1 auto !important;
+	min-width: 0 !important;
+}
+
+body.skin-eqlimmersive #footer-info li {
+	max-width: 100% !important;
+}
+
+body.skin-eqlimmersive #footer-places,
+body.skin-eqlimmersive #footer-icons {
+	flex: 0 0 auto !important;
+}
+
+body.skin-eqlimmersive #footer a,
+body.skin-eqlimmersive .vector-footer a {
+	color: var( --eql-text-muted ) !important;
+	text-decoration: none !important;
+}
+
+body.skin-eqlimmersive #footer a:hover,
+body.skin-eqlimmersive .vector-footer a:hover {
+	color: var( --eql-gold ) !important;
+	text-decoration: underline !important;
+}
+
+
+/* =====================================================
+   Hide Powered by MediaWiki / footer icons
+   ===================================================== */
+
+body.skin-eqlimmersive #footer-icons,
+body.skin-eqlimmersive .footer-icons,
+body.skin-eqlimmersive .mw-footer-icons {
+	display: none !important;
+	width: 0 !important;
+	min-width: 0 !important;
+	max-width: 0 !important;
+	height: 0 !important;
+	min-height: 0 !important;
+	max-height: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	overflow: hidden !important;
+}
+
+body.skin-eqlimmersive #footer-poweredbyico,
+body.skin-eqlimmersive #f-poweredbyico,
+body.skin-eqlimmersive li#footer-poweredbyico,
+body.skin-eqlimmersive li#f-poweredbyico,
+body.skin-eqlimmersive img[alt="Powered by MediaWiki"],
+body.skin-eqlimmersive img[alt="Powered by MediaWiki logo"],
+body.skin-eqlimmersive a[href*="mediawiki.org"] img {
+	display: none !important;
+}
+
+
+/* =====================================================
+   Sidebar-pinned state
+
+   Do not move the footer horizontally.
+   Footer remains fixed to viewport bottom-left.
+   ===================================================== */
+
+body.skin-eqlimmersive.eql-main-menu-pinned .mw-footer-container,
+html.eql-main-menu-pinned-initial body.skin-eqlimmersive .mw-footer-container {
+	left: 0 !important;
+	right: 0 !important;
+	width: 100% !important;
+}
+
+
+/* =====================================================
+   Mobile safety
+   ===================================================== */
+
+@media ( max-width: 900px ) {
+	body.skin-eqlimmersive {
+		padding-bottom: 3.25rem !important;
+	}
+
+	body.skin-eqlimmersive .mw-footer-container {
+		height: 3rem !important;
+		min-height: 3rem !important;
+		max-height: 3rem !important;
+
+		padding-left: 0.75rem !important;
+		padding-right: 0.75rem !important;
+	}
+
+	body.skin-eqlimmersive #footer li,
+	body.skin-eqlimmersive .vector-footer li {
+		font-size: 0.68rem !important;
+		max-width: 70vw;
+	}
+}
+
+/* =====================================================
+   EQL Immersive — fixed footer clearance
+   Keep page content from crashing into the fixed footer.
+   ===================================================== */
+
+body.skin-eqlimmersive .mw-page-container-inner {
+	padding-bottom: 3.25rem !important;
+}
+
+body.skin-eqlimmersive .mw-content-container {
+	padding-bottom: 1rem !important;
+}
+
+/* Slightly more room on pages with categories/actions near the bottom. */
+body.skin-eqlimmersive .catlinks {
+	margin-bottom: 0.75rem !important;
+}

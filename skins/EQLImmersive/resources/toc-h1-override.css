@@ -1,0 +1,148 @@
+/* EQLImmersive — TOC H1 Override Display
+ * Visual hierarchy for the JS-rebuilt custom side TOC that includes H1 headings.
+ * Indentation levels 1-6, link styling, numbering, and TOC-limit re-declarations.
+ * JS companion: toc-h1-override.js.
+ */
+/* =====================================================
+   EQL Wiki â€” FINAL TOC H1 override for custom side TOC
+   Append this at the VERY BOTTOM of MediaWiki:Common.css.
+
+   Must be after older TOC-limit CSS, because this block intentionally
+   redefines TOC levels as real heading depths:
+   = h1 =             => level 1
+   == h2 ==           => level 2
+   === h3 ===         => level 3
+   ==== h4 ====       => level 4
+   ===== h5 =====     => level 5
+   ====== h6 ======   => level 6
+   ===================================================== */
+
+/* Base display for the JS-owned custom TOC. */
+[data-eql-toc-h1-override="1"] .eql-toc-h1-override-item,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-item,
+body.eql-toc-h1-override-ready .eql-toc-h1-override-item {
+	display: block !important;
+	box-sizing: border-box !important;
+	width: 100% !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	list-style: none !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-toc-h1-override-link,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-link {
+	display: flex !important;
+	align-items: baseline !important;
+	gap: 0.42rem !important;
+	width: 100% !important;
+	box-sizing: border-box !important;
+	padding: 0.28rem 0.35rem !important;
+	border-radius: 4px !important;
+	color: inherit !important;
+	text-decoration: none !important;
+	line-height: 1.28 !important;
+	white-space: normal !important;
+	overflow-wrap: anywhere !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-toc-h1-override-link:hover,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-link:hover {
+	background: rgba(216, 183, 92, 0.10) !important;
+	text-decoration: none !important;
+}
+
+/* Force numbering back on; older Common.css hid this for some TOC limits. */
+[data-eql-toc-h1-override="1"] .eql-toc-h1-override-number,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-number {
+	display: inline-block !important;
+	flex: 0 0 auto !important;
+	min-width: 1.35em !important;
+	color: rgba(216, 183, 92, 0.92) !important;
+	font-variant-numeric: tabular-nums !important;
+	text-align: right !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-toc-h1-override-text,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-text {
+	display: inline !important;
+	min-width: 0 !important;
+	color: inherit !important;
+}
+
+/* Visual hierarchy. */
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-1 .eql-toc-h1-override-link,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-1 .eql-main-menu-toc-link {
+	padding-left: 0.15rem !important;
+	font-weight: 700 !important;
+	color: #d8b75c !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-2 .eql-toc-h1-override-link,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-2 .eql-main-menu-toc-link {
+	padding-left: 0.9rem !important;
+	font-weight: 500 !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-3 .eql-toc-h1-override-link,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-3 .eql-main-menu-toc-link {
+	padding-left: 1.65rem !important;
+	font-size: 0.95em !important;
+	opacity: 0.95 !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-4 .eql-toc-h1-override-link,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-4 .eql-main-menu-toc-link {
+	padding-left: 2.4rem !important;
+	font-size: 0.92em !important;
+	opacity: 0.9 !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-5 .eql-toc-h1-override-link,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-5 .eql-main-menu-toc-link {
+	padding-left: 3.15rem !important;
+	font-size: 0.9em !important;
+	opacity: 0.85 !important;
+}
+
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-6 .eql-toc-h1-override-link,
+[data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-6 .eql-main-menu-toc-link {
+	padding-left: 3.9rem !important;
+	font-size: 0.88em !important;
+	opacity: 0.82 !important;
+}
+
+/* Re-declare TOC limits after the base display rules so these win.
+   {{TOC limit|1}} = show only H1. */
+body.eql-page-toclimit-1 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-2,
+body.eql-page-toclimit-1 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-3,
+body.eql-page-toclimit-1 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-4,
+body.eql-page-toclimit-1 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-1 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|2}} = show H1 and H2. */
+body.eql-page-toclimit-2 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-3,
+body.eql-page-toclimit-2 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-4,
+body.eql-page-toclimit-2 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-2 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|3}} = show through H3. */
+body.eql-page-toclimit-3 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-4,
+body.eql-page-toclimit-3 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-3 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|4}} = show through H4. */
+body.eql-page-toclimit-4 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-5,
+body.eql-page-toclimit-4 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-6 {
+	display: none !important;
+}
+
+/* {{TOC limit|5}} = show through H5. */
+body.eql-page-toclimit-5 [data-eql-toc-h1-override="1"] .eql-main-menu-toc-level-6 {
+	display: none !important;
+}

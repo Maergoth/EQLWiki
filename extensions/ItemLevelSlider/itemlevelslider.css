@@ -1,0 +1,208 @@
+/* ItemLevelSlider styles */
+
+/* Wrapper that constrains the entire item box + slider to item box width */
+.ils-item-wrapper {
+	width: 451px;
+	margin-bottom: 10px;
+}
+
+.ils-slider-container {
+	--ils-label-w: 74px;
+	--ils-button-w: 22px;
+	--ils-slider-w: 112px;
+	--ils-level-w: 82px;
+	--ils-pct-w: 78px;
+
+	background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+	border: 1px solid #4a4a6a;
+	border-radius: 6px 6px 0 0;
+	padding: 8px 10px;
+	margin-bottom: 0;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	color: #ccc;
+	width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.ils-slider-label {
+	flex: 0 0 var(--ils-label-w);
+	width: var(--ils-label-w);
+	white-space: nowrap;
+	font-weight: bold;
+	color: #e0c080;
+}
+
+.ils-step-button {
+	flex: 0 0 var(--ils-button-w);
+	width: var(--ils-button-w);
+	height: 22px;
+	line-height: 18px;
+	padding: 0;
+	border: 1px solid #6a5acd;
+	border-radius: 4px;
+	background: #202044;
+	color: #ffd700;
+	font-weight: bold;
+	cursor: pointer;
+	box-sizing: border-box;
+	text-align: center;
+}
+
+.ils-step-button:hover {
+	background: #2c2c5c;
+}
+
+.ils-step-button:active {
+	background: #383875;
+}
+
+/* Range slider styling */
+.ils-slider {
+	-webkit-appearance: none;
+	appearance: none;
+	flex: 0 0 var(--ils-slider-w);
+	width: var(--ils-slider-w);
+	min-width: var(--ils-slider-w);
+	max-width: var(--ils-slider-w);
+	height: 6px;
+	border-radius: 3px;
+	background: linear-gradient(to right, #3a3a5a, #6a5acd);
+	outline: none;
+	cursor: pointer;
+}
+
+.ils-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 35%, #ffd700, #b8860b);
+	border: 2px solid #8b6914;
+	cursor: pointer;
+	box-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+}
+
+.ils-slider::-moz-range-thumb {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 35%, #ffd700, #b8860b);
+	border: 2px solid #8b6914;
+	cursor: pointer;
+	box-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+}
+
+.ils-level-display {
+	flex: 0 0 var(--ils-level-w);
+	width: var(--ils-level-w);
+	display: inline-block;
+	text-align: center;
+	font-weight: bold;
+	font-size: 13px;
+	color: #ffd700;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.ils-level-pct {
+	flex: 0 0 var(--ils-pct-w);
+	width: var(--ils-pct-w);
+	display: inline-block;
+	font-size: 11px;
+	color: #8fbf8f;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+	overflow: hidden;
+}
+
+/* Highlight modified stat values */
+.ils-stat.ils-modified {
+	color: #5f5;
+	font-weight: bold;
+	text-shadow: 0 0 3px rgba(85, 255, 85, 0.3);
+}
+
+/* Void Resistance bonus from upgrade tiers */
+.ils-void-resist {
+	display: none;
+}
+
+.ils-void-resist.ils-vr-active {
+	display: block;
+	margin-top: 2px;
+	color: #b080ff;
+	font-weight: bold;
+	text-shadow: 0 0 3px rgba(176, 128, 255, 0.4);
+}
+
+/* Weapon damage ratio (DMG / Atk Delay), shown inline after the DMG value */
+.ils-ratio {
+	display: inline;
+}
+
+.ils-ratio-label {
+	color: #e0c080;
+	font-weight: bold;
+}
+
+.ils-ratio-value {
+	color: #ffd700;
+	font-weight: bold;
+}
+
+.ils-ratio-value.ils-modified {
+	color: #5f5;
+	font-weight: bold;
+	text-shadow: 0 0 3px rgba(85, 255, 85, 0.3);
+}
+
+/* Hover tooltip boxes: slider should also appear */
+#itemHoverContainer .ils-slider-container {
+	--ils-label-w: 58px;
+	--ils-button-w: 18px;
+	--ils-slider-w: 76px;
+	--ils-level-w: 68px;
+	--ils-pct-w: 62px;
+
+	padding: 5px 8px;
+	margin-bottom: 0;
+	font-size: 11px;
+	width: 100%;
+	border-radius: 0;
+	gap: 5px;
+}
+
+#itemHoverContainer .ils-slider {
+	height: 4px;
+}
+
+#itemHoverContainer .ils-slider::-webkit-slider-thumb {
+	width: 14px;
+	height: 14px;
+}
+
+#itemHoverContainer .ils-slider::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+}
+
+#itemHoverContainer .ils-step-button {
+	height: 18px;
+	line-height: 14px;
+	font-size: 11px;
+}
+
+#itemHoverContainer .ils-level-display {
+	font-size: 11px;
+}
+
+#itemHoverContainer .ils-level-pct {
+	font-size: 10px;
+}

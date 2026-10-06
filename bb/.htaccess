@@ -1,0 +1,32 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# EQL SSO: account security is managed by MediaWiki, not SMF.
+# Redirect SMF account/password/2FA profile pages to wiki preferences.
+RewriteCond %{QUERY_STRING} (^|;)action=profile(;|$) [NC]
+RewriteCond %{QUERY_STRING} (^|;)area=(account|tfa)(;|$) [NC]
+RewriteRule ^index\.php$ https://eqlwiki.com/index.php?title=Special:Preferences [R=302,L]
+
+RewriteCond %{QUERY_STRING} (^|&)action=profile(&|$) [NC]
+RewriteCond %{QUERY_STRING} (^|&)area=(account|tfa)(&|$) [NC]
+RewriteRule ^index\.php$ https://eqlwiki.com/index.php?title=Special:Preferences [R=302,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+</IfModule>
+RewriteEngine On
+
+# Block native SMF login endpoint.
+RewriteCond %{QUERY_STRING} (^|[;&])action=login2([;&]|$) [NC]
+RewriteRule ^index\.php$ https://eqlwiki.com/index.php?title=Special:UserLogin [R=302,L]
+
+# Send SMF password resets to MediaWiki.
+RewriteCond %{QUERY_STRING} (^|[;&])action=reminder([;&]|$) [NC]
+RewriteRule ^index\.php$ https://eqlwiki.com/index.php?title=Special:PasswordReset [R=302,L]
+
+# Send SMF registration to MediaWiki.
+RewriteCond %{QUERY_STRING} (^|[;&])action=(signup|register)([;&]|$) [NC]
+RewriteRule ^index\.php$ https://eqlwiki.com/index.php?title=Special:CreateAccount [R=302,L]

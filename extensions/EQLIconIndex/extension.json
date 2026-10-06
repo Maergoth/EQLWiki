@@ -1,0 +1,43 @@
+{
+    "name": "EQLIconIndex",
+    "version": "0.1.0",
+    "author": [
+        "EQL Wiki"
+    ],
+    "url": "https://eqlwiki.com/",
+    "description": "Server-side precomputed fingerprint cache for the EQL Icon Finder.",
+    "type": "other",
+    "requires": {
+        "MediaWiki": ">= 1.45.0"
+    },
+    "AutoloadNamespaces": {
+        "MediaWiki\\Extension\\EQLIconIndex\\": "includes/"
+    },
+    "APIModules": {
+        "eqliconindex": "MediaWiki\\Extension\\EQLIconIndex\\Api\\ApiIconIndex"
+    },
+    "JobClasses": {
+        "eqlIconIndexRebuild": "MediaWiki\\Extension\\EQLIconIndex\\Job\\RebuildIndexJob"
+    },
+    "Hooks": {
+        "PageSaveComplete": "MediaWiki\\Extension\\EQLIconIndex\\Hooks::onPageSaveComplete",
+        "FileUpload": "MediaWiki\\Extension\\EQLIconIndex\\Hooks::onFileUpload",
+        "FileDeleteComplete": "MediaWiki\\Extension\\EQLIconIndex\\Hooks::onFileDeleteComplete",
+        "FileUndeleteComplete": "MediaWiki\\Extension\\EQLIconIndex\\Hooks::onFileUndeleteComplete"
+    },
+    "config": {
+        "EQLIconIndexPage": {
+            "value": "Icon List",
+            "description": "Wiki page whose rendered media links define the icon catalog."
+        },
+        "EQLIconIndexAlgorithm": {
+            "value": 6,
+            "description": "Fingerprint algorithm version; must match MediaWiki:IconFinder.js."
+        },
+        "EQLIconIndexCacheSubdir": {
+            "value": "eql-icon-index",
+            "description": "Subdirectory beneath $wgCacheDirectory used for the server index."
+        }
+    },
+    "manifest_version": 2
+}

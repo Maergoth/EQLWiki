@@ -1,0 +1,918 @@
+/* =====================================================
+   EQL Immersive — header-actions.css
+
+   Header layout, page actions, user menu styling,
+   and header-specific responsive behavior.
+
+   Important:
+   This file must NOT viewport-center Main Page content.
+   Main Page centering belongs in homepage.css.
+   Sidebar styling belongs in sidebar-redlinks.css.
+   ===================================================== */
+
+
+/* =====================================================
+   Header shell
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-container {
+	background: var( --eql-panel-header ) !important;
+	border-bottom: 1px solid var( --eql-border-muted );
+	backdrop-filter: blur( 6px );
+	-webkit-backdrop-filter: blur( 6px );
+}
+
+body.skin-eqlimmersive .mw-header,
+body.skin-eqlimmersive .vector-header {
+	display: flex !important;
+	align-items: center;
+
+	width: 100%;
+	max-width: none !important;
+	min-height: 58px;
+
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	padding: 0 1rem;
+
+	box-sizing: border-box;
+	overflow: visible !important;
+}
+
+
+/* =====================================================
+   Left header area: hamburger + logo
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-start {
+	display: flex !important;
+	align-items: center;
+	justify-content: flex-start;
+
+	flex: 0 0 auto;
+	min-width: 250px;
+	max-width: 380px;
+
+	margin-right: 1.25rem;
+}
+
+body.skin-eqlimmersive .vector-header-start .mw-logo {
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+	text-decoration: none;
+}
+
+body.skin-eqlimmersive .mw-logo-icon {
+	width: 50px;
+	height: 50px;
+}
+
+body.skin-eqlimmersive .mw-logo-wordmark {
+	color: var( --eql-gold ) !important;
+	font-family: Georgia, 'Times New Roman', serif;
+	font-weight: 700;
+	letter-spacing: 0.045em;
+	text-shadow:
+		0 1px 2px rgba( 0, 0, 0, 0.85 ),
+		0 0 8px rgba( 216, 183, 92, 0.18 );
+}
+
+body.skin-eqlimmersive .mw-logo:hover .mw-logo-wordmark,
+body.skin-eqlimmersive .mw-logo:focus .mw-logo-wordmark,
+body.skin-eqlimmersive .mw-logo:focus-visible .mw-logo-wordmark {
+	color: #f2df9b !important;
+	text-shadow:
+		0 1px 2px rgba( 0, 0, 0, 0.85 ),
+		0 0 10px rgba( 216, 183, 92, 0.24 );
+}
+
+
+/* =====================================================
+   Custom hamburger landmark
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-start .eql-main-menu-landmark {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+
+	flex: 0 0 auto !important;
+
+	width: auto !important;
+	min-width: 2.25rem !important;
+	height: 2.25rem !important;
+
+	margin: 0 0.65rem 0 0 !important;
+	padding: 0 !important;
+
+	visibility: visible !important;
+	opacity: 1 !important;
+	pointer-events: auto !important;
+}
+
+/* Safety for stale cached templates that still put the EQL button
+   inside Vector's hideable landmark. */
+body.skin-eqlimmersive .vector-header-start .vector-main-menu-landmark:has( #eql-main-menu-toggle ) {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+
+	flex: 0 0 auto !important;
+
+	width: auto !important;
+	min-width: 2.25rem !important;
+	height: 2.25rem !important;
+
+	margin: 0 0.65rem 0 0 !important;
+	padding: 0 !important;
+
+	visibility: visible !important;
+	opacity: 1 !important;
+	pointer-events: auto !important;
+}
+
+body.skin-eqlimmersive #eql-main-menu-toggle {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+
+	width: 2.25rem !important;
+	height: 2.25rem !important;
+	min-width: 2.25rem !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	box-shadow: none !important;
+	color: var( --eql-gold ) !important;
+	outline: 0 !important;
+
+	visibility: visible !important;
+	opacity: 1 !important;
+	pointer-events: auto !important;
+	cursor: pointer !important;
+}
+
+body.skin-eqlimmersive #eql-main-menu-toggle:hover {
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	border: 0 !important;
+	outline: 0 !important;
+	box-shadow: none !important;
+	color: #d8b75c !important;
+}
+
+body.skin-eqlimmersive #eql-main-menu-toggle:focus,
+body.skin-eqlimmersive #eql-main-menu-toggle:focus-visible,
+body.skin-eqlimmersive #eql-main-menu-toggle:active {
+	border: 0 !important;
+	outline: 0 !important;
+	box-shadow: none !important;
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive #eql-main-menu-toggle[hidden] {
+	display: inline-flex !important;
+}
+
+body.skin-eqlimmersive #eql-main-menu-toggle .vector-dropdown-label-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect( 0, 0, 0, 0 );
+	white-space: nowrap;
+	border: 0;
+}
+
+
+/* =====================================================
+   Header end: search + page actions + user links
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-end {
+	display: flex !important;
+	align-items: center;
+	justify-content: flex-start;
+
+	flex: 1 1 auto;
+	min-width: 0;
+
+	gap: 1rem;
+
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive .vector-header-end > #p-search {
+	position: static !important;
+	transform: none !important;
+
+	display: block;
+
+	flex: 0 1 520px;
+	width: 520px;
+	min-width: 280px;
+	max-width: 520px;
+
+	margin: 0 auto 0 0 !important;
+}
+
+body.skin-eqlimmersive .vector-header-end #searchform,
+body.skin-eqlimmersive .vector-header-end .vector-typeahead-search-container,
+body.skin-eqlimmersive .vector-header-end .cdx-typeahead-search,
+body.skin-eqlimmersive .vector-header-end .cdx-search-input {
+	width: 100%;
+}
+
+body.skin-eqlimmersive .vector-header-end > .vector-user-links {
+	display: flex !important;
+	align-items: center;
+
+	flex: 0 0 auto;
+
+	margin-left: 0.25rem;
+	white-space: nowrap;
+	overflow: visible !important;
+}
+
+
+/* =====================================================
+   Header page actions
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-end > .eql-header-page-actions-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: 100%;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-page-toolbar {
+	position: static !important;
+
+	display: flex !important;
+	align-items: center;
+
+	flex: 0 1 auto;
+
+	width: auto !important;
+	min-width: 0;
+	max-width: 100% !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+
+	z-index: auto !important;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+	display: flex !important;
+	align-items: center;
+	justify-content: flex-end;
+
+	gap: 1rem;
+
+	width: auto !important;
+	min-width: 0;
+	max-width: 100% !important;
+	min-height: 2.25rem;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	background: transparent !important;
+	border: 0 !important;
+
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive .vector-header-end #left-navigation,
+body.skin-eqlimmersive .vector-header-end #right-navigation {
+	display: flex !important;
+	align-items: center;
+
+	flex: 0 1 auto;
+	min-width: 0;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive .vector-header-end #right-navigation {
+	gap: 1rem;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-menu-tabs,
+body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .vector-menu-content {
+	display: flex !important;
+	align-items: center;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	background: transparent !important;
+	border: 0 !important;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .vector-menu-content-list {
+	display: flex !important;
+	align-items: center;
+
+	gap: 0.72rem;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item {
+	display: flex !important;
+	align-items: center;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item a {
+	display: inline-flex !important;
+	align-items: center;
+
+	min-height: 2.25rem;
+
+	padding: 0 !important;
+
+	color: var( --eql-text-muted ) !important;
+	font-size: 0.86rem;
+	line-height: 1;
+	text-decoration: none;
+
+	border-bottom: 2px solid transparent;
+
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item.selected a {
+	color: var( --eql-text ) !important;
+	border-bottom-color: var( --eql-gold );
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item a:hover {
+	color: var( --eql-gold ) !important;
+}
+
+
+/* =====================================================
+   Header Watch/Unwatch action
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-end #ca-eql-watch a {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 0.28rem;
+}
+
+body.skin-eqlimmersive .vector-header-end #ca-eql-watch a::before {
+	content: "👁";
+	display: inline-block;
+	font-size: 0.85rem;
+	line-height: 1;
+	opacity: 0.86;
+	filter: grayscale( 0.25 );
+}
+
+body.skin-eqlimmersive .vector-header-end #ca-eql-watch.eql-header-watch-action-watched a::before,
+body.skin-eqlimmersive .vector-header-end .eql-header-watch-action-watched a::before {
+	content: "◉";
+	color: var( --eql-gold );
+}
+
+
+/* =====================================================
+   Hide Tools/admin dropdowns in the header
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-end .mw-portlet-actions,
+body.skin-eqlimmersive .vector-header-end #p-actions,
+body.skin-eqlimmersive .vector-header-end .vector-page-tools-landmark,
+body.skin-eqlimmersive .vector-header-end #vector-page-tools-dropdown {
+	display: none !important;
+}
+
+
+/* =====================================================
+   Main Page title hiding only
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .mw-body-header,
+body.skin-eqlimmersive.page-Main_Page .vector-page-titlebar,
+body.skin-eqlimmersive.page-Main_Page .firstHeading,
+body.skin-eqlimmersive.page-Main_Page #vector-page-titlebar-toc,
+body.skin-eqlimmersive.page-Main_Page .mw-indicators {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .mw-body {
+	padding-top: 1rem !important;
+}
+
+
+/* =====================================================
+   User menu: hide native Vector dropdown shell
+   ===================================================== */
+
+body.skin-eqlimmersive #vector-user-links-dropdown .vector-dropdown-content,
+body.skin-eqlimmersive #vector-user-links-dropdown-checkbox {
+	display: none !important;
+	pointer-events: none !important;
+}
+
+body.skin-eqlimmersive #vector-user-links-dropdown,
+body.skin-eqlimmersive #vector-user-links-dropdown-label {
+	position: relative !important;
+	z-index: 10080 !important;
+	cursor: pointer !important;
+}
+
+
+/* =====================================================
+   Custom Personal settings dropdown
+   main.js moves #p-personal into #eql-user-menu-host.
+   ===================================================== */
+
+body.skin-eqlimmersive #eql-user-menu-host {
+	display: none;
+
+	position: fixed;
+
+	min-width: 220px;
+
+	z-index: 10090;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 10, 14, 20, 0.98 ),
+			rgba( 7, 10, 16, 0.99 )
+		) !important;
+	border: 1px solid var( --eql-border-muted ) !important;
+	box-shadow: 0 16px 36px rgba( 0, 0, 0, 0.48 ) !important;
+	color: var( --eql-text ) !important;
+
+	pointer-events: auto !important;
+}
+
+body.skin-eqlimmersive.eql-user-menu-open #eql-user-menu-host {
+	display: block;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host,
+body.skin-eqlimmersive #eql-user-menu-host *,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal *,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item a {
+	pointer-events: auto !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal {
+	margin: 0 !important;
+	padding: 0 !important;
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .vector-menu-heading {
+	display: none !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .vector-menu-content,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .vector-menu-content-list {
+	margin: 0 !important;
+	padding: 0.55rem 0 !important;
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item a {
+	display: block !important;
+
+	padding: 0.45rem 1rem !important;
+
+	color: var( --eql-link ) !important;
+	text-decoration: none !important;
+	white-space: nowrap;
+	background: transparent !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item a:hover {
+	background: rgba( 255, 255, 255, 0.06 ) !important;
+	color: var( --eql-gold ) !important;
+}
+
+
+/* =====================================================
+   Red links in user menu/header
+   ===================================================== */
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal a.new,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal a.new:visited,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .new > a,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .new > a:visited,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item.new > a,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item.new > a:visited,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item > a.new,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item > a.new:visited,
+body.skin-eqlimmersive .vector-header-end a.new,
+body.skin-eqlimmersive .vector-header-end a.new:visited,
+body.skin-eqlimmersive .vector-header-end .new > a,
+body.skin-eqlimmersive .vector-header-end .new > a:visited {
+	color: var( --eql-link-new ) !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host #p-personal a.new:hover,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .new > a:hover,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item.new > a:hover,
+body.skin-eqlimmersive #eql-user-menu-host #p-personal .mw-list-item > a.new:hover,
+body.skin-eqlimmersive .vector-header-end a.new:hover,
+body.skin-eqlimmersive .vector-header-end .new > a:hover {
+	background: rgba( 255, 122, 109, 0.10 ) !important;
+	color: #ff7a6d !important;
+	text-decoration: underline !important;
+}
+
+
+/* =====================================================
+   Responsive compression
+   ===================================================== */
+
+@media ( max-width: 1700px ) {
+	body.skin-eqlimmersive .vector-header-start {
+		min-width: 230px;
+		margin-right: 1rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #p-search {
+		flex-basis: 460px;
+		width: 460px;
+		max-width: 460px;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+		gap: 0.85rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .vector-menu-content-list {
+		gap: 0.58rem;
+	}
+}
+
+@media ( max-width: 1500px ) {
+	body.skin-eqlimmersive .vector-header-start {
+		min-width: 210px;
+		margin-right: 0.8rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end {
+		gap: 0.75rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #p-search {
+		flex-basis: 380px;
+		width: 380px;
+		min-width: 240px;
+		max-width: 380px;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item a {
+		font-size: 0.82rem;
+	}
+}
+
+@media ( max-width: 1350px ) {
+	body.skin-eqlimmersive .vector-header-start {
+		min-width: 190px;
+		margin-right: 0.65rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #p-search {
+		flex: 1 1 300px;
+		width: auto;
+		min-width: 220px;
+		max-width: 340px;
+	}
+
+	body.skin-eqlimmersive .vector-header-end #left-navigation {
+		display: none !important;
+	}
+}
+
+@media ( max-width: 1150px ) {
+	body.skin-eqlimmersive .vector-header-end > #p-search {
+		flex: 1 1 auto;
+		min-width: 200px;
+		max-width: none;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > .eql-header-page-actions-wrap {
+		display: none !important;
+	}
+}
+
+@media ( max-width: 900px ) {
+	body.skin-eqlimmersive .vector-header-start {
+		min-width: 0;
+		max-width: none;
+		margin-right: 0.5rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end {
+		gap: 0.5rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #p-search {
+		min-width: 0;
+	}
+}
+
+/* =====================================================
+   EQL Immersive — keep search suggestions above header/content
+   ===================================================== */
+
+body.skin-eqlimmersive .vector-header-container,
+body.skin-eqlimmersive .mw-header,
+body.skin-eqlimmersive .vector-header,
+body.skin-eqlimmersive .vector-header-end,
+body.skin-eqlimmersive #p-search,
+body.skin-eqlimmersive .cdx-typeahead-search,
+body.skin-eqlimmersive .cdx-search-input {
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive .vector-header-container {
+	z-index: 9000 !important;
+}
+
+body.skin-eqlimmersive #p-search {
+	position: relative !important;
+	z-index: 9100 !important;
+}
+
+/* Codex search menu / typeahead results */
+body.skin-eqlimmersive .cdx-menu,
+body.skin-eqlimmersive .cdx-typeahead-search__menu,
+body.skin-eqlimmersive .cdx-menu__listbox,
+body.skin-eqlimmersive .cdx-menu-item {
+	z-index: 9200 !important;
+}
+
+/* Legacy Vector search suggestions fallback */
+body.skin-eqlimmersive .suggestions,
+body.skin-eqlimmersive .suggestions-results,
+body.skin-eqlimmersive .suggestions-special {
+	z-index: 9200 !important;
+}
+
+/* If the menu is absolutely positioned inside the search widget, keep it on top. */
+body.skin-eqlimmersive .cdx-typeahead-search__menu,
+body.skin-eqlimmersive .suggestions {
+	position: absolute !important;
+}
+
+/* =====================================================
+   EQL Immersive — final header icon chrome kill switch
+
+   This intentionally targets the rendered Vector/Codex user
+   controls and the EQL hamburger. It removes all button/chip
+   chrome from user controls while preserving muted gold icon art.
+   ===================================================== */
+
+body.skin-eqlimmersive {
+	--eql-header-icon-gold: #c7a85a;
+	--eql-header-icon-gold-hover: #d8b75c;
+}
+
+/* Remove button/chip chrome from the wrapper, list item, anchor, and button. */
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button,
+body.skin-eqlimmersive .vector-header-end .vector-user-links a[data-mw="interface"],
+body.skin-eqlimmersive .vector-header-end .vector-user-links a.cdx-button,
+body.skin-eqlimmersive .vector-header-end .vector-user-links button.cdx-button,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button--fake-button,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button--icon-only,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label,
+body.skin-eqlimmersive .vector-header-end .vector-user-links #vector-user-links-dropdown-label,
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-userpage > a,
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-userpage-2 > a,
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-watchlist > a,
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-watchlist-2 > a,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed,
+body.skin-eqlimmersive #eql-main-menu-toggle,
+body.skin-eqlimmersive #eql-main-menu-toggle.cdx-button,
+body.skin-eqlimmersive #eql-main-menu-toggle.eql-header-control-unboxed {
+	appearance: none !important;
+	-webkit-appearance: none !important;
+
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+
+	border: 0 !important;
+	border-color: transparent !important;
+	outline: 0 !important;
+	outline-color: transparent !important;
+	box-shadow: none !important;
+
+	border-radius: 0 !important;
+	text-shadow: none !important;
+	filter: none !important;
+
+	--background-color-base: transparent !important;
+	--background-color-interactive: transparent !important;
+	--background-color-progressive-subtle: transparent !important;
+	--background-color-button-quiet--hover: transparent !important;
+	--background-color-button-quiet--active: transparent !important;
+	--border-color-base: transparent !important;
+	--border-color-interactive: transparent !important;
+	--border-color-progressive: transparent !important;
+	--box-shadow-color-progressive--focus: transparent !important;
+	--box-shadow-color-transparent: transparent !important;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item:focus,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item:focus-visible,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item:active,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a:focus,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a:focus-visible,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a:active,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button:focus,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button:focus-visible,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button:active,
+body.skin-eqlimmersive .vector-header-end .vector-user-links a[data-mw="interface"]:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links a[data-mw="interface"]:focus,
+body.skin-eqlimmersive .vector-header-end .vector-user-links a[data-mw="interface"]:focus-visible,
+body.skin-eqlimmersive .vector-header-end .vector-user-links a[data-mw="interface"]:active,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button:focus,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button:focus-visible,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button:active,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label:focus,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label:focus-visible,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label:active,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed:focus,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed:focus-visible,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed:active,
+body.skin-eqlimmersive #eql-main-menu-toggle:hover,
+body.skin-eqlimmersive #eql-main-menu-toggle:focus,
+body.skin-eqlimmersive #eql-main-menu-toggle:focus-visible,
+body.skin-eqlimmersive #eql-main-menu-toggle:active {
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+
+	border: 0 !important;
+	border-color: transparent !important;
+	outline: 0 !important;
+	outline-color: transparent !important;
+	box-shadow: none !important;
+
+	border-radius: 0 !important;
+	transform: none !important;
+}
+
+/* Remove pseudo-element rings/fills used by Codex or previous EQL CSS. */
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item::before,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item::after,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a::before,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a::after,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button::before,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button::after,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button::before,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button::after,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label::before,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label::after,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed::before,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed::after,
+body.skin-eqlimmersive #eql-main-menu-toggle::before,
+body.skin-eqlimmersive #eql-main-menu-toggle::after {
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+
+	border: 0 !important;
+	outline: 0 !important;
+	box-shadow: none !important;
+}
+
+/* Muted gold icon artwork. */
+body.skin-eqlimmersive #eql-main-menu-toggle .vector-icon,
+body.skin-eqlimmersive #eql-main-menu-toggle .mw-ui-icon,
+body.skin-eqlimmersive #eql-main-menu-toggle .cdx-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-ui-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button__icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links svg,
+body.skin-eqlimmersive .vector-header-end .vector-user-links svg * {
+	color: var( --eql-header-icon-gold ) !important;
+	fill: var( --eql-header-icon-gold ) !important;
+	background-color: var( --eql-header-icon-gold ) !important;
+	opacity: 0.96 !important;
+	filter:
+		brightness( 0 )
+		saturate( 100% )
+		invert( 68% )
+		sepia( 38% )
+		saturate( 492% )
+		hue-rotate( 5deg )
+		brightness( 92% )
+		contrast( 86% ) !important;
+}
+
+body.skin-eqlimmersive #eql-main-menu-toggle:hover .vector-icon,
+body.skin-eqlimmersive #eql-main-menu-toggle:hover .mw-ui-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a:hover .vector-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > a:hover .mw-ui-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button:hover .vector-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .mw-list-item > button:hover .mw-ui-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label:hover .vector-icon,
+body.skin-eqlimmersive .vector-header-end .vector-user-links .vector-dropdown-label:hover .mw-ui-icon {
+	color: var( --eql-header-icon-gold-hover ) !important;
+	fill: var( --eql-header-icon-gold-hover ) !important;
+	background-color: var( --eql-header-icon-gold-hover ) !important;
+}
+
+/* Username should be plain text, not a chip. */
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-userpage > a,
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-userpage-2 > a {
+	padding: 0 0.12rem !important;
+	color: var( --eql-link ) !important;
+	text-decoration: none !important;
+}
+
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-userpage > a:hover,
+body.skin-eqlimmersive .vector-header-end .vector-user-links #pt-userpage-2 > a:hover {
+	color: var( --eql-header-icon-gold-hover ) !important;
+	text-decoration: underline !important;
+	text-decoration-color: rgba( 216, 183, 92, 0.58 ) !important;
+	text-underline-offset: 0.16em !important;
+}
+
+/* Hide text labels inside icon-only controls after JS strips Codex classes. */
+body.skin-eqlimmersive .vector-header-end .vector-user-links .eql-header-control-unboxed > span:not( .vector-icon ):not( .mw-ui-icon ):not( .cdx-icon ),
+body.skin-eqlimmersive .vector-header-end .vector-user-links .cdx-button--icon-only > span:not( .vector-icon ):not( .mw-ui-icon ):not( .cdx-icon ),
+body.skin-eqlimmersive #eql-main-menu-toggle .vector-dropdown-label-text {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	margin: -1px !important;
+	padding: 0 !important;
+	overflow: hidden !important;
+	clip: rect( 0, 0, 0, 0 ) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+

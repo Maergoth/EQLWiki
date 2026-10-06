@@ -1,0 +1,24 @@
+name: Check EQLWiki changes
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - name: Lint changed PHP and shell files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git diff --name-only --diff-filter=ACMR -z "$BASE_SHA" HEAD | while IFS= read -r -d '' file; do
+            case "$file" in
+              *.php) php -l "$file" ;;
+              *.sh) bash -n "$file" ;;
+            esac
+          done
+      - name: Check release packaging
+        run: python3 ops/build-release.py --output "$RUNNER_TEMP/release.tar.gz"

@@ -1,0 +1,811 @@
+/* =====================================================
+   EQL Immersive — homepage.css
+   Main Page layout for EQLImmersive only.
+
+   Requires Main Page class hooks:
+   .eql-home
+   .eql-announcements
+   .eql-announcements-title
+   .eql-immersive-card-grid
+   .eql-legacy-card-grid
+   .eql-card-link-columns
+   .eql-card-link-col
+   .eql-card-link
+
+   Design:
+   - Main Page content centers normally in the available page area.
+   - No viewport-centering hacks.
+   - Sidebar pinned mode is handled by sidebar-redlinks.css.
+   - Card text uses explicit two-column wikitext structure.
+   ===================================================== */
+
+
+/* =====================================================
+   Main Page shell
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .mw-body {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	width: 100% !important;
+	max-width: none !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .mw-content-container {
+	display: block !important;
+
+	width: 100% !important;
+	max-width: none !important;
+	min-width: 0 !important;
+
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+
+	padding-left: 2rem !important;
+	padding-right: 2rem !important;
+
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive.page-Main_Page .mw-body-content,
+body.skin-eqlimmersive.page-Main_Page .mw-parser-output,
+body.skin-eqlimmersive.page-Main_Page .eql-home {
+	display: block !important;
+
+	width: 100% !important;
+	max-width: 1500px !important;
+	min-width: 0 !important;
+
+	margin-left: auto !important;
+	margin-right: auto !important;
+
+	transform: none !important;
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive.page-Main_Page #siteSub,
+body.skin-eqlimmersive.page-Main_Page .vector-body-before-content {
+	display: none !important;
+}
+
+
+/* =====================================================
+   Main Page title fallback
+   Usually hidden by header-actions.css.
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .mw-body-header {
+	display: block !important;
+	max-width: 1500px;
+	margin: 1.25rem auto 0;
+	padding: 0;
+	border: 0 !important;
+	text-align: left !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .vector-page-titlebar {
+	display: block !important;
+	background: transparent !important;
+	border: 0 !important;
+	margin: 0;
+	padding: 0;
+	text-align: left !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page #vector-page-titlebar-toc,
+body.skin-eqlimmersive.page-Main_Page .mw-indicators {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .firstHeading {
+	display: block !important;
+	width: fit-content;
+	color: var( --eql-text-heading );
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: clamp( 2.1rem, 2.7vw, 3rem );
+	font-weight: 600;
+	letter-spacing: 0.035em;
+	line-height: 1.1;
+	margin: 0;
+	padding: 0 0 0.35rem;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.20 );
+	text-align: left !important;
+	text-shadow: 0 3px 12px rgba( 0, 0, 0, 0.70 );
+}
+
+
+/* =====================================================
+   Hero section
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-home {
+	text-align: center !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:first-child,
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:nth-child(2) {
+	position: static !important;
+	left: auto !important;
+	transform: none !important;
+
+	width: auto !important;
+	max-width: none !important;
+
+	margin-left: auto !important;
+	margin-right: auto !important;
+
+	text-align: center !important;
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:first-child {
+	margin-top: 0.7rem !important;
+	margin-bottom: 0.2rem !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:first-child a,
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:first-child img {
+	display: inline-block;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:first-child img {
+	max-width: min( 500px, 78vw ) !important;
+	height: auto !important;
+	filter:
+		drop-shadow( 0 12px 24px rgba( 0, 0, 0, 0.76 ) )
+		drop-shadow( 0 0 14px rgba( 216, 183, 92, 0.13 ) );
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:nth-child(2) {
+	margin-top: 0 !important;
+	margin-bottom: 1.05rem !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:nth-child(2) a {
+	color: var( --eql-gold ) !important;
+	font-size: 1rem;
+	text-decoration: none;
+	letter-spacing: 0.02em;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-home > p:nth-child(2) a:hover {
+	color: var( --eql-gold-soft ) !important;
+	text-decoration: underline;
+}
+
+
+/* =====================================================
+   Announcements panel
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements {
+	position: relative;
+
+	width: 100% !important;
+	max-width: 1500px !important;
+	height: 1000px !important;
+
+	margin: 0 auto 1.15rem !important;
+	padding: 0.9rem 1.25rem 1rem !important;
+
+	overflow-y: auto;
+	overflow-x: hidden;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 12, 17, 25, 0.88 ),
+			rgba( 8, 12, 18, 0.93 )
+		) !important;
+
+	border: 1px solid rgba( 216, 183, 92, 0.48 ) !important;
+	border-radius: 8px !important;
+
+	box-shadow:
+		0 18px 42px rgba( 0, 0, 0, 0.46 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+
+	color: var( --eql-text );
+	scrollbar-color: var( --eql-scrollbar-thumb ) var( --eql-scrollbar-track );
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements-title {
+	position: absolute !important;
+	top: 0.78rem;
+	left: 50%;
+	transform: translateX( -50% );
+
+	margin: 0 !important;
+	padding: 0 0.35rem !important;
+
+	z-index: 2;
+	pointer-events: none;
+
+	color: var( --eql-gold ) !important;
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 1.28rem !important;
+	font-weight: 700;
+	line-height: 1.05;
+	text-align: center;
+	letter-spacing: 0.045em;
+
+	text-shadow:
+		0 2px 8px rgba( 0, 0, 0, 0.85 ),
+		0 0 10px rgba( 216, 183, 92, 0.16 );
+}
+
+/* Date/edit row wrapper */
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-heading {
+	display: flex !important;
+	align-items: baseline;
+	gap: 0.5rem;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	border: 0 !important;
+	background: transparent !important;
+	box-sizing: border-box;
+}
+
+/* First date row shares the same band as title. */
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-heading:first-of-type {
+	max-width: 42%;
+	min-height: 1.7rem;
+	margin-top: 0.15rem !important;
+	margin-bottom: 0.15rem !important;
+	border-top: 0 !important;
+}
+
+/* Later dates get the separator above the new entry. */
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-heading:not(:first-of-type) {
+	margin-top: 0.85rem !important;
+	margin-bottom: 0.15rem !important;
+	padding-top: 0.55rem !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.22 ) !important;
+}
+
+/* Reset h2 itself. */
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-heading h2,
+body.skin-eqlimmersive.page-Main_Page .eql-announcements h2 {
+	flex: 0 0 auto;
+
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+
+	color: var( --eql-text-heading );
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 1.22rem;
+	font-weight: 700;
+	line-height: 1.1;
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-heading > .mw-editsection,
+body.skin-eqlimmersive.page-Main_Page .eql-announcements h2 .mw-editsection {
+	display: inline-flex !important;
+	align-items: baseline;
+	flex: 0 0 auto;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	font-family: sans-serif;
+	font-size: 0.72rem !important;
+	font-weight: normal;
+	line-height: 1;
+	letter-spacing: 0;
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements h2 .mw-editsection {
+	margin-left: 0.45rem !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-editsection,
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-editsection a,
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-editsection-bracket {
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-editsection a:hover {
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements p {
+	color: var( --eql-text-muted );
+	line-height: 1.36;
+
+	margin: 0 0 0.42rem !important;
+	padding: 0 !important;
+
+	border: 0 !important;
+
+	text-align: left;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-heading + p {
+	margin-top: 0 !important;
+	padding-top: 0 !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements a {
+	color: var( --eql-link ) !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-announcements a:hover {
+	color: var( --eql-gold ) !important;
+}
+
+
+/* =====================================================
+   Card grid
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-legacy-card-grid {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-immersive-card-grid {
+	display: grid !important;
+	grid-template-columns: repeat( 4, minmax( 0, 1fr ) );
+	gap: 0.8rem;
+
+	width: 100% !important;
+	max-width: 1500px !important;
+
+	margin: 0 auto 1.75rem !important;
+	text-align: left;
+	box-sizing: border-box;
+}
+
+
+/* =====================================================
+   Card shell
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-immersive-card {
+	display: grid !important;
+	grid-template-columns: 112px minmax( 0, 1fr ) !important;
+	grid-template-rows: auto 1fr !important;
+	grid-template-areas:
+		"title title"
+		"art copy" !important;
+
+	column-gap: 0.55rem !important;
+	row-gap: 0.6rem !important;
+
+	min-height: 166px !important;
+	max-height: 176px !important;
+	overflow: hidden !important;
+
+	padding: 0.7rem 0.8rem 0.7rem 0.75rem !important;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 13, 18, 26, 0.87 ),
+			rgba( 8, 12, 18, 0.94 )
+		);
+
+	border: 1px solid rgba( 216, 183, 92, 0.38 );
+	border-radius: 8px;
+
+	box-shadow:
+		0 8px 22px rgba( 0, 0, 0, 0.34 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 );
+
+	transition:
+		border-color 0.18s ease,
+		box-shadow 0.18s ease,
+		transform 0.18s ease;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-immersive-card:hover {
+	border-color: rgba( 216, 183, 92, 0.70 );
+	box-shadow:
+		0 12px 28px rgba( 0, 0, 0, 0.48 ),
+		0 0 18px rgba( 216, 183, 92, 0.12 );
+	transform: translateY( -1px );
+}
+
+
+/* =====================================================
+   Card title
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-title {
+	grid-area: title;
+
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+
+	min-width: 0;
+
+	color: var( --eql-gold );
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: clamp( 1.24rem, 1.12vw, 1.5rem ) !important;
+	font-weight: 700;
+	letter-spacing: 0.065em;
+	line-height: 1.05;
+	text-transform: uppercase;
+
+	margin: 0;
+
+	text-shadow: 0 2px 8px rgba( 0, 0, 0, 0.60 );
+
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-title::after {
+	content: "";
+	display: block;
+	height: 3px;
+	flex: 1 1 auto;
+	min-width: 42px;
+	background: linear-gradient(
+		90deg,
+		rgba( 216, 183, 92, 0.78 ),
+		rgba( 216, 183, 92, 0.50 )
+	);
+	border-radius: 999px;
+}
+
+
+/* =====================================================
+   Card art
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-art {
+	grid-area: art !important;
+
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+
+	align-self: center !important;
+	justify-self: start !important;
+
+	width: 112px !important;
+	height: 98px !important;
+
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-art a {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+
+	width: 100% !important;
+	height: 100% !important;
+
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-art img {
+	display: block !important;
+
+	width: 118px !important;
+	max-width: 118px !important;
+	height: auto !important;
+	max-height: 94px !important;
+
+	object-fit: contain !important;
+	border-radius: 4px;
+
+	transform: none !important;
+
+	filter: drop-shadow( 0 5px 10px rgba( 0, 0, 0, 0.45 ) );
+}
+
+
+/* =====================================================
+   Card link columns
+   Wikitext structure:
+   .eql-card-link-columns
+     .eql-card-link-col
+       .eql-card-link
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-copy {
+	display: contents;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-links {
+	grid-area: copy !important;
+
+	align-self: center !important;
+	justify-self: stretch !important;
+
+	min-width: 0 !important;
+	max-width: 100% !important;
+
+	text-align: left !important;
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-link-columns {
+	display: grid !important;
+	grid-template-columns: minmax( 0, 1fr ) minmax( 0, 1fr ) !important;
+	column-gap: 0.55rem !important;
+
+	width: 100%;
+	min-width: 0;
+
+	align-items: center;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-link-col {
+	display: flex !important;
+	flex-direction: column !important;
+	justify-content: center !important;
+
+	gap: 0.22rem !important;
+
+	min-width: 0 !important;
+	width: 100% !important;
+	max-height: 7.2rem !important;
+
+	overflow: hidden !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-link {
+	display: flex !important;
+	align-items: center !important;
+
+	min-width: 0 !important;
+	min-height: 1.28rem !important;
+	max-height: 1.28rem !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+
+	background: transparent !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+
+	color: var( --eql-text-muted ) !important;
+	font-size: 0.92rem !important;
+	line-height: 1.14 !important;
+
+	white-space: nowrap !important;
+	box-sizing: border-box !important;
+	overflow: hidden !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-link::before {
+	content: "›" !important;
+
+	display: inline-block !important;
+	flex: 0 0 0.45rem !important;
+
+	width: 0.45rem !important;
+	margin-right: 0.1rem !important;
+
+	color: var( --eql-gold-soft ) !important;
+	opacity: 0.7 !important;
+	text-align: center !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-link a {
+	display: inline-block !important;
+
+	max-width: calc( 100% - 0.55rem ) !important;
+
+	color: var( --eql-link ) !important;
+	text-decoration: none !important;
+
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	white-space: nowrap !important;
+
+	vertical-align: bottom !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-link a:hover {
+	color: var( --eql-gold ) !important;
+	text-decoration: underline !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-card-link:hover {
+	background: transparent !important;
+	border-color: transparent !important;
+}
+
+
+/* =====================================================
+   Clickable card cursor
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page .eql-immersive-card.eql-card-clickable {
+	cursor: pointer !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-immersive-card.eql-card-clickable * {
+	cursor: pointer !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-immersive-card.eql-card-clickable a {
+	cursor: pointer !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page .eql-immersive-card.eql-card-clickable:focus-visible {
+	outline: 2px solid rgba( 216, 183, 92, 0.72 );
+	outline-offset: 3px;
+}
+
+
+/* =====================================================
+   Sidebar-pinned Main Page centering
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Main_Page.eql-main-menu-pinned .mw-body-content,
+body.skin-eqlimmersive.page-Main_Page.eql-main-menu-pinned .mw-parser-output,
+body.skin-eqlimmersive.page-Main_Page.eql-main-menu-pinned .eql-home {
+	max-width: 1500px !important;
+	margin-left: auto !important;
+	margin-right: auto !important;
+	transform: none !important;
+}
+
+body.skin-eqlimmersive.page-Main_Page.eql-main-menu-pinned .eql-announcements,
+body.skin-eqlimmersive.page-Main_Page.eql-main-menu-pinned .eql-immersive-card-grid {
+	width: 100% !important;
+	max-width: 1500px !important;
+}
+
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+
+@media ( max-width: 1700px ) {
+	body.skin-eqlimmersive.page-Main_Page .eql-immersive-card-grid {
+		grid-template-columns: repeat( 4, minmax( 0, 1fr ) );
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-immersive-card {
+		grid-template-columns: 108px minmax( 0, 1fr ) !important;
+		column-gap: 0.55rem !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-art {
+		width: 108px !important;
+		height: 98px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-art img {
+		width: 112px !important;
+		max-width: 112px !important;
+		max-height: 90px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-link {
+		font-size: 0.9rem !important;
+		min-height: 1.26rem !important;
+		max-height: 1.26rem !important;
+	}
+}
+
+@media ( max-width: 1450px ) {
+	body.skin-eqlimmersive.page-Main_Page .eql-immersive-card-grid {
+		grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+		max-width: 980px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-immersive-card {
+		grid-template-columns: 108px minmax( 0, 1fr ) !important;
+		min-height: 160px !important;
+		max-height: 176px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-art {
+		width: 108px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-art img {
+		width: 112px !important;
+		max-width: 112px !important;
+		max-height: 90px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-link {
+		font-size: 0.9rem !important;
+		min-height: 1.26rem !important;
+		max-height: 1.26rem !important;
+	}
+}
+
+@media ( max-width: 1050px ) {
+	body.skin-eqlimmersive.page-Main_Page .mw-content-container {
+		padding-left: 1rem !important;
+		padding-right: 1rem !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .mw-body-content,
+	body.skin-eqlimmersive.page-Main_Page .mw-parser-output,
+	body.skin-eqlimmersive.page-Main_Page .eql-home {
+		max-width: calc( 100vw - 2rem ) !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-announcements {
+		width: 100% !important;
+	}
+}
+
+@media ( max-width: 800px ) {
+	body.skin-eqlimmersive.page-Main_Page .eql-announcements-title {
+		position: static !important;
+		transform: none !important;
+		max-width: none;
+		text-align: center;
+		margin-bottom: 0.65rem !important;
+		pointer-events: auto;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-announcements .mw-heading:first-of-type {
+		max-width: none;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-announcements {
+		height: 300px !important;
+	}
+}
+
+@media ( max-width: 760px ) {
+	body.skin-eqlimmersive.page-Main_Page .eql-home > p:first-child img {
+		max-width: min( 340px, 85vw );
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-announcements {
+		width: 100% !important;
+		padding: 1rem !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-immersive-card-grid {
+		grid-template-columns: 1fr;
+		max-width: 100%;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-immersive-card {
+		grid-template-columns: 92px minmax( 0, 1fr ) !important;
+		min-height: 156px !important;
+		max-height: none !important;
+		padding: 1rem !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-art {
+		width: 92px !important;
+		height: 78px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-art img {
+		width: 82px !important;
+		max-width: 82px !important;
+		max-height: 72px !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-link-columns {
+		grid-template-columns: 1fr !important;
+		row-gap: 0.2rem !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-link-col {
+		max-height: none !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-link {
+		min-height: auto !important;
+		max-height: none !important;
+	}
+
+	body.skin-eqlimmersive.page-Main_Page .eql-card-link a {
+		white-space: normal !important;
+	}
+}

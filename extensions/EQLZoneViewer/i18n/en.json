@@ -1,0 +1,6 @@
+{
+  "@metadata": { "authors": ["EverQuest Legends Wiki"] },
+  "eqlzoneviewer-desc": "Browser-based local EverQuest zone and connected world-map viewer with top-down and first-person modes",
+  "zoneviewer": "Zone Viewer",
+  "zoneviewer-summary": "Select a local EverQuest installation and explore its zone geometry. Game files stay on your computer."
+}

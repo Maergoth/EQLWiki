@@ -1,0 +1,89 @@
+/* EQLImmersive — Unified Default Table Sizing
+ * Reinforces table sizing for .eoTable, .wikitable, table.sortable with !important.
+ * Ensures consistent padding, font-size, and first-column nowrap across all contexts.
+ */
+/* =====================================================
+   EQL Wiki â€” unified default table sizing
+   Makes standard MediaWiki wikitables use the same compact,
+   readable behavior as the existing eoTable family.
+   Keep this near the bottom of Common.css so it wins over
+   MediaWiki's built-in wikitable selectors.
+   ===================================================== */
+
+.eoTable,
+.eoTable2,
+.eoTable3,
+table.wikitable,
+table.sortable,
+.mw-parser-output table.wikitable,
+.mw-parser-output table.sortable {
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  margin: 0.75em 0 1.25em !important;
+  max-width: 100% !important;
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+}
+
+.eoTable th,
+.eoTable2 th,
+.eoTable3 th,
+table.wikitable th,
+table.sortable th,
+table.wikitable > tr > th,
+table.wikitable > * > tr > th,
+table.sortable > tr > th,
+table.sortable > * > tr > th,
+.mw-parser-output table.wikitable th,
+.mw-parser-output table.sortable th,
+.mw-parser-output table.wikitable > tr > th,
+.mw-parser-output table.wikitable > * > tr > th,
+.mw-parser-output table.sortable > tr > th,
+.mw-parser-output table.sortable > * > tr > th {
+  padding: 0.55rem 0.75rem !important;
+  text-align: left !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
+.eoTable td,
+.eoTable2 td,
+.eoTable3 td,
+table.wikitable td,
+table.sortable td,
+table.wikitable > tr > td,
+table.wikitable > * > tr > td,
+table.sortable > tr > td,
+table.sortable > * > tr > td,
+.mw-parser-output table.wikitable td,
+.mw-parser-output table.sortable td,
+.mw-parser-output table.wikitable > tr > td,
+.mw-parser-output table.wikitable > * > tr > td,
+.mw-parser-output table.sortable > tr > td,
+.mw-parser-output table.sortable > * > tr > td {
+  padding: 0.45rem 0.75rem !important;
+  line-height: 1.45 !important;
+  vertical-align: middle !important;
+}
+
+.eoTable img,
+.eoTable2 img,
+.eoTable3 img,
+table.wikitable img,
+table.sortable img,
+.mw-parser-output table.wikitable img,
+.mw-parser-output table.sortable img {
+  vertical-align: middle !important;
+}
+
+.eoTable td:first-child,
+.eoTable2 td:first-child,
+.eoTable3 td:first-child,
+table.wikitable td:first-child,
+table.sortable td:first-child,
+.mw-parser-output table.wikitable td:first-child,
+.mw-parser-output table.sortable td:first-child {
+  white-space: nowrap;
+}

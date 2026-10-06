@@ -1,0 +1,88 @@
+/* EQLImmersive — Dark Mode Table Overrides
+ * Scoped to html.skin-theme-clientpref-night (MediaWiki night mode toggle).
+ * Overrides table backgrounds, text colors, borders, links, and sort arrows.
+ */
+/* --- Dark mode table overrides ---
+   Scoped to MediaWiki night mode only.
+   Do not use prefers-color-scheme here, because that follows OS/browser theme,
+   not the wiki appearance toggle.
+--- */
+
+html.skin-theme-clientpref-night .eoTable,
+html.skin-theme-clientpref-night .eoTable2,
+html.skin-theme-clientpref-night .eoTable3,
+html.skin-theme-clientpref-night .wikitable,
+html.skin-theme-clientpref-night table.sortable {
+  background: #1f2328;
+  color: #d8dee9;
+}
+
+html.skin-theme-clientpref-night .eoTable th,
+html.skin-theme-clientpref-night .eoTable2 th,
+html.skin-theme-clientpref-night .eoTable3 th,
+html.skin-theme-clientpref-night .wikitable th,
+html.skin-theme-clientpref-night table.sortable th {
+  background-color: #2d333b;
+  background-image: none;
+  color: #f0f3f6;
+  border-color: #3d444d;
+}
+
+html.skin-theme-clientpref-night .eoTable td,
+html.skin-theme-clientpref-night .eoTable2 td,
+html.skin-theme-clientpref-night .eoTable3 td,
+html.skin-theme-clientpref-night .wikitable td,
+html.skin-theme-clientpref-night table.sortable td {
+  background: #1f2328;
+  color: #d8dee9;
+  border-color: #3d444d;
+}
+
+html.skin-theme-clientpref-night .eoTable tr:nth-child(even) td,
+html.skin-theme-clientpref-night .eoTable2 tr:nth-child(even) td,
+html.skin-theme-clientpref-night .eoTable3 tr:nth-child(even) td,
+html.skin-theme-clientpref-night .wikitable tr:nth-child(even) td,
+html.skin-theme-clientpref-night table.sortable tr:nth-child(even) td {
+  background: #262c33;
+}
+
+html.skin-theme-clientpref-night .eoTable tr:hover td,
+html.skin-theme-clientpref-night .eoTable2 tr:hover td,
+html.skin-theme-clientpref-night .eoTable3 tr:hover td,
+html.skin-theme-clientpref-night .wikitable tr:hover td,
+html.skin-theme-clientpref-night table.sortable tr:hover td {
+  background: #313a45;
+}
+
+html.skin-theme-clientpref-night .eoTable a,
+html.skin-theme-clientpref-night .eoTable2 a,
+html.skin-theme-clientpref-night .eoTable3 a,
+html.skin-theme-clientpref-night .wikitable a,
+html.skin-theme-clientpref-night table.sortable a {
+  color: #8ab4f8;
+}
+
+html.skin-theme-clientpref-night .eoTable a:visited,
+html.skin-theme-clientpref-night .eoTable2 a:visited,
+html.skin-theme-clientpref-night .eoTable3 a:visited,
+html.skin-theme-clientpref-night .wikitable a:visited,
+html.skin-theme-clientpref-night table.sortable a:visited {
+  color: #c58af9;
+}
+
+/* Fix broken/repeating sortable arrows in dark mode */
+html.skin-theme-clientpref-night table.sortable th.headerSort,
+html.skin-theme-clientpref-night table.sortable th.headerSortUp,
+html.skin-theme-clientpref-night table.sortable th.headerSortDown,
+html.skin-theme-clientpref-night table.sortable th.sortable,
+html.skin-theme-clientpref-night table.sortable th.jquery-tablesorter-header {
+  background-image: none !important;
+  padding-right: 10px;
+}
+
+/* Modern MediaWiki sortable indicators */
+html.skin-theme-clientpref-night table.sortable th .sortkey,
+html.skin-theme-clientpref-night table.sortable th .mw-sortkey,
+html.skin-theme-clientpref-night table.sortable th .mw-sort-indicator {
+  background-image: none !important;
+}

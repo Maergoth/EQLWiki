@@ -1,0 +1,305 @@
+/* EQLImmersive � Special:Search Dark Theme
+ * Dark styling for the search form, input, tabs, namespace filters,
+ * individual result cards, pagination, and OOUI panels.
+ */
+/* =====================================================
+   EQL Immersive — Search page / Special:Search styling
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Search .mw-body,
+body.skin-eqlimmersive .mw-search-form-wrapper,
+body.skin-eqlimmersive .searchresults,
+body.skin-eqlimmersive .mw-searchresults-has-iw {
+	color: var(--eql-text, #e6edf3);
+}
+
+/* Main search box area */
+body.skin-eqlimmersive .mw-search-form-wrapper {
+	margin: 1rem 0 1.25rem;
+	padding: 0.95rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba(13,18,26,0.88),
+			rgba(8,12,18,0.94)
+		);
+
+	border: 1px solid rgba(216,183,92,0.28);
+	border-radius: 10px;
+
+	box-shadow:
+		0 10px 28px rgba(0,0,0,0.34),
+		inset 0 1px 0 rgba(255,255,255,0.04);
+
+	box-sizing: border-box;
+}
+
+/* Search input */
+body.skin-eqlimmersive .searchText,
+body.skin-eqlimmersive input[name="search"],
+body.skin-eqlimmersive input[name="searchx"],
+body.skin-eqlimmersive .oo-ui-inputWidget-input {
+	background: rgba(6,10,16,0.92) !important;
+	border: 1px solid rgba(216,183,92,0.28) !important;
+	border-radius: 6px !important;
+
+	color: var(--eql-text, #e6edf3) !important;
+
+	box-shadow:
+		inset 0 1px 4px rgba(0,0,0,0.45) !important;
+}
+
+body.skin-eqlimmersive .searchText:focus,
+body.skin-eqlimmersive input[name="search"]:focus,
+body.skin-eqlimmersive input[name="searchx"]:focus,
+body.skin-eqlimmersive .oo-ui-inputWidget-input:focus {
+	border-color: rgba(216,183,92,0.62) !important;
+	box-shadow:
+		0 0 0 1px rgba(216,183,92,0.22),
+		inset 0 1px 4px rgba(0,0,0,0.45) !important;
+	outline: none !important;
+}
+
+/* Search button */
+body.skin-eqlimmersive .searchButton,
+body.skin-eqlimmersive input[type="submit"],
+body.skin-eqlimmersive .oo-ui-buttonElement-button {
+	background:
+		linear-gradient(
+			180deg,
+			rgba(58,92,48,0.96),
+			rgba(20,42,24,0.98)
+		) !important;
+
+	border: 1px solid rgba(216,183,92,0.62) !important;
+	border-radius: 6px !important;
+
+	color: #f5d98c !important;
+	font-weight: 800 !important;
+
+	box-shadow:
+		0 0 8px rgba(147,197,114,0.22),
+		inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+body.skin-eqlimmersive .searchButton:hover,
+body.skin-eqlimmersive input[type="submit"]:hover,
+body.skin-eqlimmersive .oo-ui-buttonElement-button:hover {
+	background:
+		linear-gradient(
+			180deg,
+			rgba(86,128,62,0.98),
+			rgba(28,56,30,0.98)
+		) !important;
+
+	border-color: rgba(255,226,142,0.92) !important;
+	color: #fff2c2 !important;
+}
+
+/* Search tabs: Content pages / Multimedia / Everything / Advanced */
+body.skin-eqlimmersive .search-types,
+body.skin-eqlimmersive .mw-search-profile-tabs {
+	margin: 1rem 0 0.75rem;
+	padding: 0.55rem 0.65rem;
+
+	background: rgba(255,255,255,0.035);
+	border: 1px solid rgba(255,255,255,0.09);
+	border-radius: 8px;
+
+	box-shadow:
+		inset 0 1px 0 rgba(255,255,255,0.035);
+}
+
+body.skin-eqlimmersive .search-types ul,
+body.skin-eqlimmersive .mw-search-profile-tabs ul {
+	margin: 0;
+	padding: 0;
+}
+
+body.skin-eqlimmersive .search-types li,
+body.skin-eqlimmersive .mw-search-profile-tabs li {
+	background: transparent !important;
+	border: 0 !important;
+}
+
+body.skin-eqlimmersive .search-types a,
+body.skin-eqlimmersive .mw-search-profile-tabs a {
+	color: var(--eql-link, #9bb8ff) !important;
+	border-radius: 5px;
+	padding: 0.35rem 0.55rem;
+}
+
+body.skin-eqlimmersive .search-types .current a,
+body.skin-eqlimmersive .mw-search-profile-tabs .current a {
+	background: rgba(216,183,92,0.14) !important;
+	color: var(--eql-gold, #d8b75c) !important;
+	font-weight: 700;
+}
+
+/* Advanced namespace panel */
+body.skin-eqlimmersive #mw-searchoptions,
+body.skin-eqlimmersive .mw-search-profile-tabs + div,
+body.skin-eqlimmersive .mw-search-profile-tabs ~ .mw-search-profile {
+	background:
+		linear-gradient(
+			180deg,
+			rgba(13,18,26,0.94),
+			rgba(8,12,18,0.96)
+		) !important;
+
+	border: 1px solid rgba(216,183,92,0.22) !important;
+	border-radius: 8px !important;
+
+	color: var(--eql-text-muted, #aab3c2) !important;
+
+	padding: 0.85rem !important;
+	box-sizing: border-box;
+}
+
+/* Namespace labels and helper text */
+body.skin-eqlimmersive #mw-searchoptions,
+body.skin-eqlimmersive #mw-searchoptions label,
+body.skin-eqlimmersive #mw-searchoptions legend,
+body.skin-eqlimmersive #mw-searchoptions h4,
+body.skin-eqlimmersive .mw-search-profile label,
+body.skin-eqlimmersive .mw-search-profile legend,
+body.skin-eqlimmersive .mw-search-profile h4 {
+	color: var(--eql-text-muted, #aab3c2) !important;
+}
+
+/* “Search in namespaces” heading */
+body.skin-eqlimmersive #mw-searchoptions h4,
+body.skin-eqlimmersive .mw-search-profile h4 {
+	color: var(--eql-gold, #d8b75c) !important;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 1rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+/* Namespace checkbox layout */
+body.skin-eqlimmersive #mw-searchoptions table,
+body.skin-eqlimmersive .mw-search-profile table {
+	background: transparent !important;
+	color: var(--eql-text-muted, #aab3c2) !important;
+}
+
+body.skin-eqlimmersive #mw-searchoptions td,
+body.skin-eqlimmersive .mw-search-profile td {
+	color: var(--eql-text-muted, #aab3c2) !important;
+	border: 0 !important;
+	background: transparent !important;
+}
+
+/* Native checkboxes */
+body.skin-eqlimmersive #mw-searchoptions input[type="checkbox"],
+body.skin-eqlimmersive .mw-search-profile input[type="checkbox"] {
+	accent-color: #93c572;
+}
+
+/* OOUI checkboxes */
+body.skin-eqlimmersive .oo-ui-checkboxInputWidget [type="checkbox"] + span {
+	background-color: rgba(6,10,16,0.92) !important;
+	border-color: rgba(216,183,92,0.38) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span {
+	background-color: rgba(86,128,62,0.98) !important;
+	border-color: rgba(216,183,92,0.72) !important;
+}
+
+/* “All / None” controls */
+body.skin-eqlimmersive #mw-search-togglebox a,
+body.skin-eqlimmersive .mw-search-profile a,
+body.skin-eqlimmersive .mw-search-profile-tabs a {
+	color: var(--eql-link, #9bb8ff) !important;
+}
+
+body.skin-eqlimmersive #mw-search-togglebox a:hover,
+body.skin-eqlimmersive .mw-search-profile a:hover,
+body.skin-eqlimmersive .mw-search-profile-tabs a:hover {
+	color: var(--eql-gold, #d8b75c) !important;
+}
+
+/* Search result count */
+body.skin-eqlimmersive .results-info,
+body.skin-eqlimmersive .mw-search-results-info,
+body.skin-eqlimmersive .searchdidyoumean,
+body.skin-eqlimmersive .mw-search-createlink {
+	color: var(--eql-text-muted, #aab3c2) !important;
+}
+
+/* Individual results */
+body.skin-eqlimmersive .mw-search-result {
+	margin: 0.75rem 0;
+	padding: 0.75rem 0.85rem;
+
+	background: rgba(255,255,255,0.03);
+	border: 1px solid rgba(255,255,255,0.08);
+	border-radius: 8px;
+
+	box-shadow:
+		inset 0 1px 0 rgba(255,255,255,0.035);
+}
+
+body.skin-eqlimmersive .mw-search-result-heading a {
+	color: var(--eql-link, #9bb8ff) !important;
+	font-weight: 700;
+}
+
+body.skin-eqlimmersive .mw-search-result-heading a:hover {
+	color: var(--eql-gold, #d8b75c) !important;
+}
+
+body.skin-eqlimmersive .searchresult,
+body.skin-eqlimmersive .mw-search-result-data,
+body.skin-eqlimmersive .mw-search-result .searchmatch {
+	color: var(--eql-text-muted, #aab3c2) !important;
+}
+
+body.skin-eqlimmersive .searchmatch {
+	color: #fff2c2 !important;
+	background: rgba(216,183,92,0.20);
+	border-radius: 3px;
+	padding: 0 0.15em;
+}
+
+/* Pagination / suggestions */
+body.skin-eqlimmersive .mw-search-pager-bottom,
+body.skin-eqlimmersive .mw-pager-navigation-bar {
+	color: var(--eql-text-muted, #aab3c2) !important;
+}
+
+body.skin-eqlimmersive .mw-search-pager-bottom a,
+body.skin-eqlimmersive .mw-pager-navigation-bar a {
+	color: var(--eql-link, #9bb8ff) !important;
+}
+
+body.skin-eqlimmersive .mw-search-pager-bottom a:hover,
+body.skin-eqlimmersive .mw-pager-navigation-bar a:hover {
+	color: var(--eql-gold, #d8b75c) !important;
+}
+
+/* Help link top-right on search page */
+body.skin-eqlimmersive .mw-search-help,
+body.skin-eqlimmersive .mw-search-help a {
+	color: var(--eql-link, #9bb8ff) !important;
+}
+
+body.skin-eqlimmersive .mw-search-help a:hover {
+	color: var(--eql-gold, #d8b75c) !important;
+}
+
+/* Light OOUI panels that sometimes leak into Special:Search */
+body.skin-eqlimmersive .oo-ui-panelLayout,
+body.skin-eqlimmersive .oo-ui-fieldsetLayout,
+body.skin-eqlimmersive .oo-ui-fieldLayout {
+	background: transparent !important;
+	color: var(--eql-text-muted, #aab3c2) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-labelElement-label {
+	color: var(--eql-text-muted, #aab3c2) !important;
+}

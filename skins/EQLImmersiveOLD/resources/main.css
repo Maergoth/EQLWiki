@@ -1,0 +1,3153 @@
+/* =====================================================
+   EQL Immersive — main.css
+   Dark-fantasy skin for EverQuest Legends Wiki.
+
+   Scope:
+   body.skin-eqlimmersive
+
+   This file handles:
+   - global design tokens
+   - page background and vignette
+   - general Vector/content dark theme
+   - links and red-link preservation
+   - forms, OOUI/Codex, dialogs
+   - tables, notices, diffs, edit pages
+   - footer and sitewide utility styles
+
+   This file intentionally does NOT own:
+   - header layout: header-actions.css
+   - custom sidebar: sidebar-redlinks.css
+   - Main Page layout: homepage.css
+   ===================================================== */
+
+
+/* ==========================================================
+   SECTION 1 — Design tokens
+   ========================================================== */
+
+body.skin-eqlimmersive {
+	--eql-bg-base: #0c1425;
+	--eql-bg-image: url( images/everquest-legends-background.png );
+	--eql-bg-overlay:
+		linear-gradient(
+			180deg,
+			rgba( 8, 14, 28, 0.78 ) 0%,
+			rgba( 10, 16, 32, 0.82 ) 50%,
+			rgba( 6, 10, 22, 0.88 ) 100%
+		);
+
+	--eql-panel: rgba( 12, 16, 23, 0.86 );
+	--eql-panel-strong: rgba( 10, 14, 20, 0.92 );
+	--eql-panel-soft: rgba( 16, 21, 30, 0.72 );
+	--eql-panel-input: rgba( 8, 12, 18, 0.75 );
+	--eql-panel-header: rgba( 8, 12, 18, 0.82 );
+
+	--eql-border: rgba( 193, 151, 57, 0.36 );
+	--eql-border-muted: rgba( 255, 255, 255, 0.12 );
+	--eql-border-strong: rgba( 255, 255, 255, 0.20 );
+	--eql-border-input: rgba( 255, 255, 255, 0.18 );
+
+	--eql-gold: #d8b75c;
+	--eql-gold-soft: #b7953f;
+	--eql-gold-dim: rgba( 216, 183, 92, 0.25 );
+
+	--eql-link: #9fb4ff;
+	--eql-link-visited: #b49dff;
+	--eql-link-active: #c9b8ff;
+	--eql-link-new: #e06050;
+	--eql-link-new-hover: #ff7a6d;
+
+	--eql-text: #e6edf3;
+	--eql-text-muted: #aab3c2;
+	--eql-text-heading: #f0f3f6;
+
+	--eql-code-bg: rgba( 8, 12, 18, 0.80 );
+	--eql-code-border: rgba( 255, 255, 255, 0.10 );
+
+	--eql-success: #3fb950;
+	--eql-warning: #d29922;
+	--eql-error: #f85149;
+
+	--eql-diff-add: rgba( 40, 120, 60, 0.25 );
+	--eql-diff-del: rgba( 160, 50, 50, 0.25 );
+	--eql-diff-add-highlight: rgba( 40, 167, 69, 0.30 );
+	--eql-diff-del-highlight: rgba( 220, 53, 69, 0.30 );
+
+	--eql-shadow: rgba( 0, 0, 0, 0.42 );
+	--eql-shadow-strong: rgba( 0, 0, 0, 0.55 );
+
+	--eql-table-even: rgba( 30, 38, 50, 0.60 );
+	--eql-table-hover: rgba( 40, 52, 68, 0.70 );
+
+	--eql-btn-bg: rgba( 30, 38, 50, 0.70 );
+	--eql-btn-bg-hover: rgba( 45, 55, 72, 0.80 );
+	--eql-btn-primary-bg: #2a56c6;
+	--eql-btn-primary-bg-hover: #3468e0;
+	--eql-btn-text: var( --eql-text );
+
+	--eql-scrollbar-track: rgba( 0, 0, 0, 0.15 );
+	--eql-scrollbar-thumb: rgba( 255, 255, 255, 0.12 );
+	--eql-scrollbar-thumb-hover: rgba( 255, 255, 255, 0.22 );
+}
+
+
+/* ==========================================================
+   SECTION 2 — Full-page background and vignette
+   ========================================================== */
+
+body.skin-eqlimmersive {
+	color-scheme: dark;
+	background-color: var( --eql-bg-base ) !important;
+	background-image:
+		var( --eql-bg-overlay ),
+		var( --eql-bg-image ) !important;
+	background-size: auto, cover !important;
+	background-position: center top, center top !important;
+	background-repeat: no-repeat, no-repeat !important;
+	background-attachment: fixed, fixed !important;
+	color: var( --eql-text ) !important;
+	min-height: 100vh;
+	overflow-x: hidden;
+	scrollbar-color: var( --eql-scrollbar-thumb ) var( --eql-scrollbar-track );
+	scrollbar-width: thin;
+}
+
+/* Rendered vignette overlay. */
+body.skin-eqlimmersive::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 0;
+
+	background:
+		radial-gradient(
+			ellipse at center,
+			rgba( 0, 0, 0, 0 ) 0%,
+			rgba( 0, 0, 0, 0.02 ) 34%,
+			rgba( 0, 0, 0, 0.24 ) 55%,
+			rgba( 0, 0, 0, 0.52 ) 76%,
+			rgba( 0, 0, 0, 0.82 ) 100%
+		);
+}
+
+body.skin-eqlimmersive .vector-header-container,
+body.skin-eqlimmersive .mw-page-container,
+body.skin-eqlimmersive .vector-sticky-header-container,
+body.skin-eqlimmersive .oo-ui-windowManager,
+body.skin-eqlimmersive .cdx-dialog-backdrop {
+	position: relative;
+	z-index: 1;
+}
+
+
+/* ==========================================================
+   SECTION 3 — Structural Vector overrides
+   ========================================================== */
+
+body.skin-eqlimmersive .mw-page-container,
+body.skin-eqlimmersive .vector-header-container,
+body.skin-eqlimmersive .mw-header,
+body.skin-eqlimmersive .vector-column-start,
+body.skin-eqlimmersive .vector-column-end,
+body.skin-eqlimmersive .vector-sticky-pinned-container,
+body.skin-eqlimmersive .vector-toc,
+body.skin-eqlimmersive .vector-main-menu,
+body.skin-eqlimmersive .vector-page-titlebar,
+body.skin-eqlimmersive .vector-body,
+body.skin-eqlimmersive .vector-sitenotice-container {
+	background: transparent !important;
+}
+
+body.skin-eqlimmersive .mw-page-container,
+body.skin-eqlimmersive .mw-page-container-inner,
+body.skin-eqlimmersive .mw-content-container {
+	max-width: none !important;
+}
+
+body.skin-eqlimmersive .mw-content-container,
+body.skin-eqlimmersive .mw-header {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+body.skin-eqlimmersive .mw-body {
+	background: var( --eql-panel-strong ) !important;
+	border: 1px solid var( --eql-border-muted );
+	border-radius: 10px;
+	box-shadow: 0 12px 40px var( --eql-shadow );
+	padding: 1.5rem 2rem;
+}
+
+body.skin-eqlimmersive .vector-header-container,
+body.skin-eqlimmersive .mw-header {
+	background: var( --eql-panel-header ) !important;
+	border-bottom: 1px solid var( --eql-border-muted );
+	backdrop-filter: blur( 6px );
+	-webkit-backdrop-filter: blur( 6px );
+}
+
+body.skin-eqlimmersive .vector-header-container {
+	position: relative;
+	z-index: 4000;
+	overflow: visible !important;
+	box-shadow: 0 4px 18px rgba( 0, 0, 0, 0.28 );
+}
+
+body.skin-eqlimmersive .mw-header {
+	min-height: 58px;
+	max-width: none !important;
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive .mw-logo-wordmark {
+	color: var( --eql-gold ) !important;
+	font-family: Georgia, 'Times New Roman', serif;
+	font-weight: 700;
+	letter-spacing: 0.045em;
+	text-shadow:
+		0 1px 2px rgba( 0, 0, 0, 0.85 ),
+		0 0 8px rgba( 216, 183, 92, 0.18 );
+}
+
+body.skin-eqlimmersive .mw-logo:hover .mw-logo-wordmark,
+body.skin-eqlimmersive .mw-logo:focus .mw-logo-wordmark,
+body.skin-eqlimmersive .mw-logo:focus-visible .mw-logo-wordmark {
+	color: #f2df9b !important;
+	text-shadow:
+		0 1px 2px rgba( 0, 0, 0, 0.85 ),
+		0 0 10px rgba( 216, 183, 92, 0.24 );
+}
+
+
+/* ==========================================================
+   SECTION 4 — Appearance controls
+   ========================================================== */
+
+body.skin-eqlimmersive .vector-appearance-landmark,
+body.skin-eqlimmersive #vector-appearance-dropdown,
+body.skin-eqlimmersive #vector-appearance,
+body.skin-eqlimmersive #vector-appearance-pinned-container,
+body.skin-eqlimmersive #vector-appearance-unpinned-container {
+	display: none !important;
+}
+
+
+/* ==========================================================
+   SECTION 5 — Sidebar / TOC base dark treatment
+   Custom sidebar positioning belongs in sidebar-redlinks.css.
+   ========================================================== */
+
+body.skin-eqlimmersive .vector-toc,
+body.skin-eqlimmersive .vector-main-menu {
+	background: var( --eql-panel ) !important;
+	border: 1px solid var( --eql-border-muted );
+	border-radius: 8px;
+}
+
+body.skin-eqlimmersive .vector-toc .vector-toc-link,
+body.skin-eqlimmersive .vector-main-menu a:not( .new ),
+body.skin-eqlimmersive .vector-main-menu .mw-list-item:not( .new ) > a:not( .new ) {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .vector-toc .vector-toc-link:hover,
+body.skin-eqlimmersive .vector-main-menu a:not( .new ):hover,
+body.skin-eqlimmersive .vector-main-menu .mw-list-item:not( .new ) > a:not( .new ):hover {
+	color: var( --eql-gold );
+}
+
+body.skin-eqlimmersive .vector-toc .vector-toc-list-item-active > .vector-toc-link {
+	color: var( --eql-gold );
+	border-left-color: var( --eql-gold );
+}
+
+body.skin-eqlimmersive .vector-menu-heading,
+body.skin-eqlimmersive .vector-main-menu .vector-menu-heading {
+	color: var( --eql-gold-soft );
+	font-weight: 700;
+	text-transform: none;
+	letter-spacing: 0.04em;
+	font-size: 0.78rem;
+}
+
+body.skin-eqlimmersive .vector-main-menu .mw-list-item a {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.2rem 0;
+}
+
+body.skin-eqlimmersive .vector-main-menu .mw-list-item a::before {
+	content: "";
+	display: inline-block;
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	opacity: 0.7;
+}
+
+body.skin-eqlimmersive .vector-main-menu .mw-list-item a:hover::before {
+	opacity: 1;
+}
+
+/* Navigation section icons. */
+body.skin-eqlimmersive #n-Main-Page a::before { background-image: url( images/nav-main-page.svg ); }
+body.skin-eqlimmersive #n-Recent-changes a::before { background-image: url( images/nav-recent-changes.svg ); }
+body.skin-eqlimmersive #n-Random-page a::before { background-image: url( images/nav-random-page.svg ); }
+body.skin-eqlimmersive #n-Community-portal a::before { background-image: url( images/nav-community.svg ); }
+body.skin-eqlimmersive #n-Help a::before { background-image: url( images/nav-help.svg ); }
+
+/* Game Content sidebar icons.
+   These use the uploaded EQL icon pack in /images/EQL Icon Art/.
+   Keep them as background images so they obey the sidebar icon sizing rules. */
+body.skin-eqlimmersive #n-Quests a::before { background-image: url( "/images/EQL%20Icon%20Art/Quests@256.webp" ); }
+body.skin-eqlimmersive #n-Zones a::before { background-image: url( "/images/EQL%20Icon%20Art/Zones@256.webp" ); }
+body.skin-eqlimmersive #n-NPCs a::before { background-image: url( "/images/EQL%20Icon%20Art/NPCs@256.webp" ); }
+body.skin-eqlimmersive #n-Classes a::before { background-image: url( "/images/EQL%20Icon%20Art/Classes@256.webp" ); }
+body.skin-eqlimmersive #n-Equipment a::before { background-image: url( "/images/EQL%20Icon%20Art/Equipment@256.webp" ); }
+body.skin-eqlimmersive #n-Spells a::before { background-image: url( "/images/EQL%20Icon%20Art/Spells@256.webp" ); }
+body.skin-eqlimmersive #n-Tradeskills a::before { background-image: url( "/images/EQL%20Icon%20Art/Tradeskills@256.webp" ); }
+
+/* Explicitly constrain icon-pack images so raster WebP files never render large. */
+body.skin-eqlimmersive #n-Quests a::before,
+body.skin-eqlimmersive #n-Zones a::before,
+body.skin-eqlimmersive #n-NPCs a::before,
+body.skin-eqlimmersive #n-Classes a::before,
+body.skin-eqlimmersive #n-Equipment a::before,
+body.skin-eqlimmersive #n-Spells a::before,
+body.skin-eqlimmersive #n-Tradeskills a::before {
+	width: 20px !important;
+	height: 20px !important;
+	flex: 0 0 20px !important;
+	background-size: contain !important;
+	background-repeat: no-repeat !important;
+	background-position: center !important;
+}
+
+/* Tools / page-tools icons. */
+body.skin-eqlimmersive #n-whatlinkshere a::before { background-image: url( images/nav-whatlinkshere.svg ); }
+body.skin-eqlimmersive #n-recentchangeslinked a::before { background-image: url( images/nav-recentchangeslinked.svg ); }
+body.skin-eqlimmersive #n-specialpages a::before { background-image: url( images/nav-specialpages.svg ); }
+body.skin-eqlimmersive #n-upload a::before { background-image: url( images/nav-upload.svg ); }
+body.skin-eqlimmersive #n-print a::before { background-image: url( images/nav-print.svg ); }
+body.skin-eqlimmersive #n-permalink a::before { background-image: url( images/nav-permalink.svg ); }
+body.skin-eqlimmersive #n-info a::before { background-image: url( images/nav-info.svg ); }
+
+body.skin-eqlimmersive .vector-main-menu .mw-list-item.active > a,
+body.skin-eqlimmersive .vector-main-menu .mw-list-item.selected > a {
+	color: var( --eql-gold );
+	background: rgba( 216, 183, 92, 0.10 );
+	border-radius: 4px;
+	padding: 0.2rem 0.4rem;
+	margin: 0 -0.4rem;
+}
+
+
+/* ==========================================================
+   SECTION 6 — Sticky header
+   ========================================================== */
+
+body.skin-eqlimmersive .vector-sticky-header {
+	background: var( --eql-panel-header ) !important;
+	border-bottom: 1px solid var( --eql-border-muted );
+	backdrop-filter: blur( 8px );
+	-webkit-backdrop-filter: blur( 8px );
+	position: fixed !important;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 999;
+}
+
+body.skin-eqlimmersive .vector-sticky-header:not( .vector-sticky-header-visible ) {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.eql-scrolled .vector-header-container {
+	box-shadow: 0 8px 22px var( --eql-shadow-strong );
+}
+
+
+/* ==========================================================
+   SECTION 7 — Page actions / tabs
+   ========================================================== */
+
+body.skin-eqlimmersive .vector-page-titlebar {
+	border-bottom-color: var( --eql-border-muted ) !important;
+}
+
+body.skin-eqlimmersive .vector-page-toolbar {
+	border-bottom-color: var( --eql-border-muted ) !important;
+	background: transparent !important;
+}
+
+body.skin-eqlimmersive .mw-body-header {
+	border: 0 !important;
+}
+
+body.skin-eqlimmersive .vector-tabs,
+body.skin-eqlimmersive .vector-menu-tabs {
+	border: 0 !important;
+}
+
+body.skin-eqlimmersive .vector-tabs .selected a,
+body.skin-eqlimmersive .vector-menu-tabs .selected a {
+	color: var( --eql-text ) !important;
+	border-bottom: 2px solid var( --eql-gold );
+}
+
+body.skin-eqlimmersive nav.vector-menu-tabs::after,
+body.skin-eqlimmersive .mw-body .vector-page-titlebar::after {
+	border: 0 !important;
+}
+
+body.skin-eqlimmersive .vector-tab-noicon a:not( .new ),
+body.skin-eqlimmersive .mw-list-item:not( .new ) > a:not( .new ) {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .vector-tab-noicon a:not( .new ):hover,
+body.skin-eqlimmersive .mw-list-item:not( .new ) > a:not( .new ):hover {
+	color: var( --eql-gold );
+}
+
+body.skin-eqlimmersive .vector-tab-noicon.selected a,
+body.skin-eqlimmersive .mw-list-item.selected > a:not( .new ) {
+	color: var( --eql-text );
+}
+
+
+/* ==========================================================
+   SECTION 8 — Typography and links
+   ========================================================== */
+
+body.skin-eqlimmersive h1,
+body.skin-eqlimmersive h2,
+body.skin-eqlimmersive h3,
+body.skin-eqlimmersive h4,
+body.skin-eqlimmersive h5,
+body.skin-eqlimmersive h6 {
+	color: var( --eql-text-heading );
+	border-bottom-color: var( --eql-border-muted );
+}
+
+/* Normal links. Exclude red links. */
+body.skin-eqlimmersive .mw-body-content a:not( .new ):not( .external ),
+body.skin-eqlimmersive .vector-menu-content a:not( .new ),
+body.skin-eqlimmersive .vector-menu-content .mw-list-item:not( .new ) > a:not( .new ),
+body.skin-eqlimmersive .vector-dropdown-content a:not( .new ),
+body.skin-eqlimmersive .vector-dropdown-content .mw-list-item:not( .new ) > a:not( .new ) {
+	color: var( --eql-link );
+}
+
+body.skin-eqlimmersive .mw-body-content a:visited:not( .new ):not( .external ) {
+	color: var( --eql-link-visited );
+}
+
+body.skin-eqlimmersive .mw-body-content a:active {
+	color: var( --eql-link-active );
+}
+
+body.skin-eqlimmersive .mw-body-content a.external {
+	color: var( --eql-link );
+}
+
+body.skin-eqlimmersive .mw-body-content a.external:visited {
+	color: var( --eql-link-visited );
+}
+
+/* Red links. Must come after broad menu/dropdown link styling. */
+body.skin-eqlimmersive a.new,
+body.skin-eqlimmersive a.new:visited,
+body.skin-eqlimmersive .new > a,
+body.skin-eqlimmersive .new > a:visited,
+body.skin-eqlimmersive .mw-list-item.new > a,
+body.skin-eqlimmersive .mw-list-item.new > a:visited,
+body.skin-eqlimmersive .mw-list-item > a.new,
+body.skin-eqlimmersive .mw-list-item > a.new:visited,
+body.skin-eqlimmersive .mw-body-content a.new,
+body.skin-eqlimmersive .mw-body-content a.new:visited,
+body.skin-eqlimmersive .mw-parser-output a.new,
+body.skin-eqlimmersive .mw-parser-output a.new:visited,
+body.skin-eqlimmersive .vector-menu-content a.new,
+body.skin-eqlimmersive .vector-menu-content a.new:visited,
+body.skin-eqlimmersive .vector-menu-content .new > a,
+body.skin-eqlimmersive .vector-menu-content .new > a:visited,
+body.skin-eqlimmersive .vector-dropdown-content a.new,
+body.skin-eqlimmersive .vector-dropdown-content a.new:visited,
+body.skin-eqlimmersive .vector-dropdown-content .new > a,
+body.skin-eqlimmersive .vector-dropdown-content .new > a:visited {
+	color: var( --eql-link-new ) !important;
+}
+
+body.skin-eqlimmersive a.new:hover,
+body.skin-eqlimmersive .new > a:hover,
+body.skin-eqlimmersive .mw-list-item.new > a:hover,
+body.skin-eqlimmersive .mw-list-item > a.new:hover,
+body.skin-eqlimmersive .mw-body-content a.new:hover,
+body.skin-eqlimmersive .mw-parser-output a.new:hover,
+body.skin-eqlimmersive .vector-menu-content a.new:hover,
+body.skin-eqlimmersive .vector-menu-content .new > a:hover,
+body.skin-eqlimmersive .vector-dropdown-content a.new:hover,
+body.skin-eqlimmersive .vector-dropdown-content .new > a:hover {
+	color: var( --eql-link-new-hover ) !important;
+	text-decoration: underline !important;
+}
+
+body.skin-eqlimmersive .mw-parser-output .mw-editsection a,
+body.skin-eqlimmersive .mw-parser-output .mw-editsection-bracket {
+	color: var( --eql-text-muted );
+}
+
+
+/* ==========================================================
+   SECTION 9 — Search
+   ========================================================== */
+
+body.skin-eqlimmersive #p-search {
+	min-width: min( 620px, 42vw );
+}
+
+body.skin-eqlimmersive #searchform {
+	width: 100%;
+}
+
+body.skin-eqlimmersive .cdx-search-input__end-button {
+	min-width: 88px;
+}
+
+body.skin-eqlimmersive .cdx-text-input__input,
+body.skin-eqlimmersive .vector-search-box-input {
+	background: var( --eql-panel-input ) !important;
+	border-color: var( --eql-border-input ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .cdx-text-input__input::placeholder,
+body.skin-eqlimmersive .vector-search-box-input::placeholder {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .cdx-text-input__input:focus,
+body.skin-eqlimmersive .vector-search-box-input:focus {
+	border-color: var( --eql-gold-soft ) !important;
+	box-shadow: 0 0 0 1px var( --eql-gold-dim );
+}
+
+body.skin-eqlimmersive .cdx-menu,
+body.skin-eqlimmersive .cdx-typeahead-search__menu,
+body.skin-eqlimmersive .vector-search-box-show-thumbnail .suggestions {
+	background: var( --eql-panel-strong ) !important;
+	border-color: var( --eql-border-muted ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .cdx-menu-item:hover,
+body.skin-eqlimmersive .cdx-menu-item--highlighted {
+	background: var( --eql-table-hover ) !important;
+}
+
+body.skin-eqlimmersive .cdx-menu-item__text__description {
+	color: var( --eql-text-muted );
+}
+
+
+/* ==========================================================
+   SECTION 10 — Forms and buttons
+   ========================================================== */
+
+body.skin-eqlimmersive input[type="text"],
+body.skin-eqlimmersive input[type="password"],
+body.skin-eqlimmersive input[type="email"],
+body.skin-eqlimmersive input[type="url"],
+body.skin-eqlimmersive input[type="number"],
+body.skin-eqlimmersive input[type="search"],
+body.skin-eqlimmersive textarea,
+body.skin-eqlimmersive select {
+	background: var( --eql-panel-input );
+	border: 1px solid var( --eql-border-input );
+	color: var( --eql-text );
+	border-radius: 4px;
+}
+
+body.skin-eqlimmersive input[type="text"]:focus,
+body.skin-eqlimmersive input[type="password"]:focus,
+body.skin-eqlimmersive input[type="email"]:focus,
+body.skin-eqlimmersive textarea:focus,
+body.skin-eqlimmersive select:focus {
+	border-color: var( --eql-gold-soft );
+	outline: none;
+	box-shadow: 0 0 0 1px var( --eql-gold-dim );
+}
+
+body.skin-eqlimmersive input::placeholder,
+body.skin-eqlimmersive textarea::placeholder {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive input[type="submit"],
+body.skin-eqlimmersive input[type="button"],
+body.skin-eqlimmersive button:not( .cdx-button ),
+body.skin-eqlimmersive .mw-ui-button {
+	background: var( --eql-btn-bg );
+	color: var( --eql-btn-text );
+	border: 1px solid var( --eql-border-muted );
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s;
+}
+
+body.skin-eqlimmersive input[type="submit"]:hover,
+body.skin-eqlimmersive input[type="button"]:hover,
+body.skin-eqlimmersive button:not( .cdx-button ):hover,
+body.skin-eqlimmersive .mw-ui-button:hover {
+	background: var( --eql-btn-bg-hover );
+	border-color: var( --eql-border-strong );
+}
+
+body.skin-eqlimmersive .mw-ui-progressive,
+body.skin-eqlimmersive .cdx-button--action-progressive,
+body.skin-eqlimmersive .mw-ui-button.mw-ui-progressive {
+	background: var( --eql-btn-primary-bg ) !important;
+	color: #fff !important;
+	border-color: var( --eql-btn-primary-bg ) !important;
+}
+
+body.skin-eqlimmersive .mw-ui-progressive:hover,
+body.skin-eqlimmersive .cdx-button--action-progressive:hover {
+	background: var( --eql-btn-primary-bg-hover ) !important;
+}
+
+body.skin-eqlimmersive .mw-ui-destructive,
+body.skin-eqlimmersive .cdx-button--action-destructive {
+	color: var( --eql-error ) !important;
+	border-color: var( --eql-error ) !important;
+}
+
+body.skin-eqlimmersive fieldset {
+	border-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive legend {
+	color: var( --eql-text-heading );
+}
+
+
+/* ==========================================================
+   SECTION 11 — OOUI / Codex
+   ========================================================== */
+
+body.skin-eqlimmersive .oo-ui-textInputWidget .oo-ui-inputWidget-input {
+	background: var( --eql-panel-input ) !important;
+	border-color: var( --eql-border-input ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-textInputWidget .oo-ui-inputWidget-input:focus {
+	border-color: var( --eql-gold-soft ) !important;
+	box-shadow: 0 0 0 1px var( --eql-gold-dim ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-buttonElement-framed .oo-ui-buttonElement-button {
+	background: var( --eql-btn-bg ) !important;
+	color: var( --eql-btn-text ) !important;
+	border-color: var( --eql-border-muted ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-buttonElement-framed .oo-ui-buttonElement-button:hover {
+	background: var( --eql-btn-bg-hover ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-flaggedElement-progressive .oo-ui-buttonElement-button {
+	background: var( --eql-btn-primary-bg ) !important;
+	color: #fff !important;
+	border-color: var( --eql-btn-primary-bg ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-labelElement .oo-ui-labelElement-label {
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive .oo-ui-popupWidget-popup {
+	background: var( --eql-panel-strong ) !important;
+	border-color: var( --eql-border-muted ) !important;
+	color: var( --eql-text ) !important;
+	box-shadow: 0 8px 24px var( --eql-shadow-strong );
+}
+
+body.skin-eqlimmersive .oo-ui-menuOptionWidget:hover,
+body.skin-eqlimmersive .oo-ui-menuOptionWidget.oo-ui-optionWidget-highlighted {
+	background: var( --eql-table-hover ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-menuOptionWidget {
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-checkboxInputWidget [type="checkbox"] + span {
+	background: var( --eql-panel-input ) !important;
+	border-color: var( --eql-border-input ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span {
+	background-color: var( --eql-link ) !important;
+	border-color: var( --eql-link ) !important;
+}
+
+body.skin-eqlimmersive .cdx-card,
+body.skin-eqlimmersive .cdx-message {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border-muted ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .cdx-message--warning { border-color: var( --eql-warning ) !important; }
+body.skin-eqlimmersive .cdx-message--error { border-color: var( --eql-error ) !important; }
+body.skin-eqlimmersive .cdx-message--success { border-color: var( --eql-success ) !important; }
+
+body.skin-eqlimmersive .cdx-dialog__header,
+body.skin-eqlimmersive .cdx-dialog__body,
+body.skin-eqlimmersive .cdx-dialog__footer {
+	background: var( --eql-panel-strong ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .cdx-tabs__header {
+	border-bottom-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive .cdx-tabs__list__item--selected .cdx-tabs__list__item__anchor {
+	color: var( --eql-gold );
+	border-bottom-color: var( --eql-gold );
+}
+
+body.skin-eqlimmersive .cdx-tabs__list__item__anchor {
+	color: var( --eql-text-muted );
+}
+
+
+/* ==========================================================
+   SECTION 12 — VisualEditor / OOUI modal dialogs
+   ========================================================== */
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal > .oo-ui-dialog,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-window-frame,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-window-head,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-window-body,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-window-foot,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-processDialog-content,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-processDialog-location,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-processDialog-navigation,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-processDialog-actions,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-body,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-editSummary,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-options,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-review {
+	background: var( --eql-panel-strong ) !important;
+	color: var( --eql-text ) !important;
+	border-color: var( --eql-border-muted ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-processDialog-title,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-labelElement-label,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-fieldLayout-header,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-fieldLayout-field,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-summaryLabel {
+	color: var( --eql-text-heading ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-inputWidget,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-textInputWidget,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-textInputWidget .oo-ui-inputWidget-input,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-summary textarea,
+body.skin-eqlimmersive .oo-ui-windowManager-modal textarea {
+	background: rgba( 8, 12, 18, 0.88 ) !important;
+	color: var( --eql-text ) !important;
+	border-color: var( --eql-border-input ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal textarea::placeholder,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-inputWidget-input::placeholder {
+	color: rgba( 230, 237, 243, 0.58 ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-fieldLayout,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-fieldLayout-body,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-fieldLayout-field,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-fieldLayout-align-top,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-options .oo-ui-fieldLayout {
+	background: var( --eql-panel-strong ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-options,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-options *,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-fieldLayout *,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-checkboxMultioptionWidget,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-checkboxMultioptionWidget *,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-checkboxInputWidget,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-checkboxInputWidget * {
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-checkboxInputWidget [type="checkbox"] + span {
+	background-color: rgba( 230, 237, 243, 0.12 ) !important;
+	border-color: rgba( 230, 237, 243, 0.42 ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span {
+	background-color: var( --eql-link ) !important;
+	border-color: var( --eql-link ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license *,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-licenseText {
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license strong,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license b {
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license a,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license a:visited {
+	color: var( --eql-link ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .ve-ui-mwSaveDialog-license a:hover {
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-tabSelectWidget,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-tabSelectWidget-framed,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-tabOptionWidget {
+	background: var( --eql-panel-strong ) !important;
+	border-color: var( --eql-border-muted ) !important;
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-tabOptionWidget-selected {
+	background: rgba( 216, 183, 92, 0.12 ) !important;
+	color: var( --eql-text-heading ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-flaggedElement-progressive.oo-ui-buttonElement-framed .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-processDialog-actions-primary .oo-ui-buttonElement-button {
+	background: var( --eql-btn-primary-bg ) !important;
+	border-color: var( --eql-btn-primary-bg ) !important;
+	color: #fff !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-flaggedElement-progressive.oo-ui-buttonElement-framed .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-processDialog-actions-primary .oo-ui-buttonElement-button:hover {
+	background: var( --eql-btn-primary-bg-hover ) !important;
+	border-color: var( --eql-btn-primary-bg-hover ) !important;
+	color: #fff !important;
+}
+
+body.skin-eqlimmersive .oo-ui-windowManager-modal .oo-ui-buttonElement-button {
+	background-color: rgba( 255, 255, 255, 0.055 ) !important;
+	border-color: var( --eql-border-muted ) !important;
+	color: var( --eql-text ) !important;
+}
+
+
+/* ==========================================================
+   SECTION 13 — Code
+   ========================================================== */
+
+body.skin-eqlimmersive pre,
+body.skin-eqlimmersive .mw-code,
+body.skin-eqlimmersive .mw-highlight {
+	background: var( --eql-code-bg ) !important;
+	border: 1px solid var( --eql-code-border );
+	color: var( --eql-text );
+	border-radius: 4px;
+}
+
+body.skin-eqlimmersive code {
+	background: var( --eql-code-bg );
+	color: var( --eql-text );
+	padding: 0.15em 0.35em;
+	border-radius: 3px;
+}
+
+
+/* ==========================================================
+   SECTION 14 — Tables
+   ========================================================== */
+
+body.skin-eqlimmersive .wikitable,
+body.skin-eqlimmersive .eoTable,
+body.skin-eqlimmersive .eoTable2,
+body.skin-eqlimmersive .eoTable3,
+body.skin-eqlimmersive table.sortable {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .wikitable th,
+body.skin-eqlimmersive .eoTable th,
+body.skin-eqlimmersive .eoTable2 th,
+body.skin-eqlimmersive .eoTable3 th,
+body.skin-eqlimmersive table.sortable th {
+	background: var( --eql-panel-strong ) !important;
+	background-image: none !important;
+	border-color: var( --eql-border-muted );
+	color: var( --eql-gold );
+}
+
+body.skin-eqlimmersive .wikitable td,
+body.skin-eqlimmersive .eoTable td,
+body.skin-eqlimmersive .eoTable2 td,
+body.skin-eqlimmersive .eoTable3 td,
+body.skin-eqlimmersive table.sortable td {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .wikitable tr:nth-child( even ) td,
+body.skin-eqlimmersive table.sortable tr:nth-child( even ) td,
+body.skin-eqlimmersive .eoTable tr:nth-child( even ) td,
+body.skin-eqlimmersive .eoTable2 tr:nth-child( even ) td,
+body.skin-eqlimmersive .eoTable3 tr:nth-child( even ) td {
+	background: var( --eql-table-even ) !important;
+}
+
+body.skin-eqlimmersive .wikitable tr:hover td,
+body.skin-eqlimmersive table.sortable tr:hover td,
+body.skin-eqlimmersive .eoTable tr:hover td,
+body.skin-eqlimmersive .eoTable2 tr:hover td,
+body.skin-eqlimmersive .eoTable3 tr:hover td {
+	background: var( --eql-table-hover ) !important;
+}
+
+body.skin-eqlimmersive .wikitable a:not( .new ),
+body.skin-eqlimmersive table.sortable a:not( .new ),
+body.skin-eqlimmersive .eoTable a:not( .new ),
+body.skin-eqlimmersive .eoTable2 a:not( .new ),
+body.skin-eqlimmersive .eoTable3 a:not( .new ) {
+	color: var( --eql-link );
+}
+
+body.skin-eqlimmersive table.sortable th.headerSort,
+body.skin-eqlimmersive table.sortable th.headerSortUp,
+body.skin-eqlimmersive table.sortable th.headerSortDown,
+body.skin-eqlimmersive table.sortable th.jquery-tablesorter-header {
+	background-image: none !important;
+}
+
+
+/* ==========================================================
+   SECTION 15 — Infoboxes, categories, notices
+   ========================================================== */
+
+body.skin-eqlimmersive .infobox {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .catlinks {
+	background: var( --eql-panel-soft ) !important;
+	border: 1px solid var( --eql-border-muted );
+	border-radius: 6px;
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .catlinks a:not( .new ) {
+	color: var( --eql-link );
+}
+
+body.skin-eqlimmersive .mw-message-box,
+body.skin-eqlimmersive .warningbox,
+body.skin-eqlimmersive .errorbox,
+body.skin-eqlimmersive .successbox {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .warningbox { border-left-color: var( --eql-warning ) !important; }
+body.skin-eqlimmersive .errorbox { border-left-color: var( --eql-error ) !important; }
+body.skin-eqlimmersive .successbox { border-left-color: var( --eql-success ) !important; }
+
+
+/* ==========================================================
+   SECTION 16 — Diffs, history, recent changes
+   ========================================================== */
+
+body.skin-eqlimmersive .diff-context {
+	background: var( --eql-panel ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .diff-addedline {
+	background: var( --eql-diff-add ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .diff-deletedline {
+	background: var( --eql-diff-del ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .diff-addedline .diffchange {
+	background: var( --eql-diff-add-highlight ) !important;
+}
+
+body.skin-eqlimmersive .diff-deletedline .diffchange {
+	background: var( --eql-diff-del-highlight ) !important;
+}
+
+body.skin-eqlimmersive table.diff {
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive table.diff td {
+	border-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive .mw-changeslist-date,
+body.skin-eqlimmersive .mw-changeslist-links a:not( .new ) {
+	color: var( --eql-link );
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border-muted ) !important;
+}
+
+
+/* ==========================================================
+   SECTION 17 — Edit pages
+   ========================================================== */
+
+body.skin-eqlimmersive #wpTextbox1,
+body.skin-eqlimmersive .ace_editor,
+body.skin-eqlimmersive .wikiEditor-ui textarea {
+	background: var( --eql-panel-input ) !important;
+	color: var( --eql-text ) !important;
+	border-color: var( --eql-border-input ) !important;
+}
+
+body.skin-eqlimmersive .editOptions {
+	background: var( --eql-panel-soft ) !important;
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive #editform .mw-summary-preset a:not( .new ) {
+	color: var( --eql-link );
+}
+
+body.skin-eqlimmersive .wikiEditor-ui-toolbar {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border-muted ) !important;
+}
+
+body.skin-eqlimmersive .wikiEditor-ui-toolbar .group {
+	border-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive .previewnote {
+	background: var( --eql-panel-soft ) !important;
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text );
+}
+
+
+/* ==========================================================
+   SECTION 18 — Special pages
+   ========================================================== */
+
+body.skin-eqlimmersive #mw-prefs-form fieldset {
+	background: var( --eql-panel-soft ) !important;
+	border-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive .mw-prefs-buttons {
+	background: transparent !important;
+}
+
+body.skin-eqlimmersive .mw-htmlform-field-HTMLTextField input,
+body.skin-eqlimmersive .mw-htmlform-field-HTMLTextAreaField textarea,
+body.skin-eqlimmersive .mw-ui-vform .mw-ui-input {
+	background: var( --eql-panel-input ) !important;
+	color: var( --eql-text ) !important;
+	border-color: var( --eql-border-input ) !important;
+}
+
+body.skin-eqlimmersive .mw-contributions-list li {
+	border-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive .mw-changeslist,
+body.skin-eqlimmersive .searchresults {
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .mw-search-result-heading a:not( .new ) {
+	color: var( --eql-link );
+}
+
+body.skin-eqlimmersive .mw-search-result-data {
+	color: var( --eql-text-muted );
+}
+
+
+/* ==========================================================
+   SECTION 19 — Footer
+   ========================================================== */
+
+body.skin-eqlimmersive .vector-footer,
+body.skin-eqlimmersive #footer {
+	background: transparent !important;
+	border-top: 1px solid var( --eql-border-muted );
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .vector-footer a:not( .new ),
+body.skin-eqlimmersive #footer a:not( .new ) {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .vector-footer a:not( .new ):hover,
+body.skin-eqlimmersive #footer a:not( .new ):hover {
+	color: var( --eql-gold );
+}
+
+body.skin-eqlimmersive #footer-poweredbyico {
+	display: none !important;
+}
+
+
+/* ==========================================================
+   SECTION 20 — User menu / notifications
+   Header dropdown itself is owned by header-actions.css.
+   ========================================================== */
+
+body.skin-eqlimmersive .vector-user-links {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .vector-user-menu .vector-menu-content {
+	background: var( --eql-panel-strong ) !important;
+	border-color: var( --eql-border-muted ) !important;
+}
+
+body.skin-eqlimmersive .mw-echo-notifications-badge {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .mw-echo-ui-notificationBadgeButtonPopupWidget-popup {
+	background: var( --eql-panel-strong ) !important;
+	border-color: var( --eql-border-muted ) !important;
+}
+
+body.skin-eqlimmersive .mw-echo-ui-notificationItemWidget {
+	background: var( --eql-panel ) !important;
+	border-color: var( --eql-border-muted ) !important;
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .mw-echo-ui-notificationItemWidget:hover {
+	background: var( --eql-table-hover ) !important;
+}
+
+
+/* ==========================================================
+   SECTION 21 — Sitenotice / beta banner
+   ========================================================== */
+
+body.skin-eqlimmersive .eql-beta-banner {
+	background: linear-gradient( 180deg, #9e2f25, #7e1f1a );
+	color: #fff;
+	text-align: center;
+	font-weight: 700;
+	padding: 0.45rem 1rem;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.18 );
+	font-size: 0.95rem;
+	letter-spacing: 0.02em;
+}
+
+
+/* ==========================================================
+   SECTION 22 — Content element overrides
+   ========================================================== */
+
+body.skin-eqlimmersive .tabs {
+	background: var( --eql-panel ) !important;
+}
+
+body.skin-eqlimmersive .tab {
+	background-color: var( --eql-panel-strong );
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .tab a:not( .new ) {
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .tab.selected {
+	background-color: var( --eql-panel );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .tab.selected a:not( .new ) {
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .fashion_show,
+body.skin-eqlimmersive .primary_secondary_show {
+	background: var( --eql-panel-strong );
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .fashion_show:hover,
+body.skin-eqlimmersive .primary_secondary_show:hover {
+	box-shadow: 0 3px 12px var( --eql-shadow );
+}
+
+body.skin-eqlimmersive .bordered-quote {
+	background-color: var( --eql-panel-soft );
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .quotation {
+	border-color: rgba( 47, 107, 171, 0.5 );
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .fashion_show_info {
+	border-top-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive .fashion_show_model,
+body.skin-eqlimmersive .fashion_show_tags,
+body.skin-eqlimmersive .fashion_show_slot .slot-label {
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .fashion_armor,
+body.skin-eqlimmersive .fashion_show_slot {
+	color: var( --eql-text );
+}
+
+body.skin-eqlimmersive .fashion_show_image {
+	background: #000;
+}
+
+body.skin-eqlimmersive .contributionscores-wrapper,
+body.skin-eqlimmersive .auctrackerbox {
+	border-color: var( --eql-border-muted );
+}
+
+body.skin-eqlimmersive .price_check,
+body.skin-eqlimmersive .price_check_stack {
+	color: var( --eql-success );
+}
+
+body.skin-eqlimmersive .grayout,
+body.skin-eqlimmersive .grayout a,
+body.skin-eqlimmersive .grayout h1,
+body.skin-eqlimmersive .grayout h2,
+body.skin-eqlimmersive .grayout h3 {
+	color: #666;
+}
+
+body.skin-eqlimmersive .grayout a.new {
+	color: #664;
+}
+
+body.skin-eqlimmersive .stackguide table,
+body.skin-eqlimmersive .stackguide td,
+body.skin-eqlimmersive .stackguide th,
+body.skin-eqlimmersive .gray-bordered td,
+body.skin-eqlimmersive .gray-bordered th {
+	border-color: var( --eql-border-muted );
+}
+
+
+body.skin-eqlimmersive #verificationBanner {
+	background-color: rgba( 180, 30, 20, 0.9 ) !important;
+	border: 1px solid var( --eql-border-muted );
+	border-radius: 6px;
+}
+
+body.skin-eqlimmersive #itemHoverContainer {
+	z-index: 1000;
+}
+
+body.skin-eqlimmersive .itemtitle {
+	color: #c0c0c0;
+}
+
+body.skin-eqlimmersive .itemdata {
+	color: #fff;
+}
+
+body.skin-eqlimmersive .itemdata a:not( .new ) {
+	color: #0b0;
+}
+
+body.skin-eqlimmersive .missing-image-prompt {
+	background: var( --eql-panel-strong );
+	border-color: var( --eql-border-muted );
+	color: var( --eql-text-muted );
+}
+
+body.skin-eqlimmersive .missing-image-prompt-title {
+	color: var( --eql-link-new );
+}
+
+
+/* ==========================================================
+   SECTION 23 — Scrollbars
+   ========================================================== */
+
+body.skin-eqlimmersive ::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+body.skin-eqlimmersive ::-webkit-scrollbar-track {
+	background: var( --eql-scrollbar-track );
+}
+
+body.skin-eqlimmersive ::-webkit-scrollbar-thumb {
+	background: var( --eql-scrollbar-thumb );
+	border-radius: 5px;
+}
+
+body.skin-eqlimmersive ::-webkit-scrollbar-thumb:hover {
+	background: var( --eql-scrollbar-thumb-hover );
+}
+
+
+/* ==========================================================
+   SECTION 24 — Responsive
+   ========================================================== */
+
+@media ( max-width: 999px ) {
+	body.skin-eqlimmersive .mw-body {
+		border-radius: 0;
+		border-left: 0;
+		border-right: 0;
+	}
+}
+
+/* =====================================================
+   EQL Immersive — saved edit notification
+   ===================================================== */
+
+body.skin-eqlimmersive .mw-notification,
+body.skin-eqlimmersive .mw-notification-visible,
+body.skin-eqlimmersive .mw-notification-area .mw-notification {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 12, 17, 25, 0.96 ),
+			rgba( 8, 12, 18, 0.98 )
+		) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.30 ) !important;
+	border-radius: 8px !important;
+	box-shadow:
+		0 12px 32px rgba( 0, 0, 0, 0.48 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-notification-content,
+body.skin-eqlimmersive .mw-notification-content *,
+body.skin-eqlimmersive .mw-notification-title,
+body.skin-eqlimmersive .mw-notification-body {
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-notification a,
+body.skin-eqlimmersive .mw-notification a:visited {
+	color: var( --eql-link ) !important;
+}
+
+body.skin-eqlimmersive .mw-notification a:hover {
+	color: var( --eql-gold ) !important;
+}
+
+/* Success/check icon area */
+body.skin-eqlimmersive .mw-notification-type-success,
+body.skin-eqlimmersive .mw-notification-success {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 12, 17, 25, 0.96 ),
+			rgba( 8, 12, 18, 0.98 )
+		) !important;
+	border-color: rgba( 63, 185, 80, 0.48 ) !important;
+}
+
+body.skin-eqlimmersive .mw-notification-type-success .mw-notification-content,
+body.skin-eqlimmersive .mw-notification-success .mw-notification-content {
+	color: var( --eql-text ) !important;
+}
+
+/* OOUI/Codex-style success message fallback */
+body.skin-eqlimmersive .cdx-message--success,
+body.skin-eqlimmersive .oo-ui-messageWidget.oo-ui-messageWidget-block.oo-ui-flaggedElement-success {
+	background: rgba( 12, 17, 25, 0.96 ) !important;
+	border-color: rgba( 63, 185, 80, 0.48 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .cdx-message--success *,
+body.skin-eqlimmersive .oo-ui-messageWidget.oo-ui-flaggedElement-success * {
+	color: var( --eql-text ) !important;
+}
+
+/* =====================================================
+   EQL Immersive — force visual defaults
+   Prevent Vector Appearance prefs from distorting this skin.
+   ===================================================== */
+
+body.skin-eqlimmersive {
+	font-size: 16px !important;
+}
+
+body.skin-eqlimmersive .mw-body-content,
+body.skin-eqlimmersive .vector-body,
+body.skin-eqlimmersive .mw-parser-output {
+	font-size: 1rem !important;
+	line-height: 1.55;
+}
+
+body.skin-eqlimmersive .mw-page-container,
+body.skin-eqlimmersive .mw-page-container-inner,
+body.skin-eqlimmersive .mw-content-container {
+	max-width: none !important;
+	width: 100% !important;
+}
+
+body.skin-eqlimmersive .mw-body {
+	max-width: none !important;
+}
+
+/* Neutralize Vector limited-width/clientpref wrappers for this skin. */
+html[class*="vector-feature-limited-width"] body.skin-eqlimmersive .mw-page-container,
+html[class*="vector-feature-limited-width"] body.skin-eqlimmersive .mw-page-container-inner,
+html[class*="vector-feature-limited-width"] body.skin-eqlimmersive .mw-content-container,
+html[class*="vector-feature-limited-width"] body.skin-eqlimmersive .mw-body {
+	max-width: none !important;
+}
+
+/* Neutralize Vector custom font-size prefs for this skin. */
+html[class*="vector-feature-custom-font-size"] body.skin-eqlimmersive,
+html[class*="vector-feature-custom-font-size"] body.skin-eqlimmersive .mw-body-content,
+html[class*="vector-feature-custom-font-size"] body.skin-eqlimmersive .vector-body,
+html[class*="vector-feature-custom-font-size"] body.skin-eqlimmersive .mw-parser-output {
+	font-size: 16px !important;
+}
+/* =====================================================
+   EQL Immersive — hide Powered by MediaWiki icon
+   ===================================================== */
+
+body.skin-eqlimmersive #footer-poweredbyico,
+body.skin-eqlimmersive .footer-icons #footer-poweredbyico,
+body.skin-eqlimmersive .mw-footer-icons #footer-poweredbyico {
+	display: none !important;
+}
+
+/* =====================================================
+   EQL Immersive — skin-only beta warning banner
+   Rendered in skin.mustache, not MediaWiki:Sitenotice.
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-beta-banner {
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+
+	width: 100%;
+	min-height: 2rem;
+	box-sizing: border-box;
+
+	padding: 0.42rem 1rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 112, 38, 32, 0.96 ) 0%,
+			rgba( 86, 28, 25, 0.98 ) 55%,
+			rgba( 58, 18, 17, 0.98 ) 100%
+		) !important;
+
+	border-bottom: 1px solid rgba( 255, 214, 140, 0.18 );
+	box-shadow:
+		0 2px 10px rgba( 0, 0, 0, 0.35 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ),
+		inset 0 -1px 0 rgba( 0, 0, 0, 0.45 );
+
+	color: #fff1cf !important;
+
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	font-size: 0.96rem;
+	font-weight: 500;
+	line-height: 1.2;
+	letter-spacing: 0.045em;
+	text-align: center;
+
+	text-shadow:
+		-1px -1px 0 rgba( 0, 0, 0, 0.82 ),
+		 1px -1px 0 rgba( 0, 0, 0, 0.82 ),
+		-1px  1px 0 rgba( 0, 0, 0, 0.82 ),
+		 1px  1px 0 rgba( 0, 0, 0, 0.82 ),
+		 0  1px 2px rgba( 0, 0, 0, 0.9 );
+}
+
+/* =====================================================
+   EQL Immersive — world map outside glow only
+   Strong glow, no fill, no text changes.
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-world-map-stage > div[title] {
+	position: absolute;
+	cursor: pointer;
+	overflow: visible !important;
+
+	/* Do not change default text/background/opacity here. */
+}
+
+/* Invisible glow layer around the clickable area. */
+body.skin-eqlimmersive .eql-world-map-stage > div[title]::before {
+	content: "";
+	position: absolute;
+
+	/* Grow outside the hotspot box. */
+	inset: -5px;
+
+	border: 3px solid rgba( 255, 232, 140, 0 );
+	border-radius: 4px;
+
+	box-shadow: none;
+	pointer-events: none;
+
+	opacity: 0;
+	transition:
+		opacity 0.12s ease,
+		border-color 0.12s ease,
+		box-shadow 0.12s ease;
+}
+
+/* Strong outside-only hover/focus glow. */
+body.skin-eqlimmersive .eql-world-map-stage > div[title]:hover,
+body.skin-eqlimmersive .eql-world-map-stage > div[title]:focus-within {
+	z-index: 999 !important;
+}
+
+body.skin-eqlimmersive .eql-world-map-stage > div[title]:hover::before,
+body.skin-eqlimmersive .eql-world-map-stage > div[title]:focus-within::before {
+	opacity: 1;
+
+	border-color: rgba( 255, 232, 140, 1 );
+
+	box-shadow:
+		0 0 0 2px rgba( 0, 0, 0, 0.92 ),
+		0 0 8px 2px rgba( 255, 245, 180, 1 ),
+		0 0 18px 6px rgba( 255, 220, 90, 0.95 ),
+		0 0 36px 12px rgba( 216, 183, 92, 0.70 ),
+		0 0 72px 22px rgba( 216, 183, 92, 0.42);
+}
+
+/* Keyboard accessibility on the link itself, without text styling changes. */
+body.skin-eqlimmersive .eql-world-map-stage > div[title] > a:focus-visible {
+	outline: 3px solid rgba( 255, 232, 140, 1 );
+	outline-offset: 3px;
+	border-radius: 3px;
+}
+
+/* =====================================================
+   EQL Immersive — legacy era/category color bands
+   Converts old light inline era headers into dark panels
+   with a left-side color wash that fades rightward.
+   ===================================================== */
+
+/* Base treatment for old inline background heading blocks. */
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="background"],
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="background"],
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="background"] {
+	display: block;
+	position: relative;
+
+	padding: 0.28rem 0.65rem !important;
+	margin: 0 0 0.4rem !important;
+
+	background:
+		linear-gradient(
+			90deg,
+			var( --eql-era-accent-soft, rgba( 216, 183, 92, 0.28 ) ) 0%,
+			rgba( 16, 21, 30, 0.92 ) 38%,
+			rgba( 8, 12, 18, 0.96 ) 100%
+		) !important;
+
+	border: 1px solid var( --eql-era-accent-border, rgba( 216, 183, 92, 0.36 ) );
+	border-left: 4px solid var( --eql-era-accent, var( --eql-gold ) );
+	border-radius: 4px;
+
+	color: var( --eql-era-accent-text, var( --eql-text-heading ) ) !important;
+
+	font-weight: 700;
+
+	box-shadow:
+		0 0 10px rgba( 0, 0, 0, 0.35 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 );
+
+	text-shadow:
+		0 1px 2px rgba( 0, 0, 0, 0.85 ),
+		0 0 8px rgba( 0, 0, 0, 0.60 ) !important;
+}
+
+/* Links inside converted heading panels. */
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="background"] a,
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="background"] a,
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="background"] a {
+	color: inherit !important;
+	text-decoration: none;
+}
+
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="background"] a:hover,
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="background"] a:hover,
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="background"] a:hover {
+	color: var( --eql-gold ) !important;
+	text-decoration: underline;
+}
+
+/* Classic — old background #ccffcc */
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="#ccffcc"],
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="#ccffcc"],
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="#ccffcc"],
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="#CCFFCC"],
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="#CCFFCC"],
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="#CCFFCC"] {
+	--eql-era-accent: #ccffcc;
+	--eql-era-accent-soft: rgba( 204, 255, 204, 0.26 );
+	--eql-era-accent-border: rgba( 204, 255, 204, 0.45 );
+	--eql-era-accent-text: #d8ffd8;
+}
+
+/* Kunark — old background #E0BD9F */
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="#E0BD9F"],
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="#E0BD9F"],
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="#E0BD9F"],
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="#e0bd9f"],
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="#e0bd9f"],
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="#e0bd9f"] {
+	--eql-era-accent: #e0bd9f;
+	--eql-era-accent-soft: rgba( 224, 189, 159, 0.30 );
+	--eql-era-accent-border: rgba( 224, 189, 159, 0.48 );
+	--eql-era-accent-text: #f0d4bc;
+}
+
+/* Velious — old background #9FE4FF */
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="#9FE4FF"],
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="#9FE4FF"],
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="#9FE4FF"],
+body.skin-eqlimmersive .mw-parser-output h2 > div[style*="#9fe4ff"],
+body.skin-eqlimmersive .mw-parser-output h3 > div[style*="#9fe4ff"],
+body.skin-eqlimmersive .mw-parser-output h4 > div[style*="#9fe4ff"] {
+	--eql-era-accent: #9fe4ff;
+	--eql-era-accent-soft: rgba( 159, 228, 255, 0.30 );
+	--eql-era-accent-border: rgba( 159, 228, 255, 0.52 );
+	--eql-era-accent-text: #bdeeff;
+}
+
+/* Common legacy content boxes with inline backgrounds outside headings.
+   Keep these readable but do not restyle them into panels. */
+body.skin-eqlimmersive .mw-parser-output td[style*="background"],
+body.skin-eqlimmersive .mw-parser-output th[style*="background"],
+body.skin-eqlimmersive .mw-parser-output span[style*="background"] {
+	color: #10151f !important;
+	text-shadow: none !important;
+}
+
+body.skin-eqlimmersive .mw-parser-output td[style*="background"] a,
+body.skin-eqlimmersive .mw-parser-output th[style*="background"] a,
+body.skin-eqlimmersive .mw-parser-output span[style*="background"] a {
+	color: #1d3f8f !important;
+	text-shadow: none !important;
+}
+
+/* Preserve intentionally dark alert/badge blocks. */
+body.skin-eqlimmersive .mw-parser-output .right-float-era,
+body.skin-eqlimmersive .mw-parser-output .right-float-era *,
+body.skin-eqlimmersive .mw-parser-output div[style*="background-color:#cc0000"],
+body.skin-eqlimmersive .mw-parser-output div[style*="background-color: #cc0000"],
+body.skin-eqlimmersive .mw-parser-output div[style*="background:#cc0000"],
+body.skin-eqlimmersive .mw-parser-output div[style*="background: #cc0000"] {
+	color: #fff !important;
+	text-shadow: 0 1px 2px rgba( 0, 0, 0, 0.85 ) !important;
+}
+
+/* =====================================================
+   EQL Immersive — Zone Connection World map scaling + magnifier
+   ===================================================== */
+
+body.skin-eqlimmersive.page-Zone_Connection_World .eql-connection-map-wrap {
+	width: min( 1536px, 100% );
+	max-width: 100%;
+
+	margin: 1rem auto;
+	padding: 0;
+
+	box-sizing: border-box;
+	overflow: visible;
+
+	text-align: center;
+	cursor: none;
+}
+
+body.skin-eqlimmersive.page-Zone_Connection_World .eql-connection-map-wrap a,
+body.skin-eqlimmersive.page-Zone_Connection_World .eql-connection-map-wrap img {
+	display: block;
+	width: 100% !important;
+	max-width: 100% !important;
+	height: auto !important;
+	margin: 0 auto;
+	cursor: none;
+}
+
+body.skin-eqlimmersive.page-Zone_Connection_World .eql-connection-map-wrap img {
+	border-radius: 8px;
+
+	box-shadow:
+		0 18px 42px rgba( 0, 0, 0, 0.42 ),
+		0 0 18px rgba( 216, 183, 92, 0.10 );
+}
+
+/* Magnifier window */
+body.skin-eqlimmersive #eql-connection-map-magnifier {
+	position: fixed;
+
+	display: none;
+
+	width: 625px;
+	height: 625px;
+
+	border: 2px solid rgba( 255, 226, 142, 0.95 );
+	border-radius: 12px;
+
+	background-repeat: no-repeat;
+	background-color: rgba( 8, 12, 18, 0.96 );
+
+	box-shadow:
+		0 0 0 3px rgba( 0, 0, 0, 0.76 ),
+		0 0 16px rgba( 216, 183, 92, 0.62 ),
+		0 0 38px rgba( 216, 183, 92, 0.26 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.20 );
+
+	pointer-events: none;
+	z-index: 30000;
+
+	overflow: hidden;
+
+	transform: translate( -50%, -50% ) translateZ( 0 );
+}
+
+body.skin-eqlimmersive #eql-connection-map-magnifier.eql-connection-map-magnifier-visible {
+	display: block;
+}
+
+body.skin-eqlimmersive #eql-connection-map-magnifier::after {
+	content: "";
+
+	position: absolute;
+	inset: 0;
+
+	border-radius: inherit;
+
+	background:
+		linear-gradient(
+			135deg,
+			rgba( 255, 255, 255, 0.16 ),
+			rgba( 255, 255, 255, 0.02 ) 36%,
+			rgba( 0, 0, 0, 0.14 ) 76%,
+			rgba( 0, 0, 0, 0.30 ) 100%
+		);
+
+	pointer-events: none;
+}
+
+/* =====================================================
+   EQL Immersive — linked headings, inherit heading color
+   ===================================================== */
+
+body.skin-eqlimmersive .mw-parser-output h1 a:not(.new),
+body.skin-eqlimmersive .mw-parser-output h2 a:not(.new),
+body.skin-eqlimmersive .mw-parser-output h3 a:not(.new),
+body.skin-eqlimmersive .mw-parser-output h4 a:not(.new),
+body.skin-eqlimmersive .mw-parser-output h5 a:not(.new),
+body.skin-eqlimmersive .mw-parser-output h6 a:not(.new),
+body.skin-eqlimmersive .mw-heading h1 a:not(.new),
+body.skin-eqlimmersive .mw-heading h2 a:not(.new),
+body.skin-eqlimmersive .mw-heading h3 a:not(.new),
+body.skin-eqlimmersive .mw-heading h4 a:not(.new),
+body.skin-eqlimmersive .mw-heading h5 a:not(.new),
+body.skin-eqlimmersive .mw-heading h6 a:not(.new),
+body.skin-eqlimmersive .mw-parser-output dt a:not(.new) {
+	color: inherit !important;
+	text-decoration: underline !important;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.16em;
+	text-decoration-color: rgba( 159, 180, 255, 0.42 );
+	text-shadow: inherit !important;
+}
+
+body.skin-eqlimmersive .mw-parser-output h1 a:not(.new):hover,
+body.skin-eqlimmersive .mw-parser-output h2 a:not(.new):hover,
+body.skin-eqlimmersive .mw-parser-output h3 a:not(.new):hover,
+body.skin-eqlimmersive .mw-parser-output h4 a:not(.new):hover,
+body.skin-eqlimmersive .mw-parser-output h5 a:not(.new):hover,
+body.skin-eqlimmersive .mw-parser-output h6 a:not(.new):hover,
+body.skin-eqlimmersive .mw-heading h1 a:not(.new):hover,
+body.skin-eqlimmersive .mw-heading h2 a:not(.new):hover,
+body.skin-eqlimmersive .mw-heading h3 a:not(.new):hover,
+body.skin-eqlimmersive .mw-heading h4 a:not(.new):hover,
+body.skin-eqlimmersive .mw-heading h5 a:not(.new):hover,
+body.skin-eqlimmersive .mw-heading h6 a:not(.new):hover,
+body.skin-eqlimmersive .mw-parser-output dt a:not(.new):hover {
+	color: inherit !important;
+	text-decoration-color: var( --eql-link );
+}
+
+/* =====================================================
+   EQL Immersive — Special:RecentChanges / RCFilters
+
+   Consolidated Recent Changes styling.
+   Replaces earlier one-off RecentChanges dropdown patches.
+
+   Handles:
+   - main RecentChanges page panel
+   - active filter box and filter chips
+   - filter search row and expanded dropdown
+   - section headers, advanced filters, Namespaces/Tags controls
+   - Recent Changes list and legend
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Recentchanges,
+body.skin-eqlimmersive.mw-special-RecentChanges {
+	--eql-rc-panel:
+		linear-gradient(
+			180deg,
+			rgba( 13, 18, 26, 0.94 ),
+			rgba( 8, 12, 18, 0.98 )
+		);
+	--eql-rc-panel-flat: rgba( 8, 12, 18, 0.99 );
+	--eql-rc-panel-raised:
+		linear-gradient(
+			180deg,
+			rgba( 33, 42, 56, 0.96 ),
+			rgba( 16, 22, 32, 0.99 )
+		);
+	--eql-rc-panel-raised-hover:
+		linear-gradient(
+			180deg,
+			rgba( 58, 73, 94, 0.98 ),
+			rgba( 24, 32, 45, 0.99 )
+		);
+	--eql-rc-section:
+		linear-gradient(
+			90deg,
+			rgba( 216, 183, 92, 0.18 ),
+			rgba( 16, 21, 30, 0.99 ) 34%,
+			rgba( 8, 12, 18, 0.99 ) 100%
+		);
+	--eql-rc-border: rgba( 216, 183, 92, 0.28 );
+	--eql-rc-border-soft: rgba( 255, 255, 255, 0.10 );
+	--eql-rc-border-muted: rgba( 216, 183, 92, 0.18 );
+}
+
+/* Main Special:RecentChanges body panel */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-body,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-body {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 13, 18, 26, 0.84 ),
+			rgba( 8, 12, 18, 0.94 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.22 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-body h1,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-body h1,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-first-heading,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-first-heading {
+	color: var( --eql-text-heading ) !important;
+	border-bottom-color: rgba( 216, 183, 92, 0.22 ) !important;
+}
+
+/* Top-level RCFilters wrappers */
+body.skin-eqlimmersive .mw-rcfilters-ui-changesListWrapperWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget-top,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget-bottom,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget-content {
+	background: transparent !important;
+	color: var( --eql-text ) !important;
+}
+
+/* Active filters strip */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget.oo-ui-widget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget .oo-ui-tagMultiselectWidget-handle,
+body.skin-eqlimmersive .oo-ui-tagMultiselectWidget-handle {
+	background: var( --eql-rc-panel ) !important;
+	border: 1px solid var( --eql-rc-border-soft ) !important;
+	color: var( --eql-text ) !important;
+	box-shadow:
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ),
+		0 8px 22px rgba( 0, 0, 0, 0.22 ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget.oo-ui-labelElement-label {
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget input,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget .oo-ui-inputWidget-input {
+	background: rgba( 6, 10, 16, 0.96 ) !important;
+	border-color: rgba( 216, 183, 92, 0.24 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget input::placeholder,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget .oo-ui-inputWidget-input::placeholder {
+	color: rgba( 230, 237, 243, 0.52 ) !important;
+}
+
+/* Active filter pills */
+body.skin-eqlimmersive .oo-ui-tagItemWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-tagItemWidget {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 55, 73, 43, 0.96 ),
+			rgba( 31, 45, 28, 0.98 )
+		) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.34 ) !important;
+	border-radius: 999px !important;
+	box-shadow: none !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-tagItemWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-tagItemWidget .oo-ui-labelElement-label {
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .oo-ui-tagItemWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-tagItemWidget .oo-ui-buttonElement-button {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	color: var( --eql-text-muted ) !important;
+}
+
+/* Filter search row and search-field chrome */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget .mw-rcfilters-ui-filterMenuHeaderWidget-wrapper {
+	background: var( --eql-panel-strong ) !important;
+	border-color: var( --eql-rc-border-soft ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuHeaderWidget input,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuHeaderWidget .oo-ui-inputWidget-input {
+	background: rgba( 6, 10, 16, 0.96 ) !important;
+	border-color: rgba( 216, 183, 92, 0.24 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuHeaderWidget input::placeholder,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuHeaderWidget .oo-ui-inputWidget-input::placeholder {
+	color: rgba( 230, 237, 243, 0.52 ) !important;
+}
+
+/* Buttons: Saved filters, Live updates, Namespaces, Tags, change limit/date, Highlight results */
+body.skin-eqlimmersive .mw-rcfilters-ui-savedLinksListWidget-button .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-liveUpdateButtonWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-viewSwitchWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-changesLimitAndDateButtonWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-highlightButtonWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuHeaderWidget .oo-ui-buttonElement-button {
+	background: var( --eql-rc-panel-raised ) !important;
+	border: 1px solid var( --eql-rc-border ) !important;
+	border-radius: 7px !important;
+	box-shadow:
+		0 4px 14px rgba( 0, 0, 0, 0.34 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-savedLinksListWidget-button .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-liveUpdateButtonWidget .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-viewSwitchWidget .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-changesLimitAndDateButtonWidget .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-highlightButtonWidget .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuHeaderWidget .oo-ui-buttonElement-button:hover {
+	background: var( --eql-rc-panel-raised-hover ) !important;
+	border-color: rgba( 216, 183, 92, 0.55 ) !important;
+	color: var( --eql-gold ) !important;
+}
+
+/* Whole expanded filter dropdown. Keep opaque so the changes list cannot show through. */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget *,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget *::before,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget *::after {
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-popupWidget-body,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-popupWidget-anchored,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-panelLayout,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-bookletLayout-stackLayout,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-selectWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-widget-enabled {
+	background: var( --eql-rc-panel-flat ) !important;
+	border-color: var( --eql-rc-border-soft ) !important;
+	color: var( --eql-text ) !important;
+	opacity: 1 !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-popupWidget-popup {
+	border: 1px solid var( --eql-rc-border ) !important;
+	border-radius: 8px !important;
+	box-shadow:
+		0 18px 48px rgba( 0, 0, 0, 0.62 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+	overflow: hidden !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-popupWidget-body {
+	padding: 0 !important;
+}
+
+/* Top title strip inside the dropdown */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuHeaderWidget-wrapper {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 15, 21, 30, 0.99 ),
+			rgba( 9, 14, 22, 0.99 )
+		) !important;
+	border-color: var( --eql-rc-border-muted ) !important;
+	color: var( --eql-text-heading ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuHeaderWidget-title {
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 1.15rem !important;
+	letter-spacing: 0.03em;
+}
+
+/* Section dividers such as “User registration and experience”, “Review status”, and “Advanced filters”. */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="Section"],
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="section"] {
+	background: var( --eql-rc-section ) !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.18 ) !important;
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget.oo-ui-optionWidget {
+	min-height: 2.45rem !important;
+	padding: 0.45rem 0.75rem !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget *,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuSectionOptionWidget-label-title,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="Section"] .oo-ui-labelElement-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="section"] .oo-ui-labelElement-label {
+	background: transparent !important;
+	color: var( --eql-gold ) !important;
+	font-family: Georgia, "Times New Roman", serif;
+	font-weight: 700 !important;
+	letter-spacing: 0.035em;
+	text-shadow: 0 1px 2px rgba( 0, 0, 0, 0.85 ) !important;
+}
+
+/* The bottom Advanced filters panel uses a few different wrappers across MW versions. */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="Advanced"],
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="advanced"],
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="Footer"],
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="footer"] {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 10, 14, 20, 0.99 ),
+			rgba( 7, 10, 16, 0.99 )
+		) !important;
+	border-color: var( --eql-rc-border-muted ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="Advanced"] .oo-ui-labelElement-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget [class*="advanced"] .oo-ui-labelElement-label {
+	background: transparent !important;
+	color: var( --eql-gold ) !important;
+	font-family: Georgia, "Times New Roman", serif;
+	font-weight: 700 !important;
+	letter-spacing: 0.035em;
+}
+
+/* View-switch buttons inside Advanced filters: Namespaces / Tagged edits. */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget {
+	padding: 0.85rem 1rem 1rem !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget .oo-ui-buttonElement-framed .oo-ui-buttonElement-button {
+	background: var( --eql-rc-panel-raised ) !important;
+	border: 1px solid var( --eql-rc-border ) !important;
+	border-radius: 7px !important;
+	color: var( --eql-text ) !important;
+	box-shadow:
+		0 4px 14px rgba( 0, 0, 0, 0.34 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget .oo-ui-buttonElement-framed .oo-ui-buttonElement-button:hover {
+	background: var( --eql-rc-panel-raised-hover ) !important;
+	border-color: rgba( 216, 183, 92, 0.55 ) !important;
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-viewSwitchWidget .oo-ui-iconElement-icon {
+	color: currentColor !important;
+}
+
+/* Individual filter rows. Keep section dividers from inheriting row padding. */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget {
+	background: var( --eql-rc-panel-flat ) !important;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.075 ) !important;
+	color: var( --eql-text ) !important;
+	min-height: 4.15rem !important;
+	padding-top: 0.45rem !important;
+	padding-bottom: 0.45rem !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuOptionWidget:hover,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted {
+	background: rgba( 216, 183, 92, 0.09 ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-selected,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-selected {
+	background:
+		linear-gradient(
+			90deg,
+			rgba( 83, 107, 58, 0.56 ),
+			rgba( 14, 20, 28, 0.99 ) 42%,
+			rgba( 8, 12, 18, 0.99 ) 100%
+		) !important;
+	box-shadow: inset 3px 0 0 rgba( 216, 183, 92, 0.58 ) !important;
+}
+
+/* Filter row title and description */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget-label-title .oo-ui-labelElement-label,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-labelElement-label:first-child {
+	color: var( --eql-text-heading ) !important;
+	font-size: 1rem !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget-label-desc,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget-description,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-labelElement-label:not( :first-child ) {
+	color: var( --eql-text-muted ) !important;
+	font-size: 0.92rem !important;
+	line-height: 1.3 !important;
+	opacity: 0.86 !important;
+}
+
+/* Checkbox squares inside filter rows */
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type="checkbox"] + span,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-checkboxInputWidget [type="checkbox"] + span {
+	background: rgba( 5, 8, 12, 0.98 ) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.34 ) !important;
+	border-radius: 3px !important;
+	box-shadow: inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span {
+	background: rgba( 104, 127, 67, 0.98 ) !important;
+	border-color: rgba( 216, 183, 92, 0.72 ) !important;
+	box-shadow:
+		0 0 8px rgba( 216, 183, 92, 0.20 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.12 ) !important;
+}
+
+/* Hide/save icon buttons sitting on the active filter box */
+body.skin-eqlimmersive .mw-rcfilters-ui-savedQueriesPanelWidget,
+body.skin-eqlimmersive .mw-rcfilters-ui-filterTagMultiselectWidget-views-select-widget {
+	background: transparent !important;
+	color: var( --eql-text ) !important;
+}
+
+/* Recent Changes list */
+body.skin-eqlimmersive .mw-changeslist,
+body.skin-eqlimmersive .mw-changeslist-line,
+body.skin-eqlimmersive .mw-changeslist .mw-changeslist-line {
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist h4,
+body.skin-eqlimmersive .mw-changeslist .mw-changeslist-date {
+	color: var( --eql-text-heading ) !important;
+	font-weight: 700;
+}
+
+body.skin-eqlimmersive .mw-changeslist-line:hover {
+	background: rgba( 255, 255, 255, 0.035 ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist a:not( .new ),
+body.skin-eqlimmersive .mw-changeslist .mw-title a:not( .new ) {
+	color: var( --eql-link ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist a:not( .new ):hover {
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist .comment,
+body.skin-eqlimmersive .mw-changeslist .autocomment,
+body.skin-eqlimmersive .mw-changeslist .mw-tag-markers,
+body.skin-eqlimmersive .mw-changeslist .mw-tag-marker,
+body.skin-eqlimmersive .mw-changeslist .history-deleted {
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .mw-plusminus-pos,
+body.skin-eqlimmersive .mw-changeslist .mw-plusminus-pos {
+	color: #6fdc8c !important;
+}
+
+body.skin-eqlimmersive .mw-plusminus-neg,
+body.skin-eqlimmersive .mw-changeslist .mw-plusminus-neg {
+	color: #ff8a80 !important;
+}
+
+body.skin-eqlimmersive .mw-plusminus-null,
+body.skin-eqlimmersive .mw-changeslist .mw-plusminus-null {
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist abbr,
+body.skin-eqlimmersive .mw-changeslist .newpage,
+body.skin-eqlimmersive .mw-changeslist .minoredit,
+body.skin-eqlimmersive .mw-changeslist .botedit {
+	color: var( --eql-text-heading ) !important;
+	text-decoration: none !important;
+}
+
+/* Abbreviations legend box on the right */
+body.skin-eqlimmersive .mw-changeslist-legend,
+body.skin-eqlimmersive #mw-recentchanges-legend,
+body.skin-eqlimmersive .mw-recentchanges-legend,
+body.skin-eqlimmersive .rcoptions,
+body.skin-eqlimmersive .mw-rcfilters-ui-changesListWrapperWidget .mw-changeslist-legend {
+	background: var( --eql-rc-panel ) !important;
+	border: 1px solid var( --eql-rc-border ) !important;
+	border-radius: 8px !important;
+	box-shadow:
+		0 10px 28px rgba( 0, 0, 0, 0.38 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist-legend *,
+body.skin-eqlimmersive #mw-recentchanges-legend *,
+body.skin-eqlimmersive .mw-recentchanges-legend *,
+body.skin-eqlimmersive .rcoptions * {
+	background: transparent !important;
+	border-color: var( --eql-rc-border-soft ) !important;
+	color: var( --eql-text-muted ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist-legend strong,
+body.skin-eqlimmersive #mw-recentchanges-legend strong,
+body.skin-eqlimmersive .mw-recentchanges-legend strong {
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive .mw-changeslist-legend a:not( .new ),
+body.skin-eqlimmersive #mw-recentchanges-legend a:not( .new ),
+body.skin-eqlimmersive .mw-recentchanges-legend a:not( .new ) {
+	color: var( --eql-link ) !important;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-changesListWrapperWidget {
+	position: relative;
+}
+
+body.skin-eqlimmersive .mw-rcfilters-ui-changesListWrapperWidget .mw-changeslist-legend {
+	margin-top: 0.75rem !important;
+	margin-right: 0 !important;
+}
+
+@media ( max-width: 900px ) {
+	body.skin-eqlimmersive .mw-changeslist-legend,
+	body.skin-eqlimmersive #mw-recentchanges-legend,
+	body.skin-eqlimmersive .mw-recentchanges-legend {
+		float: none !important;
+		width: auto !important;
+		max-width: none !important;
+		margin: 1rem 0 !important;
+	}
+
+	body.skin-eqlimmersive .mw-rcfilters-ui-filterWrapperWidget {
+		overflow-x: auto !important;
+	}
+}
+/* =====================================================
+   EQL Immersive — Special:RecentChanges final RCFilters
+   header hardening
+
+   This is intentionally late and scoped only to the
+   RecentChanges popup/filter menu. It neutralizes the
+   light OOUI/Codex header backgrounds that appear on
+   “Filters” and “Advanced filters” in some MW builds.
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuPopupWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuPopupWidget {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 8, 12, 18, 0.995 ),
+			rgba( 5, 8, 13, 0.995 )
+		) !important;
+	background-color: rgba( 8, 12, 18, 0.995 ) !important;
+	border-color: rgba( 216, 183, 92, 0.28 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+/* Reset light backgrounds inside the popup. This catches OOUI wrappers whose
+   generated class names differ between MediaWiki versions. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-widget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-layout,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-panelLayout,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-labelElement,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-selectWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-bookletLayout-stackLayout,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-wrapper,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-widget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-layout,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-panelLayout,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-labelElement,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-selectWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-bookletLayout-stackLayout,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-wrapper,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-viewSwitchWidget {
+	background-color: transparent !important;
+	background-image: none !important;
+	border-color: rgba( 255, 255, 255, 0.10 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+/* Explicit dark title/header rows: “Filters” and similar menu title bars. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-wrapper,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-wrapper {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 14, 20, 29, 0.995 ),
+			rgba( 7, 11, 17, 0.995 )
+		) !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.20 ) !important;
+	color: var( --eql-text-heading ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuHeaderWidget-title {
+	background: transparent !important;
+	color: var( --eql-text-heading ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+}
+
+/* Section bars: “User registration and experience”, “Contribution authorship”,
+   “Automated contributions”, “Review status”, and version-dependent equivalents. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionItemWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Section"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="section"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionItemWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Section"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="section"]:not( [class*="label"] ):not( [class*="Label"] ) {
+	background:
+		linear-gradient(
+			90deg,
+			rgba( 216, 183, 92, 0.18 ),
+			rgba( 14, 20, 29, 0.995 ) 34%,
+			rgba( 8, 12, 18, 0.995 ) 100%
+		) !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.18 ) !important;
+	color: var( --eql-gold ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionItemWidget *,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionItemWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuSectionWidget * {
+	background: transparent !important;
+	color: var( --eql-gold ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+}
+
+/* Advanced filters footer/panel. This was the remaining white band. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Footer"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="footer"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Advanced"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="advanced"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Footer"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="footer"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Advanced"]:not( [class*="label"] ):not( [class*="Label"] ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="advanced"]:not( [class*="label"] ):not( [class*="Label"] ) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 10, 14, 20, 0.995 ),
+			rgba( 6, 9, 14, 0.995 )
+		) !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.22 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Advanced"] .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="advanced"] .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Advanced"] .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="advanced"] .oo-ui-labelElement-label {
+	background: transparent !important;
+	color: var( --eql-gold ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+}
+
+/* Re-apply dark row backgrounds after the general popup reset. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ) {
+	background: rgba( 8, 12, 18, 0.995 ) !important;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.075 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ):hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ):hover,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted {
+	background: rgba( 216, 183, 92, 0.09 ) !important;
+}
+
+/* Keep popup buttons styled after the general reset. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-buttonElement-button {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 33, 42, 56, 0.96 ),
+			rgba( 16, 22, 32, 0.99 )
+		) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.28 ) !important;
+	border-radius: 7px !important;
+	box-shadow:
+		0 4px 14px rgba( 0, 0, 0, 0.34 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+	color: var( --eql-text ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup .oo-ui-buttonElement-button:hover {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 58, 73, 94, 0.98 ),
+			rgba( 24, 32, 45, 0.99 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.55 ) !important;
+	color: var( --eql-gold ) !important;
+}
+/* =====================================================
+   EQL Immersive — RecentChanges RCFilters final override
+
+   Put this at the VERY BOTTOM of MediaWiki:Common.css.
+
+   Reason: MediaWiki loads site.styles / Common.css after the
+   skin module, so this must live in Common.css if any older
+   Common.css rules or OOUI defaults are still winning.
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Recentchanges,
+body.skin-eqlimmersive.mw-special-RecentChanges {
+	--eql-rc-popup-bg: #080c12;
+	--eql-rc-popup-bg-2: #0d131d;
+	--eql-rc-popup-row: rgba( 8, 12, 18, 0.995 );
+	--eql-rc-popup-section:
+		linear-gradient(
+			90deg,
+			rgba( 216, 183, 92, 0.18 ) 0%,
+			rgba( 16, 21, 30, 0.995 ) 34%,
+			rgba( 8, 12, 18, 0.995 ) 100%
+		);
+	--eql-rc-popup-header:
+		linear-gradient(
+			180deg,
+			rgba( 15, 21, 30, 0.995 ),
+			rgba( 8, 12, 18, 0.995 )
+		);
+	--eql-rc-popup-border: rgba( 216, 183, 92, 0.30 );
+	--eql-rc-popup-border-soft: rgba( 255, 255, 255, 0.10 );
+}
+
+/* Entire OOUI popup shell used by RecentChanges filters. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-body,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-head,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-footer,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-selectWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-panelLayout,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-body,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-head,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-footer,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-selectWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-panelLayout {
+	background: linear-gradient( 180deg, var( --eql-rc-popup-bg-2 ), var( --eql-rc-popup-bg ) ) !important;
+	background-color: var( --eql-rc-popup-bg ) !important;
+	background-image: linear-gradient( 180deg, var( --eql-rc-popup-bg-2 ), var( --eql-rc-popup-bg ) ) !important;
+	border-color: var( --eql-rc-popup-border ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup {
+	border: 1px solid var( --eql-rc-popup-border ) !important;
+	border-radius: 8px !important;
+	box-shadow:
+		0 18px 48px rgba( 0, 0, 0, 0.62 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+	overflow: hidden !important;
+}
+
+/* Top white strip: “Filters” + Highlight results area. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="filterMenuHeader"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="FilterMenuHeader"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="HeaderWidget"],
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="filterMenuHeader"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="FilterMenuHeader"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="HeaderWidget"] {
+	background: var( --eql-rc-popup-header ) !important;
+	background-color: var( --eql-rc-popup-bg-2 ) !important;
+	background-image: var( --eql-rc-popup-header ) !important;
+	border-color: rgba( 216, 183, 92, 0.22 ) !important;
+	color: var( --eql-text-heading, #f0f3f6 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget-title {
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-size: 1.15rem !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.03em !important;
+}
+
+/* White section bands: User registration, Contribution authorship, etc.
+   OOUI uses oo-ui-menuSectionOptionWidget here; this was the missing selector. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget.oo-ui-optionWidget {
+	min-height: 2.45rem !important;
+	padding: 0.45rem 0.75rem !important;
+	background: var( --eql-rc-popup-section ) !important;
+	background-color: var( --eql-rc-popup-bg-2 ) !important;
+	background-image: var( --eql-rc-popup-section ) !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.18 ) !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget * {
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.035em !important;
+	text-shadow: 0 1px 2px rgba( 0, 0, 0, 0.85 ) !important;
+}
+
+/* Bottom white band: Advanced filters. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Footer"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="footer"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Advanced"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="advanced"],
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Footer"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="footer"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Advanced"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="advanced"] {
+	background: var( --eql-rc-popup-header ) !important;
+	background-color: var( --eql-rc-popup-bg-2 ) !important;
+	background-image: var( --eql-rc-popup-header ) !important;
+	border-color: rgba( 216, 183, 92, 0.22 ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget-title {
+	color: var( --eql-gold, #d8b75c ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+}
+
+/* Normal filter rows. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ),
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ),
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ) {
+	background: var( --eql-rc-popup-row ) !important;
+	background-color: var( --eql-rc-popup-row ) !important;
+	background-image: none !important;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.075 ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ):hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ):hover,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted {
+	background: rgba( 216, 183, 92, 0.09 ) !important;
+	background-color: rgba( 216, 183, 92, 0.09 ) !important;
+	background-image: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget .oo-ui-labelElement-label {
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+}
+
+/* Filter checkboxes. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-checkboxInputWidget [type="checkbox"] + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-checkboxInputWidget [type="checkbox"] + span {
+	background: rgba( 5, 8, 13, 0.98 ) !important;
+	background-color: rgba( 5, 8, 13, 0.98 ) !important;
+	background-image: none !important;
+	border: 1px solid rgba( 216, 183, 92, 0.34 ) !important;
+	box-shadow: inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span {
+	background: rgba( 105, 128, 70, 0.95 ) !important;
+	background-color: rgba( 105, 128, 70, 0.95 ) !important;
+	border-color: rgba( 216, 183, 92, 0.72 ) !important;
+}
+
+/* =====================================================
+   EQL Immersive — Special:Preferences hardening
+   Must live in the skin ResourceLoader CSS, not Common.css:
+   Special:Preferences can load without site.styles / Common.css.
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Preferences,
+body.skin-eqlimmersive.page-Special_Preferences {
+	--eql-pref-panel:
+		linear-gradient(
+			180deg,
+			rgba( 16, 21, 30, 0.78 ),
+			rgba( 8, 12, 18, 0.92 )
+		);
+
+	--eql-pref-panel-strong:
+		linear-gradient(
+			180deg,
+			rgba( 20, 26, 36, 0.96 ),
+			rgba( 10, 14, 20, 0.98 )
+		);
+
+	--eql-pref-panel-soft: rgba( 255, 255, 255, 0.035 );
+	--eql-pref-panel-row: rgba( 255, 255, 255, 0.026 );
+	--eql-pref-panel-row-hover: rgba( 216, 183, 92, 0.055 );
+	--eql-pref-border: rgba( 216, 183, 92, 0.24 );
+	--eql-pref-border-strong: rgba( 216, 183, 92, 0.42 );
+	--eql-pref-border-soft: rgba( 255, 255, 255, 0.10 );
+}
+
+/* Main Preferences wrappers. */
+body.skin-eqlimmersive.mw-special-Preferences #mw-content-text,
+body.skin-eqlimmersive.page-Special_Preferences #mw-content-text,
+body.skin-eqlimmersive.mw-special-Preferences .mw-htmlform-ooui-wrapper,
+body.skin-eqlimmersive.page-Special_Preferences .mw-htmlform-ooui-wrapper,
+body.skin-eqlimmersive.mw-special-Preferences #mw-prefs-form,
+body.skin-eqlimmersive.page-Special_Preferences #mw-prefs-form,
+body.skin-eqlimmersive.mw-special-Preferences #preferences,
+body.skin-eqlimmersive.page-Special_Preferences #preferences {
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+/* Search preferences field. */
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-search,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-search {
+	margin: 0 0 0.75rem !important;
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-search .oo-ui-fieldLayout-body,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-search .oo-ui-fieldLayout-body,
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-search .oo-ui-fieldLayout-field,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-search .oo-ui-fieldLayout-field {
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-search .oo-ui-inputWidget-input,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-search .oo-ui-inputWidget-input {
+	background: rgba( 8, 12, 18, 0.88 ) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-radius: 6px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-search .oo-ui-inputWidget-input::placeholder,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-search .oo-ui-inputWidget-input::placeholder {
+	color: rgba( 230, 237, 243, 0.58 ) !important;
+}
+
+/* Outer tabbed Preferences frame. */
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs-wrapper,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs-wrapper,
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs,
+body.skin-eqlimmersive.mw-special-Preferences .oo-ui-indexLayout,
+body.skin-eqlimmersive.page-Special_Preferences .oo-ui-indexLayout {
+	background: var( --eql-pref-panel ) !important;
+	border: 1px solid var( --eql-pref-border ) !important;
+	border-radius: 8px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow:
+		0 12px 30px rgba( 0, 0, 0, 0.32 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+}
+
+/* Preferences tab menu strip. */
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-menuLayout-menu,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-menuLayout-menu,
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-indexLayout-tabPanel,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-indexLayout-tabPanel,
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabSelectWidget,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabSelectWidget {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 28, 34, 44, 0.98 ),
+			rgba( 16, 20, 28, 0.98 )
+		) !important;
+	border: 0 !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	box-shadow: none !important;
+}
+
+/* Individual Preferences tabs. */
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget {
+	background: transparent !important;
+	border: 0 !important;
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget .oo-ui-labelElement-label {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	font-weight: 700 !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget:hover,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget:hover {
+	background: rgba( 216, 183, 92, 0.08 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget:hover .oo-ui-labelElement-label,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget:hover .oo-ui-labelElement-label {
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 216, 183, 92, 0.18 ),
+			rgba( 216, 183, 92, 0.07 )
+		) !important;
+	box-shadow: inset 0 -2px 0 var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected .oo-ui-labelElement-label,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected .oo-ui-labelElement-label {
+	color: var( --eql-text-heading, #f0f3f6 ) !important;
+}
+
+/* Content stack and tab panels. */
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-tabs .oo-ui-menuLayout-content,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-tabs .oo-ui-menuLayout-content,
+body.skin-eqlimmersive.mw-special-Preferences .oo-ui-indexLayout-stackLayout,
+body.skin-eqlimmersive.page-Special_Preferences .oo-ui-indexLayout-stackLayout,
+body.skin-eqlimmersive.mw-special-Preferences .oo-ui-tabPanelLayout,
+body.skin-eqlimmersive.page-Special_Preferences .oo-ui-tabPanelLayout {
+	background: transparent !important;
+	border: 0 !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+/* Preference fieldsets and section cards. */
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-section-fieldset,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-section-fieldset,
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-fieldset-wrapper,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-fieldset-wrapper,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldsetLayout,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldsetLayout {
+	background: var( --eql-pref-panel-soft ) !important;
+	border: 1px solid var( --eql-pref-border-soft ) !important;
+	border-radius: 7px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow: inset 0 1px 0 rgba( 255, 255, 255, 0.035 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-fieldset-wrapper,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-fieldset-wrapper {
+	margin: 0.85rem !important;
+	padding: 0.85rem !important;
+}
+
+/* Fieldset legends / section headings. */
+body.skin-eqlimmersive.mw-special-Preferences #preferences legend,
+body.skin-eqlimmersive.page-Special_Preferences #preferences legend,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldsetLayout-header,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldsetLayout-header,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldsetLayout-header .oo-ui-labelElement-label,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldsetLayout-header .oo-ui-labelElement-label {
+	color: var( --eql-gold, #d8b75c ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-size: 1.08rem !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.035em !important;
+	text-shadow:
+		0 2px 6px rgba( 0, 0, 0, 0.72 ),
+		0 0 10px rgba( 216, 183, 92, 0.12 ) !important;
+}
+
+/* Field rows. */
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout-body,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout-body,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout-field,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout-field {
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout {
+	padding: 0.25rem 0 !important;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.055 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout:hover,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout:hover {
+	background: var( --eql-pref-panel-row-hover ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout:last-child,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout:last-child {
+	border-bottom: 0 !important;
+}
+
+/* Text color. */
+body.skin-eqlimmersive.mw-special-Preferences #preferences,
+body.skin-eqlimmersive.page-Special_Preferences #preferences,
+body.skin-eqlimmersive.mw-special-Preferences #preferences label,
+body.skin-eqlimmersive.page-Special_Preferences #preferences label,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-labelElement-label,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-labelWidget,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-labelWidget {
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-inline-help,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-inline-help,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout-help,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout-help,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-fieldLayout-messages,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-fieldLayout-messages,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .htmlform-tip,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .htmlform-tip {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	opacity: 0.86 !important;
+}
+
+/* Inputs, dropdowns, and textareas. */
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="text"],
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="text"],
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="search"],
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="search"],
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="password"],
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="password"],
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="email"],
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="email"],
+body.skin-eqlimmersive.mw-special-Preferences #preferences textarea,
+body.skin-eqlimmersive.page-Special_Preferences #preferences textarea,
+body.skin-eqlimmersive.mw-special-Preferences #preferences select,
+body.skin-eqlimmersive.page-Special_Preferences #preferences select,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-inputWidget-input,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-inputWidget-input {
+	background: rgba( 8, 12, 18, 0.88 ) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-radius: 5px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences input:focus,
+body.skin-eqlimmersive.page-Special_Preferences #preferences input:focus,
+body.skin-eqlimmersive.mw-special-Preferences #preferences textarea:focus,
+body.skin-eqlimmersive.page-Special_Preferences #preferences textarea:focus,
+body.skin-eqlimmersive.mw-special-Preferences #preferences select:focus,
+body.skin-eqlimmersive.page-Special_Preferences #preferences select:focus,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-inputWidget-input:focus,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-inputWidget-input:focus {
+	border-color: rgba( 216, 183, 92, 0.58 ) !important;
+	box-shadow: 0 0 0 1px rgba( 216, 183, 92, 0.18 ) !important;
+	outline: none !important;
+}
+
+/* Checkboxes and radios. */
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="checkbox"],
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="checkbox"],
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="radio"],
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="radio"] {
+	accent-color: #93c572;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-checkboxInputWidget [type="checkbox"] + span,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-checkboxInputWidget [type="checkbox"] + span,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-radioInputWidget [type="radio"] + span,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-radioInputWidget [type="radio"] + span {
+	background-color: rgba( 8, 12, 18, 0.88 ) !important;
+	border-color: rgba( 216, 183, 92, 0.34 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span,
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-radioInputWidget [type="radio"]:checked + span,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-radioInputWidget [type="radio"]:checked + span {
+	background-color: rgba( 105, 124, 72, 0.96 ) !important;
+	border-color: rgba( 216, 183, 92, 0.62 ) !important;
+}
+
+/* Buttons. */
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-buttonElement-framed .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-buttonElement-framed .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.mw-special-Preferences #preferences button,
+body.skin-eqlimmersive.page-Special_Preferences #preferences button,
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="submit"],
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="submit"] {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 40, 47, 60, 0.98 ),
+			rgba( 20, 25, 34, 0.98 )
+		) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.28 ) !important;
+	border-radius: 5px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	font-weight: 700 !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences .oo-ui-buttonElement-framed .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive.page-Special_Preferences #preferences .oo-ui-buttonElement-framed .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive.mw-special-Preferences #preferences button:hover,
+body.skin-eqlimmersive.page-Special_Preferences #preferences button:hover,
+body.skin-eqlimmersive.mw-special-Preferences #preferences input[type="submit"]:hover,
+body.skin-eqlimmersive.page-Special_Preferences #preferences input[type="submit"]:hover {
+	border-color: rgba( 216, 183, 92, 0.55 ) !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+/* Save/reset button dock. */
+body.skin-eqlimmersive.mw-special-Preferences .mw-prefs-buttons,
+body.skin-eqlimmersive.page-Special_Preferences .mw-prefs-buttons,
+body.skin-eqlimmersive.mw-special-Preferences .mw-htmlform-submit-buttons,
+body.skin-eqlimmersive.page-Special_Preferences .mw-htmlform-submit-buttons {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 12, 17, 25, 0.96 ),
+			rgba( 8, 12, 18, 0.98 )
+		) !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+/* Links. */
+body.skin-eqlimmersive.mw-special-Preferences #preferences a:not( .new ),
+body.skin-eqlimmersive.page-Special_Preferences #preferences a:not( .new ) {
+	color: var( --eql-link, #9fb4ff ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences a:not( .new ):hover,
+body.skin-eqlimmersive.page-Special_Preferences #preferences a:not( .new ):hover {
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences a.new,
+body.skin-eqlimmersive.page-Special_Preferences #preferences a.new {
+	color: var( --eql-link-new, #e06050 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Preferences #preferences a.new:hover,
+body.skin-eqlimmersive.page-Special_Preferences #preferences a.new:hover {
+	color: var( --eql-link-new-hover, #ff7a6d ) !important;
+}

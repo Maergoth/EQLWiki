@@ -1,0 +1,37 @@
+EQL ZONE VIEWER 1.15.0 — VALIDATION SUMMARY
+Generated: 2026-07-16
+
+CHANGES VALIDATED IN SOURCE
+- Background navigation worker no longer smooths relaxed routes through penalized map-line cells.
+- Layer-2 coordinate-grid lines are excluded from worker navigation data.
+- Map-line obstacles far outside the start/destination elevation band are excluded from each route pass.
+- Worker output is densified to 7–12 unit samples before collision projection.
+- Each projected step is checked against the 10-unit jump ceiling, maximum drop, and wall sweep.
+- Failed projected steps attempt bounded local lateral detours before the route is rejected.
+- Route origin remains the immutable position captured when the request begins.
+- Display now includes a Location beams checkbox.
+- The checkbox hides ordinary POI pillars and the selected destination beam while leaving an existing golden ground path visible.
+- POI labels can be revealed by hover, click/tap, or the pointer-lock center reticle.
+- Pillar hit testing covers the complete rendered pillar height and resolves overlapping hits by screen distance and depth.
+- Prop placement includes a conservative mirrored-placement diagnostic using both zone bounds and local map-line proximity.
+- Parsed-zone cache format advanced from v12 to v13.
+- Extension and asset cache-busting versions advanced to 1.15.0.
+
+BUILD AND SYNTAX CHECKS
+- build/src/viewer.js: Node syntax check passed.
+- build/src/navigation-worker.js: Node syntax check passed.
+- resources/dist/ZoneViewerApp.js: rebuilt successfully with esbuild.
+- resources/dist/navigation.worker.js: rebuilt successfully with esbuild.
+- resources/dist/zone-parser.worker.js: rebuilt successfully with esbuild.
+- src/ViewerMarkup.php: PHP syntax check passed.
+- src/Hooks.php: PHP syntax check passed.
+- src/SpecialZoneViewer.php: PHP syntax check passed.
+- extension.json: JSON parse check passed.
+
+WORKER ROUTING TESTS
+1. A synthetic square obstacle between the start and destination produced a four-waypoint route around the obstacle rather than a straight wall-crossing route.
+2. A synthetic relaxed-pass wall crossing retained five route points around the marked crossing cells. This directly verifies the 1.14.x smoothing regression is removed.
+
+LIMITATIONS OF THIS VALIDATION
+- The user's complete EverQuest zone archives were not available in this environment, so collision projection could not be benchmarked end-to-end against the exact zones where failures were observed.
+- Karnor's Castle prop correction is deliberately automatic rather than a guessed hard-coded offset. It only activates when reflected placement is decisively better aligned with both zone bounds and local map lines. The live Karnor archive is required to confirm whether that heuristic activates for the user's client files.

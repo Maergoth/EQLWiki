@@ -1,0 +1,607 @@
+/* EQLImmersive � RecentChanges RCFilters Dark Theme
+ * Dark styling for the Special:RecentChanges filter popup (OOUI widgets).
+ * Covers: popup shell, section headers, filter rows, checkboxes,
+ * footer/advanced panel, namespace buttons, and popup arrow.
+ * Note: This file contains 4 successive override blocks from iterative development.
+ * A future optimization pass could flatten these into one clean ruleset.
+ */
+/* =====================================================
+   EQL Immersive — RecentChanges RCFilters final override
+
+   Loaded via skin module.
+
+   Previously in Common.css; now part of the skin.
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Recentchanges,
+body.skin-eqlimmersive.mw-special-RecentChanges {
+	--eql-rc-popup-bg: #080c12;
+	--eql-rc-popup-bg-2: #0d131d;
+	--eql-rc-popup-row: rgba( 8, 12, 18, 0.995 );
+	--eql-rc-popup-section:
+		linear-gradient(
+			90deg,
+			rgba( 216, 183, 92, 0.18 ) 0%,
+			rgba( 16, 21, 30, 0.995 ) 34%,
+			rgba( 8, 12, 18, 0.995 ) 100%
+		);
+	--eql-rc-popup-header:
+		linear-gradient(
+			180deg,
+			rgba( 15, 21, 30, 0.995 ),
+			rgba( 8, 12, 18, 0.995 )
+		);
+	--eql-rc-popup-border: rgba( 216, 183, 92, 0.30 );
+	--eql-rc-popup-border-soft: rgba( 255, 255, 255, 0.10 );
+}
+
+/* Entire OOUI popup shell used by RecentChanges filters. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-body,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-head,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-footer,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-selectWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-panelLayout,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-body,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-head,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-footer,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSelectWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-selectWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-panelLayout {
+	background: linear-gradient( 180deg, var( --eql-rc-popup-bg-2 ), var( --eql-rc-popup-bg ) ) !important;
+	background-color: var( --eql-rc-popup-bg ) !important;
+	background-image: linear-gradient( 180deg, var( --eql-rc-popup-bg-2 ), var( --eql-rc-popup-bg ) ) !important;
+	border-color: var( --eql-rc-popup-border ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup {
+	border: 1px solid var( --eql-rc-popup-border ) !important;
+	border-radius: 8px !important;
+	box-shadow:
+		0 18px 48px rgba( 0, 0, 0, 0.62 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+	overflow: hidden !important;
+}
+
+/* Top white strip: “Filters” + Highlight results area. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="filterMenuHeader"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="FilterMenuHeader"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="HeaderWidget"],
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="filterMenuHeader"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="FilterMenuHeader"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="HeaderWidget"] {
+	background: var( --eql-rc-popup-header ) !important;
+	background-color: var( --eql-rc-popup-bg-2 ) !important;
+	background-image: var( --eql-rc-popup-header ) !important;
+	border-color: rgba( 216, 183, 92, 0.22 ) !important;
+	color: var( --eql-text-heading, #f0f3f6 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuHeaderWidget-title {
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-size: 1.15rem !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.03em !important;
+}
+
+/* White section bands: User registration, Contribution authorship, etc.
+   OOUI uses oo-ui-menuSectionOptionWidget here; this was the missing selector. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSectionOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget.oo-ui-optionWidget {
+	min-height: 2.45rem !important;
+	padding: 0.45rem 0.75rem !important;
+	background: var( --eql-rc-popup-section ) !important;
+	background-color: var( --eql-rc-popup-bg-2 ) !important;
+	background-image: var( --eql-rc-popup-section ) !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.18 ) !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuSectionOptionWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget * {
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.035em !important;
+	text-shadow: 0 1px 2px rgba( 0, 0, 0, 0.85 ) !important;
+}
+
+/* Bottom white band: Advanced filters. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Footer"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="footer"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="Advanced"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup [class*="advanced"],
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget-content,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-viewSwitchWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Footer"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="footer"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="Advanced"],
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-popupWidget-popup [class*="advanced"] {
+	background: var( --eql-rc-popup-header ) !important;
+	background-color: var( --eql-rc-popup-bg-2 ) !important;
+	background-image: var( --eql-rc-popup-header ) !important;
+	border-color: rgba( 216, 183, 92, 0.22 ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuFooterWidget-title {
+	color: var( --eql-gold, #d8b75c ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+}
+
+/* Normal filter rows. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ),
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ),
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ),
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget:not( .mw-rcfilters-ui-filterMenuSectionOptionWidget ) {
+	background: var( --eql-rc-popup-row ) !important;
+	background-color: var( --eql-rc-popup-row ) !important;
+	background-image: none !important;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.075 ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ):hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget:not( .oo-ui-menuSectionOptionWidget ):hover,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted {
+	background: rgba( 216, 183, 92, 0.09 ) !important;
+	background-color: rgba( 216, 183, 92, 0.09 ) !important;
+	background-image: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-menuOptionWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-menuOptionWidget .oo-ui-labelElement-label {
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+}
+
+/* Filter checkboxes. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-checkboxInputWidget [type="checkbox"] + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-checkboxInputWidget [type="checkbox"] + span {
+	background: rgba( 5, 8, 13, 0.98 ) !important;
+	background-color: rgba( 5, 8, 13, 0.98 ) !important;
+	background-image: none !important;
+	border: 1px solid rgba( 216, 183, 92, 0.34 ) !important;
+	box-shadow: inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span {
+	background: rgba( 105, 128, 70, 0.95 ) !important;
+	background-color: rgba( 105, 128, 70, 0.95 ) !important;
+	border-color: rgba( 216, 183, 92, 0.72 ) !important;
+}
+
+/* =====================================================
+   EQL Immersive — Recent Changes RCFilters popup shell fix
+
+   Loaded via skin module,
+   continues from previous section.
+
+   This removes the remaining white OOUI popup shell around
+   the Advanced filters and Filters dropdown panels.
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-head,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-body,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-footer,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-content,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-panelLayout,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-panelLayout-padded,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-fieldsetLayout,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-fieldsetLayout-group,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-layout,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-widget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-item,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuHeaderWidget-header,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-header,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-header-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-view {
+	background: #11161f !important;
+	background-color: #11161f !important;
+	background-image: none !important;
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+}
+
+/* Keep the actual popup dark all the way to its outer edge. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup {
+	border: 1px solid rgba( 216, 183, 92, 0.30 ) !important;
+	box-shadow:
+		0 18px 44px rgba( 0, 0, 0, 0.62 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+}
+
+/* OOUI popup arrows can preserve the white skin background separately. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-anchored-top .oo-ui-popupWidget-anchor::before,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-anchored-top .oo-ui-popupWidget-anchor::after,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-anchored-bottom .oo-ui-popupWidget-anchor::before,
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-anchored-bottom .oo-ui-popupWidget-anchor::after {
+	background: #11161f !important;
+	background-color: #11161f !important;
+	border-color: rgba( 216, 183, 92, 0.30 ) !important;
+}
+
+/* Advanced filters footer area. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget {
+	padding: 0.85rem 1rem !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.20 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer label,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer legend {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	background: transparent !important;
+}
+
+/* Namespaces / Tagged edits buttons inside Advanced filters. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer .cdx-button,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget .cdx-button {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 38, 45, 58, 0.98 ),
+			rgba( 20, 25, 34, 0.98 )
+		) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.28 ) !important;
+	border-radius: 8px !important;
+	box-shadow:
+		0 6px 16px rgba( 0, 0, 0, 0.42 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-menuSelectWidget-footer .cdx-button:hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuFooterWidget .cdx-button:hover {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 52, 60, 75, 0.98 ),
+			rgba( 26, 32, 42, 0.98 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.52 ) !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+/* If a generic OOUI framed layout inside the popup is still white, force it too. */
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup *[style*="background: white"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup *[style*="background-color: white"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup *[style*="background:#fff"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup *[style*="background-color:#fff"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup *[style*="background: #fff"],
+body.skin-eqlimmersive.mw-special-Recentchanges .oo-ui-popupWidget-popup *[style*="background-color: #fff"] {
+	background: #11161f !important;
+	background-color: #11161f !important;
+	background-image: none !important;
+}
+/* =====================================================
+   EQL Immersive — Recent Changes filter menu restyle
+   Loaded via skin module,
+   continues from previous sections.
+
+   Purpose:
+   - Removes nested blocky backgrounds from RCFilters section headers.
+   - Gives section headers one clean dark-gold treatment.
+   - Makes filter rows flatter, readable, and less striped.
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* Section headers: Type of change, Watchlisted pages, etc. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-header,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-header,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-title {
+	display: block !important;
+	box-sizing: border-box !important;
+
+	margin: 0 !important;
+	padding: 0.62rem 0.9rem !important;
+
+	background:
+		linear-gradient(
+			90deg,
+			rgba( 216, 183, 92, 0.16 ) 0%,
+			rgba( 18, 24, 34, 0.96 ) 34%,
+			rgba( 10, 14, 22, 0.98 ) 100%
+		) !important;
+
+	border-top: 1px solid rgba( 216, 183, 92, 0.28 ) !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.18 ) !important;
+	border-left: 3px solid rgba( 216, 183, 92, 0.62 ) !important;
+	border-right: 0 !important;
+	border-radius: 0 !important;
+
+	color: var( --eql-gold, #d8b75c ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-size: 1.08rem !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+	letter-spacing: 0.045em !important;
+	text-shadow:
+		0 1px 2px rgba( 0, 0, 0, 0.88 ),
+		0 0 8px rgba( 216, 183, 92, 0.10 ) !important;
+}
+
+/* Remove the dark rectangle that was appearing behind the header text. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-header *,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-header *,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-title *,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuSectionOptionWidget-title * {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	color: inherit !important;
+	font: inherit !important;
+	text-shadow: inherit !important;
+}
+
+/* Filter rows. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget {
+	display: block !important;
+	box-sizing: border-box !important;
+
+	min-height: 4rem !important;
+	margin: 0 !important;
+	padding: 0.72rem 0.9rem !important;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 16, 21, 30, 0.92 ),
+			rgba( 12, 16, 24, 0.94 )
+		) !important;
+
+	border-top: 0 !important;
+	border-right: 0 !important;
+	border-bottom: 1px solid rgba( 255, 255, 255, 0.075 ) !important;
+	border-left: 0 !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow: none !important;
+}
+
+/* Subtle hover/selected states without harsh bands. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget:hover,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget:hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 27, 35, 48, 0.98 ),
+			rgba( 17, 23, 34, 0.98 )
+		) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-selected,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-selected,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-selected,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-selected {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 50, 68, 45, 0.96 ),
+			rgba( 26, 40, 29, 0.98 )
+		) !important;
+	box-shadow: inset 3px 0 0 rgba( 216, 183, 92, 0.70 ) !important;
+}
+
+/* Row title and description. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title {
+	color: var( --eql-text-heading, #f0f3f6 ) !important;
+	font-size: 1rem !important;
+	font-weight: 700 !important;
+	line-height: 1.25 !important;
+	text-shadow: 0 1px 2px rgba( 0, 0, 0, 0.80 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	opacity: 0.82 !important;
+	font-size: 0.92rem !important;
+	font-weight: 400 !important;
+	line-height: 1.35 !important;
+}
+
+/* Remove inherited translucent boxes from children inside rows. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget * {
+	box-shadow: none !important;
+}
+
+/* Checkbox treatment inside the filter menu. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget {
+	margin-right: 0.7rem !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type="checkbox"] + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type="checkbox"] + span {
+	background: rgba( 6, 10, 16, 0.96 ) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.34 ) !important;
+	border-radius: 4px !important;
+	box-shadow:
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 109, 132, 72, 0.98 ),
+			rgba( 62, 86, 47, 0.98 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.72 ) !important;
+}
+
+/* Keep the popup body itself clean and flat. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuPopupWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuPopupWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-popupWidget-body,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuPopupWidget .oo-ui-popupWidget-body {
+	background: rgba( 8, 12, 18, 0.98 ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+/* Reduce over-strong row striping from previous patches. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget:nth-child( even ),
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget:nth-child( even ) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 18, 24, 34, 0.94 ),
+			rgba( 13, 18, 27, 0.96 )
+		) !important;
+}
+/* =====================================================
+   EQL Immersive — Special:RecentChanges filter menu reset
+   Strong override for alternating dark inner shells in RCFilters.
+
+   Loaded via skin module.
+   Continues from previous sections.
+   ===================================================== */
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuPopupWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuPopupWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuPopupWidget *,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuPopupWidget * {
+	background-image: none !important;
+}
+
+/* The actual option row should own the background. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-menuOptionWidget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-menuOptionWidget {
+	background: transparent !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
+	border-top: 1px solid rgba(255,255,255,0.055) !important;
+	border-bottom: 0 !important;
+}
+
+/* Remove the inner label rectangles that make every other row look boxed. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .mw-rcfilters-ui-filterMenuOptionWidget-label,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .mw-rcfilters-ui-filterMenuOptionWidget-label,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .mw-rcfilters-ui-filterMenuOptionWidget-label-desc,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .mw-rcfilters-ui-filterMenuOptionWidget-label-desc,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-widget,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-widget {
+	background: transparent !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
+	border: 0 !important;
+}
+
+/* Keep the text readable, without adding a box behind it. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-title {
+	color: var(--eql-text-heading, #f0f3f6) !important;
+	font-weight: 700 !important;
+	text-shadow: 0 1px 2px rgba(0,0,0,0.85) !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget-label-desc {
+	color: rgba(230,237,243,0.62) !important;
+	font-weight: 600 !important;
+	text-shadow: none !important;
+}
+
+/* The hover/highlight state should be one full-width row, not an inner shell. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget:hover,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget:hover,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-highlighted,
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-selected,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget.oo-ui-optionWidget-selected {
+	background: rgba(216,183,92,0.075) !important;
+	background-color: rgba(216,183,92,0.075) !important;
+	box-shadow: inset 3px 0 0 rgba(216,183,92,0.52) !important;
+}
+
+/* Keep selected checkbox color, but don't let OOUI make selected rows boxed. */
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type='checkbox'] + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type='checkbox'] + span {
+	background-color: rgba(6,10,16,0.92) !important;
+	border-color: rgba(216,183,92,0.32) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.mw-special-Recentchanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type='checkbox']:checked + span,
+body.skin-eqlimmersive.mw-special-RecentChanges .mw-rcfilters-ui-filterMenuOptionWidget .oo-ui-checkboxInputWidget [type='checkbox']:checked + span {
+	background-color: rgba(105,124,72,0.96) !important;
+	border-color: rgba(216,183,92,0.62) !important;
+}

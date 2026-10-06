@@ -1,0 +1,587 @@
+/* =====================================================
+   EQL Immersive — Special pages normalizer
+
+   Purpose:
+   - Gives all MediaWiki Special pages the EQLImmersive dark treatment.
+   - Overrides core modules such as mediawiki.special, mediawiki.htmlform,
+     mediawiki.htmlform.ooui, mediawiki.pager.styles, and OOUI.
+
+   Scope:
+   body.skin-eqlimmersive.ns-special
+
+   Keep this file loaded late in skins.eqlimmersive.core.
+   Recommended path:
+   skins/EQLImmersive/resources/special-pages.css
+   ===================================================== */
+
+
+/* =====================================================
+   SECTION 1 — Special page local tokens
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special {
+	--eql-special-panel:
+		linear-gradient(
+			180deg,
+			rgba( 16, 21, 30, 0.78 ),
+			rgba( 8, 12, 18, 0.92 )
+		);
+
+	--eql-special-panel-strong:
+		linear-gradient(
+			180deg,
+			rgba( 20, 26, 36, 0.96 ),
+			rgba( 10, 14, 20, 0.98 )
+		);
+
+	--eql-special-panel-flat: rgba( 12, 16, 23, 0.88 );
+	--eql-special-panel-soft: rgba( 255, 255, 255, 0.035 );
+	--eql-special-panel-hover: rgba( 216, 183, 92, 0.08 );
+	--eql-special-border: rgba( 216, 183, 92, 0.24 );
+	--eql-special-border-soft: rgba( 255, 255, 255, 0.10 );
+	--eql-special-input: rgba( 8, 12, 18, 0.88 );
+}
+
+
+/* =====================================================
+   SECTION 2 — Generic Special page frame
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special #mw-content-text,
+body.skin-eqlimmersive.ns-special .mw-body-content,
+body.skin-eqlimmersive.ns-special .vector-body {
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-body-content > form,
+body.skin-eqlimmersive.ns-special .mw-body-content > .mw-htmlform,
+body.skin-eqlimmersive.ns-special .mw-body-content > .mw-htmlform-ooui-wrapper,
+body.skin-eqlimmersive.ns-special .mw-body-content > .oo-ui-panelLayout,
+body.skin-eqlimmersive.ns-special .mw-body-content > .mw-search-profile-tabs,
+body.skin-eqlimmersive.ns-special .mw-body-content > .mw-pager-navigation-bar,
+body.skin-eqlimmersive.ns-special .mw-body-content > .mw-specialpage-summary,
+body.skin-eqlimmersive.ns-special .mw-body-content > .mw-parser-output {
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-specialpage-summary,
+body.skin-eqlimmersive.ns-special .mw-warning-with-logexcerpt,
+body.skin-eqlimmersive.ns-special .mw-lag-warn-high,
+body.skin-eqlimmersive.ns-special .mw-lag-warn-normal,
+body.skin-eqlimmersive.ns-special .mw-contributions-user-tools,
+body.skin-eqlimmersive.ns-special .mw-contributions-user-tools-header,
+body.skin-eqlimmersive.ns-special .mw-blocklist-actions,
+body.skin-eqlimmersive.ns-special .mw-spcontent {
+	background: var( --eql-special-panel ) !important;
+	border: 1px solid var( --eql-special-border-soft ) !important;
+	border-radius: 8px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow: inset 0 1px 0 rgba( 255, 255, 255, 0.035 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-specialpage-summary,
+body.skin-eqlimmersive.ns-special .mw-spcontent {
+	padding: 0.85rem 1rem !important;
+	margin: 0.75rem 0 1rem !important;
+}
+
+
+/* =====================================================
+   SECTION 3 — HTMLForm / OOUI form panels
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special .mw-htmlform-ooui-wrapper,
+body.skin-eqlimmersive.ns-special .mw-htmlform,
+body.skin-eqlimmersive.ns-special .oo-ui-formLayout,
+body.skin-eqlimmersive.ns-special .oo-ui-panelLayout,
+body.skin-eqlimmersive.ns-special form.mw-htmlform {
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-htmlform-ooui-wrapper.oo-ui-panelLayout-framed,
+body.skin-eqlimmersive.ns-special .oo-ui-panelLayout-framed,
+body.skin-eqlimmersive.ns-special fieldset,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldsetLayout,
+body.skin-eqlimmersive.ns-special .mw-prefs-fieldset-wrapper,
+body.skin-eqlimmersive.ns-special .mw-prefs-section-fieldset {
+	background: var( --eql-special-panel ) !important;
+	border: 1px solid var( --eql-special-border-soft ) !important;
+	border-radius: 8px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow:
+		0 10px 26px rgba( 0, 0, 0, 0.22 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.035 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-panelLayout-padded,
+body.skin-eqlimmersive.ns-special .mw-htmlform-ooui-wrapper.oo-ui-panelLayout-padded {
+	padding: 1rem !important;
+}
+
+body.skin-eqlimmersive.ns-special legend,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldsetLayout-header,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldsetLayout-header .oo-ui-labelElement-label {
+	color: var( --eql-gold, #d8b75c ) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-size: 1.08rem !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.035em !important;
+	text-shadow:
+		0 2px 6px rgba( 0, 0, 0, 0.72 ),
+		0 0 10px rgba( 216, 183, 92, 0.12 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-fieldsetLayout-group {
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-fieldLayout,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldLayout-body,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldLayout-header,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldLayout-field {
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-fieldLayout {
+	padding: 0.25rem 0 !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-labelElement-label,
+body.skin-eqlimmersive.ns-special .oo-ui-labelWidget,
+body.skin-eqlimmersive.ns-special label,
+body.skin-eqlimmersive.ns-special td,
+body.skin-eqlimmersive.ns-special th,
+body.skin-eqlimmersive.ns-special .mw-htmlform-field-HTMLInfoField,
+body.skin-eqlimmersive.ns-special .mw-htmlform-field-HTMLInfoField .oo-ui-labelElement-label {
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-inline-help,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldLayout-help,
+body.skin-eqlimmersive.ns-special .oo-ui-fieldLayout-messages,
+body.skin-eqlimmersive.ns-special .htmlform-tip,
+body.skin-eqlimmersive.ns-special .mw-htmlform-tip,
+body.skin-eqlimmersive.ns-special .mw-htmlform-help,
+body.skin-eqlimmersive.ns-special .mw-specialpage-summary .mw-parser-output {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+}
+
+
+/* =====================================================
+   SECTION 4 — Inputs, selects, textareas
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special input[type="text"],
+body.skin-eqlimmersive.ns-special input[type="search"],
+body.skin-eqlimmersive.ns-special input[type="password"],
+body.skin-eqlimmersive.ns-special input[type="email"],
+body.skin-eqlimmersive.ns-special input[type="url"],
+body.skin-eqlimmersive.ns-special input[type="number"],
+body.skin-eqlimmersive.ns-special textarea,
+body.skin-eqlimmersive.ns-special select,
+body.skin-eqlimmersive.ns-special .oo-ui-inputWidget-input,
+body.skin-eqlimmersive.ns-special .oo-ui-dropdownInputWidget select {
+	background: var( --eql-special-input ) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-radius: 5px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.ns-special input::placeholder,
+body.skin-eqlimmersive.ns-special textarea::placeholder,
+body.skin-eqlimmersive.ns-special .oo-ui-inputWidget-input::placeholder {
+	color: rgba( 230, 237, 243, 0.58 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special input:focus,
+body.skin-eqlimmersive.ns-special textarea:focus,
+body.skin-eqlimmersive.ns-special select:focus,
+body.skin-eqlimmersive.ns-special .oo-ui-inputWidget-input:focus {
+	border-color: rgba( 216, 183, 92, 0.58 ) !important;
+	box-shadow: 0 0 0 1px rgba( 216, 183, 92, 0.18 ) !important;
+	outline: none !important;
+}
+
+body.skin-eqlimmersive.ns-special option,
+body.skin-eqlimmersive.ns-special optgroup {
+	background: #10151f !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special input[type="checkbox"],
+body.skin-eqlimmersive.ns-special input[type="radio"] {
+	accent-color: #93c572;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-checkboxInputWidget [type="checkbox"] + span,
+body.skin-eqlimmersive.ns-special .oo-ui-radioInputWidget [type="radio"] + span {
+	background-color: rgba( 8, 12, 18, 0.88 ) !important;
+	border-color: rgba( 216, 183, 92, 0.34 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-checkboxInputWidget [type="checkbox"]:checked + span,
+body.skin-eqlimmersive.ns-special .oo-ui-radioInputWidget [type="radio"]:checked + span {
+	background-color: rgba( 105, 124, 72, 0.96 ) !important;
+	border-color: rgba( 216, 183, 92, 0.62 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-indicatorElement-indicator,
+body.skin-eqlimmersive.ns-special .oo-ui-iconElement-icon {
+	filter: none;
+}
+
+
+/* =====================================================
+   SECTION 5 — Buttons
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special .oo-ui-buttonElement-framed .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.ns-special .mw-htmlform-submit-buttons button,
+body.skin-eqlimmersive.ns-special button:not( .cdx-button ),
+body.skin-eqlimmersive.ns-special input[type="submit"],
+body.skin-eqlimmersive.ns-special input[type="button"],
+body.skin-eqlimmersive.ns-special .mw-ui-button {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 40, 47, 60, 0.98 ),
+			rgba( 20, 25, 34, 0.98 )
+		) !important;
+	border: 1px solid rgba( 216, 183, 92, 0.28 ) !important;
+	border-radius: 5px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	font-weight: 700 !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-buttonElement-framed .oo-ui-buttonElement-button:hover,
+body.skin-eqlimmersive.ns-special .mw-htmlform-submit-buttons button:hover,
+body.skin-eqlimmersive.ns-special button:not( .cdx-button ):hover,
+body.skin-eqlimmersive.ns-special input[type="submit"]:hover,
+body.skin-eqlimmersive.ns-special input[type="button"]:hover,
+body.skin-eqlimmersive.ns-special .mw-ui-button:hover {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 52, 59, 72, 0.98 ),
+			rgba( 24, 30, 40, 0.98 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.55 ) !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-flaggedElement-progressive .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.ns-special .oo-ui-flaggedElement-primary .oo-ui-buttonElement-button,
+body.skin-eqlimmersive.ns-special .mw-htmlform-submit .oo-ui-buttonElement-button {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 108, 90, 42, 0.98 ),
+			rgba( 62, 49, 24, 0.98 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.62 ) !important;
+	color: #fff4cf !important;
+}
+
+body.skin-eqlimmersive.ns-special .oo-ui-flaggedElement-destructive .oo-ui-buttonElement-button {
+	border-color: rgba( 248, 81, 73, 0.55 ) !important;
+	color: #ffb0aa !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-htmlform-submit-buttons,
+body.skin-eqlimmersive.ns-special .mw-prefs-buttons {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 12, 17, 25, 0.96 ),
+			rgba( 8, 12, 18, 0.98 )
+		) !important;
+	border-top: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	border-radius: 0 0 8px 8px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	padding: 0.75rem 0 !important;
+}
+
+
+/* =====================================================
+   SECTION 6 — Tables, pagers, datatables
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special table,
+body.skin-eqlimmersive.ns-special .mw-datatable,
+body.skin-eqlimmersive.ns-special .TablePager,
+body.skin-eqlimmersive.ns-special .mw-prefixindex-list-table,
+body.skin-eqlimmersive.ns-special .mw-allpages-table-chunk,
+body.skin-eqlimmersive.ns-special .mw_metadata,
+body.skin-eqlimmersive.ns-special .wikitable {
+	background: var( --eql-special-panel-flat ) !important;
+	border: 1px solid var( --eql-special-border-soft ) !important;
+	border-collapse: collapse;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special table th,
+body.skin-eqlimmersive.ns-special .mw-datatable th,
+body.skin-eqlimmersive.ns-special .TablePager th,
+body.skin-eqlimmersive.ns-special .wikitable th {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 17, 22, 31, 0.98 ),
+			rgba( 10, 14, 20, 0.98 )
+		) !important;
+	border-color: var( --eql-special-border-soft ) !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.ns-special table td,
+body.skin-eqlimmersive.ns-special .mw-datatable td,
+body.skin-eqlimmersive.ns-special .TablePager td,
+body.skin-eqlimmersive.ns-special .wikitable td {
+	background: rgba( 12, 16, 23, 0.82 ) !important;
+	border-color: var( --eql-special-border-soft ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special table tr:nth-child( even ) td,
+body.skin-eqlimmersive.ns-special .mw-datatable tr:nth-child( even ) td,
+body.skin-eqlimmersive.ns-special .TablePager tr:nth-child( even ) td,
+body.skin-eqlimmersive.ns-special .wikitable tr:nth-child( even ) td {
+	background: rgba( 30, 38, 50, 0.52 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special table tr:hover td,
+body.skin-eqlimmersive.ns-special .mw-datatable tr:hover td,
+body.skin-eqlimmersive.ns-special .TablePager tr:hover td,
+body.skin-eqlimmersive.ns-special .wikitable tr:hover td {
+	background: rgba( 40, 52, 68, 0.70 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .TablePager_nav,
+body.skin-eqlimmersive.ns-special .mw-pager-navigation-bar,
+body.skin-eqlimmersive.ns-special .mw-pager-tools,
+body.skin-eqlimmersive.ns-special .mw-index-pager-list-header {
+	background: var( --eql-special-panel ) !important;
+	border: 1px solid var( --eql-special-border-soft ) !important;
+	border-radius: 6px !important;
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	padding: 0.45rem 0.65rem !important;
+}
+
+
+/* =====================================================
+   SECTION 7 — Lists, logs, search results, file lists
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special .mw-changeslist,
+body.skin-eqlimmersive.ns-special .mw-logevent-loglines,
+body.skin-eqlimmersive.ns-special .mw-contributions-list,
+body.skin-eqlimmersive.ns-special .mw-prefixindex-list,
+body.skin-eqlimmersive.ns-special .mw-allpages-chunk,
+body.skin-eqlimmersive.ns-special .mw-category,
+body.skin-eqlimmersive.ns-special .mw-search-results,
+body.skin-eqlimmersive.ns-special .special li,
+body.skin-eqlimmersive.ns-special ul.special {
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-contributions-list li,
+body.skin-eqlimmersive.ns-special .mw-logevent-loglines li,
+body.skin-eqlimmersive.ns-special .mw-search-result,
+body.skin-eqlimmersive.ns-special .mw-prefixindex-list li,
+body.skin-eqlimmersive.ns-special .mw-allpages-chunk li {
+	border-color: rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-search-result-data,
+body.skin-eqlimmersive.ns-special .mw-search-result-snippet,
+body.skin-eqlimmersive.ns-special .mw-search-createlink,
+body.skin-eqlimmersive.ns-special .mw-usertoollinks,
+body.skin-eqlimmersive.ns-special .comment,
+body.skin-eqlimmersive.ns-special .mw-changeslist-separator,
+body.skin-eqlimmersive.ns-special .mw-tag-marker,
+body.skin-eqlimmersive.ns-special .mw-logevent-actionlink {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-plusminus-pos {
+	color: var( --eql-success, #3fb950 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-plusminus-neg {
+	color: var( --eql-error, #f85149 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-plusminus-null {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+}
+
+
+/* =====================================================
+   SECTION 8 — Links
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special #mw-content-text a:not( .new ),
+body.skin-eqlimmersive.ns-special .mw-body-content a:not( .new ) {
+	color: var( --eql-link, #9fb4ff ) !important;
+}
+
+body.skin-eqlimmersive.ns-special #mw-content-text a:not( .new ):hover,
+body.skin-eqlimmersive.ns-special .mw-body-content a:not( .new ):hover {
+	color: var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.ns-special #mw-content-text a.new,
+body.skin-eqlimmersive.ns-special .mw-body-content a.new {
+	color: var( --eql-link-new, #e06050 ) !important;
+}
+
+
+/* =====================================================
+   SECTION 9 — Messages, warnings, boxes
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special .mw-message-box,
+body.skin-eqlimmersive.ns-special .cdx-message,
+body.skin-eqlimmersive.ns-special .warningbox,
+body.skin-eqlimmersive.ns-special .errorbox,
+body.skin-eqlimmersive.ns-special .successbox,
+body.skin-eqlimmersive.ns-special .mw-notify-success,
+body.skin-eqlimmersive.ns-special .mw-parser-output .error {
+	background: var( --eql-special-panel ) !important;
+	border-color: var( --eql-special-border-soft ) !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .warningbox,
+body.skin-eqlimmersive.ns-special .cdx-message--warning {
+	border-left-color: var( --eql-warning, #d29922 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .errorbox,
+body.skin-eqlimmersive.ns-special .cdx-message--error {
+	border-left-color: var( --eql-error, #f85149 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .successbox,
+body.skin-eqlimmersive.ns-special .cdx-message--success {
+	border-left-color: var( --eql-success, #3fb950 ) !important;
+}
+
+
+/* =====================================================
+   SECTION 10 — Preferences-specific tab UI
+   Preferences has its own OOUI IndexLayout structure.
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs-wrapper,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs-wrapper,
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs,
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .oo-ui-indexLayout,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .oo-ui-indexLayout {
+	background: var( --eql-special-panel ) !important;
+	border: 1px solid var( --eql-special-border ) !important;
+	border-radius: 8px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+	box-shadow:
+		0 12px 30px rgba( 0, 0, 0, 0.32 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.04 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-menuLayout-menu,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-menuLayout-menu,
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-indexLayout-tabPanel,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-indexLayout-tabPanel,
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabSelectWidget,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabSelectWidget {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 28, 34, 44, 0.98 ),
+			rgba( 16, 20, 28, 0.98 )
+		) !important;
+	border: 0 !important;
+	border-bottom: 1px solid rgba( 216, 183, 92, 0.24 ) !important;
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget {
+	background: transparent !important;
+	border: 0 !important;
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	box-shadow: none !important;
+}
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget .oo-ui-labelElement-label,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget .oo-ui-labelElement-label {
+	color: var( --eql-text-muted, #aab3c2 ) !important;
+	font-weight: 700 !important;
+}
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget:hover,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget:hover {
+	background: rgba( 216, 183, 92, 0.08 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 216, 183, 92, 0.18 ),
+			rgba( 216, 183, 92, 0.07 )
+		) !important;
+	box-shadow: inset 0 -2px 0 var( --eql-gold, #d8b75c ) !important;
+}
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected .oo-ui-labelElement-label,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-tabOptionWidget-selected .oo-ui-labelElement-label {
+	color: var( --eql-text-heading, #f0f3f6 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .mw-prefs-tabs .oo-ui-menuLayout-content,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .mw-prefs-tabs .oo-ui-menuLayout-content,
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .oo-ui-indexLayout-stackLayout,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .oo-ui-indexLayout-stackLayout,
+body.skin-eqlimmersive.ns-special.mw-special-Preferences .oo-ui-tabPanelLayout,
+body.skin-eqlimmersive.ns-special.page-Special_Preferences .oo-ui-tabPanelLayout {
+	background: transparent !important;
+	border: 0 !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+
+/* =====================================================
+   SECTION 11 — Special:SpecialPages grouped directory
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special.mw-special-Specialpages .mw-specialpages-list,
+body.skin-eqlimmersive.ns-special.page-Special_SpecialPages .mw-specialpages-list,
+body.skin-eqlimmersive.ns-special .mw-specialpages-list {
+	background: transparent !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+}
+
+body.skin-eqlimmersive.ns-special .mw-specialpages-list h2,
+body.skin-eqlimmersive.ns-special .mw-specialpages-list h3,
+body.skin-eqlimmersive.ns-special .mw-specialpages-list .mw-specialpagesgroup {
+	color: var( --eql-gold, #d8b75c ) !important;
+	border-bottom-color: rgba( 216, 183, 92, 0.24 ) !important;
+}
+
+
+/* =====================================================
+   SECTION 12 — Print footer and generated retrieval text
+   ===================================================== */
+
+body.skin-eqlimmersive.ns-special .printfooter {
+	display: none !important;
+}

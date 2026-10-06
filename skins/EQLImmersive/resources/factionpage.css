@@ -1,0 +1,224 @@
+/* EQLImmersive — Faction Page Layout (Template:Factionpage)
+ * 2-column grid: Raise Faction | Lower Faction.
+ * Green/red column titles, compact mob/quest lists with CSS columns.
+ * Responsive collapse at 1000px, 700px.
+ */
+/* =====================================================
+   EQL Immersive â€” faction pages
+   Template:Factionpage
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-factionpage {
+	margin: 0.75rem 0 1.25rem;
+	padding: 0.95rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba(13,18,26,0.88),
+			rgba(8,12,18,0.94)
+		);
+
+	border: 1px solid rgba(216,183,92,0.34);
+	border-radius: 10px;
+
+	box-shadow:
+		0 12px 34px rgba(0,0,0,0.38),
+		inset 0 1px 0 rgba(255,255,255,0.04);
+
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-factionpage-description,
+body.skin-eqlimmersive .eql-factionpage-column,
+body.skin-eqlimmersive .eql-factionpage-section {
+	min-width: 0;
+
+	background: rgba(255,255,255,0.03);
+	border: 1px solid rgba(255,255,255,0.09);
+	border-radius: 8px;
+
+	box-shadow:
+		inset 0 1px 0 rgba(255,255,255,0.035);
+
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-factionpage-description {
+	padding: 0.8rem;
+	margin-bottom: 0.85rem;
+
+	color: var(--eql-text-muted);
+	line-height: 1.5;
+}
+
+body.skin-eqlimmersive .eql-factionpage-columns {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.85rem;
+	align-items: start;
+}
+
+body.skin-eqlimmersive .eql-factionpage-column {
+	padding: 0.8rem;
+}
+
+body.skin-eqlimmersive .eql-factionpage-column-title {
+	margin: 0 0 0.8rem;
+	padding: 0 0 0.4rem;
+
+	border-bottom: 1px solid rgba(216,183,92,0.28);
+
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 1.25rem;
+	font-weight: 700;
+	line-height: 1.15;
+	letter-spacing: 0.055em;
+	text-transform: uppercase;
+
+	text-shadow:
+		0 2px 6px rgba(0,0,0,0.72),
+		0 0 10px rgba(216,183,92,0.14);
+}
+
+body.skin-eqlimmersive .eql-factionpage-raise > .eql-factionpage-column-title {
+	color: #a8e8a8;
+	border-bottom-color: rgba(120,220,140,0.34);
+}
+
+body.skin-eqlimmersive .eql-factionpage-lower > .eql-factionpage-column-title {
+	color: #ffaaa0;
+	border-bottom-color: rgba(255,122,109,0.34);
+}
+
+body.skin-eqlimmersive .eql-factionpage-section {
+	padding: 0.75rem;
+	margin: 0 0 0.75rem;
+
+	color: var(--eql-text-muted);
+	line-height: 1.45;
+}
+
+body.skin-eqlimmersive .eql-factionpage-section:last-child {
+	margin-bottom: 0;
+}
+
+body.skin-eqlimmersive .eql-factionpage h2 {
+	margin: 0 0 0.5rem;
+	padding: 0 0 0.28rem;
+
+	border-bottom: 1px solid rgba(216,183,92,0.20);
+
+	color: var(--eql-gold);
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 1.06rem;
+	font-weight: 700;
+	line-height: 1.15;
+	letter-spacing: 0.045em;
+	text-transform: uppercase;
+
+	text-shadow:
+		0 2px 6px rgba(0,0,0,0.70),
+		0 0 10px rgba(216,183,92,0.12);
+}
+
+body.skin-eqlimmersive .eql-factionpage ul {
+	margin-top: 0.25rem;
+	margin-bottom: 0;
+	padding-left: 1.35rem;
+}
+
+body.skin-eqlimmersive .eql-factionpage li {
+	margin: 0.18rem 0;
+	break-inside: avoid;
+}
+
+/* Long mob/quest lists become compact columns. */
+body.skin-eqlimmersive .eql-factionpage-section ul {
+	columns: 2 16rem;
+	column-gap: 1.5rem;
+}
+
+body.skin-eqlimmersive .eql-factionpage .fmz {
+	color: var(--eql-text-muted);
+	opacity: 0.82;
+	font-size: 0.88em;
+}
+
+body.skin-eqlimmersive .eql-factionpage a:not(.new) {
+	text-decoration: none;
+}
+
+body.skin-eqlimmersive .eql-factionpage a:not(.new):hover {
+	text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+	body.skin-eqlimmersive .eql-factionpage-columns {
+		grid-template-columns: 1fr;
+	}
+
+	body.skin-eqlimmersive .eql-factionpage-section ul {
+		columns: 1;
+	}
+}
+
+@media (max-width: 700px) {
+	body.skin-eqlimmersive .eql-factionpage {
+		padding: 0.7rem;
+	}
+
+	body.skin-eqlimmersive .eql-factionpage-description,
+	body.skin-eqlimmersive .eql-factionpage-column,
+	body.skin-eqlimmersive .eql-factionpage-section {
+		padding: 0.65rem;
+	}
+
+	body.skin-eqlimmersive .eql-factionpage-column-title {
+		font-size: 1.1rem;
+	}
+
+	body.skin-eqlimmersive .eql-factionpage h2 {
+		font-size: 1rem;
+	}
+}
+/* Larger top-level Factionpage headers */
+body.skin-eqlimmersive .eql-factionpage-description > h2,
+body.skin-eqlimmersive .eql-factionpage-column-title {
+	font-size: 1.55rem !important;
+	line-height: 1.15 !important;
+	letter-spacing: 0.065em !important;
+}
+
+body.skin-eqlimmersive .eql-factionpage-description > h2 {
+	margin: 0 0 0.75rem !important;
+	padding: 0 0 0.45rem !important;
+
+	color: var(--eql-gold) !important;
+	font-family: Georgia, "Times New Roman", serif !important;
+	font-weight: 700 !important;
+	text-transform: uppercase !important;
+
+	border-bottom: 1px solid rgba(216,183,92,0.30) !important;
+
+	text-shadow:
+		0 2px 6px rgba(0,0,0,0.72),
+		0 0 10px rgba(216,183,92,0.16) !important;
+}
+
+/* Keep Raise/Lower distinct while making them larger */
+body.skin-eqlimmersive .eql-factionpage-raise > .eql-factionpage-column-title {
+	color: #baf0ba !important;
+}
+
+body.skin-eqlimmersive .eql-factionpage-lower > .eql-factionpage-column-title {
+	color: #ffb8ae !important;
+}
+
+@media (max-width: 700px) {
+	body.skin-eqlimmersive .eql-factionpage-description > h2,
+	body.skin-eqlimmersive .eql-factionpage-column-title {
+		font-size: 1.25rem !important;
+	}
+}

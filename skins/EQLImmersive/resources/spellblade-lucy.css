@@ -1,0 +1,188 @@
+/* EQLImmersive � Spellblade Icon + Lucy Images Grid
+ * .eql-fast-reuse-icon: green sword badge for spells with reuse <= cast time.
+ * .eql-lucy-images-grid: responsive icon grid for the Lucy_Images reference page.
+ */
+/* =====================================================
+   EQL Spell Tables — Spellblade compatibility indicator
+   ===================================================== */
+
+.eql-fast-reuse-icon,
+.eql-fast-reuse-icon:visited,
+.eql-fast-reuse-icon:hover,
+.eql-fast-reuse-icon:focus {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	width: 1.15em;
+	height: 1.15em;
+	margin-left: 0.38em;
+
+	border: 1px solid rgba(166, 255, 124, 0.72);
+	border-radius: 999px;
+
+	background:
+		radial-gradient(
+			circle at 35% 28%,
+			rgba(255,255,255,0.78) 0%,
+			rgba(145,255,106,0.94) 24%,
+			rgba(35,118,42,0.96) 58%,
+			rgba(9,45,22,0.98) 100%
+		);
+
+	color: #f4ffe8 !important;
+	font-size: 0.86em;
+	font-weight: 800;
+	line-height: 1;
+
+	box-shadow:
+		0 0 7px rgba(126, 255, 94, 0.55),
+		0 0 14px rgba(126, 255, 94, 0.22),
+		inset 0 1px 0 rgba(255,255,255,0.28);
+
+	text-decoration: none !important;
+	text-shadow:
+		0 1px 1px rgba(0,0,0,0.85),
+		0 0 4px rgba(255,255,255,0.65);
+
+	vertical-align: text-bottom;
+	cursor: help;
+}
+
+.eql-fast-reuse-icon::before {
+	content: "⚔";
+	transform: translateY(-0.02em);
+}
+
+.eql-fast-reuse-icon::after {
+	content: "✦";
+	position: absolute;
+	right: -0.35em;
+	top: -0.45em;
+
+	color: #caff9c;
+	font-size: 0.72em;
+	line-height: 1;
+
+	text-shadow:
+		0 0 4px rgba(126,255,94,0.95),
+		0 0 8px rgba(126,255,94,0.55);
+}
+
+.eql-fast-reuse-icon:hover,
+.eql-fast-reuse-icon:focus {
+	border-color: rgba(210, 255, 166, 0.95);
+
+	box-shadow:
+		0 0 9px rgba(126, 255, 94, 0.75),
+		0 0 18px rgba(126, 255, 94, 0.34),
+		inset 0 1px 0 rgba(255,255,255,0.32);
+
+	outline: none;
+}
+
+.eql-fast-reuse-spell-row td:first-child a:first-child {
+	font-weight: 700;
+}
+
+/* =====================================================
+   Lucy_Images responsive icon grid
+
+   Used by the standalone Lucy_Images page.
+   Hides missing file/upload cells without #ifexist.
+   ===================================================== */
+
+.eql-lucy-images-grid {
+	--eql-lucy-cell-min: 72px;
+	--eql-lucy-cell-max: 132px;
+	--eql-lucy-icon-size: clamp(32px, 7vw, 72px);
+
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(var(--eql-lucy-cell-min), 1fr));
+	gap: clamp(0.4rem, 1.2vw, 0.85rem);
+
+	width: 100%;
+	max-width: 100%;
+	margin: 1rem 0;
+	box-sizing: border-box;
+}
+
+.eql-lucy-image-cell {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.35rem;
+
+	width: 100%;
+	max-width: var(--eql-lucy-cell-max);
+	min-width: 0;
+	justify-self: center;
+
+	padding: clamp(0.35rem, 1vw, 0.65rem);
+	border: 1px solid rgba(216,183,92,0.28);
+	border-radius: 8px;
+	background: rgba(8,12,18,0.82);
+	box-sizing: border-box;
+}
+
+/*
+ * Hide missing files.
+ *
+ * MediaWiki usually renders missing files as an upload/new-file link,
+ * commonly with class="new", instead of an <img>.
+ */
+.eql-lucy-image-cell:has(.eql-lucy-image-wrap a.new),
+.eql-lucy-image-cell:has(.eql-lucy-image-wrap .new),
+.eql-lucy-image-cell:not(:has(.eql-lucy-image-wrap img)) {
+	display: none !important;
+}
+
+.eql-lucy-image-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: var(--eql-lucy-icon-size);
+	height: var(--eql-lucy-icon-size);
+	min-width: 32px;
+	min-height: 32px;
+}
+
+.eql-lucy-image-wrap img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	max-width: var(--eql-lucy-icon-size);
+	max-height: var(--eql-lucy-icon-size);
+	object-fit: contain;
+	image-rendering: auto;
+}
+
+.eql-lucy-image-label {
+	width: 100%;
+
+	color: #d8b75c;
+	font-size: clamp(0.72rem, 1.6vw, 0.9rem);
+	font-weight: 700;
+	line-height: 1.15;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+@media (min-width: 900px) {
+	.eql-lucy-images-grid {
+		--eql-lucy-cell-min: 92px;
+		--eql-lucy-icon-size: clamp(40px, 5vw, 72px);
+	}
+}
+
+@media (min-width: 1400px) {
+	.eql-lucy-images-grid {
+		--eql-lucy-cell-min: 104px;
+		--eql-lucy-cell-max: 140px;
+	}
+}

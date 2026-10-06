@@ -1,0 +1,50 @@
+/* EQLImmersive — Active Skills Table
+ * Column width constraints for build guide skill tables to prevent
+ * Description/Notes cells from collapsing into single lines.
+ */
+/* =====================================================
+   Active skills table wrapping
+   Prevent build-guide transclusions from crunching long
+   Description / Notes cells into one horizontal line.
+   ===================================================== */
+
+.active-skills-list {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+}
+
+.active-skills-list th,
+.active-skills-list td {
+    white-space: normal !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    vertical-align: top !important;
+}
+
+.active-skills-list th:nth-child(1),
+.active-skills-list td:nth-child(1) {
+    width: 4.5rem !important;
+    white-space: nowrap !important;
+}
+
+.active-skills-list th:nth-child(2),
+.active-skills-list td:nth-child(2) {
+    width: 14rem !important;
+}
+
+.active-skills-list th:nth-child(3),
+.active-skills-list td:nth-child(3),
+.active-skills-list th:nth-child(4),
+.active-skills-list td:nth-child(4) {
+    width: 10rem !important;
+}
+
+.active-skills-list th:nth-child(5),
+.active-skills-list td:nth-child(5),
+.active-skills-list th:nth-child(6),
+.active-skills-list td:nth-child(6) {
+    min-width: 18rem !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}

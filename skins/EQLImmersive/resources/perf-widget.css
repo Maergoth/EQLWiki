@@ -1,0 +1,192 @@
+/* EQLImmersive — Page Load Performance Widget
+ * Footer gear icon + popup panel showing page load stats.
+ * Also contains .hbdiv inline-block fix for item hover transclusions in prose.
+ * Widget JS is in perf-widget.js.
+ */
+.mw-parser-output .hbdiv {
+	display: inline-block;
+	position: relative;
+	vertical-align: baseline;
+}
+
+/* Page-load stats placeholder + footer slot.
+ *
+ * The placeholder paints before JavaScript loads, preventing footer pop-in/layout shift.
+ * The real widget uses the same 20x20 normal-flow footprint.
+ */
+#footer {
+	position: relative;
+	min-height: 28px;
+}
+
+/* Placeholder icon shown before JS attaches the real widget.
+   It is in normal flow, so it reserves space and does not overlap footer links. */
+#footer::after {
+	content: "âš™?";
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	margin-left: 8px;
+	border: 1px solid #777;
+	border-radius: 50%;
+	background: #202020;
+	color: #ddd;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	font-weight: bold;
+	line-height: 20px;
+	text-align: center;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+	opacity: 0.7;
+	pointer-events: none;
+	box-sizing: border-box;
+	vertical-align: middle;
+}
+
+/* Hide placeholder once JS has attached the real widget. */
+#footer.eql-perf-widget-ready::after {
+	display: none;
+}
+
+/* Real footer gear widget.
+   Also normal-flow, matching the placeholder footprint. */
+#eql-perf-gear-widget {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	margin-left: 8px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	line-height: 1;
+	vertical-align: middle;
+}
+
+#eql-perf-gear-button {
+	position: relative;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 1px solid #777;
+	border-radius: 50%;
+	background: #202020;
+	color: #ddd;
+	cursor: help;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+	opacity: 0.9;
+	box-sizing: border-box;
+}
+
+#eql-perf-gear-button:hover,
+#eql-perf-gear-button:focus {
+	opacity: 1;
+	outline: none;
+}
+
+#eql-perf-gear-button.eql-perf-good {
+	border-color: #3d9b4f;
+	color: #a9e8b1;
+}
+
+#eql-perf-gear-button.eql-perf-okay {
+	border-color: #c08a20;
+	color: #ffd27a;
+}
+
+#eql-perf-gear-button.eql-perf-bad {
+	border-color: #cc3333;
+	color: #ff9a9a;
+}
+
+.eql-perf-gear-symbol {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	font-size: 15px;
+	line-height: 1;
+}
+
+.eql-perf-question {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -46%);
+	font-size: 8px;
+	font-weight: bold;
+	line-height: 9px;
+	color: #111;
+	background: rgba(255, 255, 255, 0.92);
+	border-radius: 50%;
+	width: 9px;
+	height: 9px;
+	text-align: center;
+	pointer-events: none;
+}
+
+/* Popup panel is attached to body, not footer, so it cannot be clipped. */
+#eql-perf-panel {
+	display: none;
+	position: fixed;
+	z-index: 999999;
+	width: 300px;
+	padding: 10px;
+	border: 1px solid #666;
+	border-radius: 6px;
+	background: #181818;
+	color: #e0e0e0;
+	box-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+	text-align: left;
+	white-space: normal;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+#eql-perf-panel.eql-perf-panel-visible {
+	display: block;
+}
+
+.eql-perf-title {
+	margin-bottom: 7px;
+	padding-bottom: 5px;
+	border-bottom: 1px solid #444;
+	font-weight: bold;
+	color: #fff;
+}
+
+.eql-perf-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 4px 0;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.eql-perf-label {
+	color: #ccc;
+}
+
+.eql-perf-number {
+	font-weight: bold;
+	font-variant-numeric: tabular-nums;
+}
+
+.eql-perf-row.eql-perf-good .eql-perf-number {
+	color: #8ee89d;
+}
+
+.eql-perf-row.eql-perf-okay .eql-perf-number {
+	color: #ffd27a;
+}
+
+.eql-perf-row.eql-perf-bad .eql-perf-number {
+	color: #ff8a8a;
+}
+
+.eql-perf-note {
+	margin-top: 8px;
+	padding-top: 7px;
+	border-top: 1px solid #444;
+	font-size: 11px;
+	color: #aaa;
+}

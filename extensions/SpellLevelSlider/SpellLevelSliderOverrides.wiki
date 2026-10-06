@@ -1,0 +1,20 @@
+__NOTOC__
+
+This page supplies manual categories to the Spell Level Slider. Most spells are categorized automatically; only add a spell here when its page shows a '''Spell Scaling Unknown''' message or when the automatic category is wrong.
+
+== Instructions ==
+
+* Edit the block under '''Overrides'''.
+* Add one spell per line using: <code>Exact spell page name = category_key</code>
+* Valid category keys are: <code>nuke_lifetap</code>, <code>dot</code>, <code>heal</code>, <code>hot</code>, <code>debuff</code>, <code>charm_mez</code>, and <code>buff</code>.
+* Lines beginning with <code>#</code> are notes and are ignored.
+* An entry here takes priority over automatic classification. Remove the entry to return the spell to automatic classification.
+* Changes apply when a spell page is loaded again. Hard-refresh an already-open spell page if necessary.
+
+== Overrides ==
+
+<pre id="spell-level-slider-overrides">
+# Examples (remove the # and replace the title to activate one):
+# Some Unusual Elixir = hot
+# An Unusual Enchantment = charm_mez
+</pre>

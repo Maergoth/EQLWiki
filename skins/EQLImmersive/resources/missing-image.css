@@ -1,0 +1,32 @@
+/* EQLImmersive — Missing Image Upload Prompt
+ * Dark placeholder box shown when a File: link points to a non-existent image.
+ * JS (missing-image.js) replaces the red link with this styled upload prompt.
+ */
+.missing-image-prompt {
+  min-width: 260px;
+  min-height: 220px;
+  border: 1px solid #666;
+  background: #10161a;
+  color: #ccc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  padding: 1rem;
+}
+
+.missing-image-prompt-title {
+  color: #ff6b5f;
+  font-size: 1.25em;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.missing-image-prompt-upload {
+  display: none;
+  font-size: 0.95em;
+}
+/* Keep item hover transclusions inline when used inside prose.
+   This prevents punctuation after {{:Item Name}} from dropping to the next line. */

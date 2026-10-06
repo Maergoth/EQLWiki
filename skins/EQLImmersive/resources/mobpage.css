@@ -1,0 +1,325 @@
+/* EQLImmersive — Named Mob Page Layout (Template:Namedmobpage)
+ * 3-column grid: stats | known loot | image.
+ * Responsive breakpoints at 1200px, 900px, 700px.
+ */
+/* =====================================================
+   EQL Immersive â€” named mob pages
+   Template:Namedmobpage
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-mobpage {
+	margin: 0.75rem 0 1.25rem;
+	padding: 0.95rem;
+	background:
+		linear-gradient(
+			180deg,
+			rgba(13,18,26,0.88),
+			rgba(8,12,18,0.94)
+		);
+	border: 1px solid rgba(216,183,92,0.34);
+	border-radius: 10px;
+	box-shadow:
+		0 12px 34px rgba(0,0,0,0.38),
+		inset 0 1px 0 rgba(255,255,255,0.04);
+	box-sizing: border-box;
+}
+
+/* Top row: stats / known loot / image */
+body.skin-eqlimmersive .eql-mobpage-hero {
+	display: grid;
+	grid-template-columns:
+		minmax(250px, 0.75fr)
+		minmax(340px, 1.2fr)
+		minmax(300px, 0.95fr);
+	grid-template-areas:
+		"stats loot media";
+	gap: 0.85rem;
+	align-items: stretch;
+}
+
+body.skin-eqlimmersive .eql-mobpage-stats {
+	grid-area: stats;
+}
+
+body.skin-eqlimmersive .eql-mobpage-hero-loot,
+body.skin-eqlimmersive .eql-mobpage-loot {
+	grid-area: loot;
+}
+
+body.skin-eqlimmersive .eql-mobpage-media {
+	grid-area: media;
+}
+
+body.skin-eqlimmersive .eql-mobpage-stats,
+body.skin-eqlimmersive .eql-mobpage-summary,
+body.skin-eqlimmersive .eql-mobpage-media,
+body.skin-eqlimmersive .eql-mobpage-section {
+	min-width: 0;
+	background: rgba(255,255,255,0.03);
+	border: 1px solid rgba(255,255,255,0.09);
+	border-radius: 8px;
+	box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-mobpage-stats {
+	padding: 0.8rem;
+}
+
+/* Hide empty Mobstatsbox title remnants, if the internal template emits one. */
+body.skin-eqlimmersive .eql-mobpage-stats > p:first-child:empty,
+body.skin-eqlimmersive .eql-mobpage-stats > div:first-child:empty,
+body.skin-eqlimmersive .eql-mobpage-stats > center:first-child:empty {
+	display: none !important;
+}
+
+/* Image column: fills its grid cell without forcing layout wider */
+body.skin-eqlimmersive .eql-mobpage-media {
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+	padding: 0.65rem;
+	text-align: center;
+	justify-content: center;
+	align-items: center;
+	min-height: 100%;
+}
+
+body.skin-eqlimmersive .eql-mobpage-image,
+body.skin-eqlimmersive .eql-mobpage-secondary-image {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	margin: 0 auto;
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	min-height: 0;
+	text-align: center;
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-mobpage-image a,
+body.skin-eqlimmersive .eql-mobpage-secondary-image a {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	min-height: 0;
+}
+
+body.skin-eqlimmersive .eql-mobpage-image img,
+body.skin-eqlimmersive .eql-mobpage-secondary-image img {
+	display: block;
+	width: 100% !important;
+	height: 100% !important;
+	max-width: 100% !important;
+	max-height: 100% !important;
+	object-fit: contain;
+	object-position: center center;
+	border-radius: 7px;
+	box-shadow:
+		0 10px 24px rgba(0,0,0,0.42),
+		0 0 18px rgba(216,183,92,0.10);
+}
+
+body.skin-eqlimmersive .eql-mobpage-caption {
+	margin-top: 0.4rem;
+	color: var(--eql-text-muted);
+	font-size: 0.84rem;
+	line-height: 1.25;
+}
+
+body.skin-eqlimmersive .eql-mobpage-image-missing {
+	min-height: 190px;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	padding: 1rem;
+	background:
+		linear-gradient(
+			180deg,
+			rgba(28,18,18,0.72),
+			rgba(12,10,14,0.88)
+		);
+	border: 1px dashed rgba(255,122,109,0.55);
+	border-radius: 8px;
+	color: var(--eql-text-muted);
+	text-align: center;
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-mobpage-image-missing-title {
+	color: var(--eql-link-new-hover);
+	font-size: 1.05rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+body.skin-eqlimmersive .eql-mobpage-image-missing-file {
+	font-size: 0.82rem;
+	color: rgba(230,237,243,0.68);
+	word-break: break-word;
+}
+
+/* Content below hero */
+body.skin-eqlimmersive .eql-mobpage-content {
+	margin-top: 0.85rem;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0.85rem;
+	align-items: start;
+}
+
+body.skin-eqlimmersive .eql-mobpage-section {
+	padding: 0.8rem;
+	color: var(--eql-text-muted);
+	line-height: 1.5;
+}
+
+/* Description is below the hero and shrinks to its content. */
+body.skin-eqlimmersive .eql-mobpage-description {
+	align-self: start;
+}
+
+/* Section headings, including Stat Block */
+body.skin-eqlimmersive .eql-mobpage h2 {
+	margin: 0 0 0.55rem;
+	padding: 0 0 0.3rem;
+	border-bottom: 1px solid rgba(216,183,92,0.22);
+	color: var(--eql-gold);
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 1.12rem;
+	font-weight: 700;
+	line-height: 1.15;
+	letter-spacing: 0.045em;
+	text-transform: uppercase;
+	text-shadow:
+		0 2px 6px rgba(0,0,0,0.70),
+		0 0 10px rgba(216,183,92,0.14);
+}
+
+body.skin-eqlimmersive .eql-mobpage-section ul {
+	margin-top: 0.25rem;
+	margin-bottom: 0;
+}
+
+body.skin-eqlimmersive .eql-mobpage-section li {
+	margin: 0.18rem 0;
+}
+
+/* Known Loot grows downward naturally and drives the row height. */
+body.skin-eqlimmersive .eql-mobpage-hero-loot {
+	max-height: none !important;
+	overflow: visible !important;
+	align-self: stretch;
+}
+
+body.skin-eqlimmersive .eql-mobpage-hero-loot ul {
+	columns: 2 14rem;
+	column-gap: 1.5rem;
+}
+
+body.skin-eqlimmersive .eql-mobpage-hero-loot li {
+	break-inside: avoid;
+}
+
+/* Common Loot, if present, remains below. */
+body.skin-eqlimmersive .eql-mobpage-common-loot ul {
+	columns: 2 18rem;
+	column-gap: 2rem;
+}
+
+body.skin-eqlimmersive .eql-mobpage-common-loot li {
+	break-inside: avoid;
+}
+
+/* Factions / quests grid */
+body.skin-eqlimmersive .eql-mobpage-info-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.85rem;
+	align-items: start;
+}
+
+/* Contain nested tables/stat boxes */
+body.skin-eqlimmersive .eql-mobpage .MobStatsBox,
+body.skin-eqlimmersive .eql-mobpage table {
+	max-width: 100%;
+}
+
+/* Keep Mobstatsbox compact inside the panel. */
+body.skin-eqlimmersive .eql-mobpage-stats table {
+	width: 100%;
+	margin: 0;
+}
+
+/* Medium width: keep image beside stats, put loot below */
+@media (max-width: 1200px) {
+	body.skin-eqlimmersive .eql-mobpage-hero {
+		grid-template-columns:
+			minmax(250px, 0.42fr)
+			minmax(320px, 0.58fr);
+		grid-template-areas:
+			"stats media"
+			"loot loot";
+	}
+
+	body.skin-eqlimmersive .eql-mobpage-media {
+		grid-column: auto;
+	}
+
+	body.skin-eqlimmersive .eql-mobpage-hero-loot {
+		max-height: none;
+		overflow: visible;
+	}
+
+	body.skin-eqlimmersive .eql-mobpage-hero-loot ul {
+		columns: 2 14rem;
+	}
+}
+
+/* Small width: single column */
+@media (max-width: 900px) {
+	body.skin-eqlimmersive .eql-mobpage-hero,
+	body.skin-eqlimmersive .eql-mobpage-info-grid {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			"stats"
+			"media"
+			"loot";
+	}
+
+	body.skin-eqlimmersive .eql-mobpage-hero-loot {
+		max-height: none;
+		overflow: visible;
+	}
+
+	body.skin-eqlimmersive .eql-mobpage-hero-loot ul,
+	body.skin-eqlimmersive .eql-mobpage-common-loot ul {
+		columns: 1;
+	}
+}
+
+@media (max-width: 700px) {
+	body.skin-eqlimmersive .eql-mobpage {
+		padding: 0.7rem;
+	}
+
+	body.skin-eqlimmersive .eql-mobpage-section,
+	body.skin-eqlimmersive .eql-mobpage-stats,
+	body.skin-eqlimmersive .eql-mobpage-media {
+		padding: 0.65rem;
+	}
+
+	body.skin-eqlimmersive .eql-mobpage h2 {
+		font-size: 1rem;
+	}
+}

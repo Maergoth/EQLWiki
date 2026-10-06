@@ -1,0 +1,274 @@
+<?php
+// AddQuestItemsCategory.php
+// Put this file in your MediaWiki maintenance/ directory.
+// Dry run:     php maintenance/run.php ./maintenance/AddQuestItemsCategory.php
+// Apply edits: php maintenance/run.php ./maintenance/AddQuestItemsCategory.php --apply
+
+require_once __DIR__ . '/Maintenance.php';
+
+class AddQuestItemsCategory extends Maintenance {
+	private const CATEGORY = '[[Category:Quest Items]]';
+	private const SUMMARY = 'Maintenance: add Quest Items category to items with related quests';
+
+	public function __construct() {
+		parent::__construct();
+		$this->addDescription( 'Adds [[Category:Quest Items]] to Itempage pages with non-empty relatedquests.' );
+		$this->addOption( 'apply', 'Actually edit pages. Without this, dry-run only.', false, false );
+		$this->addOption( 'start-from', 'Start from this page_id for resume.', false, true );
+		$this->addOption( 'limit', 'Stop after this many matches; useful for tests.', false, true );
+		$this->setBatchSize( 100 );
+	}
+
+	public function execute() {
+		$apply = $this->hasOption( 'apply' );
+		$batchStart = (int)$this->getOption( 'start-from', 0 );
+		$limit = (int)$this->getOption( 'limit', 0 );
+
+		$services = \MediaWiki\MediaWikiServices::getInstance();
+		$dbr = $services->getDBLoadBalancer()->getConnection( DB_REPLICA );
+		$dbw = $services->getDBLoadBalancer()->getConnection( DB_PRIMARY );
+		$wikiPageFactory = $services->getWikiPageFactory();
+		$user = $this->getSystemUser();
+
+		$scanned = 0;
+		$matched = 0;
+		$edited = 0;
+		$skippedExisting = 0;
+
+		$this->output( $apply ? "APPLY MODE\n" : "DRY RUN ONLY\n" );
+		$this->output( "Starting from page_id >= {$batchStart}\n\n" );
+
+		while ( true ) {
+			$res = $dbr->select(
+				'page',
+				[ 'page_id', 'page_namespace', 'page_title' ],
+				[
+					'page_namespace' => NS_MAIN,
+					'page_is_redirect' => 0,
+					'page_id >= ' . $dbr->addQuotes( $batchStart ),
+				],
+				__METHOD__,
+				[ 'ORDER BY' => 'page_id ASC', 'LIMIT' => $this->getBatchSize() ]
+			);
+
+			$rows = iterator_to_array( $res, false );
+			if ( !$rows ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$scanned++;
+				$batchStart = (int)$row->page_id + 1;
+
+				$title = $this->makeTitle( (int)$row->page_namespace, $row->page_title );
+				if ( !$title ) {
+					continue;
+				}
+
+				$wikiPage = $wikiPageFactory->newFromTitle( $title );
+				$content = $wikiPage->getContent();
+				if ( !$content || !method_exists( $content, 'getText' ) ) {
+					continue;
+				}
+
+				$text = $content->getText();
+
+				if ( stripos( $text, '{{Itempage' ) === false || stripos( $text, 'relatedquests' ) === false ) {
+					continue;
+				}
+
+				if ( $this->alreadyHasQuestItemsCategory( $text ) ) {
+					$skippedExisting++;
+					continue;
+				}
+
+				if ( !$this->hasNonEmptyRelatedQuests( $text ) ) {
+					continue;
+				}
+
+				$matched++;
+				$newText = rtrim( $text ) . "\n\n" . self::CATEGORY . "\n";
+
+				if ( $apply ) {
+					$this->savePageText( $wikiPage, $title, $newText, $user );
+					$edited++;
+					$this->output( "EDITED {$row->page_id}: " . $title->getPrefixedText() . "\n" );
+				} else {
+					$this->output( "MATCH {$row->page_id}: " . $title->getPrefixedText() . "\n" );
+				}
+
+				if ( $limit > 0 && $matched >= $limit ) {
+					break 2;
+				}
+			}
+
+			$this->commitTransaction( $dbw, __METHOD__ );
+		}
+
+		$this->output( "\nDone.\n" );
+		$this->output( "Scanned: {$scanned}\n" );
+		$this->output( "Matched: {$matched}\n" );
+		$this->output( "Edited: {$edited}\n" );
+		$this->output( "Already had category: {$skippedExisting}\n" );
+
+		if ( !$apply ) {
+			$this->output( "\nDry run only. Re-run with --apply to edit pages.\n" );
+		}
+	}
+
+	private function makeTitle( int $namespace, string $dbKey ) {
+		if ( class_exists( 'MediaWiki\\Title\\Title' ) ) {
+			return \MediaWiki\Title\Title::makeTitle( $namespace, $dbKey );
+		}
+		return \Title::makeTitle( $namespace, $dbKey );
+	}
+
+	private function getSystemUser() {
+		if ( class_exists( 'MediaWiki\\User\\User' ) ) {
+			return \MediaWiki\User\User::newSystemUser( 'QuestItemsMaintenance', [ 'steal' => true ] );
+		}
+		return \User::newSystemUser( 'QuestItemsMaintenance', [ 'steal' => true ] );
+	}
+
+	private function makeContent( string $text, $title ) {
+		if ( class_exists( 'MediaWiki\\Content\\ContentHandler' ) ) {
+			return \MediaWiki\Content\ContentHandler::makeContent( $text, $title );
+		}
+		return \ContentHandler::makeContent( $text, $title );
+	}
+
+	private function makeComment( string $summary ) {
+		if ( class_exists( 'MediaWiki\\CommentStore\\CommentStoreComment' ) ) {
+			return \MediaWiki\CommentStore\CommentStoreComment::newUnsavedComment( $summary );
+		}
+		return $summary;
+	}
+
+	private function mainSlot() {
+		if ( class_exists( 'MediaWiki\\Revision\\SlotRecord' ) ) {
+			return \MediaWiki\Revision\SlotRecord::MAIN;
+		}
+		return 'main';
+	}
+
+	private function savePageText( $wikiPage, $title, string $newText, $user ): void {
+		$updater = $wikiPage->newPageUpdater( $user );
+		$updater->grabParentRevision();
+		$updater->setContent( $this->mainSlot(), $this->makeContent( $newText, $title ) );
+
+		if ( defined( 'EDIT_UPDATE' ) && defined( 'EDIT_MINOR' ) ) {
+			$flags = EDIT_UPDATE | EDIT_MINOR;
+			if ( defined( 'EDIT_FORCE_BOT' ) ) {
+				$flags |= EDIT_FORCE_BOT;
+			}
+			$updater->setFlags( $flags );
+		}
+
+		if ( method_exists( $updater, 'hasEditConflict' ) && $updater->hasEditConflict() ) {
+			throw new \RuntimeException( 'Edit conflict: ' . $title->getPrefixedText() );
+		}
+
+		$status = $updater->saveRevision( $this->makeComment( self::SUMMARY ) );
+		if ( method_exists( $status, 'isOK' ) && !$status->isOK() ) {
+			throw new \RuntimeException( 'Save failed: ' . $title->getPrefixedText() );
+		}
+	}
+
+	private function alreadyHasQuestItemsCategory( string $text ): bool {
+		return preg_match( '/\[\[\s*Category\s*:\s*Quest[ _]+Items\s*(?:\|[^\]]*)?\]\]/i', $text ) === 1;
+	}
+
+	private function hasNonEmptyRelatedQuests( string $text ): bool {
+		$template = $this->extractBalancedTemplate( $text, 'Itempage' );
+		if ( $template === '' ) {
+			return false;
+		}
+
+		$params = $this->splitTopLevelTemplateParams( $template );
+		foreach ( $params as $param ) {
+			$equalsPos = strpos( $param, '=' );
+			if ( $equalsPos === false ) {
+				continue;
+			}
+
+			$key = strtolower( trim( substr( $param, 0, $equalsPos ) ) );
+			if ( $key !== 'relatedquests' && $key !== 'related_quests' ) {
+				continue;
+			}
+
+			$value = trim( substr( $param, $equalsPos + 1 ) );
+			$value = preg_replace( '/<!--.*?-->/s', '', $value );
+			$value = preg_replace( '/\}\}\s*$/', '', $value );
+			$value = trim( $value );
+
+			return $value !== '' && strpos( $value, '[[' ) !== false;
+		}
+
+		return false;
+	}
+
+	private function extractBalancedTemplate( string $text, string $templateName ): string {
+		if ( !preg_match( '/\{\{\s*' . preg_quote( $templateName, '/' ) . '\b/i', $text, $match, PREG_OFFSET_CAPTURE ) ) {
+			return '';
+		}
+
+		$start = $match[0][1];
+		$len = strlen( $text );
+		$depth = 0;
+
+		for ( $i = $start; $i < $len - 1; $i++ ) {
+			$pair = substr( $text, $i, 2 );
+			if ( $pair === '{{' ) {
+				$depth++;
+				$i++;
+				continue;
+			}
+			if ( $pair === '}}' ) {
+				$depth--;
+				$i++;
+				if ( $depth === 0 ) {
+					return substr( $text, $start, $i + 1 - $start );
+				}
+			}
+		}
+
+		return '';
+	}
+
+	private function splitTopLevelTemplateParams( string $templateText ): array {
+		$params = [];
+		$current = '';
+		$braceDepth = 0;
+		$linkDepth = 0;
+		$len = strlen( $templateText );
+
+		for ( $i = 0; $i < $len; $i++ ) {
+			$pair = substr( $templateText, $i, 2 );
+			if ( $pair === '{{' ) { $braceDepth++; $current .= $pair; $i++; continue; }
+			if ( $pair === '}}' ) { $braceDepth = max( 0, $braceDepth - 1 ); $current .= $pair; $i++; continue; }
+			if ( $pair === '[[' ) { $linkDepth++; $current .= $pair; $i++; continue; }
+			if ( $pair === ']]' ) { $linkDepth = max( 0, $linkDepth - 1 ); $current .= $pair; $i++; continue; }
+
+			$char = $templateText[$i];
+			if ( $char === '|' && $braceDepth === 1 && $linkDepth === 0 ) {
+				$params[] = trim( $current );
+				$current = '';
+				continue;
+			}
+			$current .= $char;
+		}
+
+		if ( trim( $current ) !== '' ) {
+			$params[] = trim( $current );
+		}
+
+		if ( $params && preg_match( '/^\{\{\s*Itempage\b/i', $params[0] ) ) {
+			array_shift( $params );
+		}
+
+		return $params;
+	}
+}
+
+$maintClass = AddQuestItemsCategory::class;
+require_once RUN_MAINTENANCE_IF_MAIN;

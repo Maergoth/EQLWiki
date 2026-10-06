@@ -1,0 +1,475 @@
+/* EQLImmersive — Magelo Inventory + Wiki Template Styles
+ * Contains styles for:
+ *   - Magelo character inventory display (.StatTable, .IventoryOuter, .InventoryInner, slots)
+ *   - Quotation/bordered-quote boxes
+ *   - Fashion show template grid
+ *   - Price check template
+ *   - Group hunting spot table alignment
+ *   - Armor set stats toggle
+ *   - Stackguide checkbox tables
+ *   - Era color classes (.classic-era, .kunark-era, .velious-era, etc.)
+ *   - .eql-era gradient badge
+ *   - Tab UI (.tabs, .tab, .tab.selected)
+ *   - Main Page header colors
+ *   - .noautonum TOC number hiding
+ *   - #mw-content-text base font size
+ */
+/* --- magelo css --- */
+
+.StatTable {
+  font-family: arial;
+  font-size: 9pt;
+  color: #FFFFFF;
+  width: 100%;
+  text-align: inherit;
+  vertical-align: top;
+  margin: 0px;
+  padding: 0px;
+  border-collapse: collapse;
+  display: block;
+  background: none;
+}
+.Divider {
+  background-color: #7b714a;
+  width: 100%;
+  height: 1px;
+  margin: 0px;
+  padding: 0px;
+  border-collapse: collapse;
+}
+.Slot {
+  height: 40px;
+  width: 40px;
+  border: 0px;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+}
+.Coin {
+  height: 25px;
+  width: 83px;
+  border: 0px;
+  text-align: center;
+  padding: 0px;
+  background-image: url(./extensions/Magelo/images/coin.gif);
+  margin: 0;
+  padding: 0;
+  position: absolute;
+}
+.IventoryOuter {
+  position: relative;
+  background-image: url(./extensions/Magelo/images/light.gif);
+  width: 430px;
+  height: 435px;
+  max-width: 426px;
+  max-height: 431px;
+  padding: 0px;
+  border: 2px #7b714a solid;
+  font-family: arial;
+  font-size: 9pt;
+  color: #FFFFFF;
+}
+.InventoryInner {
+  background-image: url(./extensions/Magelo/images/light.gif);
+  border: 2px #40434e solid;
+  position: absolute;
+  top: 13px;
+  left: 8px;
+  width: 412px;
+  height: 409px;
+  max-width: 408px;
+  max-height: 405px;
+  padding: 0px;
+  font-family: arial;
+  font-size: 9pt;
+  color: #FFFFFF;
+}
+.IventoryTitle {
+  position: absolute;
+  top: -11px;
+  left: 4px;
+  border: 0px;
+  padding: 0px;
+  width: 418px;
+  height: 21px;
+  font-family: arial;
+  font-size: 9pt;
+  color: #FFFFFF;
+}
+.IventoryTitleLeft {
+  background-image: url(./extensions/Magelo/images/leftt.gif);
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 14px;
+  height: 21px;
+  border: 0px;
+  padding: 0px;
+}
+.IventoryTitleMid {
+  background-image: url(./extensions/Magelo/images/midt.gif);
+  position: absolute;
+  text-align: center;
+  line-height: 21px;
+  top: 0px;
+  left: 14px;
+  width: 390px;
+  height: 21px;
+  border: 0px;
+  padding: 0px;
+}
+.IventoryTitleRight {
+  background-image: url(./extensions/Magelo/images/rightt.gif);
+  position: absolute;
+  top: 0px;
+  left: 404px;
+  width: 14px;
+  height: 21px;
+  border: 0px;
+  padding: 0px;
+}
+.InventoryStats {
+  height: 370px;
+  width: 115px;
+  margin: 0px;
+  padding: 0px;
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  background-image: url(./extensions/Magelo/images/light.gif);
+}
+.InventoryStats tr td {
+  margin: 0px;
+  padding: 0px;
+}
+.InventoryStats2 {
+  height: 100px;
+  width: 100px;
+  margin: 0px;
+  padding: 0px;
+  position: absolute;
+  top: 14px;
+  left: 310px;
+  display: block;
+}
+.InventoryMonogram {
+  background-image: url(./extensions/Magelo/images/dark.gif);
+  border: 1px #444444 solid;
+  position: absolute;
+  text-align: center;
+  top: 57px;
+  left: 180px;
+  width: 82px;
+  height: 168px;
+  max-height: 146px;
+  max-width: 80px;
+  padding: 20px 0px 0px 0px;
+  font-family: arial;
+  font-size: 9pt;
+  color: #FFFFFF;
+}
+
+.slotloc1 { top: 14px; left: 137px; }
+.slotloc2 { top: 14px; left: 180px; }
+.slotloc3 { top: 14px; left: 223px; }
+.slotloc4 { top: 14px; left: 267px; }
+.slotloc17 { top: 57px; left: 137px; }
+.slotloc5 { top: 57px; left: 267px; }
+.slotloc7 { top: 100px; left: 137px; }
+.slotloc8 { top: 100px; left: 267px; }
+.slotloc20 { top: 143px; left: 137px; }
+.slotloc6 { top: 143px; left: 267px; }
+.slotloc9 { top: 186px; left: 137px; }
+.slotloc10 { top: 186px; left: 267px; }
+.slotloc18 { top: 229px; left: 137px; }
+.slotloc12 { top: 229px; left: 180px; }
+.slotloc0 { top: 229px; left: 223px; }
+.slotloc19 { top: 229px; left: 267px; }
+.slotloc15 { top: 272px; left: 180px; }
+.slotloc16 { top: 272px; left: 223px; }
+.slotloc13 { top: 315px; left: 137px; }
+.slotloc14 { top: 315px; left: 180px; }
+.slotloc11 { top: 315px; left: 223px; }
+.slotloc21 { top: 315px; left: 267px; }
+.slotloc22 { top: 229px; left: 317px; }
+.slotloc23 { top: 272px; left: 317px; }
+.slotloc24 { top: 315px; left: 317px; }
+.slotloc25 { top: 358px; left: 317px; }
+.slotloc26 { top: 229px; left: 360px; }
+.slotloc27 { top: 272px; left: 360px; }
+.slotloc28 { top: 315px; left: 360px; }
+.slotloc29 { top: 358px; left: 360px; }
+.slotloc2000 { top: 20px; left: 6px; }
+.slotloc2001 { top: 63px; left: 6px; }
+.slotloc2002 { top: 106px; left: 6px; }
+.slotloc2003 { top: 148px; left: 6px; }
+.slotloc2004 { top: 20px; left: 50px; }
+.slotloc2005 { top: 63px; left: 50px; }
+.slotloc2006 { top: 106px; left: 50px; }
+.slotloc2007 { top: 148px; left: 50px; }
+.slotloc2008 { top: 20px; left: 97px; }
+.slotloc2009 { top: 63px; left: 97px; }
+.slotloc2010 { top: 106px; left: 97px; }
+.slotloc2011 { top: 148px; left: 97px; }
+.slotloc2012 { top: 20px; left: 141px; }
+.slotloc2013 { top: 63px; left: 141px; }
+.slotloc2014 { top: 106px; left: 141px; }
+.slotloc2015 { top: 148px; left: 141px; }
+
+.slotimage0 { background-image: url(./extensions/Magelo/images/slots/slot_0.gif); }
+.slotimage1 { background-image: url(./extensions/Magelo/images/slots/slot_1.gif); }
+.slotimage2 { background-image: url(./extensions/Magelo/images/slots/slot_2.gif); }
+.slotimage3 { background-image: url(./extensions/Magelo/images/slots/slot_3.gif); }
+.slotimage4 { background-image: url(./extensions/Magelo/images/slots/slot_4.gif); }
+.slotimage5 { background-image: url(./extensions/Magelo/images/slots/slot_5.gif); }
+.slotimage6 { background-image: url(./extensions/Magelo/images/slots/slot_6.gif); }
+.slotimage7 { background-image: url(./extensions/Magelo/images/slots/slot_7.gif); }
+.slotimage8 { background-image: url(./extensions/Magelo/images/slots/slot_8.gif); }
+.slotimage9 { background-image: url(./extensions/Magelo/images/slots/slot_9.gif); }
+.slotimage10 { background-image: url(./extensions/Magelo/images/slots/slot_10.gif); }
+.slotimage11 { background-image: url(./extensions/Magelo/images/slots/slot_11.gif); }
+.slotimage12 { background-image: url(./extensions/Magelo/images/slots/slot_12.gif); }
+.slotimage13 { background-image: url(./extensions/Magelo/images/slots/slot_13.gif); }
+.slotimage14 { background-image: url(./extensions/Magelo/images/slots/slot_14.gif); }
+.slotimage15 { background-image: url(./extensions/Magelo/images/slots/slot_15.gif); }
+.slotimage16 { background-image: url(./extensions/Magelo/images/slots/slot_16.gif); }
+.slotimage17 { background-image: url(./extensions/Magelo/images/slots/slot_17.gif); }
+.slotimage18 { background-image: url(./extensions/Magelo/images/slots/slot_18.gif); }
+.slotimage19 { background-image: url(./extensions/Magelo/images/slots/slot_19.gif); }
+.slotimage20 { background-image: url(./extensions/Magelo/images/slots/slot_20.gif); }
+.slotimage21 { background-image: url(./extensions/Magelo/images/slots/slot_21.gif); }
+.slotimage { background-image: url(./extensions/Magelo/images/slots/slot_.gif); }
+
+.quotation {
+  border: 1px dashed #2f6fab;
+  font-family: monospace, Courier;
+  line-height: 1.1em;
+  padding: 1em;
+  white-space: normal;
+}
+.bordered-quote {
+  background-color: #fefefe;
+  border: 1px dotted #c0c0c0;
+  border-radius: 7px;
+  padding: 6px;
+}
+
+/* fashion show template */
+.fashion_show_grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  padding: 10px 0 20px;
+}
+.fashion_show,
+.primary_secondary_show {
+  width: 300px;
+  background: #fff;
+  border: 1px solid #c8ccd1;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  transition: box-shadow .2s;
+  display: flex;
+  flex-direction: column;
+}
+.fashion_show:hover,
+.primary_secondary_show:hover {
+  box-shadow: 0 3px 10px rgba(0,0,0,.14);
+}
+.fashion_show_image {
+  background: #000;
+  height: 360px;
+  overflow: hidden;
+}
+.fashion_show_image a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.fashion_show_image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.fashion_show_image.dual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.fashion_show_image.dual a { width: 49%; }
+.fashion_show_info {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid #eaecf0;
+}
+.fashion_show_model { font-size: 13px; font-weight: 600; color: #54595d; }
+.fashion_armor { font-size: 14px; font-weight: 700; line-height: 1.35; }
+.fashion_show_tags { font-size: 12px; color: #72777d; margin-top: 2px; }
+.fashion_show_slot { font-size: 13px; line-height: 1.4; }
+.fashion_show_slot .slot-label { font-weight: 600; color: #54595d; }
+@media (max-width: 700px) {
+  .fashion_show,
+  .primary_secondary_show { width: 100%; max-width: 400px; }
+}
+
+/* price check template */
+.price_check,
+.price_check_stack {
+  color: darkGreen;
+  text-align: center;
+  text-decoration: underline;
+}
+
+/* Hunting spot on the group hunting spots page */
+.group-hunting-spot td:nth-child(2),
+.group-hunting-spot td:nth-child(4),
+.group-hunting-spot td:nth-child(6),
+.group-hunting-spot td:nth-child(7),
+.group-hunting-spot td:nth-child(9) {
+  text-align: center;
+}
+
+.armorSetStats { display: none; }
+
+/* Checkbox Lists
+   The full persistent checkbox styling lives in the later
+   "EQL Wiki â€” persistent checkbox lists" block. */
+
+.stackguide .eoTable3 {
+  min-width: 50%;
+  width: inherit;
+}
+.stackguide table,
+.stackguide td,
+.stackguide th {
+  border-collapse: collapse;
+  border: 1px solid black;
+  margin: 0;
+  padding: 0.5em;
+}
+.stackguide tr + tr th { text-align: left; }
+.stackguide td ul {
+  line-height: 1.75em;
+  list-style-image: none;
+  list-style-type: none;
+  margin: 0;
+}
+.stackguide h2 { font-size: 185%; }
+.stackguide h3 { font-size: 160%; text-decoration: underline; }
+
+.eoTable2.bard-songs td,
+.eoTable2.bard-songs th { padding: 6px 8px; }
+
+.full-size img { height: 100%; width: 100%; }
+
+.eoTable3 { max-width: fit-content; }
+
+.gray-bordered td,
+.gray-bordered th { border: 1px solid darkgray; }
+
+/* Style era links */
+.era {
+  display: inline-block;
+  line-height: 1.5em;
+  padding: 0.2em 0.4em;
+  text-align: center;
+}
+.era,
+.era a {
+  color: black;
+  text-decoration: none;
+  vertical-align: middle;
+}
+.right-float-era {
+  display: block;
+  float: right;
+  font-weight: bold;
+  margin: -42px 10px 0 0;
+  text-align: center;
+}
+.eql-era.right-float-era {
+  margin: -50px 200px 0 0;
+}
+.right-float-era small { font-weight: normal; }
+
+.classic-era,
+.classic-era * { background-color: #ccffcc !important; }
+.fear-era,
+.fear-era * { background-color: #227207 !important; color: white !important; }
+.hate-era,
+.hate-era * { background-color: #1a4906 !important; color: white !important; }
+.temple-era,
+.temple-era * { background-color: #b5e35a !important; }
+.sky-era,
+.sky-era * { background-color: #a7e9b8 !important; }
+.paineel-era,
+.paineel-era * { background-color: #ffe14d !important; }
+.kunark-era,
+.kunark-era * { background-color: #E0BD9F !important; }
+.hole-era,
+.hole-era * { background-color: #DD9D6C !important; }
+.epics-era,
+.epics-era * { background-color: #ddcb6c !important; }
+.warrens-era,
+.warrens-era * { background-color: #6DD8FF !important; }
+.stonebrunt-era,
+.stonebrunt-era * { background-color: #7ac8ff !important; }
+.velious-era,
+.velious-era * { background-color: #9FE4FF !important; }
+.chardok-era,
+.chardok-era * { background-color: #B5C2FF !important; }
+.unknown-era,
+.unknown-era * { background-color: #FF7F7F !important; }
+
+.eql-era {
+  background: linear-gradient(#cfc, #B5C2FF);
+  border: 1px solid black;
+  box-shadow: 2px 2px 2px black;
+  padding: 0.3em 0.6em;
+  text-shadow: 1px 1px 1px white;
+}
+.eql-era a span { color: black; }
+
+/* Tabs */
+.tabs {
+  background: #f8fcff;
+  border: 0;
+  border-spacing: 0;
+  border-collapse: collapse;
+  text-align: center;
+  vertical-align: top;
+  width: 100%;
+}
+.tab {
+  background-color: #cee0f2;
+  border: solid 1px #a3b1bf;
+  border-radius: 5px 5px 0 0;
+  float: left;
+  font-size: 95%;
+  line-height: 0.95em;
+  padding: 0.5em;
+  white-space: nowrap;
+}
+.tab.selected {
+  background-color: white;
+  border-bottom: 0;
+  font-weight: bold;
+}
+.clear { clear: both; }
+
+.noautonum .tocnumber { display: none; }
+
+.page-Main_Page h2 a { color: white; }
+.page-Main_Page .mainPageHeader1 { background-color: #3B6853; }
+.page-Main_Page .mainPageHeader2 { background-color: #434956; }
+.page-Main_Page .mainPageHeader2b { background-color: #2956A3; }
+.page-Main_Page .mainPageHeader4 { background-color: #37551B; }
+
+#mw-content-text { font-size: 13px; }

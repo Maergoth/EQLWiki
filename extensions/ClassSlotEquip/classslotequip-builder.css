@@ -1,0 +1,328 @@
+/* =====================================================
+   EQL Immersive — class/slot equipment builder
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-equipment-builder {
+	margin: 1.25rem 0 1.5rem;
+	padding: 1rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba(13,18,26,0.88),
+			rgba(8,12,18,0.94)
+		);
+
+	border: 1px solid rgba(216,183,92,0.34);
+	border-radius: 10px;
+
+	box-shadow:
+		0 12px 34px rgba(0,0,0,0.38),
+		inset 0 1px 0 rgba(255,255,255,0.04);
+
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-title {
+	margin: 0 0 0.35rem;
+
+	color: var(--eql-gold);
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 1.65rem;
+	font-weight: 700;
+	line-height: 1.15;
+	letter-spacing: 0.045em;
+	text-transform: uppercase;
+
+	text-shadow:
+		0 2px 6px rgba(0,0,0,0.70),
+		0 0 10px rgba(216,183,92,0.14);
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-subtitle {
+	color: var(--eql-text-muted);
+	margin-bottom: 1rem;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-controls {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 0.85rem;
+
+	margin-bottom: 0.85rem;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-class-row {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(150px, 1fr));
+	gap: 0.85rem;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-slot-row {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(180px, 1fr));
+	gap: 0.85rem;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+}
+
+body.skin-eqlimmersive .eql-equipment-search-button {
+	min-width: 120px;
+	padding: 0.55rem 1rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba(216,183,92,0.28),
+			rgba(127,94,24,0.34)
+		);
+	border: 1px solid rgba(216,183,92,0.62);
+	border-radius: 6px;
+
+	color: var(--eql-gold);
+	cursor: pointer;
+	font: inherit;
+	font-weight: 700;
+	letter-spacing: 0.035em;
+	text-transform: uppercase;
+
+	box-shadow:
+		inset 0 1px 0 rgba(255,255,255,0.08),
+		0 3px 10px rgba(0,0,0,0.24);
+}
+
+body.skin-eqlimmersive .eql-equipment-search-button:hover:not(:disabled) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba(216,183,92,0.38),
+			rgba(127,94,24,0.44)
+		);
+	border-color: rgba(216,183,92,0.82);
+}
+
+body.skin-eqlimmersive .eql-equipment-search-button:focus-visible {
+	outline: 2px solid rgba(216,183,92,0.72);
+	outline-offset: 2px;
+}
+
+body.skin-eqlimmersive .eql-equipment-search-button:disabled {
+	cursor: wait;
+	opacity: 0.58;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-field[hidden],
+body.skin-eqlimmersive .eql-equipment-list-level-control[hidden] {
+	display: none !important;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+
+	min-width: 0;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-label {
+	color: var(--eql-gold);
+	font-weight: 700;
+	font-size: 0.85rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-select {
+	width: 100%;
+
+	background: rgba(8,12,18,0.88);
+	border: 1px solid rgba(216,183,92,0.28);
+	border-radius: 6px;
+
+	color: var(--eql-text);
+	padding: 0.45rem 0.5rem;
+
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-select:focus {
+	outline: none;
+	border-color: rgba(216,183,92,0.62);
+	box-shadow:
+		0 0 0 1px rgba(216,183,92,0.22);
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-status {
+	min-height: 1.25rem;
+
+	color: var(--eql-text-muted);
+	font-size: 0.92rem;
+	margin: 0.25rem 0 0.75rem;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-status-error {
+	color: var(--eql-link-new-hover);
+}
+
+body.skin-eqlimmersive .eql-equipment-list-level-control {
+	margin: 0.25rem 0 1rem;
+	padding: 0.75rem;
+
+	background: rgba(255,255,255,0.025);
+	border: 1px solid rgba(216,183,92,0.22);
+	border-radius: 8px;
+
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-equipment-list-level-control::before {
+	content: "Scale all matching items";
+	display: block;
+	margin-bottom: 0.5rem;
+
+	color: var(--eql-gold);
+	font-size: 0.78rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+body.skin-eqlimmersive .eql-equipment-list-level-control .ils-slider-container {
+	max-width: 451px;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-loading {
+	padding: 0.9rem;
+
+	background: rgba(255,255,255,0.035);
+	border: 1px solid rgba(255,255,255,0.09);
+	border-radius: 8px;
+
+	color: var(--eql-text-muted);
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results {
+	max-width: 100%;
+	overflow-x: auto;
+
+	padding-top: 0.25rem;
+}
+
+/* Result shell after AJAX load */
+body.skin-eqlimmersive .eql-equipment-builder-results-ready {
+	background: rgba(255,255,255,0.025);
+	border: 1px solid rgba(255,255,255,0.08);
+	border-radius: 8px;
+	padding: 0.75rem;
+
+	box-shadow:
+		inset 0 1px 0 rgba(255,255,255,0.035);
+
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results-stale {
+	opacity: 0.72;
+}
+
+/* Keep dynamically loaded result tables contained */
+body.skin-eqlimmersive .eql-equipment-builder-results table {
+	width: max-content;
+	max-width: none;
+	min-width: 100%;
+	margin: 0.5rem 0 0;
+}
+
+/*
+ * ItemLevelSlider remains responsible for every scaling calculation.
+ * Its per-item controls stay functional but hidden; the first real control is
+ * moved above the result table and synchronized across the remaining items.
+ */
+body.skin-eqlimmersive .eql-equipment-builder-results .ils-slider-container {
+	display: none !important;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results .ils-item-wrapper {
+	margin-bottom: 0;
+}
+
+/* Reassert dark table styling inside the builder, even if global table CSS is odd */
+body.skin-eqlimmersive .eql-equipment-builder-results .eoTable,
+body.skin-eqlimmersive .eql-equipment-builder-results table.sortable {
+	background: rgba(12,16,23,0.92) !important;
+	color: var(--eql-text) !important;
+	border-color: rgba(255,255,255,0.12) !important;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results .eoTable th,
+body.skin-eqlimmersive .eql-equipment-builder-results table.sortable th {
+	background:
+		linear-gradient(
+			180deg,
+			rgba(20,26,36,0.96),
+			rgba(10,14,22,0.98)
+		) !important;
+
+	color: var(--eql-gold) !important;
+	border-color: rgba(216,183,92,0.28) !important;
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results .eoTable td,
+body.skin-eqlimmersive .eql-equipment-builder-results table.sortable td {
+	background: rgba(12,16,23,0.84) !important;
+	color: var(--eql-text-muted) !important;
+	border-color: rgba(255,255,255,0.10) !important;
+	vertical-align: middle;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results td.ils-modified {
+	color: #5f5 !important;
+	font-weight: 700;
+	text-shadow: 0 0 3px rgba(85,255,85,0.30);
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results .eql-equipment-effects-cell {
+	min-width: 11rem;
+	white-space: nowrap;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results .eql-equipment-effect-entry {
+	display: inline-block;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results .eoTable tr:nth-child(even) td,
+body.skin-eqlimmersive .eql-equipment-builder-results table.sortable tr:nth-child(even) td {
+	background: rgba(30,38,50,0.54) !important;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results .eoTable tr:hover td,
+body.skin-eqlimmersive .eql-equipment-builder-results table.sortable tr:hover td {
+	background: rgba(40,52,68,0.70) !important;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results a:not(.new) {
+	color: var(--eql-link) !important;
+}
+
+body.skin-eqlimmersive .eql-equipment-builder-results a:not(.new):hover {
+	color: var(--eql-gold) !important;
+}
+
+@media (max-width: 900px) {
+	body.skin-eqlimmersive .eql-equipment-builder-class-row {
+		grid-template-columns: 1fr;
+	}
+
+	body.skin-eqlimmersive .eql-equipment-builder-slot-row {
+		grid-template-columns: 1fr;
+	}
+
+	body.skin-eqlimmersive .eql-equipment-list-level-control .ils-slider-container {
+		max-width: 100%;
+	}
+}

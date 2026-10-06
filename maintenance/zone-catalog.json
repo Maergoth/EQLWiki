@@ -1,0 +1,1011 @@
+[
+  {
+    "name": "Ak'Anon",
+    "viewerName": "Ak'Anon",
+    "wikiTitle": "Ak'Anon",
+    "aliases": [
+      "akanon"
+    ]
+  },
+  {
+    "name": "Plane of Sky",
+    "viewerName": "Plane of Sky",
+    "wikiTitle": "The Plane of Sky",
+    "aliases": [
+      "airplane",
+      "sky",
+      "The Plane of Sky"
+    ]
+  },
+  {
+    "name": "The Arena",
+    "viewerName": "The Arena",
+    "wikiTitle": "The Arena",
+    "aliases": [
+      "arena"
+    ]
+  },
+  {
+    "name": "Befallen",
+    "viewerName": "Befallen",
+    "wikiTitle": "Befallen",
+    "aliases": [
+      "befallen"
+    ]
+  },
+  {
+    "name": "Gorge of King Xorbb",
+    "viewerName": "Gorge of King Xorbb",
+    "wikiTitle": "Gorge of King Xorbb",
+    "aliases": [
+      "beholder"
+    ]
+  },
+  {
+    "name": "Blackburrow",
+    "viewerName": "Blackburrow",
+    "wikiTitle": "Blackburrow",
+    "aliases": [
+      "blackburrow"
+    ]
+  },
+  {
+    "name": "Butcherblock Mountains",
+    "viewerName": "Butcherblock Mountains",
+    "wikiTitle": "Butcherblock Mountains",
+    "aliases": [
+      "butcher"
+    ]
+  },
+  {
+    "name": "Dagnor's Cauldron",
+    "viewerName": "Dagnor's Cauldron",
+    "wikiTitle": "Dagnor's Cauldron",
+    "aliases": [
+      "cauldron"
+    ]
+  },
+  {
+    "name": "Cazic Thule",
+    "viewerName": "Cazic Thule",
+    "wikiTitle": "Cazic Thule",
+    "aliases": [
+      "cazicthule"
+    ]
+  },
+  {
+    "name": "West Commonlands",
+    "viewerName": "West Commonlands",
+    "wikiTitle": "West Commonlands",
+    "aliases": [
+      "commons"
+    ]
+  },
+  {
+    "name": "Crushbone",
+    "viewerName": "Crushbone",
+    "wikiTitle": "Crushbone",
+    "aliases": [
+      "crushbone"
+    ]
+  },
+  {
+    "name": "East Commonlands",
+    "viewerName": "East Commonlands",
+    "wikiTitle": "East Commonlands",
+    "aliases": [
+      "ecommons"
+    ]
+  },
+  {
+    "name": "Erudin",
+    "viewerName": "Erudin",
+    "wikiTitle": "Erudin",
+    "aliases": [
+      "erudnext"
+    ]
+  },
+  {
+    "name": "Erudin Palace",
+    "viewerName": "Erudin Palace",
+    "wikiTitle": "Erudin Palace",
+    "aliases": [
+      "erudnint"
+    ]
+  },
+  {
+    "name": "Erud's Crossing",
+    "viewerName": "Erud's Crossing",
+    "wikiTitle": "Erud's Crossing",
+    "aliases": [
+      "erudsxing"
+    ]
+  },
+  {
+    "name": "Everfrost Peaks",
+    "viewerName": "Everfrost Peaks",
+    "wikiTitle": "Everfrost Peaks",
+    "aliases": [
+      "everfrost"
+    ]
+  },
+  {
+    "name": "Plane of Fear",
+    "viewerName": "Plane of Fear",
+    "wikiTitle": "Plane of Fear",
+    "aliases": [
+      "fearplane"
+    ]
+  },
+  {
+    "name": "The Feerrott",
+    "viewerName": "The Feerrott",
+    "wikiTitle": "The Feerrott",
+    "aliases": [
+      "feerrott"
+    ]
+  },
+  {
+    "name": "Northern Felwithe",
+    "viewerName": "Northern Felwithe",
+    "wikiTitle": "Northern Felwithe",
+    "aliases": [
+      "felwithea"
+    ]
+  },
+  {
+    "name": "Southern Felwithe",
+    "viewerName": "Southern Felwithe",
+    "wikiTitle": "Southern Felwithe",
+    "aliases": [
+      "felwitheb"
+    ]
+  },
+  {
+    "name": "East Freeport",
+    "viewerName": "East Freeport",
+    "wikiTitle": "East Freeport",
+    "aliases": [
+      "freporte"
+    ]
+  },
+  {
+    "name": "North Freeport",
+    "viewerName": "North Freeport",
+    "wikiTitle": "North Freeport",
+    "aliases": [
+      "freportn"
+    ]
+  },
+  {
+    "name": "West Freeport",
+    "viewerName": "West Freeport",
+    "wikiTitle": "West Freeport",
+    "aliases": [
+      "freportw"
+    ]
+  },
+  {
+    "name": "Greater Faydark / Kelethin",
+    "viewerName": "Greater Faydark / Kelethin",
+    "wikiTitle": "Greater Faydark / Kelethin",
+    "aliases": [
+      "gfaydark",
+      "Greater Faydark",
+      "Kelethin"
+    ]
+  },
+  {
+    "name": "Grobb",
+    "viewerName": "Grobb",
+    "wikiTitle": "Grobb",
+    "aliases": [
+      "grobb"
+    ]
+  },
+  {
+    "name": "Lower Guk",
+    "viewerName": "Lower Guk",
+    "wikiTitle": "Lower Guk",
+    "aliases": [
+      "gukbottom"
+    ]
+  },
+  {
+    "name": "Upper Guk",
+    "viewerName": "Upper Guk",
+    "wikiTitle": "Upper Guk",
+    "aliases": [
+      "guktop"
+    ]
+  },
+  {
+    "name": "Halas",
+    "viewerName": "Halas",
+    "wikiTitle": "Halas",
+    "aliases": [
+      "halas"
+    ]
+  },
+  {
+    "name": "Plane of Hate",
+    "viewerName": "Plane of Hate",
+    "wikiTitle": "Plane of Hate",
+    "aliases": [
+      "hateplane"
+    ]
+  },
+  {
+    "name": "High Keep",
+    "viewerName": "High Keep",
+    "wikiTitle": "High Keep",
+    "aliases": [
+      "highkeep"
+    ]
+  },
+  {
+    "name": "Highpass Hold",
+    "viewerName": "Highpass Hold",
+    "wikiTitle": "Highpass Hold",
+    "aliases": [
+      "highpass"
+    ]
+  },
+  {
+    "name": "The Hole",
+    "viewerName": "The Hole",
+    "wikiTitle": "The Hole",
+    "aliases": [
+      "hole"
+    ]
+  },
+  {
+    "name": "Innothule Swamp",
+    "viewerName": "Innothule Swamp",
+    "wikiTitle": "Innothule Swamp",
+    "aliases": [
+      "innothule"
+    ]
+  },
+  {
+    "name": "East Karana",
+    "viewerName": "East Karana",
+    "wikiTitle": "East Karana",
+    "aliases": [
+      "eastkarana"
+    ]
+  },
+  {
+    "name": "South Kaladim",
+    "viewerName": "South Kaladim",
+    "wikiTitle": "South Kaladim",
+    "aliases": [
+      "kaladima"
+    ]
+  },
+  {
+    "name": "North Kaladim",
+    "viewerName": "North Kaladim",
+    "wikiTitle": "North Kaladim",
+    "aliases": [
+      "kaladimb"
+    ]
+  },
+  {
+    "name": "Kedge Keep",
+    "viewerName": "Kedge Keep",
+    "wikiTitle": "Kedge Keep",
+    "aliases": [
+      "kedge"
+    ]
+  },
+  {
+    "name": "Kerra Island",
+    "viewerName": "Kerra Island",
+    "wikiTitle": "Kerra Island",
+    "aliases": [
+      "kerra"
+    ]
+  },
+  {
+    "name": "Jaggedpine Forest",
+    "viewerName": "Jaggedpine Forest",
+    "wikiTitle": "Jaggedpine Forest",
+    "aliases": [
+      "jaggedpine"
+    ]
+  },
+  {
+    "name": "Kithicor Forest",
+    "viewerName": "Kithicor Forest",
+    "wikiTitle": "Kithicor Forest",
+    "aliases": [
+      "kithicor"
+    ]
+  },
+  {
+    "name": "Lake Rathetear",
+    "viewerName": "Lake Rathetear",
+    "wikiTitle": "Lake Rathetear",
+    "aliases": [
+      "lakerathe"
+    ]
+  },
+  {
+    "name": "Lavastorm Mountains",
+    "viewerName": "Lavastorm Mountains",
+    "wikiTitle": "Lavastorm Mountains",
+    "aliases": [
+      "lavastorm"
+    ]
+  },
+  {
+    "name": "Lesser Faydark",
+    "viewerName": "Lesser Faydark",
+    "wikiTitle": "Lesser Faydark",
+    "aliases": [
+      "lfaydark"
+    ]
+  },
+  {
+    "name": "Mistmoore Castle",
+    "viewerName": "Mistmoore Castle",
+    "wikiTitle": "Mistmoore Castle",
+    "aliases": [
+      "mistmoore"
+    ]
+  },
+  {
+    "name": "Misty Thicket",
+    "viewerName": "Misty Thicket",
+    "wikiTitle": "Misty Thicket",
+    "aliases": [
+      "misty"
+    ]
+  },
+  {
+    "name": "Najena",
+    "viewerName": "Najena",
+    "wikiTitle": "Najena",
+    "aliases": [
+      "najena"
+    ]
+  },
+  {
+    "name": "Nektulos Forest",
+    "viewerName": "Nektulos Forest",
+    "wikiTitle": "Nektulos Forest",
+    "aliases": [
+      "nektulos"
+    ]
+  },
+  {
+    "name": "Neriak - Foreign Quarter",
+    "viewerName": "Neriak - Foreign Quarter",
+    "wikiTitle": "Neriak - Foreign Quarter",
+    "aliases": [
+      "neriaka"
+    ]
+  },
+  {
+    "name": "Neriak - Commons",
+    "viewerName": "Neriak - Commons",
+    "wikiTitle": "Neriak - Commons",
+    "aliases": [
+      "neriakb"
+    ]
+  },
+  {
+    "name": "Neriak - Third Gate",
+    "viewerName": "Neriak - Third Gate",
+    "wikiTitle": "Neriak - Third Gate",
+    "aliases": [
+      "neriakc"
+    ]
+  },
+  {
+    "name": "North Karana",
+    "viewerName": "North Karana",
+    "wikiTitle": "North Karana",
+    "aliases": [
+      "northkarana"
+    ]
+  },
+  {
+    "name": "North Ro",
+    "viewerName": "North Ro",
+    "wikiTitle": "The Northern Desert of Ro",
+    "aliases": [
+      "nro",
+      "northro",
+      "The Northern Desert of Ro",
+      "Northern Desert of Ro"
+    ]
+  },
+  {
+    "name": "Oasis of Marr",
+    "viewerName": "Oasis of Marr",
+    "wikiTitle": "The Oasis of Marr",
+    "aliases": [
+      "oasis",
+      "The Oasis of Marr"
+    ]
+  },
+  {
+    "name": "Oggok",
+    "viewerName": "Oggok",
+    "wikiTitle": "Oggok",
+    "aliases": [
+      "oggok"
+    ]
+  },
+  {
+    "name": "Ocean of Tears",
+    "viewerName": "Ocean of Tears",
+    "wikiTitle": "Ocean of Tears",
+    "aliases": [
+      "oot"
+    ]
+  },
+  {
+    "name": "Paineel",
+    "viewerName": "Paineel",
+    "wikiTitle": "Paineel",
+    "aliases": [
+      "paineel"
+    ]
+  },
+  {
+    "name": "Splitpaw Lair",
+    "viewerName": "Splitpaw Lair",
+    "wikiTitle": "Splitpaw Lair",
+    "aliases": [
+      "paw"
+    ]
+  },
+  {
+    "name": "Permafrost",
+    "viewerName": "Permafrost",
+    "wikiTitle": "Permafrost",
+    "aliases": [
+      "permafrost"
+    ]
+  },
+  {
+    "name": "Qeynos Aqueducts",
+    "viewerName": "Qeynos Aqueducts",
+    "wikiTitle": "Qeynos Aqueducts",
+    "aliases": [
+      "qcat"
+    ]
+  },
+  {
+    "name": "West Karana",
+    "viewerName": "West Karana",
+    "wikiTitle": "West Karana",
+    "aliases": [
+      "qey2hh1",
+      "westkarana"
+    ]
+  },
+  {
+    "name": "South Qeynos",
+    "viewerName": "South Qeynos",
+    "wikiTitle": "South Qeynos",
+    "aliases": [
+      "qeynos"
+    ]
+  },
+  {
+    "name": "North Qeynos",
+    "viewerName": "North Qeynos",
+    "wikiTitle": "North Qeynos",
+    "aliases": [
+      "qeynos2"
+    ]
+  },
+  {
+    "name": "Qeynos Hills",
+    "viewerName": "Qeynos Hills",
+    "wikiTitle": "Qeynos Hills",
+    "aliases": [
+      "qeytoqrg"
+    ]
+  },
+  {
+    "name": "Surefall Glade",
+    "viewerName": "Surefall Glade",
+    "wikiTitle": "Surefall Glade",
+    "aliases": [
+      "qrg"
+    ]
+  },
+  {
+    "name": "Rathe Mountains",
+    "viewerName": "Rathe Mountains",
+    "wikiTitle": "Rathe Mountains",
+    "aliases": [
+      "rathemtn"
+    ]
+  },
+  {
+    "name": "Rivervale",
+    "viewerName": "Rivervale",
+    "wikiTitle": "Rivervale",
+    "aliases": [
+      "rivervale"
+    ]
+  },
+  {
+    "name": "Runnyeye Citadel",
+    "viewerName": "Runnyeye Citadel",
+    "wikiTitle": "Runnyeye Citadel",
+    "aliases": [
+      "runnyeye"
+    ]
+  },
+  {
+    "name": "Solusek's Eye (Sol A)",
+    "viewerName": "Solusek's Eye (Sol A)",
+    "wikiTitle": "Solusek's Eye (Sol A)",
+    "aliases": [
+      "soldunga",
+      "Solusek's Eye",
+      "Sol A"
+    ]
+  },
+  {
+    "name": "Nagafen's Lair (Sol B)",
+    "viewerName": "Nagafen's Lair (Sol B)",
+    "wikiTitle": "Nagafen's Lair",
+    "aliases": [
+      "soldungb",
+      "Nagafen's Lair",
+      "Sol B"
+    ]
+  },
+  {
+    "name": "The Temple of Solusek Ro",
+    "viewerName": "The Temple of Solusek Ro",
+    "wikiTitle": "The Temple of Solusek Ro",
+    "aliases": [
+      "soltemple"
+    ]
+  },
+  {
+    "name": "South Karana",
+    "viewerName": "South Karana",
+    "wikiTitle": "South Karana",
+    "aliases": [
+      "southkarana"
+    ]
+  },
+  {
+    "name": "South Ro",
+    "viewerName": "South Ro",
+    "wikiTitle": "The Southern Desert of Ro",
+    "aliases": [
+      "sro",
+      "southro",
+      "The Southern Desert of Ro",
+      "Southern Desert of Ro"
+    ]
+  },
+  {
+    "name": "Steamfont Mountains",
+    "viewerName": "Steamfont Mountains",
+    "wikiTitle": "Steamfont Mountains",
+    "aliases": [
+      "steamfont"
+    ]
+  },
+  {
+    "name": "Toxxulia Forest",
+    "viewerName": "Toxxulia Forest",
+    "wikiTitle": "Toxxulia Forest",
+    "aliases": [
+      "tox"
+    ]
+  },
+  {
+    "name": "Tutorial Zone",
+    "viewerName": "Tutorial Zone",
+    "wikiTitle": "Tutorial Zone",
+    "aliases": [
+      "tutorial"
+    ]
+  },
+  {
+    "name": "New Sebilis Expedition",
+    "viewerName": "New Sebilis Expedition",
+    "wikiTitle": "New Sebilis Expedition",
+    "aliases": [
+      "newsebilis"
+    ]
+  },
+  {
+    "name": "Stonebrunt Mountains",
+    "viewerName": "Stonebrunt Mountains",
+    "wikiTitle": "Stonebrunt Mountains",
+    "aliases": [
+      "stonebrunt"
+    ]
+  },
+  {
+    "name": "The Estate of Unrest",
+    "viewerName": "The Estate of Unrest",
+    "wikiTitle": "The Estate of Unrest",
+    "aliases": [
+      "unrest",
+      "Estate of Unrest"
+    ]
+  },
+  {
+    "name": "The Warrens",
+    "viewerName": "The Warrens",
+    "wikiTitle": "The Warrens",
+    "aliases": [
+      "warrens"
+    ]
+  },
+  {
+    "name": "Burning Wood",
+    "viewerName": "Burning Wood",
+    "wikiTitle": "Burning Wood",
+    "aliases": [
+      "burningwood"
+    ]
+  },
+  {
+    "name": "East Cabilis",
+    "viewerName": "East Cabilis",
+    "wikiTitle": "East Cabilis",
+    "aliases": [
+      "cabeast"
+    ]
+  },
+  {
+    "name": "West Cabilis",
+    "viewerName": "West Cabilis",
+    "wikiTitle": "West Cabilis",
+    "aliases": [
+      "cabwest"
+    ]
+  },
+  {
+    "name": "Chardok",
+    "viewerName": "Chardok",
+    "wikiTitle": "Chardok",
+    "aliases": [
+      "chardok"
+    ]
+  },
+  {
+    "name": "City of Mist",
+    "viewerName": "City of Mist",
+    "wikiTitle": "City of Mist",
+    "aliases": [
+      "citymist"
+    ]
+  },
+  {
+    "name": "Dalnir",
+    "viewerName": "Dalnir",
+    "wikiTitle": "Dalnir",
+    "aliases": [
+      "dalnir"
+    ]
+  },
+  {
+    "name": "Dreadlands",
+    "viewerName": "Dreadlands",
+    "wikiTitle": "Dreadlands",
+    "aliases": [
+      "dreadlands"
+    ]
+  },
+  {
+    "name": "Emerald Jungle",
+    "viewerName": "Emerald Jungle",
+    "wikiTitle": "Emerald Jungle",
+    "aliases": [
+      "emeraldjungle"
+    ]
+  },
+  {
+    "name": "Field of Bone",
+    "viewerName": "Field of Bone",
+    "wikiTitle": "Field of Bone",
+    "aliases": [
+      "fieldofbone"
+    ]
+  },
+  {
+    "name": "Firiona Vie",
+    "viewerName": "Firiona Vie",
+    "wikiTitle": "Firiona Vie",
+    "aliases": [
+      "firiona"
+    ]
+  },
+  {
+    "name": "Frontier Mountains",
+    "viewerName": "Frontier Mountains",
+    "wikiTitle": "Frontier Mountains",
+    "aliases": [
+      "frontiermtns"
+    ]
+  },
+  {
+    "name": "Howling Stones (Charasis)",
+    "viewerName": "Howling Stones (Charasis)",
+    "wikiTitle": "Howling Stones (Charasis)",
+    "aliases": [
+      "charasis"
+    ]
+  },
+  {
+    "name": "Kaesora",
+    "viewerName": "Kaesora",
+    "wikiTitle": "Kaesora",
+    "aliases": [
+      "kaesora"
+    ]
+  },
+  {
+    "name": "Karnor's Castle",
+    "viewerName": "Karnor's Castle",
+    "wikiTitle": "Karnor's Castle",
+    "aliases": [
+      "karnor"
+    ]
+  },
+  {
+    "name": "Kurn's Tower",
+    "viewerName": "Kurn's Tower",
+    "wikiTitle": "Kurn's Tower",
+    "aliases": [
+      "kurn"
+    ]
+  },
+  {
+    "name": "Lake of Ill Omen",
+    "viewerName": "Lake of Ill Omen",
+    "wikiTitle": "Lake of Ill Omen",
+    "aliases": [
+      "lakeofillomen"
+    ]
+  },
+  {
+    "name": "Mines of Nurga",
+    "viewerName": "Mines of Nurga",
+    "wikiTitle": "Mines of Nurga",
+    "aliases": [
+      "nurga"
+    ]
+  },
+  {
+    "name": "The Overthere",
+    "viewerName": "The Overthere",
+    "wikiTitle": "The Overthere",
+    "aliases": [
+      "overthere"
+    ]
+  },
+  {
+    "name": "Old Sebilis",
+    "viewerName": "Old Sebilis",
+    "wikiTitle": "Old Sebilis",
+    "aliases": [
+      "sebilis"
+    ]
+  },
+  {
+    "name": "Skyfire Mountains",
+    "viewerName": "Skyfire Mountains",
+    "wikiTitle": "Skyfire Mountains",
+    "aliases": [
+      "skyfire"
+    ]
+  },
+  {
+    "name": "Swamp of No Hope",
+    "viewerName": "Swamp of No Hope",
+    "wikiTitle": "Swamp of No Hope",
+    "aliases": [
+      "swampofnohope"
+    ]
+  },
+  {
+    "name": "Timorous Deep",
+    "viewerName": "Timorous Deep",
+    "wikiTitle": "Timorous Deep",
+    "aliases": [
+      "timorous"
+    ]
+  },
+  {
+    "name": "Trakanon's Teeth",
+    "viewerName": "Trakanon's Teeth",
+    "wikiTitle": "Trakanon's Teeth",
+    "aliases": [
+      "trakanon"
+    ]
+  },
+  {
+    "name": "Temple of Droga",
+    "viewerName": "Temple of Droga",
+    "wikiTitle": "Temple of Droga",
+    "aliases": [
+      "droga"
+    ]
+  },
+  {
+    "name": "Veeshan's Peak",
+    "viewerName": "Veeshan's Peak",
+    "wikiTitle": "Veeshan's Peak",
+    "aliases": [
+      "veeshan"
+    ]
+  },
+  {
+    "name": "Warsliks Woods",
+    "viewerName": "Warsliks Woods",
+    "wikiTitle": "Warsliks Woods",
+    "aliases": [
+      "warslikswood"
+    ]
+  },
+  {
+    "name": "Cobalt Scar",
+    "viewerName": "Cobalt Scar",
+    "wikiTitle": "Cobalt Scar",
+    "aliases": [
+      "cobaltscar"
+    ]
+  },
+  {
+    "name": "Crystal Caverns",
+    "viewerName": "Crystal Caverns",
+    "wikiTitle": "Crystal Caverns",
+    "aliases": [
+      "crystal"
+    ]
+  },
+  {
+    "name": "Eastern Wastes",
+    "viewerName": "Eastern Wastes",
+    "wikiTitle": "Eastern Wastes",
+    "aliases": [
+      "eastwastes"
+    ]
+  },
+  {
+    "name": "Tower of Frozen Shadow",
+    "viewerName": "Tower of Frozen Shadow",
+    "wikiTitle": "Tower of Frozen Shadow",
+    "aliases": [
+      "frozenshadow"
+    ]
+  },
+  {
+    "name": "The Great Divide",
+    "viewerName": "The Great Divide",
+    "wikiTitle": "The Great Divide",
+    "aliases": [
+      "greatdivide"
+    ]
+  },
+  {
+    "name": "Plane of Growth",
+    "viewerName": "Plane of Growth",
+    "wikiTitle": "Plane of Growth",
+    "aliases": [
+      "growthplane"
+    ]
+  },
+  {
+    "name": "Iceclad Ocean",
+    "viewerName": "Iceclad Ocean",
+    "wikiTitle": "Iceclad Ocean",
+    "aliases": [
+      "iceclad"
+    ]
+  },
+  {
+    "name": "Kael Drakkal",
+    "viewerName": "Kael Drakkal",
+    "wikiTitle": "Kael Drakkal",
+    "aliases": [
+      "kael"
+    ]
+  },
+  {
+    "name": "Plane of Mischief",
+    "viewerName": "Plane of Mischief",
+    "wikiTitle": "Plane of Mischief",
+    "aliases": [
+      "mischiefplane"
+    ]
+  },
+  {
+    "name": "Dragon Necropolis",
+    "viewerName": "Dragon Necropolis",
+    "wikiTitle": "Dragon Necropolis",
+    "aliases": [
+      "necropolis"
+    ]
+  },
+  {
+    "name": "Siren's Grotto",
+    "viewerName": "Siren's Grotto",
+    "wikiTitle": "Siren's Grotto",
+    "aliases": [
+      "sirens"
+    ]
+  },
+  {
+    "name": "Sleeper's Tomb",
+    "viewerName": "Sleeper's Tomb",
+    "wikiTitle": "Sleeper's Tomb",
+    "aliases": [
+      "sleeper"
+    ]
+  },
+  {
+    "name": "Skyshrine",
+    "viewerName": "Skyshrine",
+    "wikiTitle": "Skyshrine",
+    "aliases": [
+      "skyshrine"
+    ]
+  },
+  {
+    "name": "Temple of Veeshan",
+    "viewerName": "Temple of Veeshan",
+    "wikiTitle": "Temple of Veeshan",
+    "aliases": [
+      "templeveeshan"
+    ]
+  },
+  {
+    "name": "Thurgadin",
+    "viewerName": "Thurgadin",
+    "wikiTitle": "Thurgadin",
+    "aliases": [
+      "thurgadina"
+    ]
+  },
+  {
+    "name": "Icewell Keep",
+    "viewerName": "Icewell Keep",
+    "wikiTitle": "Icewell Keep",
+    "aliases": [
+      "thurgadinb"
+    ]
+  },
+  {
+    "name": "Velketor's Labyrinth",
+    "viewerName": "Velketor's Labyrinth",
+    "wikiTitle": "Velketor's Labyrinth",
+    "aliases": [
+      "velketor"
+    ]
+  },
+  {
+    "name": "Wakening Land",
+    "viewerName": "Wakening Land",
+    "wikiTitle": "Wakening Land",
+    "aliases": [
+      "wakening"
+    ]
+  },
+  {
+    "name": "Western Wastes",
+    "viewerName": "Western Wastes",
+    "wikiTitle": "Western Wastes",
+    "aliases": [
+      "westwastes"
+    ]
+  }
+]

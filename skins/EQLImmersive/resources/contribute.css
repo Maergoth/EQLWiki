@@ -1,0 +1,120 @@
+/* =====================================================
+   EQL Immersive — footer action buttons
+   ===================================================== */
+
+body.skin-eqlimmersive #eql-contribute-button,
+body.skin-eqlimmersive #eql-support-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	flex: 0 0 auto;
+
+	height: 1.45rem;
+
+	margin: 0 0.5rem 0 0;
+	padding: 0 0.7rem;
+
+	border-radius: 999px;
+
+	font-size: 0.72rem;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: 0.045em;
+	text-transform: uppercase;
+
+	cursor: pointer;
+
+	transition:
+		background 0.14s ease,
+		border-color 0.14s ease,
+		box-shadow 0.14s ease,
+		color 0.14s ease,
+		transform 0.14s ease;
+}
+
+body.skin-eqlimmersive #eql-contribute-button {
+	min-width: 9.6rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 24, 32, 46, 0.96 ),
+			rgba( 10, 14, 22, 0.98 )
+		);
+
+	border: 1px solid rgba( 216, 183, 92, 0.65 );
+
+	color: var( --eql-gold );
+
+	box-shadow:
+		0 0 8px rgba( 216, 183, 92, 0.22 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.06 );
+}
+
+body.skin-eqlimmersive #eql-contribute-button:hover,
+body.skin-eqlimmersive #eql-contribute-button:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 46, 39, 22, 0.98 ),
+			rgba( 18, 15, 10, 0.98 )
+		);
+
+	border-color: rgba( 255, 226, 142, 0.95 );
+	color: #fff2c2;
+
+	box-shadow:
+		0 0 10px rgba( 216, 183, 92, 0.50 ),
+		0 0 20px rgba( 216, 183, 92, 0.22 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 );
+
+	transform: translateY( -1px );
+	outline: none;
+}
+
+body.skin-eqlimmersive #eql-support-button {
+	min-width: 4.8rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 58, 92, 48, 0.96 ),
+			rgba( 20, 42, 24, 0.98 )
+		);
+
+	border: 1px solid rgba( 216, 183, 92, 0.72 );
+
+	color: #f5d98c;
+
+	box-shadow:
+		0 0 8px rgba( 147, 197, 114, 0.28 ),
+		0 0 12px rgba( 216, 183, 92, 0.12 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 );
+}
+
+body.skin-eqlimmersive #eql-support-button:hover,
+body.skin-eqlimmersive #eql-support-button:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 86, 128, 62, 0.98 ),
+			rgba( 28, 56, 30, 0.98 )
+		);
+
+	border-color: rgba( 255, 226, 142, 0.95 );
+	color: #fff2c2;
+
+	box-shadow:
+		0 0 10px rgba( 147, 197, 114, 0.46 ),
+		0 0 20px rgba( 216, 183, 92, 0.22 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.10 );
+
+	transform: translateY( -1px );
+	outline: none;
+}
+
+body.skin-eqlimmersive #eql-contribute-button:active,
+body.skin-eqlimmersive #eql-support-button:active {
+	transform: translateY( 0 );
+}

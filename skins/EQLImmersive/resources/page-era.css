@@ -1,0 +1,95 @@
+/* EQLImmersive — PageEra Badge Positioning
+ * Positions the {{PageEra}} out-of-era badge as an absolute overlay
+ * instead of a float, preventing layout shift on article pages.
+ * Mobile fallback at 800px returns to static positioning.
+ */
+/* =====================================================
+   EQL Immersive â€” PageEra out-of-era badge without layout shift
+
+   Template:PageEra emits the out-of-era badge as .right-float-era near
+   the beginning of .mw-parser-output. The legacy global rule floated that
+   badge and pulled it upward with a negative margin; the float still kept
+   a layout footprint, which could push the article/title area down on
+   out-of-era pages.
+
+   In EQLImmersive only, make the badge an overlay instead of a float.
+   ===================================================== */
+
+body.skin-eqlimmersive .mw-body,
+body.skin-eqlimmersive .mw-body-content,
+body.skin-eqlimmersive .mw-parser-output {
+	position: relative !important;
+}
+
+/* Collapse any parser paragraph that only exists to hold or surround the
+   top-of-page era badge. This handles both old and new parser output shapes. */
+body.skin-eqlimmersive .mw-parser-output > p:empty:first-child,
+body.skin-eqlimmersive .mw-parser-output > p:first-child:has(> .right-float-era),
+body.skin-eqlimmersive .mw-parser-output > p:first-child:has(+ .right-float-era) {
+	display: block !important;
+	height: 0 !important;
+	min-height: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	overflow: visible !important;
+	line-height: 0 !important;
+}
+
+/* The actual PageEra badge. Keep it visible, but remove it from normal flow. */
+body.skin-eqlimmersive .mw-parser-output > .right-float-era,
+body.skin-eqlimmersive .mw-parser-output > p > .right-float-era,
+body.skin-eqlimmersive .mw-parser-output .right-float-era {
+	float: none !important;
+	clear: none !important;
+
+	position: absolute !important;
+	top: -3.35rem !important;
+	right: 0.65rem !important;
+	z-index: 25 !important;
+
+	display: inline-block !important;
+	width: auto !important;
+	min-width: 0 !important;
+	max-width: 12rem !important;
+
+	margin: 0 !important;
+	box-sizing: border-box !important;
+	transform: none !important;
+
+	line-height: 1.2 !important;
+	white-space: nowrap !important;
+}
+
+/* Neutralize old EQL-era-specific float offsets for the immersive skin. */
+body.skin-eqlimmersive .mw-parser-output > .eql-era.right-float-era,
+body.skin-eqlimmersive .mw-parser-output .eql-era.right-float-era {
+	margin: 0 !important;
+}
+
+/* Remove the top whitespace the badge used to create before the first real
+   article element. */
+body.skin-eqlimmersive .mw-parser-output > .right-float-era:first-child + *,
+body.skin-eqlimmersive .mw-parser-output > p:first-child:has(> .right-float-era) + *,
+body.skin-eqlimmersive .mw-parser-output > p:first-child:has(+ .right-float-era) + .right-float-era + * {
+	margin-top: 0 !important;
+}
+
+@media (max-width: 800px) {
+	body.skin-eqlimmersive .mw-parser-output > .right-float-era,
+	body.skin-eqlimmersive .mw-parser-output > p > .right-float-era,
+	body.skin-eqlimmersive .mw-parser-output .right-float-era {
+		position: static !important;
+		display: inline-block !important;
+		float: none !important;
+		clear: both !important;
+		margin: 0 0 0.75rem 0 !important;
+		white-space: normal !important;
+	}
+
+	body.skin-eqlimmersive .mw-parser-output > p:first-child:has(> .right-float-era) {
+		height: auto !important;
+		line-height: normal !important;
+		margin: 0 !important;
+	}
+}

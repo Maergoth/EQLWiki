@@ -1,0 +1,35 @@
+/* EQLImmersive — Hide Header Site Title Text
+ * Removes the wordmark/tagline text entirely, leaving only the logo icon.
+ */
+/* =====================================================
+   EQL Immersive â€” hide header site title text
+   Removes the "EverQuest Legends Wiki" wordmark/tagline entirely.
+   Leaves the logo icon and page action styling intact.
+   ===================================================== */
+
+body.skin-eqlimmersive .mw-header .mw-logo,
+body.skin-eqlimmersive .vector-header .mw-logo,
+body.skin-eqlimmersive .vector-header-start .mw-logo {
+	gap: 0 !important;
+}
+
+body.skin-eqlimmersive .mw-header .mw-logo-wordmark,
+body.skin-eqlimmersive .mw-header .mw-logo-tagline,
+body.skin-eqlimmersive .vector-header .mw-logo-wordmark,
+body.skin-eqlimmersive .vector-header .mw-logo-tagline,
+body.skin-eqlimmersive .vector-header-start .mw-logo-wordmark,
+body.skin-eqlimmersive .vector-header-start .mw-logo-tagline,
+body.skin-eqlimmersive .mw-logo-container .mw-logo-wordmark,
+body.skin-eqlimmersive .mw-logo-container .mw-logo-tagline {
+	display: none !important;
+	visibility: hidden !important;
+	width: 0 !important;
+	max-width: 0 !important;
+	height: 0 !important;
+	max-height: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	overflow: hidden !important;
+	opacity: 0 !important;
+	pointer-events: none !important;
+}

@@ -1,0 +1,273 @@
+{{!
+	string|null html-site-notice the contents of a banner defined in MediaWiki:Sitenotice.
+		Also used by CentralNotice to inject banners into Vector.
+	Indicator[] array-indicators wiki-defined badges such as "good article",
+		"featured article". An empty array if none are defined.
+	string|null html-title
+	bool is-article
+	string msg-tagline
+	string html-subtitle
+	string html-undelete-link
+	string html-newtalk
+	string msg-vector-jumptonavigation
+	string msg-vector-jumptosearch
+	string msg-vector-jumptocontent
+	string html-body-content
+	string html-categories
+	string html-after-content
+	LogoOptions data-logos
+	object data-portlets
+	MenuDefinition data-portlets.data-personal
+	MenuDefinition data-portlets.data-namespaces
+	MenuDefinition data-portlets.data-variants
+	MenuDefinition data-portlets.data-views
+	MenuDefinition data-portlets.data-actions
+	object data-search-box. See SearchBox.mustache for documentation.
+	string msg-vector-action-toggle-sidebar The label used by the sidebar button.
+	string msg-vector-main-menu-tooltip The title attribute for the main menu icon.
+	object data-main-menu. See MainMenu.mustache for documentation.
+	object data-footer for footer template partial. see Footer.mustache for documentation.
+}}
+
+<script>
+(function () {
+	'use strict';
+
+	function addHtmlClass( className ) {
+		if ( className && document.documentElement ) {
+			document.documentElement.className += ' ' + className;
+		}
+	}
+
+	function normalizeEraMode( mode ) {
+		mode = String( mode || '' ).toLowerCase();
+
+		if ( mode === 'disabled' || mode === 'disable' || mode === 'false' || mode === '0' ) {
+			return 'off';
+		}
+
+		if ( mode === 'enabled' || mode === 'enable' || mode === 'true' || mode === '1' ) {
+			return 'on';
+		}
+
+		if ( mode === 'outline' ) {
+			return 'outline';
+		}
+
+		if ( mode === 'hide' ) {
+			return 'hide';
+		}
+
+		if ( mode === 'off' || mode === 'on' ) {
+			return mode;
+		}
+
+		return '';
+	}
+
+	function getStoredEraMode() {
+		var mode = '';
+
+		try {
+			/*
+			 * Current multi-state era-filter.js should use one of these.
+			 * Keep all likely keys here so the no-pop placeholder survives
+			 * small key-name changes and older browser state.
+			 */
+			mode =
+				normalizeEraMode( window.localStorage.getItem( 'eql-era-filter-mode-v1' ) ) ||
+				normalizeEraMode( window.localStorage.getItem( 'eql-era-filter-mode' ) ) ||
+				normalizeEraMode( window.localStorage.getItem( 'eql-era-filter-state-v1' ) ) ||
+				normalizeEraMode( window.localStorage.getItem( 'eql-era-filter-state' ) );
+
+			if ( mode ) {
+				return mode;
+			}
+
+			/*
+			 * Legacy two-state key:
+			 *   missing / anything except "0" = On
+			 *   "0" = Off
+			 */
+			if ( window.localStorage.getItem( 'eql-era-filter-enabled-v1' ) === '0' ) {
+				return 'off';
+			}
+
+			return 'on';
+		} catch ( e ) {
+			return 'on';
+		}
+	}
+
+	try {
+		window.localStorage.removeItem( 'eqlimmersive-main-menu-pinned' );
+		window.localStorage.removeItem( 'eqlimmersive-main-menu-pinned-v2' );
+		window.localStorage.removeItem( 'eqlimmersive-main-menu-pinned-v3' );
+		window.localStorage.removeItem( 'eqlimmersive-main-menu-pinned-v4' );
+
+		if ( window.localStorage.getItem( 'eqlimmersive-main-menu-pinned-v5' ) === '1' ) {
+			addHtmlClass( 'eql-main-menu-pinned-initial' );
+		}
+
+		if ( window.localStorage.getItem( 'eql-announcements-collapsed-v1' ) === '1' ) {
+			addHtmlClass( 'eql-announcements-collapsed-initial' );
+		}
+
+		var eraMode = getStoredEraMode();
+
+		addHtmlClass( 'eql-era-filter-preload-' + eraMode );
+		addHtmlClass( 'eql-era-filter-' + eraMode + '-initial' );
+
+		/*
+		 * Backward compatibility for older CSS/JS that still checks
+		 * enabled/disabled initial classes.
+		 */
+		if ( eraMode === 'off' ) {
+			addHtmlClass( 'eql-era-filter-disabled-initial' );
+		} else {
+			addHtmlClass( 'eql-era-filter-enabled-initial' );
+		}
+
+		document.documentElement.setAttribute( 'data-eql-era-filter-mode', eraMode );
+	} catch ( e ) {
+		addHtmlClass( 'eql-era-filter-preload-on' );
+		addHtmlClass( 'eql-era-filter-on-initial' );
+		addHtmlClass( 'eql-era-filter-enabled-initial' );
+	}
+}());
+</script>
+
+<a class="mw-jump-link" href="#bodyContent">{{msg-vector-jumptocontent}}</a>
+
+<div class="vector-header-container">
+	<header class="vector-header mw-header no-font-mode-scale">
+		<div class="vector-header-start">
+			<nav class="eql-main-menu-landmark" aria-label="{{msg-vector-site-nav-label}}">
+				<button
+					id="eql-main-menu-toggle"
+					type="button"
+					class="eql-main-menu-toggle cdx-button cdx-button--fake-button cdx-button--fake-button--enabled cdx-button--weight-quiet cdx-button--icon-only"
+					aria-label="{{msg-vector-main-menu-tooltip}}"
+					aria-expanded="false"
+					title="{{msg-vector-main-menu-tooltip}}"
+				>
+					<span class="vector-icon mw-ui-icon-menu mw-ui-icon-wikimedia-menu"></span>
+					<span class="vector-dropdown-label-text">Main menu</span>
+				</button>
+			</nav>
+
+			{{#data-logos}}{{>Logo}}{{/data-logos}}
+		</div>
+
+		<div class="vector-header-end">
+			{{#data-search-box}}{{>SearchBox}}{{/data-search-box}}
+
+			<div class="eql-header-page-actions-wrap">
+				{{>PageToolbar}}
+			</div>
+
+			<button
+				id="eql-era-filter-toggle"
+				type="button"
+				class="eql-era-filter-toggle"
+				title="Out of Era Filter"
+				aria-label="Out of Era Filter"
+				aria-pressed="true"
+			>
+				<span class="eql-era-filter-toggle-icon" aria-hidden="true">◷</span>
+			</button>
+
+			{{#data-vector-user-links}}{{>UserLinks}}{{/data-vector-user-links}}
+		</div>
+	</header>
+</div>
+
+<div id="eql-main-menu-host" aria-label="Main menu" style="display: none;">
+	{{#data-main-menu}}{{>MainMenu}}{{/data-main-menu}}
+</div>
+
+<div id="eql-user-menu-host" aria-label="{{msg-personaltools}}" style="display: none;"></div>
+
+<script>
+(function () {
+	var host = document.getElementById( 'eql-main-menu-host' );
+	var isPinned = document.documentElement.classList.contains( 'eql-main-menu-pinned-initial' );
+
+	if ( host && isPinned ) {
+		host.style.display = 'block';
+	}
+
+	if ( isPinned && document.body ) {
+		document.body.classList.add(
+			'eql-main-menu-js',
+			'eql-main-menu-open',
+			'eql-main-menu-pinned'
+		);
+	}
+}());
+</script>
+
+<div class="mw-page-container">
+	<div class="mw-page-container-inner">
+		<div class="vector-sitenotice-container">
+			{{{html-site-notice}}}
+		</div>
+
+		<div class="mw-content-container">
+			{{! `role` is unnecessary but kept to support selectors in any gadgets or user styles. }}
+			<main id="content" class="mw-body">
+				{{>PageTitlebar}}
+
+				<div id="bodyContent" class="vector-body" aria-labelledby="firstHeading" data-mw-ve-target-container>
+					{{>BeforeContent}}
+
+					{{! the #contentSub element is currently used by editors, do not hide or remove it
+						until https://phabricator.wikimedia.org/T316830 has been addressed}}
+					<div id="contentSub"{{{html-user-language-attributes}}}>{{{html-subtitle}}}</div>
+
+					{{#html-undelete-link}}<div id="contentSub2">{{{.}}}</div>{{/html-undelete-link}}
+
+					{{{html-user-message}}}
+					{{{html-body-content}}}
+					{{{html-categories}}}
+
+					{{#is-language-in-content-bottom}}
+						{{#data-lang-dropdown}}{{>LanguageDropdown}}{{/data-lang-dropdown}}
+					{{/is-language-in-content-bottom}}
+				</div>
+			</main>
+
+			{{{html-after-content}}}
+		</div>
+
+		<div class="mw-footer-container">
+	<button
+		id="eql-contribute-button"
+		type="button"
+		class="eql-contribute-button"
+		title="How to contribute to EQL Wiki"
+	>
+		How to Contribute
+	</button>
+
+	<button
+		id="eql-support-button"
+		type="button"
+		class="eql-support-button"
+		title="Donate to EQL Wiki on Ko-fi"
+	>
+		Donate
+	</button>
+
+	{{#data-footer}}{{>Footer}}{{/data-footer}}
+</div>
+	</div> {{! END mw-page-container-inner }}
+</div> {{! END mw-page-container }}
+
+{{#data-vector-sticky-header}}
+<div class="vector-header-container vector-sticky-header-container no-font-mode-scale">
+	{{>StickyHeader}}
+</div>
+{{/data-vector-sticky-header}}
+
+{{>BottomDock}}

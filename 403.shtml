@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>403 Forbidden</title>
+<style>
+    body {
+        background-color: #0d0d0d;
+        color: #e0e0e0;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 60px 20px;
+    }
+    .box {
+        max-width: 600px;
+        margin: auto;
+        background: #1a1a1a;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: #ffcc66;
+    }
+    p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    a {
+        color: #66aaff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
+</head>
+<body>
+
+<div class="box">
+    <h1>403 — Access Forbidden</h1>
+
+    <p>
+        The page or resource you attempted to access is restricted.<br>
+        Your account or current permissions do not allow entry.
+    </p>
+
+    <p>
+        If you believe this is an error, please contact the site administrator.<br>
+        Otherwise, you may return to the <a href="/">EverQuest Legends Wiki</a>.
+    </p>
+</div>
+
+</body>
+</html>

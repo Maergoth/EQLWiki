@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="gold" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f3d86c"/>
+      <stop offset=".55" stop-color="#a9781f"/>
+      <stop offset="1" stop-color="#f4dc81"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" x2="1">
+      <stop offset="0" stop-color="#6f8cff"/>
+      <stop offset="1" stop-color="#8fc8ff"/>
+    </linearGradient>
+    <filter id="s">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity=".65"/>
+    </filter>
+  </defs>
+  <rect x="6" y="6" width="180" height="180" rx="16" fill="#111923" stroke="#8d6720" stroke-width="2"/>
+  <path d="M38 38 H74 V74 H38 Z M86 38 H122 V74 H86 Z M134 38 H170 V74 H134 Z M38 86 H74 V122 H38 Z M86 86 H122 V122 H86 Z M134 86 H170 V122 H134 Z M38 134 H74 V170 H38 Z M86 134 H122 V170 H86 Z M134 134 H170 V170 H134 Z" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#s)"/>
+  <text x="96" y="182" text-anchor="middle" font-family="Georgia, serif" font-size="16" font-weight="700" fill="#d8b75c">Classes</text>
+</svg>

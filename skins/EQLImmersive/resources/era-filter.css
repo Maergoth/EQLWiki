@@ -1,0 +1,856 @@
+/* =====================================================
+   EQL Immersive — out-of-era link overlays + header toggle
+
+   JS adds:
+   .eql-era-filter-off
+   .eql-era-filter-on
+   .eql-era-filter-outline
+   .eql-era-filter-hide
+   .eql-era-filter-enabled      legacy full-overlay mode only
+   .eql-era-filter-disabled     legacy off mode
+   .eql-era-out-overlay-target
+   .eql-era-out-link
+   ===================================================== */
+
+
+/* =====================================================
+   Header toggle
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-era-filter-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	flex: 0 0 auto;
+
+	width: 2.15rem;
+	height: 2.15rem;
+	min-width: 2.15rem;
+
+	margin: 0 0.25rem 0 0;
+	padding: 0;
+
+	/* Match the default JS mode (On) so the pre-JS placeholder does not pop. */
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 150, 34, 28, 0.82 ),
+			rgba( 86, 18, 18, 0.92 )
+		);
+	border: 1px solid rgba( 255, 150, 135, 0.65 );
+	border-radius: 999px;
+
+	color: #ffe2dc;
+
+	box-shadow:
+		0 0 8px rgba( 255, 70, 50, 0.32 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 );
+
+	cursor: pointer;
+
+	transition:
+		background 0.14s ease,
+		border-color 0.14s ease,
+		box-shadow 0.14s ease,
+		color 0.14s ease,
+		transform 0.14s ease;
+}
+
+body.skin-eqlimmersive .eql-era-filter-toggle:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle:focus-visible {
+	transform: translateY( -1px );
+	outline: none;
+}
+
+body.skin-eqlimmersive .eql-era-filter-toggle-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	font-size: 1rem;
+	line-height: 1;
+
+	transform-origin: 50% 50%;
+}
+
+/* Fast spin while hovered/focused. */
+body.skin-eqlimmersive .eql-era-filter-toggle:hover .eql-era-filter-toggle-icon,
+body.skin-eqlimmersive .eql-era-filter-toggle:focus-visible .eql-era-filter-toggle-icon {
+	animation: eql-era-filter-spin 0.45s linear infinite;
+}
+
+/* Off state: grey button. */
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-off {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 80, 84, 92, 0.72 ),
+			rgba( 38, 42, 50, 0.88 )
+		);
+	border-color: rgba( 180, 186, 198, 0.36 );
+	color: rgba( 225, 230, 238, 0.86 );
+
+	box-shadow:
+		0 0 5px rgba( 0, 0, 0, 0.30 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 );
+}
+
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-off:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-off:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 98, 104, 116, 0.82 ),
+			rgba( 48, 52, 62, 0.94 )
+		);
+	border-color: rgba( 216, 183, 92, 0.48 );
+	color: var( --eql-gold );
+
+	box-shadow:
+		0 0 9px rgba( 216, 183, 92, 0.18 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.10 );
+}
+
+/* On state: red filled button. */
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-on,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-active {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 150, 34, 28, 0.82 ),
+			rgba( 86, 18, 18, 0.92 )
+		);
+	border-color: rgba( 255, 150, 135, 0.65 );
+	color: #ffe2dc;
+
+	box-shadow:
+		0 0 8px rgba( 255, 70, 50, 0.32 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 );
+}
+
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-on:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-on:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-active:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-active:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 180, 44, 36, 0.90 ),
+			rgba( 110, 22, 20, 0.96 )
+		);
+	border-color: rgba( 255, 190, 170, 0.82 );
+
+	box-shadow:
+		0 0 12px rgba( 255, 70, 50, 0.48 ),
+		0 0 22px rgba( 255, 70, 50, 0.22 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.10 );
+}
+
+/* Outline state: red outline button. */
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-outline {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 26, 30, 38, 0.78 ),
+			rgba( 12, 16, 24, 0.90 )
+		);
+	border-color: rgba( 255, 80, 64, 0.92 );
+	color: #ffb6aa;
+
+	box-shadow:
+		0 0 0 1px rgba( 255, 80, 64, 0.38 ),
+		0 0 10px rgba( 255, 60, 40, 0.24 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.06 );
+}
+
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-outline:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-outline:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 42, 24, 28, 0.84 ),
+			rgba( 18, 14, 18, 0.94 )
+		);
+	border-color: rgba( 255, 175, 158, 0.96 );
+	color: #ffe2dc;
+
+	box-shadow:
+		0 0 0 1px rgba( 255, 120, 100, 0.50 ),
+		0 0 14px rgba( 255, 60, 40, 0.34 ),
+		0 0 26px rgba( 255, 60, 40, 0.16 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 );
+}
+
+/* Hide state: same dark glass as outline, but white dashed border. */
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-hide {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 26, 30, 38, 0.78 ),
+			rgba( 12, 16, 24, 0.90 )
+		) !important;
+	border: 2px dashed rgba( 230, 235, 245, 0.72 ) !important;
+	color: rgba( 230, 235, 245, 0.85 );
+
+	box-shadow:
+		0 0 0 1px rgba( 200, 210, 230, 0.22 ),
+		0 0 10px rgba( 200, 210, 230, 0.12 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.06 ) !important;
+}
+
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-hide:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-hide:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 36, 40, 50, 0.84 ),
+			rgba( 18, 22, 30, 0.94 )
+		) !important;
+	border-color: rgba( 248, 250, 255, 0.95 ) !important;
+	color: rgba( 250, 252, 255, 0.96 );
+
+	box-shadow:
+		0 0 0 1px rgba( 220, 225, 240, 0.35 ),
+		0 0 14px rgba( 220, 225, 240, 0.22 ),
+		0 0 26px rgba( 200, 210, 230, 0.10 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+@keyframes eql-era-filter-spin {
+	from {
+		transform: rotate( 0deg );
+	}
+
+	to {
+		transform: rotate( 360deg );
+	}
+}
+
+/* Respect reduced-motion preferences. */
+@media ( prefers-reduced-motion: reduce ) {
+	body.skin-eqlimmersive .eql-era-filter-toggle:hover .eql-era-filter-toggle-icon,
+	body.skin-eqlimmersive .eql-era-filter-toggle:focus-visible .eql-era-filter-toggle-icon {
+		animation: none;
+	}
+}
+
+
+/* =====================================================
+   Overlay / outline targets
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-era-out-overlay-target:not( .mw-jump-link ) {
+	position: relative !important;
+	isolation: isolate;
+}
+
+/* Hidden globally when filter is off (or hide mode — overlays not shown). */
+body.skin-eqlimmersive.eql-era-filter-off .eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-disabled .eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-hide .eql-era-out-overlay-target::after {
+	display: none !important;
+}
+
+/* Hide mode: remove out-of-era content entirely.
+   Table rows with out-of-era items are hidden via JS (adds .eql-era-hidden-row).
+   Standalone out-of-era links and overlay targets are hidden via CSS. */
+body.skin-eqlimmersive.eql-era-filter-hide .eql-era-hidden-row {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.eql-era-filter-hide .eql-card-link.eql-era-out-overlay-target,
+body.skin-eqlimmersive.eql-era-filter-hide .eql-card-link a.eql-era-out-link {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.eql-era-filter-hide #eql-main-menu-host .mw-list-item.eql-era-out-overlay-target,
+body.skin-eqlimmersive.eql-era-filter-hide #eql-main-menu-host a.eql-era-out-link {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.eql-era-filter-hide .eql-world-map-stage > div.eql-era-out-overlay-target {
+	display: none !important;
+}
+
+/* Full glass overlay shown only in On mode. */
+body.skin-eqlimmersive.eql-era-filter-on .eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-enabled .eql-era-out-overlay-target::after {
+	content: "Out of Era";
+
+	position: absolute;
+	inset: -2px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	padding: 0.2rem 0.35rem;
+
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 120, 20, 20, 0.72 ),
+			rgba( 55, 8, 8, 0.82 )
+		);
+
+	border: 1px solid rgba( 255, 180, 160, 0.58 );
+	border-radius: 4px;
+
+	box-shadow:
+		0 0 10px rgba( 255, 60, 40, 0.30 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 );
+
+	color: #ffe2dc;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	font-size: 0.68rem;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: 0.055em;
+	text-transform: uppercase;
+	text-align: center;
+	text-shadow:
+		0 1px 2px rgba( 0, 0, 0, 0.85 ),
+		0 0 6px rgba( 255, 80, 60, 0.28 );
+
+	pointer-events: none;
+	z-index: 5;
+
+	backdrop-filter: blur( 3px );
+	-webkit-backdrop-filter: blur( 3px );
+
+	opacity: 0.96;
+
+	transition:
+		opacity 0.14s ease,
+		transform 0.14s ease,
+		visibility 0.14s ease;
+}
+
+/* Reveal the real link on hover/focus in On mode. */
+body.skin-eqlimmersive.eql-era-filter-on .eql-era-out-overlay-target:hover::after,
+body.skin-eqlimmersive.eql-era-filter-on .eql-era-out-overlay-target:focus-within::after,
+body.skin-eqlimmersive.eql-era-filter-enabled .eql-era-out-overlay-target:hover::after,
+body.skin-eqlimmersive.eql-era-filter-enabled .eql-era-out-overlay-target:focus-within::after {
+	opacity: 0;
+	visibility: hidden;
+	transform: scale( 0.96 );
+}
+
+/* Outline-only mode. */
+body.skin-eqlimmersive.eql-era-filter-outline .eql-era-out-overlay-target::after {
+	content: "";
+
+	position: absolute;
+	inset: -3px;
+
+	display: block;
+
+	background: transparent;
+	border: 2px solid rgba( 255, 70, 52, 0.92 );
+	border-radius: 5px;
+
+	box-shadow:
+		0 0 0 1px rgba( 0, 0, 0, 0.55 ),
+		0 0 9px rgba( 255, 60, 40, 0.32 ),
+		inset 0 0 0 1px rgba( 255, 210, 200, 0.18 );
+
+	pointer-events: none;
+	z-index: 5;
+
+	opacity: 0.95;
+
+	transition:
+		border-color 0.14s ease,
+		box-shadow 0.14s ease,
+		opacity 0.14s ease;
+}
+
+body.skin-eqlimmersive.eql-era-filter-outline .eql-era-out-overlay-target:hover::after,
+body.skin-eqlimmersive.eql-era-filter-outline .eql-era-out-overlay-target:focus-within::after {
+	border-color: rgba( 255, 145, 128, 1 );
+	box-shadow:
+		0 0 0 1px rgba( 0, 0, 0, 0.72 ),
+		0 0 12px rgba( 255, 60, 40, 0.46 ),
+		0 0 22px rgba( 255, 60, 40, 0.20 ),
+		inset 0 0 0 1px rgba( 255, 230, 222, 0.25 );
+}
+
+/* Inline links need an inline-block box so overlay/outline can cover them. */
+body.skin-eqlimmersive a.eql-era-out-link.eql-era-out-overlay-target:not( .mw-jump-link ) {
+	display: inline-flex;
+	align-items: center;
+	min-height: 1.25em;
+}
+
+/* Never let the era filter make MediaWiki's accessibility jump link participate in layout. */
+body.skin-eqlimmersive .mw-jump-link.eql-era-out-link,
+body.skin-eqlimmersive .mw-jump-link.eql-era-out-overlay-target {
+	position: absolute !important;
+	top: -9999px !important;
+	left: -9999px !important;
+
+	display: block !important;
+	width: 1px !important;
+	height: 1px !important;
+	min-width: 0 !important;
+	min-height: 0 !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+	overflow: hidden !important;
+
+	isolation: auto !important;
+	z-index: auto !important;
+}
+
+/* Restore keyboard accessibility when focused. */
+body.skin-eqlimmersive .mw-jump-link.eql-era-out-link:focus,
+body.skin-eqlimmersive .mw-jump-link.eql-era-out-overlay-target:focus {
+	position: fixed !important;
+	top: 0.5rem !important;
+	left: 0.5rem !important;
+
+	width: auto !important;
+	height: auto !important;
+	min-height: 0 !important;
+
+	padding: 0.5rem 0.75rem !important;
+	overflow: visible !important;
+
+	background: #111822 !important;
+	border: 1px solid var( --eql-gold, #d8b75c ) !important;
+	border-radius: 4px !important;
+	color: var( --eql-text, #e6edf3 ) !important;
+
+	z-index: 100000 !important;
+}
+
+body.skin-eqlimmersive .mw-jump-link.eql-era-out-link::after,
+body.skin-eqlimmersive .mw-jump-link.eql-era-out-overlay-target::after {
+	display: none !important;
+	content: none !important;
+}
+
+/* Card links. */
+body.skin-eqlimmersive.eql-era-filter-on .eql-card-link.eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-enabled .eql-card-link.eql-era-out-overlay-target::after {
+	border-radius: 999px;
+	font-size: 0.62rem;
+}
+
+body.skin-eqlimmersive.eql-era-filter-outline .eql-card-link.eql-era-out-overlay-target::after {
+	border-radius: 999px;
+}
+
+/* Main menu/sidebar list markers. */
+body.skin-eqlimmersive.eql-era-filter-on #eql-main-menu-host .mw-list-item.eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-enabled #eql-main-menu-host .mw-list-item.eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-outline #eql-main-menu-host .mw-list-item.eql-era-out-overlay-target::after {
+	inset: 0;
+	border-radius: 5px;
+}
+
+/* World map markers. */
+body.skin-eqlimmersive.eql-era-filter-on .eql-world-map-stage > div[title].eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-enabled .eql-world-map-stage > div[title].eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-outline .eql-world-map-stage > div[title].eql-era-out-overlay-target::after {
+	inset: 0;
+	border-radius: 3px;
+	font-size: 0.58rem;
+}
+
+/* Tiny map hotspots get a shorter label in On mode. */
+body.skin-eqlimmersive.eql-era-filter-on .eql-world-map-stage > div[title][style*="height: 8px"].eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-on .eql-world-map-stage > div[title][style*="font-size: 8px"].eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-enabled .eql-world-map-stage > div[title][style*="height: 8px"].eql-era-out-overlay-target::after,
+body.skin-eqlimmersive.eql-era-filter-enabled .eql-world-map-stage > div[title][style*="font-size: 8px"].eql-era-out-overlay-target::after {
+	content: "Era";
+	font-size: 0.5rem;
+	letter-spacing: 0.02em;
+}
+
+/* =====================================================
+   Era filter no-pop placeholder hardening
+
+   The skin can render a bare #eql-era-filter-toggle before
+   era-filter.js adds mode classes.
+
+   CSS cannot read localStorage directly, so the body-start
+   preloader script should add one of these classes to <html>
+   before the header button is rendered:
+
+   .eql-era-filter-preload-off
+   .eql-era-filter-preload-on
+   .eql-era-filter-preload-outline
+   .eql-era-filter-preload-hide
+
+   These selectors only affect the bare placeholder. Once
+   era-filter.js adds real mode classes, the normal button
+   rules above take over.
+   ===================================================== */
+
+/* Bare placeholder default, used when no saved state exists. */
+body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide),
+body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 150, 34, 28, 0.82 ),
+			rgba( 86, 18, 18, 0.92 )
+		) !important;
+	border-color: rgba( 255, 150, 135, 0.65 ) !important;
+	color: #ffe2dc !important;
+
+	box-shadow:
+		0 0 8px rgba( 255, 70, 50, 0.32 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+/* Saved/preloaded On placeholder. */
+html.eql-era-filter-preload-on body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide),
+html.eql-era-filter-preload-on body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 150, 34, 28, 0.82 ),
+			rgba( 86, 18, 18, 0.92 )
+		) !important;
+	border-color: rgba( 255, 150, 135, 0.65 ) !important;
+	color: #ffe2dc !important;
+
+	box-shadow:
+		0 0 8px rgba( 255, 70, 50, 0.32 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+/* Saved/preloaded Off placeholder. */
+html.eql-era-filter-preload-off body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide),
+html.eql-era-filter-preload-off body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 80, 84, 92, 0.72 ),
+			rgba( 38, 42, 50, 0.88 )
+		) !important;
+	border-color: rgba( 180, 186, 198, 0.36 ) !important;
+	color: rgba( 225, 230, 238, 0.86 ) !important;
+
+	box-shadow:
+		0 0 5px rgba( 0, 0, 0, 0.30 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+/* Saved/preloaded Outline placeholder. */
+html.eql-era-filter-preload-outline body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide),
+html.eql-era-filter-preload-outline body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 26, 30, 38, 0.78 ),
+			rgba( 12, 16, 24, 0.90 )
+		) !important;
+	border-color: rgba( 255, 80, 64, 0.92 ) !important;
+	color: #ffb6aa !important;
+
+	box-shadow:
+		0 0 0 1px rgba( 255, 80, 64, 0.38 ),
+		0 0 10px rgba( 255, 60, 40, 0.24 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.06 ) !important;
+}
+
+/* Hover/focus states for the bare placeholder. */
+body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):hover,
+body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):hover,
+body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):focus-visible,
+html.eql-era-filter-preload-on body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):hover,
+html.eql-era-filter-preload-on body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 180, 44, 36, 0.90 ),
+			rgba( 110, 22, 20, 0.96 )
+		) !important;
+	border-color: rgba( 255, 190, 170, 0.82 ) !important;
+
+	box-shadow:
+		0 0 12px rgba( 255, 70, 50, 0.48 ),
+		0 0 22px rgba( 255, 70, 50, 0.22 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.10 ) !important;
+}
+
+html.eql-era-filter-preload-off body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):hover,
+html.eql-era-filter-preload-off body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):focus-visible,
+html.eql-era-filter-preload-off body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):hover,
+html.eql-era-filter-preload-off body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 98, 104, 116, 0.82 ),
+			rgba( 48, 52, 62, 0.94 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.48 ) !important;
+	color: var( --eql-gold ) !important;
+
+	box-shadow:
+		0 0 9px rgba( 216, 183, 92, 0.18 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.10 ) !important;
+}
+
+html.eql-era-filter-preload-outline body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):hover,
+html.eql-era-filter-preload-outline body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):focus-visible,
+html.eql-era-filter-preload-outline body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):hover,
+html.eql-era-filter-preload-outline body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide):focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 42, 24, 28, 0.84 ),
+			rgba( 18, 14, 18, 0.94 )
+		) !important;
+	border-color: rgba( 255, 175, 158, 0.96 ) !important;
+	color: #ffe2dc !important;
+
+	box-shadow:
+		0 0 0 1px rgba( 255, 120, 100, 0.50 ),
+		0 0 14px rgba( 255, 60, 40, 0.34 ),
+		0 0 26px rgba( 255, 60, 40, 0.16 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+/* =====================================================
+   EQL Immersive — era filter final visual-state override
+
+   Desired states:
+   - On/default/blocked: red filled icon
+   - Outline: red outline, black background
+   - Hide/hidden: dashed white outline, black background
+   - Off/disabled: grey background
+
+   Keep this at the end of this file so it wins over the
+   no-pop placeholder hardening selectors above.
+   ===================================================== */
+
+body.skin-eqlimmersive #eql-era-filter-toggle,
+body.skin-eqlimmersive .eql-era-filter-toggle {
+	box-sizing: border-box !important;
+}
+
+/* ON / DEFAULT / BLOCKED: red filled button. */
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-on,
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-active,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="on"],
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-on,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-active,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="on"] {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 150, 34, 28, 0.88 ),
+			rgba( 86, 18, 18, 0.96 )
+		) !important;
+	border: 1px solid rgba( 255, 150, 135, 0.72 ) !important;
+	color: #ffe2dc !important;
+
+	box-shadow:
+		0 0 8px rgba( 255, 70, 50, 0.34 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-on:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-on:focus-visible,
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-active:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-active:focus-visible,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="on"]:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="on"]:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-on:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-on:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-active:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-active:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="on"]:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="on"]:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 180, 44, 36, 0.94 ),
+			rgba( 110, 22, 20, 0.98 )
+		) !important;
+	border-color: rgba( 255, 190, 170, 0.86 ) !important;
+	color: #fff1ed !important;
+
+	box-shadow:
+		0 0 12px rgba( 255, 70, 50, 0.50 ),
+		0 0 22px rgba( 255, 70, 50, 0.22 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.10 ) !important;
+}
+
+/* OUTLINE: red outline, black background. */
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-outline,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="outline"],
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-outline,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="outline"] {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 8, 10, 14, 0.96 ),
+			rgba( 0, 0, 0, 0.98 )
+		) !important;
+	border: 2px solid rgba( 255, 80, 64, 0.96 ) !important;
+	color: #ffb6aa !important;
+
+	box-shadow:
+		0 0 0 1px rgba( 0, 0, 0, 0.70 ),
+		0 0 10px rgba( 255, 60, 40, 0.28 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+}
+
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-outline:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-outline:focus-visible,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="outline"]:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="outline"]:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-outline:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-outline:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="outline"]:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="outline"]:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 10, 12, 16, 0.98 ),
+			rgba( 0, 0, 0, 1 )
+		) !important;
+	border-color: rgba( 255, 175, 158, 1 ) !important;
+	color: #ffe2dc !important;
+
+	box-shadow:
+		0 0 0 1px rgba( 0, 0, 0, 0.78 ),
+		0 0 14px rgba( 255, 60, 40, 0.38 ),
+		0 0 24px rgba( 255, 60, 40, 0.16 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.07 ) !important;
+}
+
+/* HIDE / HIDDEN: dashed white outline, black background. */
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-hide,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="hide"],
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-hide,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="hide"] {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 8, 10, 14, 0.96 ),
+			rgba( 0, 0, 0, 0.98 )
+		) !important;
+	border: 2px dashed rgba( 245, 248, 255, 0.92 ) !important;
+	color: rgba( 245, 248, 255, 0.94 ) !important;
+
+	box-shadow:
+		0 0 0 1px rgba( 0, 0, 0, 0.72 ),
+		0 0 10px rgba( 235, 240, 255, 0.14 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+}
+
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-hide:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-hide:focus-visible,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="hide"]:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="hide"]:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-hide:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-hide:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="hide"]:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="hide"]:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 12, 14, 18, 0.98 ),
+			rgba( 0, 0, 0, 1 )
+		) !important;
+	border-color: rgba( 255, 255, 255, 1 ) !important;
+	color: #ffffff !important;
+
+	box-shadow:
+		0 0 0 1px rgba( 0, 0, 0, 0.80 ),
+		0 0 14px rgba( 245, 248, 255, 0.24 ),
+		0 0 24px rgba( 245, 248, 255, 0.10 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.07 ) !important;
+}
+
+/* OFF / DISABLED: grey filled button. */
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-off,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="off"],
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-off,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="off"] {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 80, 84, 92, 0.76 ),
+			rgba( 38, 42, 50, 0.92 )
+		) !important;
+	border: 1px solid rgba( 180, 186, 198, 0.38 ) !important;
+	color: rgba( 225, 230, 238, 0.86 ) !important;
+
+	box-shadow:
+		0 0 5px rgba( 0, 0, 0, 0.32 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.08 ) !important;
+}
+
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-off:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle.eql-era-filter-toggle-off:focus-visible,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="off"]:hover,
+body.skin-eqlimmersive #eql-era-filter-toggle[data-eql-era-filter-mode="off"]:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-off:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle.eql-era-filter-toggle-off:focus-visible,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="off"]:hover,
+body.skin-eqlimmersive .eql-era-filter-toggle[data-eql-era-filter-mode="off"]:focus-visible {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 98, 104, 116, 0.84 ),
+			rgba( 48, 52, 62, 0.96 )
+		) !important;
+	border-color: rgba( 216, 183, 92, 0.48 ) !important;
+	color: var( --eql-gold, #d8b75c ) !important;
+
+	box-shadow:
+		0 0 9px rgba( 216, 183, 92, 0.18 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.10 ) !important;
+}
+
+/* Saved/preloaded Hide placeholder, if the preloader adds it before JS applies mode classes. */
+html.eql-era-filter-preload-hide body.skin-eqlimmersive #eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide),
+html.eql-era-filter-preload-hide body.skin-eqlimmersive .eql-era-filter-toggle:not(.eql-era-filter-toggle-off):not(.eql-era-filter-toggle-on):not(.eql-era-filter-toggle-outline):not(.eql-era-filter-toggle-active):not(.eql-era-filter-toggle-hide) {
+	background:
+		linear-gradient(
+			180deg,
+			rgba( 8, 10, 14, 0.96 ),
+			rgba( 0, 0, 0, 0.98 )
+		) !important;
+	border: 2px dashed rgba( 245, 248, 255, 0.92 ) !important;
+	color: rgba( 245, 248, 255, 0.94 ) !important;
+
+	box-shadow:
+		0 0 0 1px rgba( 0, 0, 0, 0.72 ),
+		0 0 10px rgba( 235, 240, 255, 0.14 ),
+		inset 0 1px 0 rgba( 255, 255, 255, 0.05 ) !important;
+}
+/* =====================================================
+   EQL Immersive — hide-mode generic out-of-era hiding
+
+   Hide mode must hide every marked out-of-era target, not
+   only tables/cards/menu/map elements.
+   ===================================================== */
+
+body.skin-eqlimmersive.eql-era-filter-hide .eql-era-hidden-out-of-era,
+body.skin-eqlimmersive.eql-era-filter-hide a.eql-era-out-link:not(.mw-jump-link),
+body.skin-eqlimmersive.eql-era-filter-hide .eql-era-out-overlay-target[data-eql-out-of-era-target]:not(.mw-jump-link) {
+	display: none !important;
+}
+
+/* Keep MediaWiki jump links accessible; do not hide them with the broad rule. */
+body.skin-eqlimmersive.eql-era-filter-hide .mw-jump-link.eql-era-out-link,
+body.skin-eqlimmersive.eql-era-filter-hide .mw-jump-link.eql-era-out-overlay-target {
+	position: absolute !important;
+	top: -9999px !important;
+	left: -9999px !important;
+	display: block !important;
+	width: 1px !important;
+	height: 1px !important;
+	overflow: hidden !important;
+}

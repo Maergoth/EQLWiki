@@ -1,0 +1,50 @@
+# Machine-specific settings and credentials
+/LocalSettings.php
+/LocalSettings.php.*
+/.LocalSettings.*
+/BridgeSecrets.php
+/bb/Settings.php
+/bb/Settings_bak.php
+*.pem
+*.key
+.env
+.env.*
+!*.example
+# Mutable site data
+/images/
+/cache/
+/bb/cache/
+/bb/attachments/
+/bb/custom_avatar/
+/bb/uploads/
+/bb/exports/
+/bb/Packages/
+/eql-static/
+/.well-known/
+/cgi-bin/
+# Host-generated PHP configuration
+/.user.ini
+/php.ini
+# Logs, backups, temporary artifacts
+error_log
+*.log
+*.logcd
+*.bak
+*.bak.*
+*.backup
+*.old
+*.old.*
+*.zip
+*.tar
+*.tar.gz
+*.sql.gz
+*.before-*
+*~
+node_modules/
+/[
+/[[Studded
+/{{_Studded
+/armorRoots
+
+/ops/local-runtime.json
+/release.tar.gz

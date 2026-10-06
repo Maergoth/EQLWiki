@@ -1,0 +1,98 @@
+/* =====================================================
+   DynamicQuestItemList
+   ===================================================== */
+
+.dqil-filterbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 0.75rem;
+	margin: 1rem 0;
+	padding: 0.75rem;
+	border: 1px solid rgba(216,183,92,0.28);
+	border-radius: 6px;
+	background: rgba(8,12,18,0.72);
+}
+
+.dqil-filter-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 16rem;
+	max-width: 100%;
+}
+
+.dqil-filter-field-wide {
+	flex: 1 1 24rem;
+}
+
+.dqil-filter-field label {
+	font-weight: bold;
+	color: #d8b75c;
+}
+
+.dqil-filter-input {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid rgba(216,183,92,0.35);
+	border-radius: 4px;
+	background: rgba(0,0,0,0.35);
+	color: inherit;
+}
+
+.dqil-filter-clear {
+	padding: 0.35rem 0.65rem;
+	border: 1px solid rgba(216,183,92,0.35);
+	border-radius: 4px;
+	background: rgba(216,183,92,0.12);
+	color: inherit;
+	cursor: pointer;
+}
+
+.dqil-filter-count {
+	margin-left: auto;
+	color: #aaa;
+}
+
+.dqil-load-status {
+	margin: 0.75rem 0 1rem;
+	padding: 0.75rem;
+	border: 1px solid rgba(216,183,92,0.22);
+	border-radius: 6px;
+	background: rgba(8,12,18,0.72);
+	color: #aaa;
+}
+
+.dqil-load-status-error {
+	color: #ffb1b1;
+	border-color: rgba(255,120,120,0.35);
+}
+
+.dqil-table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.dqil-row.dqil-hidden {
+	display: none !important;
+}
+
+@media (max-width: 700px) {
+	.dqil-filterbar {
+		display: block;
+	}
+
+	.dqil-filter-field {
+		min-width: 0;
+		margin-bottom: 0.75rem;
+	}
+
+	.dqil-filter-clear,
+	.dqil-filter-count {
+		display: inline-block;
+		margin-top: 0.25rem;
+	}
+}

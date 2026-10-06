@@ -1,0 +1,34 @@
+/* EQLImmersive — Spell List Lazy Loader Placeholders
+ * Loading/error/placeholder states for lazy-loaded spell sections on Category:Spells.
+ * JS is in spell-lazy-loader.js.
+ */
+/* =====================================================
+   EQL Spell List Lazy Loader
+   ===================================================== */
+
+body.skin-eqlimmersive .eql-spell-lazy-section {
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-spell-lazy-placeholder,
+body.skin-eqlimmersive .eql-spell-lazy-loading,
+body.skin-eqlimmersive .eql-spell-lazy-error {
+	padding: 0.85rem 1rem;
+	border: 1px solid rgba(216,183,92,0.22);
+	border-radius: 8px;
+	background: rgba(0,0,0,0.18);
+	color: var(--eql-text-muted);
+	box-sizing: border-box;
+}
+
+body.skin-eqlimmersive .eql-spell-lazy-loading {
+	color: var(--eql-gold);
+}
+
+body.skin-eqlimmersive .eql-spell-lazy-error {
+	color: var(--eql-link-new-hover);
+	border-color: rgba(255,110,80,0.40);
+}

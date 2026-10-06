@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>404 Not Found</title>
+<style>
+    body {
+        background-color: #0d0d0d;
+        color: #e0e0e0;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 60px 20px;
+    }
+    .box {
+        max-width: 600px;
+        margin: auto;
+        background: #1a1a1a;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: #ffcc66;
+    }
+    p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    a {
+        color: #66aaff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
+</head>
+<body>
+
+<div class="box">
+    <h1>404 — Page Not Found</h1>
+
+    <p>
+        The page you were looking for could not be located.<br>
+        It may have been moved, renamed, or never existed.
+    </p>
+
+    <p>
+        You may return to the <a href="/">EverQuest Legends Wiki</a><br>
+        or use the search feature to find what you were seeking.
+    </p>
+</div>
+
+</body>
+</html>

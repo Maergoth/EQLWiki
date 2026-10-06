@@ -1,0 +1,151 @@
+{
+	"name": "EQLImmersive",
+	"version": "0.1.0",
+	"author": "EverQuest Legends Wiki",
+	"description": "Immersive dark-fantasy theme for EverQuest Legends Wiki.",
+	"type": "skin",
+	"license-name": "GPL-2.0-or-later",
+	"requires": {
+		"MediaWiki": ">= 1.45"
+	},
+	"ValidSkinNames": {
+		"eqlimmersive": {
+			"class": "EQLImmersive\\SkinEQLImmersive",
+			"services": [
+				"LanguageConverterFactory",
+				"Vector.FeatureManagerFactory"
+			],
+			"args": [
+				{
+					"name": "eqlimmersive",
+					"wrapSiteNotice": true,
+					"templateDirectory": "includes/templates",
+					"template": "skin",
+					"tempUserBanner": true,
+					"responsive": true,
+					"toc": false,
+					"link": {
+						"text-wrapper": {
+							"tag": "span"
+						}
+					},
+					"bodyClasses": [
+						"skin--responsive",
+						"skin-eqlimmersive"
+					],
+					"clientPrefEnabled": true,
+					"menus": [
+						"user-interface-preferences",
+						"user-page",
+						"user-menu",
+						"notifications",
+						"views",
+						"actions",
+						"variants",
+						"associated-pages"
+					],
+					"scripts": [
+						"skins.vector.js",
+						"skins.eqlimmersive.js"
+					],
+					"styles": [
+						"skins.vector.search.codex.styles",
+						"skins.vector.styles",
+						"skins.vector.icons",
+						"skins.eqlimmersive.core"
+					],
+					"messages": [
+						"tooltip-p-logo",
+						"vector-action-toggle-sidebar",
+						"vector-main-menu-tooltip",
+						"vector-jumptosearch",
+						"vector-jumptocontent",
+						"vector-toc-beginning",
+						"vector-toc-label",
+						"vector-toc-menu-tooltip",
+						"vector-toc-collapsible-button-label",
+						"vector-pin-element-label",
+						"vector-unpin-element-label",
+						"vector-site-nav-label",
+						"search",
+						"searchbutton",
+						"searcharticle",
+						"searchsuggest-search",
+						"sitesubtitle",
+						"sitetitle",
+						"tagline",
+						"personaltools",
+						"namespaces",
+						"views",
+						"vector-page-tools-nav-label",
+						"empty-language-selector-body",
+						"vector-appearance-label"
+					]
+				}
+			]
+		}
+	},
+	"AutoloadNamespaces": {
+		"EQLImmersive\\": "includes/"
+	},
+	"HookHandlers": {
+		"EQLImmersiveHooks": {
+			"class": "EQLImmersive\\Hooks"
+		}
+	},
+	"Hooks": {
+		"SkinTemplateNavigation::Universal": "EQLImmersiveHooks",
+		"SkinBuildSidebar": "EQLImmersiveHooks",
+		"BeforePageDisplay": "EQLImmersiveHooks"
+	},
+	"ResourceModules": {
+		"skins.eqlimmersive.core": {
+			"class": "MediaWiki\\ResourceLoader\\SkinModule",
+			"features": {
+				"normalize": true,
+				"elements": true,
+				"content-links": true,
+				"content-media": true,
+				"content-tables": true,
+				"interface-message-box": true,
+				"interface-category": true,
+				"content-links-external": false,
+				"toc": false
+			},
+			"styles": [
+				"resources/main.css",
+				"resources/homepage.css",
+				"resources/announcements.css",
+				"resources/header-actions.css",
+				"resources/sidebar-redlinks.css",
+				"resources/layout-reset.css",
+				"resources/era-filter.css",
+				"resources/contribute.css",
+				"resources/special-pages.css"
+			]
+		},
+		"skins.eqlimmersive.js": {
+			"scripts": [
+				"resources/main.js",
+				"resources/announcements.js",
+				"resources/era-filter.js",
+				"resources/contribute.js"
+			],
+			"dependencies": [
+				"mediawiki.util",
+				"mediawiki.api",
+				"skins.vector.js"
+			]
+		}
+	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "",
+		"remoteSkinPath": "EQLImmersive"
+	},
+	"MessagesDirs": {
+		"EQLImmersive": [
+			"i18n"
+		]
+	},
+	"manifest_version": 2
+}

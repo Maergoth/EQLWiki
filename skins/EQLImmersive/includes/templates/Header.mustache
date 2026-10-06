@@ -1,0 +1,27 @@
+<header class="vector-header mw-header no-font-mode-scale">
+	<div class="vector-header-start">
+		<nav class="vector-main-menu-landmark" aria-label="{{msg-vector-site-nav-label}}">
+			{{>MainMenuDropdown}}
+		</nav>
+		{{#data-logos}}{{>Logo}}{{/data-logos}}
+		<div class="eql-search-wrap">
+			<button id="eql-search-toggle" class="eql-search-toggle" type="button"
+				title="Search" aria-label="Open search" aria-expanded="false"
+				aria-controls="eql-search-form">
+				<span class="eql-search-magnifier" aria-hidden="true"></span>
+			</button>
+			<form id="eql-search-form" class="eql-search-form" method="get"
+				action="{{wgScript}}" role="search" aria-label="Search EQL Wiki"
+				autocomplete="off">
+				<input type="hidden" name="title" value="Special:Search">
+				<input id="eql-search-input" class="eql-search-input" type="search"
+					name="search" placeholder="Search EQL Wiki..." autocomplete="off"
+					aria-label="Search EQL Wiki">
+				<button class="eql-search-submit" type="submit">Search</button>
+			</form>
+		</div>
+	</div>
+	<div class="vector-header-end">
+		{{#data-vector-user-links}}{{>UserLinks}}{{/data-vector-user-links}}
+	</div>
+</header>

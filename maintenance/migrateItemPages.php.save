@@ -1,0 +1,438 @@
+<?php
+/**
+ * migrateItemPages.php
+ *
+ * Migrates old duplicated item pages:
+ *
+ * <onlyinclude><includeonly><div class="hbdiv">[[Item]]<span class="hb">{{Itembox ...}}</span></div></includeonly></onlyinclude>
+ * {{Itempage ...}}
+ *
+ * into:
+ *
+ * <onlyinclude>{{Itempage ...}}</onlyinclude>
+ *
+ * Dry-run by default. Add --save to write edits.
+ */
+
+require_once __DIR__ . '/Maintenance.php';
+
+class MigrateItemPages extends Maintenance {
+	public function __construct() {
+		parent::__construct();
+
+		$this->addDescription( 'Migrate item pages from duplicated Itembox/Itempage format to single Itempage format.' );
+
+		$this->addOption( 'save', 'Actually save changed pages. Without this, writes preview files only.', false, false );
+		$this->addOption( 'title', 'Only process one page title.', false, true );
+		$this->addOption( 'category', 'Category to process. Default: Category:Items', false, true );
+		$this->addOption( 'limit', 'Maximum number of pages to process.', false, true );
+		$this->addOption( 'start-id', 'Only process pages with page_id >= this value.', false, true );
+		$this->addOption( 'summary', 'Edit summary.', false, true );
+		$this->addOption( 'user', 'System username to attribute edits to. Default: Maintenance script', false, true );
+		$this->addOption( 'preview-dir', 'Directory for dry-run preview files.', false, true );
+	}
+
+	public function execute() {
+		$save = $this->hasOption( 'save' );
+		$titleOption = $this->getOption( 'title', null );
+		$category = $this->getOption( 'category', 'Category:Items' );
+		$limit = $this->getOption( 'limit', null );
+		$startId = (int)$this->getOption( 'start-id', 0 );
+		$summary = $this->getOption(
+			'summary',
+			'Maintenance: migrate item page to single Itempage transclusion format'
+		);
+		$userName = $this->getOption( 'user', 'Maintenance script' );
+		$previewDir = $this->getOption(
+			'preview-dir',
+			dirname( __DIR__, 2 ) . '/item-migration-preview'
+		);
+
+		$limit = $limit !== null ? (int)$limit : null;
+
+		$this->output( $save ? "MODE: SAVE\n" : "MODE: DRY RUN\n" );
+
+		if ( !$save ) {
+			$this->output( "Preview directory: $previewDir\n" );
+		}
+
+		$counts = [
+			'processed' => 0,
+			'changed' => 0,
+			'saved' => 0,
+			'already_new' => 0,
+			'no_itempage' => 0,
+			'no_old_hover_block' => 0,
+			'no_itempage_after_removal' => 0,
+			'unchanged' => 0,
+			'missing' => 0,
+			'errors' => 0,
+		];
+
+		$titles = [];
+
+		if ( $titleOption !== null ) {
+			$title = Title::newFromText( $titleOption );
+
+			if ( !$title ) {
+				$this->fatalError( "Invalid title: $titleOption" );
+			}
+
+			$titles[] = $title;
+		} else {
+			$titles = $this->getTitlesFromCategory( $category, $limit, $startId );
+		}
+
+		foreach ( $titles as $title ) {
+			$counts['processed']++;
+
+			try {
+				if ( !$title || !$title->exists() ) {
+					$counts['missing']++;
+					$this->output( "SKIP missing: " . ( $title ? $title->getPrefixedText() : '(invalid title)' ) . "\n" );
+					continue;
+				}
+
+				$oldText = $this->getPageText( $title );
+
+				if ( $oldText === null ) {
+					$counts['missing']++;
+					$this->output( "SKIP unreadable: " . $title->getPrefixedText() . "\n" );
+					continue;
+				}
+
+				list( $newText, $status ) = $this->migrateItemText( $oldText );
+
+				if ( !isset( $counts[$status] ) ) {
+					$counts[$status] = 0;
+				}
+
+				$counts[$status]++;
+
+				if ( $status !== 'changed' ) {
+					$this->output( "SKIP $status: " . $title->getPrefixedText() . "\n" );
+					continue;
+				}
+
+				$counts['changed']++;
+				$this->output( "CHANGE: " . $title->getPrefixedText() . "\n" );
+
+				if ( !$save ) {
+					$this->writePreviewFiles( $previewDir, $title, $oldText, $newText );
+					$this->output( "  preview written\n" );
+					continue;
+				}
+
+				$this->savePageText( $title, $newText, $summary, $userName );
+				$counts['saved']++;
+				$this->output( "  saved\n" );
+
+				// Be gentle on shared hosting.
+				usleep( 250000 );
+			} catch ( Exception $e ) {
+				$counts['errors']++;
+				$this->output( "ERROR: " . $title->getPrefixedText() . " — " . $e->getMessage() . "\n" );
+			}
+		}
+
+		$this->output( "\nSummary:\n" );
+
+		foreach ( $counts as $key => $value ) {
+			$this->output( "  $key: $value\n" );
+		}
+
+		if ( !$save ) {
+			$this->output( "\nDry run complete. Review preview files before using --save.\n" );
+		}
+	}
+
+	private function getTitlesFromCategory( $categoryTitle, $limit, $startId ) {
+		$categoryKey = preg_replace( '/^Category:/i', '', $categoryTitle );
+		$categoryKey = str_replace( ' ', '_', $categoryKey );
+
+		$dbr = wfGetDB( DB_REPLICA );
+
+		$conds = [
+			'page_namespace' => NS_MAIN,
+			'cl_to' => $categoryKey,
+		];
+
+		if ( $startId > 0 ) {
+			$conds[] = 'page_id >= ' . (int)$startId;
+		}
+
+		$options = [
+			'ORDER BY' => 'page_id ASC',
+		];
+
+		if ( $limit !== null && $limit > 0 ) {
+			$options['LIMIT'] = $limit;
+		}
+
+		$res = $dbr->select(
+			[ 'page', 'categorylinks' ],
+			[ 'page_id', 'page_namespace', 'page_title' ],
+			$conds,
+			__METHOD__,
+			$options,
+			[
+				'categorylinks' => [ 'JOIN', 'cl_from = page_id' ],
+			]
+		);
+
+		$titles = [];
+
+		foreach ( $res as $row ) {
+			$title = Title::makeTitleSafe( (int)$row->page_namespace, $row->page_title );
+
+			if ( $title ) {
+				$titles[] = $title;
+			}
+		}
+
+		return $titles;
+	}
+
+	private function getPageText( Title $title ) {
+		$page = WikiPage::factory( $title );
+		$content = $page->getContent();
+
+		if ( !$content ) {
+			return null;
+		}
+
+		if ( class_exists( 'ContentHandler' ) && is_callable( [ 'ContentHandler', 'getContentText' ] ) ) {
+			return ContentHandler::getContentText( $content );
+		}
+
+		if ( method_exists( $content, 'getText' ) ) {
+			return $content->getText();
+		}
+
+		if ( method_exists( $content, 'serialize' ) ) {
+			return $content->serialize();
+		}
+
+		throw new RuntimeException( 'Could not extract text from page content.' );
+	}
+
+	private function savePageText( Title $title, $newText, $summary, $userName ) {
+		$page = WikiPage::factory( $title );
+		$content = ContentHandler::makeContent( $newText, $title );
+		$user = User::newSystemUser( $userName, [ 'steal' => true ] );
+
+		if ( !$user ) {
+			throw new RuntimeException( "Could not create or load system user: $userName" );
+		}
+
+		$flags = defined( 'EDIT_UPDATE' ) ? EDIT_UPDATE : 0;
+
+		if ( defined( 'EDIT_INTERNAL' ) ) {
+			$flags |= EDIT_INTERNAL;
+		}
+
+		// Modern MediaWiki path.
+		if (
+			method_exists( $page, 'newPageUpdater' ) &&
+			class_exists( 'MediaWiki\\Revision\\SlotRecord' ) &&
+			class_exists( 'CommentStoreComment' )
+		) {
+			$updater = $page->newPageUpdater( $user );
+			$updater->setContent( \MediaWiki\Revision\SlotRecord::MAIN, $content );
+
+			$result = $updater->saveRevision(
+				CommentStoreComment::newUnsavedComment( $summary ),
+				$flags
+			);
+
+			$this->assertStatusOk( $result );
+
+			return;
+		}
+
+		// Older MediaWiki fallback.
+		if ( method_exists( $page, 'doUserEditContent' ) ) {
+			$result = $page->doUserEditContent(
+				$content,
+				$user,
+				$summary,
+				$flags
+			);
+
+			$this->assertStatusOk( $result );
+
+			return;
+		}
+
+		// Very old fallback.
+		if ( method_exists( $page, 'doEditContent' ) ) {
+			$result = $page->doEditContent(
+				$content,
+				$summary,
+				$flags,
+				false,
+				$user
+			);
+
+			$this->assertStatusOk( $result );
+
+			return;
+		}
+
+		throw new RuntimeException( 'No supported MediaWiki edit method found.' );
+	}
+
+	private function assertStatusOk( $result ) {
+		if ( is_object( $result ) && method_exists( $result, 'isOK' ) && !$result->isOK() ) {
+			if ( method_exists( $result, 'getWikiText' ) ) {
+				throw new RuntimeException( $result->getWikiText() );
+			}
+
+			throw new RuntimeException( 'Save failed: ' . print_r( $result, true ) );
+		}
+	}
+
+	private function migrateItemText( $oldText ) {
+		$itempage = $this->findBalancedTemplate( $oldText, 'Itempage' );
+
+		if ( !$itempage ) {
+			return [ $oldText, 'no_itempage' ];
+		}
+
+		if ( $this->templateAlreadyInsideOnlyinclude( $oldText, $itempage[0] ) ) {
+			return [ $oldText, 'already_new' ];
+		}
+
+		$removed = false;
+		$text = $this->removeOldHoverOnlyincludeBlock( $oldText, $removed );
+
+		if ( !$removed ) {
+			return [ $oldText, 'no_old_hover_block' ];
+		}
+
+		$itempage = $this->findBalancedTemplate( $text, 'Itempage' );
+
+		if ( !$itempage ) {
+			return [ $oldText, 'no_itempage_after_removal' ];
+		}
+
+		list( $start, $end ) = $itempage;
+
+		if ( $this->templateAlreadyInsideOnlyinclude( $text, $start ) ) {
+			return [ $oldText, 'already_new' ];
+		}
+
+		$newText =
+			substr( $text, 0, $start ) .
+			'<onlyinclude>' .
+			substr( $text, $start, $end - $start ) .
+			'</onlyinclude>' .
+			substr( $text, $end );
+
+		$newText = preg_replace( "/\n{4,}/", "\n\n\n", $newText );
+
+		if ( $newText === $oldText ) {
+			return [ $oldText, 'unchanged' ];
+		}
+
+		return [ $newText, 'changed' ];
+	}
+
+	private function removeOldHoverOnlyincludeBlock( $text, &$removed ) {
+		$removed = false;
+
+		if ( !preg_match_all( '/<onlyinclude\b[^>]*>.*?<\/onlyinclude>/is', $text, $matches, PREG_OFFSET_CAPTURE ) ) {
+			return $text;
+		}
+
+		foreach ( $matches[0] as $match ) {
+			$block = $match[0];
+			$start = $match[1];
+			$end = $start + strlen( $block );
+
+			$looksLikeOldItemHover =
+				stripos( $block, '<includeonly' ) !== false &&
+				stripos( $block, 'hbdiv' ) !== false &&
+				stripos( $block, '{{Itembox' ) !== false;
+
+			if ( !$looksLikeOldItemHover ) {
+				continue;
+			}
+
+			$removed = true;
+
+			return substr( $text, 0, $start ) . substr( $text, $end );
+		}
+
+		return $text;
+	}
+
+	private function findBalancedTemplate( $text, $templateName ) {
+		$pattern = '/{{\s*' . preg_quote( $templateName, '/' ) . '(?=[\s|}])/i';
+
+		if ( !preg_match( $pattern, $text, $match, PREG_OFFSET_CAPTURE ) ) {
+			return null;
+		}
+
+		$start = $match[0][1];
+		$length = strlen( $text );
+		$depth = 0;
+		$i = $start;
+
+		while ( $i < $length - 1 ) {
+			$pair = substr( $text, $i, 2 );
+
+			if ( $pair === '{{' ) {
+				$depth++;
+				$i += 2;
+				continue;
+			}
+
+			if ( $pair === '}}' ) {
+				$depth--;
+				$i += 2;
+
+				if ( $depth === 0 ) {
+					return [ $start, $i ];
+				}
+
+				continue;
+			}
+
+			$i++;
+		}
+
+		return null;
+	}
+
+	private function templateAlreadyInsideOnlyinclude( $text, $templateStart ) {
+		$before = substr( $text, 0, $templateStart );
+
+		$lastOpen = strripos( $before, '<onlyinclude>' );
+		$lastClose = strripos( $before, '</onlyinclude>' );
+
+		return $lastOpen !== false && ( $lastClose === false || $lastOpen > $lastClose );
+	}
+
+	private function writePreviewFiles( $previewDir, Title $title, $oldText, $newText ) {
+		if ( !is_dir( $previewDir ) ) {
+			mkdir( $previewDir, 0700, true );
+		}
+
+		$base = $this->safeFilename( $title->getPrefixedDBkey() );
+
+		file_put_contents( $previewDir . '/' . $base . '.old.wiki', $oldText );
+		file_put_contents( $previewDir . '/' . $base . '.new.wiki', $newText );
+	}
+
+	private function safeFilename( $name ) {
+		$name = preg_replace( '/[^A-Za-z0-9_.-]+/', '_', $name );
+		$name = trim( $name, '_' );
+
+		return $name !== '' ? $name : sha1( $name );
+	}
+}
+
+$maintClass = MigrateItemPages::class;
+require_once RUN_MAINTENANCE_IF_MAIN;
+
