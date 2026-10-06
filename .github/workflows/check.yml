@@ -1,6 +1,7 @@
 name: Check EQLWiki changes
 on:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -12,7 +13,7 @@ jobs:
           fetch-depth: 0
       - name: Lint changed PHP and shell files
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
         run: |
           git diff --name-only --diff-filter=ACMR -z "$BASE_SHA" HEAD | while IFS= read -r -d '' file; do
             case "$file" in

@@ -44,6 +44,9 @@ find "$STAGE/site/extensions" "$STAGE/site/skins/EQLImmersive" -type f -name '*.
     -o -path '*/DynamicQuestItemList/*' -o -path '*/DynamicZoneList/*' \
     -o -path '*/ItemLevelSlider/*' -o -path '*/SpellLevelSlider/*' -o -path '*/UserPageEditProtection/*' \) -print0 > "$STAGE/lint-list"
 while IFS= read -r -d '' FILE; do php -l "$FILE" >/dev/null; done < "$STAGE/lint-list"
+find "$STAGE/site" "$STAGE/site/bb" -maxdepth 1 -type f -name '*.php' -print0 > "$STAGE/custom-lint-list"
+printf '%s\0' "$STAGE/site/bb/Themes/PurpleHaze/index.template.php" >> "$STAGE/custom-lint-list"
+while IFS= read -r -d '' FILE; do php -l "$FILE" >/dev/null; done < "$STAGE/custom-lint-list"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 BACKUP="$STATE/backups/$STAMP-$SHA"
 mkdir "$BACKUP"

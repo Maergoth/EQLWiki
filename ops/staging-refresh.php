@@ -32,6 +32,10 @@ function run(array $command, string $input, string $output, string $log): void {
     $process = proc_open($command, [0 => ['file', $input, 'r'], 1 => ['file', $output, 'w'], 2 => ['file', $log, 'a']], $pipes);
     if (!is_resource($process) || proc_close($process) !== 0) { throw new RuntimeException('Database operation failed; see private refresh.log'); }
 }
+function publicDirectory(string $path): void {
+    if (!is_dir($path) && !mkdir($path, 0755, true)) { throw new RuntimeException('Cannot create staging directory'); }
+    chmod($path, 0755);
+}
 // Block requests while tables are replaced. On failure leave maintenance protection in place.
 $access = file_get_contents("$production/.htaccess") . file_get_contents("$state/staging.htaccess");
 file_put_contents("$state/pre-refresh.htaccess", $access);
@@ -68,13 +72,13 @@ foreach ([['wiki', $wiki, 'wgDBserver', 'wgDBuser', 'wgDBpassword', 'wgDBname', 
 $copied = 0;
 foreach (['images', 'bb/attachments', 'bb/custom_avatar', 'bb/uploads', 'eql-static'] as $directory) {
     if (!is_dir("$production/$directory")) { continue; }
-    if (!is_dir("$root/$directory")) { mkdir("$root/$directory", 0755, true); }
+    publicDirectory("$root/$directory");
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("$production/$directory", FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
     foreach ($iterator as $file) {
         if ($file->isLink()) { continue; }
         $relative = substr($file->getPathname(), strlen($production) + 1);
         $target = "$root/$relative";
-        if ($file->isDir()) { if (!is_dir($target)) { mkdir($target, 0755, true); } }
+        if ($file->isDir()) { publicDirectory($target); }
         elseif (!file_exists($target)) {
             if (!copy($file->getPathname(), $target)) { throw new RuntimeException("Cannot copy $relative"); }
             chmod($target, 0644); touch($target, $file->getMTime()); $copied++;
@@ -83,12 +87,13 @@ foreach (['images', 'bb/attachments', 'bb/custom_avatar', 'bb/uploads', 'eql-sta
 }
 $keys = is_file("$state/keys.json") ? json_decode(file_get_contents("$state/keys.json"), true) : array_combine(['wiki', 'upgrade', 'forum', 'proxy', 'auth', 'session'], array_map(fn() => bin2hex(random_bytes(32)), range(1,6)));
 file_put_contents("$state/keys.json", json_encode($keys));
-foreach (['cache/tmp', 'bb/cache', 'bb/Packages'] as $directory) { if (!is_dir("$root/$directory")) { mkdir("$root/$directory", 0755, true); } }
-$wiki = str_replace(['https://www.eqlwiki.com', 'https://eqlwiki.com', '/home/eqlwikdq/private-cache/mediawiki'], [$settings['url'], $settings['url'], "$root/cache"], $wiki);
-foreach (['wgDBname'=>$settings['wikiDatabase'], 'wgDBuser'=>$settings['databaseUser'], 'wgDBpassword'=>$settings['databasePassword'], 'wgCookieDomain'=>'test.eqlwiki.com', 'wgSecretKey'=>$keys['wiki'], 'wgUpgradeKey'=>$keys['upgrade'], 'wgTmpDirectory'=>"$root/cache/tmp"] as $name=>$value) { $wiki = assignment($wiki, $name, $value); }
+publicDirectory("$root/bb/Packages");
+foreach (["$state/cache/mediawiki/tmp", "$state/cache/forum"] as $directory) { if (!is_dir($directory)) { mkdir($directory, 0700, true); } }
+$wiki = str_replace(['https://www.eqlwiki.com', 'https://eqlwiki.com', '/home/eqlwikdq/private-cache/mediawiki'], [$settings['url'], $settings['url'], "$state/cache/mediawiki"], $wiki);
+foreach (['wgDBname'=>$settings['wikiDatabase'], 'wgDBuser'=>$settings['databaseUser'], 'wgDBpassword'=>$settings['databasePassword'], 'wgCookieDomain'=>'test.eqlwiki.com', 'wgSecretKey'=>$keys['wiki'], 'wgUpgradeKey'=>$keys['upgrade'], 'wgTmpDirectory'=>"$state/cache/mediawiki/tmp"] as $name=>$value) { $wiki = assignment($wiki, $name, $value); }
 $wiki .= "\nrequire_once __DIR__ . '/EQLStaging.php';\n\$wgCookiePrefix = 'eqlwiki_staging_';\n\$wgEnableEmail = false;\n\$wgEnableUserEmail = false;\n\$wgEmailAuthentication = false;\n\$wgEmailConfirmToEdit = false;\n\$wgJobRunRate = 0;\n\$wgPingback = false;\nforeach (array_keys(\$wgCaptchaTriggers) as \$trigger) { \$wgCaptchaTriggers[\$trigger] = false; }\n\$wgCacheEpoch = '" . gmdate('YmdHis') . "';\n\$wgDefaultRobotPolicy = 'noindex,nofollow';\n\$wgHooks['OutputPageBeforeHTML'][] = static function(\$out, &\$text) { \$text = eql_staging_html(\$text); return true; };\n";
 file_put_contents("$root/LocalSettings.php", $wiki);
-foreach (['db_name'=>$settings['forumDatabase'], 'db_user'=>$settings['databaseUser'], 'db_passwd'=>$settings['databasePassword'], 'boardurl'=>$settings['url'].'/bb', 'boarddir'=>"$root/bb", 'sourcedir'=>"$root/bb/Sources", 'packagesdir'=>"$root/bb/Packages", 'tasksdir'=>"$root/bb/Sources/tasks", 'cachedir'=>"$root/bb/cache", 'cachedir_sqlite'=>"$root/bb/cache", 'cookiename'=>'SMFCookieEQLStaging', 'auth_secret'=>$keys['forum'], 'image_proxy_secret'=>$keys['proxy']] as $name=>$value) { $forum = assignment($forum, $name, $value); }
+foreach (['db_name'=>$settings['forumDatabase'], 'db_user'=>$settings['databaseUser'], 'db_passwd'=>$settings['databasePassword'], 'boardurl'=>$settings['url'].'/bb', 'boarddir'=>"$root/bb", 'sourcedir'=>"$root/bb/Sources", 'packagesdir'=>"$root/bb/Packages", 'tasksdir'=>"$root/bb/Sources/tasks", 'cachedir'=>"$state/cache/forum", 'cachedir_sqlite'=>"$state/cache/forum", 'cookiename'=>'SMFCookieEQLStaging', 'auth_secret'=>$keys['forum'], 'image_proxy_secret'=>$keys['proxy']] as $name=>$value) { $forum = assignment($forum, $name, $value); }
 $extra = "\nrequire_once dirname(__DIR__) . '/EQLStaging.php';\n\$cache_enable = 0;\nfunction eql_staging_block_mail() { return false; }\ndefine('SMF_INTEGRATION_SETTINGS', json_encode(['integrate_outgoing_email'=>'eql_staging_block_mail']));\nob_start('eql_staging_html');\n";
 $forum = str_contains($forum, '?>') ? str_replace('?>', $extra . '?>', $forum) : $forum . $extra;
 file_put_contents("$root/bb/Settings.php", $forum);
