@@ -2,6 +2,11 @@ name: Deploy EQLWiki
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'ops/**'
+      - 'PROJECT.md'
+      - '.gitignore'
+      - '.gitattributes'
   workflow_dispatch:
 permissions:
   contents: read

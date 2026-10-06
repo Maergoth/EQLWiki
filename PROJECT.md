@@ -77,6 +77,8 @@ Run `powershell -ExecutionPolicy Bypass -File ops/start-local.ps1` from this fol
 The site is at http://127.0.0.1:8080 and its private MariaDB instance is bound to
 127.0.0.1:3308. Paths and credentials are recorded in the ignored
 `ops/local-runtime.json`; keep that file private.
+An additional PHP process on 127.0.0.1:8081 handles internal wiki/forum bridge and
+REST requests, so the Windows development server does not wait on its own request.
 
 The local configuration disables email, production CAPTCHA requests, and automatic
 jobs, and uses local databases and cache paths. The production database snapshot
