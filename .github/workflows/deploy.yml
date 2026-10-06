@@ -1,21 +1,17 @@
 name: Deploy EQLWiki
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - 'ops/**'
-      - 'PROJECT.md'
-      - '.gitignore'
-      - '.gitattributes'
+    branches: [main, staging]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: eqlwiki-production
+  group: eqlwiki-${{ github.ref_name }}
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    environment: ${{ github.ref_name == 'staging' && 'staging' || 'production' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -23,14 +19,19 @@ jobs:
         run: python3 ops/build-release.py --output "$RUNNER_TEMP/release.tar.gz"
       - name: Configure deployment SSH
         env:
-          DEPLOY_KEY: ${{ secrets.CPANEL_DEPLOY_KEY }}
+          DEPLOY_KEY: ${{ github.ref_name == 'staging' && secrets.CPANEL_STAGING_DEPLOY_KEY || secrets.CPANEL_DEPLOY_KEY }}
           HOST_KEYS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
         run: |
           umask 077
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/eqlwiki_deploy
           printf '%s\n' "$HOST_KEYS" > ~/.ssh/known_hosts
-      - name: Deploy and verify live wiki
+      - name: Refresh staging data if older than 24 hours
+        if: github.ref_name == 'staging'
+        run: |
+          ssh -i ~/.ssh/eqlwiki_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            eqlwikdq@us2.ableshared.com 'refresh if-stale'
+      - name: Deploy and verify wiki
         run: |
           ssh -i ~/.ssh/eqlwiki_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
             eqlwikdq@us2.ableshared.com "deploy $GITHUB_SHA" < "$RUNNER_TEMP/release.tar.gz"

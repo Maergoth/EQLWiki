@@ -97,3 +97,48 @@ Stop the site and database with `ops/stop-local.ps1`.
 That job publishes its dataset to the separate `Maergoth/EQL-EOZ` repository.
 It remains independent of application deployment. Review and copy host-bin changes
 to `/home/eqlwikdq/bin` deliberately, preserving executable permissions.
+
+## Staging and contributions
+
+`main` deploys production; `staging` deploys https://test.eqlwiki.com. Forks open
+PRs against `staging`. CODEOWNERS names @Maergoth for every file, and staging
+requires an owner approval, resolved review threads, and the `syntax` check.
+Only @Maergoth can update `main`. Both branches reject force pushes and deletion.
+The owner can directly update staging for administration and can promote tested
+changes to main. Never automatically merge staging into production.
+
+Each staging push runs a refresh before deployment, unless the last successful
+refresh was less than 24 hours ago. The manual **Refresh staging data** GitHub
+Actions workflow bypasses the time limit. A refresh replaces the entire staging
+wiki and forum databases, including any staging-only edits or accounts. Snapshots
+use `mysqldump --single-transaction`; production databases are read only during
+this operation. Uploaded files are independent copies: missing files are copied,
+existing staging files are kept, and production deletions are not propagated.
+Replaced production images can therefore remain older on staging.
+
+Staging uses a separate document root, SQL user restricted to two staging
+databases, login cookies, bridge secrets, cache directories, and password gate.
+Outgoing wiki/forum email, automatic wiki jobs, and CAPTCHA challenges are
+disabled. Staging is excluded from indexing. Production cron jobs remain separate.
+Server-side forum bridge calls authenticate through the password gate.
+
+Deployment keys are scoped to GitHub environments. `production` accepts only
+`main`; `staging` accepts `staging` and `main` (for the manual refresh workflow).
+Each host SSH key has a forced command and cannot run arbitrary shell commands.
+Pull-request checks receive no deployment secrets.
+
+Server staging operations are installed at `/home/eqlwikdq/deploy/EQLWiki-staging`:
+`staging-command.sh`, `staging-refresh.php`, `staging-prepare.php`, and
+`deploy-receive.sh`. Changes to these operational scripts must be reviewed and
+installed by the owner over administrator SSH; application deploys do not install
+them. `staging-prepare.php` substitutes production URLs in the custom bridge,
+theme, logout, image-upload, and skin files in the staging release only. It also
+isolates logout cookie clearing and preserves password protection. Extend that
+explicit file list when introducing other custom files with absolute site URLs.
+
+During database replacement staging returns HTTP 403. A failed refresh leaves
+staging in maintenance mode and does not advance its timestamp. Review the private
+`refresh.log`, fix the problem, then rerun the manual refresh. Previous staging
+database dumps are retained at `refresh/wiki-previous.sql` and
+`refresh/forum-previous.sql`; only the latest recovery point is kept. Access
+credentials and SQL dumps are stored outside document roots and outside Git.

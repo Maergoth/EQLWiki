@@ -1,0 +1,26 @@
+name: Refresh staging data
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: eqlwiki-staging
+  cancel-in-progress: false
+jobs:
+  refresh:
+    environment: staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure staging SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.CPANEL_STAGING_DEPLOY_KEY }}
+          HOST_KEYS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/eqlwiki_deploy
+          printf '%s\n' "$HOST_KEYS" > ~/.ssh/known_hosts
+      - name: Force a fresh production snapshot into staging
+        run: |
+          ssh -i ~/.ssh/eqlwiki_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            eqlwikdq@us2.ableshared.com 'refresh force'

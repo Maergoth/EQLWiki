@@ -10,7 +10,7 @@ parser.add_argument('--output', default='release.tar.gz')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 paths = subprocess.check_output(['git', 'ls-files', '-z'], cwd=root).decode().split('\0')
-excluded = {'.gitignore', '.gitattributes', 'PROJECT.md', 'LocalSettings.php', 'BridgeSecrets.php', 'bb/Settings.php'}
+excluded = {'.gitignore', '.gitattributes', 'PROJECT.md', 'CONTRIBUTING.md', 'LocalSettings.php', 'BridgeSecrets.php', 'EQLStaging.php', 'bb/Settings.php'}
 files = sorted(p for p in paths if p and p not in excluded and not p.startswith(('ops/', '.github/')) and '.example.' not in p)
 staged = subprocess.check_output(['git', 'ls-files', '--stage', '-z'], cwd=root).decode().split('\0')
 modes = {entry.split('\t', 1)[1]: int(entry.split(' ', 1)[0], 8) & 0o777 for entry in staged if entry}

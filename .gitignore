@@ -3,6 +3,7 @@
 /LocalSettings.php.*
 /.LocalSettings.*
 /BridgeSecrets.php
+/EQLStaging.php
 /bb/Settings.php
 /bb/Settings_bak.php
 *.pem

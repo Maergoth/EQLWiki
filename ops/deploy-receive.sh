@@ -2,8 +2,11 @@
 # Install outside public_html. GitHub's SSH key may only invoke this receiver.
 set -Eeuo pipefail
 umask 077
-ROOT=/home/eqlwikdq/public_html
-STATE=/home/eqlwikdq/deploy/EQLWiki
+case "${EQL_DEPLOY_ENV:-production}" in
+  production) ROOT=/home/eqlwikdq/public_html; STATE=/home/eqlwikdq/deploy/EQLWiki; HEALTH_URL=https://eqlwiki.com; HEALTH_AUTH=() ;;
+  staging) ROOT=/home/eqlwikdq/test.eqlwiki.com; STATE=/home/eqlwikdq/deploy/EQLWiki-staging; HEALTH_URL=https://test.eqlwiki.com; HEALTH_AUTH=(--netrc-file "$STATE/health.netrc") ;;
+  *) echo 'Unknown deployment environment.' >&2; exit 2 ;;
+esac
 COMMAND=${SSH_ORIGINAL_COMMAND:-${1:-}}
 if [[ ! "$COMMAND" =~ ^deploy\ ([a-f0-9]{40})$ ]]; then
   echo 'Only deploy followed by a full commit SHA is accepted.' >&2
@@ -18,11 +21,14 @@ trap 'rm -rf -- "$STAGE"' EXIT
 cat > "$STAGE/release.tar.gz"
 # Only our trusted packaging process creates this archive, but reject path escapes.
 tar -tzf "$STAGE/release.tar.gz" > "$STAGE/archive-list"
-if grep -Eq '(^/|(^|/)\.\.(/|$)|^\.git(/|$)|^LocalSettings\.php$|^BridgeSecrets\.php$|^bb/Settings\.php$|^images/|^cache/|^bb/(uploads|attachments|custom_avatar|cache|exports|Packages)/)' "$STAGE/archive-list"; then
+if grep -Eq '(^/|(^|/)\.\.(/|$)|^\.git(/|$)|^LocalSettings\.php$|^BridgeSecrets\.php$|^EQLStaging\.php$|^bb/Settings\.php$|^images/|^cache/|^bb/(uploads|attachments|custom_avatar|cache|exports|Packages)/)' "$STAGE/archive-list"; then
   echo 'Archive contains a protected path.' >&2; exit 4
 fi
 mkdir "$STAGE/site"
 tar -xzf "$STAGE/release.tar.gz" -C "$STAGE/site" --no-same-owner
+if [[ "${EQL_DEPLOY_ENV:-production}" == staging ]]; then
+  php "$STATE/staging-prepare.php" "$STAGE/site"
+fi
 MANIFEST="$STAGE/site/.eql-deployment-manifest"
 test -s "$MANIFEST"
 test -f "$STAGE/site/index.php"
@@ -77,7 +83,7 @@ foreach (file($manifest, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $file) 
 }
 ' "$STAGE/site" "$ROOT" "$MANIFEST"
 while IFS= read -r FILE; do rm -f -- "$ROOT/$FILE"; done < "$BACKUP/deleted-paths"
-curl --fail --silent --show-error --retry 2 'https://eqlwiki.com/api.php?action=query&meta=siteinfo&format=json' \
+curl --fail --silent --show-error --retry 2 "${HEALTH_AUTH[@]}" "$HEALTH_URL/api.php?action=query&meta=siteinfo&format=json" \
   | php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!isset($j["query"]["general"]["sitename"])) { exit(1); } echo "Wiki API health check passed\n";'
 cp "$MANIFEST" "$STATE/manifest"
 printf '%s\n' "$SHA" > "$STATE/current-sha"
