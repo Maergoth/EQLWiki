@@ -89,6 +89,11 @@
     "AutoloadNamespaces": {
         "EQLImmersive\\": "includes/"
     },
+    "SearchMappings": {
+        "SearchMySQL": {
+            "class": "EQLImmersive\\SearchMySQL"
+        }
+    },
     "HookHandlers": {
         "EQLImmersiveHooks": {
             "class": "EQLImmersive\\Hooks"
