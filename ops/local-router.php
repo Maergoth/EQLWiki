@@ -10,6 +10,13 @@ if ($path === '/bb/' || $path === '/bb') {
     require $root . '/bb/index.php';
     return;
 }
+if (str_starts_with($path, '/rest.php/')) {
+    $_SERVER['SCRIPT_NAME'] = '/rest.php';
+    $_SERVER['SCRIPT_FILENAME'] = $root . '/rest.php';
+    $_SERVER['PATH_INFO'] = substr($path, strlen('/rest.php'));
+    require $root . '/rest.php';
+    return;
+}
 $_SERVER['SCRIPT_NAME'] = '/index.php';
 $_SERVER['SCRIPT_FILENAME'] = $root . '/index.php';
 require $root . '/index.php';
