@@ -147,8 +147,12 @@ not the item formulas. It loads for spell-card/lazy/item-spell markup, expects
 levels 0–10. Class spell-list table mode is intentionally separate.
 
 `SpellLevelSliderOverrides` contains a `<pre id="spell-level-slider-overrides">`
-mapping of page title to category. Categories include summoned pets; charm
-level caps and pet levels are adjusted as well as cast/mana/duration values.
+mapping of page title to category. Categories include summoned pets; explicit
+effectiveness caps in Overview/effect cells increase +1 per rank independently
+of category (including charm, mez, calm/pacify, and stun). Recognized shorthand
+includes `up to LX` and the cap in Mesmerize/Frenzy Radius/Reaction Radius pairs.
+Pet levels and cast/mana/duration values retain their separate rules. Recast
+time and resist adjustment await confirmed rates (issue #22).
 The client first uses the EQLClientData-injected map, then a raw-page fallback
 cached 30 seconds. State key: `sls-default-level-v1`. Integrations can call
 `eqlSpellLevelSliderRefresh(root)` or `eqlSpellLevelSliderSetLevel(level, root, persist)`.
