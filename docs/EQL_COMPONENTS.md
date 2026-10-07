@@ -151,6 +151,8 @@ mapping of page title to category. Categories include summoned pets; explicit
 effectiveness caps in Overview/effect cells increase +1 per rank independently
 of category (including charm, mez, calm/pacify, and stun). Recognized shorthand
 includes `up to LX` and the cap in Mesmerize/Frenzy Radius/Reaction Radius pairs.
+Overview highlights apply only to changed cap numbers, preserving surrounding
+description styling and restoring original markup at rank zero.
 Pet levels and cast/mana/duration values retain their separate rules. Recast
 time and resist adjustment await confirmed rates (issue #22).
 The client first uses the EQLClientData-injected map, then a raw-page fallback

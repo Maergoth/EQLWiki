@@ -78,6 +78,9 @@ percentage duration/cast/mana rules. Overview text and effect cells recognize
 number remains unchanged. Embedded links and base text survive rank changes
 and resetting to zero. Other numbers, class learning levels, and `@L44`
 annotations remain unchanged. No template or database-page publication is needed.
+In Overview descriptions, only the changed cap number turns green; surrounding
+text retains its normal styling. Rank zero removes the highlight and restores
+the original markup.
 
 Recast time and resist adjustment remain unscaled: their per-category/per-rank
 rates need confirmation. Track that work in

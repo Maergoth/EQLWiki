@@ -53,6 +53,8 @@ async function main() {
 		const cell = page.querySelector( '.eql-spellpage-slot-table tr td:last-child' );
 		const original = cell.innerHTML;
 		const originalText = cell.textContent;
+		const description = page.querySelector( '.eql-spellpage-summary-text p' );
+		const originalDescription = description.innerHTML;
 		const links = [ ...cell.querySelectorAll( 'a' ) ];
 		assert.equal( page.dataset.slsCategory, category, title );
 		for ( const rank of [ 1, 10, 4, 4, 0 ] ) {
@@ -65,6 +67,9 @@ async function main() {
 			assert.equal( cell.classList.contains( 'sls-slot-modified' ), rank > 0, title );
 			assert.equal( page.querySelector( '.eql-spellpage-summary-text p' ).textContent,
 				`Affects creatures up to level ${30 + rank}.` );
+			assert.equal( description.classList.contains( 'sls-slot-modified' ), false );
+			assert.deepEqual( [ ...description.querySelectorAll( '.sls-modified' ) ].map( span => span.textContent ),
+				rank ? [ String( 30 + rank ) ] : [] );
 			assert.match( page.querySelector( '.sls-rate-display' ).textContent,
 				rank ? new RegExp( `Level cap \\+${rank}` ) : /Base values/ );
 			assert.equal( page.querySelector( '.classes' ).textContent, 'Learning level 20' );
@@ -74,7 +79,23 @@ async function main() {
 			assert.deepEqual( [ ...cell.querySelectorAll( 'a' ) ], links );
 		}
 		assert.equal( cell.innerHTML, original, `${title} reset markup` );
+		assert.equal( description.innerHTML, originalDescription, `${title} reset description` );
 	}
+	window.document.body.innerHTML = card( 'Linked description', 'Charm up to level 25',
+		'Works on <a href="/creature">creatures</a> up <b>to level <i>2</i>5</b>; also up to level 40.' );
+	await window.eqlSpellLevelSliderRefresh( window.document );
+	const linkedDescription = window.document.querySelector( '.eql-spellpage-summary-text p' );
+	const originalDescription = linkedDescription.innerHTML;
+	const descriptionLink = linkedDescription.querySelector( 'a' );
+	for ( const rank of [ 1, 10, 4, 4, 0 ] ) {
+		await window.eqlSpellLevelSliderSetLevel( rank, window.document, false );
+		assert.deepEqual( [ ...linkedDescription.querySelectorAll( '.sls-modified' ) ].map( span => span.textContent ),
+			rank ? [ String( 25 + rank ), String( 40 + rank ) ] : [] );
+		assert.equal( linkedDescription.textContent,
+			`Works on creatures up to level ${25 + rank}; also up to level ${40 + rank}.` );
+		assert.equal( linkedDescription.querySelector( 'a' ), descriptionLink );
+	}
+	assert.equal( linkedDescription.innerHTML, originalDescription );
 	window.document.body.innerHTML = card( 'No cap', 'Reduce Aggro Radius by 15; Memblur(1%); @L44' );
 	await window.eqlSpellLevelSliderSetLevel( 10, window.document, false );
 	assert.equal( window.document.querySelector( '.eql-spellpage-slot-table tr td:last-child' ).textContent,
