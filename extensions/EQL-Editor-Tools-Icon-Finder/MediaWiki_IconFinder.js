@@ -41,10 +41,20 @@
 			id: 'eql-icon-finder-styles',
 			text:
 				'.eql-iconfinder-shell{' +
+					'--eql-icon-size:112px;' +
 					'display:grid;' +
 					'grid-template-columns:minmax(230px,.62fr) minmax(0,1.38fr);' +
 					'gap:1rem;' +
 					'align-items:start;' +
+				'}' +
+
+				'.eql-iconfinder-source{' +
+					'position:sticky;' +
+					'top:4.5rem;' +
+					'align-self:start;' +
+					'z-index:2;' +
+					'background:#080d13;' +
+					'border-radius:8px;' +
 				'}' +
 
 				'.eql-iconfinder-paste{' +
@@ -84,8 +94,8 @@
 
 				'.eql-iconfinder-preview{' +
 					'display:none;' +
-					'width:72px;' +
-					'height:72px;' +
+					'width:var(--eql-icon-size);' +
+					'height:var(--eql-icon-size);' +
 					'object-fit:contain;' +
 					'image-rendering:auto;' +
 					'background:#000;' +
@@ -139,8 +149,8 @@
 				'}' +
 
 				'.eql-iconfinder-result img{' +
-					'width:112px;' +
-					'height:112px;' +
+					'width:var(--eql-icon-size);' +
+					'height:var(--eql-icon-size);' +
 					'object-fit:contain;' +
 					'background:#000;' +
 					'border:1px solid rgba(255,255,255,.1);' +
@@ -181,7 +191,13 @@
 				'}' +
 
 				'@media(max-width:850px){' +
-					'.eql-iconfinder-shell{grid-template-columns:1fr;}' +
+					'.eql-iconfinder-shell{display:block;}' +
+					'.eql-iconfinder-source{margin-bottom:1rem;}' +
+				'}' +
+				'@media(max-width:850px),(max-height:440px){' +
+					'.eql-iconfinder-source.has-preview .eql-iconfinder-paste{min-height:0;padding:.5rem;}' +
+					'.eql-iconfinder-source.has-preview .eql-iconfinder-instruction,' +
+					'.eql-iconfinder-source.has-preview .eql-iconfinder-subinstruction{display:none;}' +
 				'}'
 		} ).appendTo( document.head );
 	}
@@ -2005,6 +2021,7 @@
 		currentPreviewUrl = URL.createObjectURL( blob );
 		img.src = currentPreviewUrl;
 		img.classList.add( 'is-visible' );
+		img.closest( '.eql-iconfinder-source' ).classList.add( 'has-preview' );
 	}
 
 	function processBlob( blob, preview, status, results, api ) {
@@ -2080,6 +2097,7 @@
 		shell.className = 'eql-iconfinder-shell';
 
 		var left = document.createElement( 'div' );
+		left.className = 'eql-iconfinder-source';
 		var paste = document.createElement( 'div' );
 		var instruction = document.createElement( 'div' );
 		var subinstruction = document.createElement( 'div' );
