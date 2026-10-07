@@ -1823,7 +1823,7 @@
 	function iconMetadata( title ) {
 		var clean = cleanDisplayTitle( title );
 		var itemMatch = clean.match( /^Item[\s_]+(\d+)\.png$/i );
-		var spellMatch = clean.match( /^Spellicon_([^.]*)\.png$/i );
+		var spellMatch = clean.match( /^Spellicon[\s_]+([^.]*)\.png$/i );
 		var id = '';
 		var kind = 'Icon file';
 		var parameter = '';

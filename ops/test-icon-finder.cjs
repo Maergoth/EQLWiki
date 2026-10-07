@@ -9,6 +9,9 @@ const metadata = context.window.testFinder.iconMetadata('File:Item 500.png');
 assert.equal(metadata.id, '500');
 assert.equal(metadata.parameter, '|lucy_img_ID = 500');
 assert.equal(metadata.rawWiki, '[[File:Item 500.png]]');
+const spell = context.window.testFinder.iconMetadata('File:Spellicon J.png');
+assert.equal(spell.id, 'J');
+assert.equal(spell.parameter, '|spellicon = J');
 const aliases = [{title: 'File:Item 3470.png'}, {title: 'File:Item 3471.png'}];
 const decoded = context.window.testFinder.decodeServerRecords([
   {title: aliases[0].title, url: '/icon.png', rgb: btoa('abc'), aliases},
