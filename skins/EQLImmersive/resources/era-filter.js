@@ -787,6 +787,20 @@
 		return document;
 	}
 
+	function isControlLink( link ) {
+		return !!link.closest( [
+			'#ca-edit, #ca-ve-edit, #ca-history, #ca-eql-watch',
+			'.mw-editsection',
+			'.mw-header',
+			'.vector-page-toolbar',
+			'.editOptions',
+			'.ve-ui-toolbar',
+			'.ve-ui-overlay',
+			'.oo-ui-windowManager',
+			'#footer, .mw-footer-container'
+		].join( ', ' ) );
+	}
+
 	function collectLinks( root ) {
 		var linkMap = new Map();
 		var rootElement = getRootElement( root );
@@ -809,12 +823,8 @@
 		links.forEach( function ( link ) {
 			var title;
 
-			if (
-				link.closest( '#ca-edit, #ca-ve-edit, #ca-history, #ca-eql-watch' ) ||
-				link.closest( '.mw-editsection' ) ||
-				link.closest( '#footer' ) ||
-				link.closest( '.mw-footer-container' )
-			) {
+			if ( isControlLink( link ) ) {
+				clearOutOfEraMark( link );
 				return;
 			}
 
@@ -836,7 +846,8 @@
 
 	function applyStatus( links, title, isOutOfEra ) {
 		links.forEach( function ( link ) {
-			if ( isOutOfEra ) {
+			/* A link may have moved into editor UI while metadata was loading. */
+			if ( isOutOfEra && !isControlLink( link ) ) {
 				markOutOfEraLink( link, title );
 			} else {
 				clearOutOfEraMark( link );
