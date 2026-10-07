@@ -257,8 +257,7 @@
 
 /* SpellLevelSlider modified spell-effect values. */
 .eql-spellpage-slot-table td.sls-slot-modified,
-.eql-spellpage-slot-table td.sls-slot-modified *,
-.eql-spellpage-summary-text p.sls-slot-modified {
+.eql-spellpage-slot-table td.sls-slot-modified * {
 	color: #5f5 !important;
 	font-weight: bold;
 	text-shadow: 0 0 3px rgba( 85, 255, 85, 0.3 );
