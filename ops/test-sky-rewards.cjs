@@ -114,4 +114,3 @@ async function visit({ hover = false, label, href, local = {}, user = null, acco
     page.close();
     console.log('Reproduced old tooltip-key failure; stable reward IDs, legacy migration, restart persistence, and account isolation pass.');
 })().catch(error => { console.error(error); process.exit(1); });
-
