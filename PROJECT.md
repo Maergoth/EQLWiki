@@ -137,6 +137,32 @@ For a local build, set `EQL_ICON_PRIVATE_DIR` and `EQL_ICON_PUBLIC_DIR` to priva
 state and `static/eql-icon-index` paths respectively. Run custom scripts as
 `php maintenance/run.php ./ops/host-bin/eql-icon-static-builder.php` on Windows.
 
+### Plane of Sky reward fields
+
+`skins/EQLImmersive/resources/sky-rewards.js` is the reviewed Plane of Sky section of
+`MediaWiki:Common.js`. Reward field identities use item page titles and exclude
+hover descriptions and item-level stats. Existing numbers migrate from matching
+old account/browser field keys or the original browser-only key; old keys remain
+intact. Unrecognizable old hashed identities cannot be reconstructed after their
+source text has already changed. Established account buckets never import browser
+values; first-login migration still follows the existing EQLUserState policy.
+
+GitHub releases exclude `ops`, so merging this change does not itself replace
+Common.js. Copy `ops/sync-sky-rewards.php` and the reviewed section to a private
+host directory, then use the target wiki's maintenance runner with `--source`,
+`--expected-revision` (its current Common.js revision) and `--backup` (a fresh
+private file). The helper refuses concurrent edits, saves a recovery copy, and
+replaces only this section, preserving all other Common.js code. Apply to staging
+and verify its raw script first; production requires separate owner approval.
+Staging deployment and refresh commands reapply the reviewed reward section from the deployed skin file. Install the reviewed staging command wrapper and sync helper privately before enabling this operation; these host operations remain excluded from application archives.
+
+To run regression checks against a private Common.js snapshot, install pinned
+`jsdom@27.0.0` in an ignored local test directory, put its `node_modules` directory
+on `NODE_PATH`, and run `node ops/test-sky-rewards.cjs <Common.js snapshot>`.
+The test uses the actual EQLUserState service and simulated API:Options responses
+to cover tooltip changes, legacy migration, a fresh DOM with persisted storage,
+zero/cleared numbers, and independent anonymous/account buckets.
+
 ## Existing scheduled jobs
 
 `ops/host-bin` records the current host scripts for review. They are not copied to
