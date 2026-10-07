@@ -8,6 +8,8 @@ individual spell pages and scales:
 - Mana
 - Duration, when the category has a duration rate and the value contains a
   recognized time unit
+- Explicit summoned-pet level, by one level per slider rank
+- Charm maximum-level caps, through the separate charm-cap adjustment
 
 It does not contain or reuse any ItemLevelSlider formulas.
 
@@ -65,6 +67,11 @@ All rates are stored once in `$wgSpellLevelSliderRules` inside
 | Debuff | −4% | −4% | +10% |
 | Charm / mez | −4% | −4% | +10% |
 | Buff | −4% | −4% | +10% |
+| Pet | unchanged | unchanged | unchanged |
+
+Pet rules add one to an explicitly stated summoned-pet level per slider rank.
+Charm level caps use `applyCharmCapScaling()`; they are separate from the
+percentage duration/cast/mana rules below.
 
 Scaling is linear from the spell page's base value:
 
@@ -92,11 +99,12 @@ overview text. Its precedence is:
 1. Explicit page override
 2. Damage Over Time
 3. Heal Over Time
-4. Charm / mez
-5. Heal
-6. Nuke / lifetap
-7. Debuff
-8. Buff
+4. Summoned pet with an explicit level
+5. Charm / mez
+6. Heal
+7. Nuke / lifetap
+8. Debuff
+9. Buff
 
 This ordering handles important edge cases:
 
@@ -134,6 +142,7 @@ Accepted category keys are:
 - `debuff`
 - `charm_mez`
 - `buff`
+- `pet`
 
 Wiki links are also accepted on the left side:
 
@@ -141,9 +150,11 @@ Wiki links are also accepted on the left side:
 [[Some Unusual Elixir]] = hot
 ```
 
-Overrides are fetched once when a page containing a full spell card loads.
-They take priority over automatic classification. Invalid lines and unknown
-category keys are ignored.
+On EQLWiki, EQLClientData injects the override map into the page. The slider also
+supports a raw-page fetch fallback, cached for 30 seconds. Overrides take
+priority over automatic classification. Invalid lines and unknown category keys
+are ignored. Keep `$wgSpellLevelOverridesPage` and
+`$wgEQLClientDataSpellOverridesTitle` aligned when renaming the page.
 
 When a spell cannot be classified automatically and has no override, the
 extension displays `Spell Scaling Unknown. Adjust Category or Override` in
