@@ -156,7 +156,14 @@
 					'word-break:break-word;' +
 				'}' +
 
-				'.eql-iconfinder-actions{width:100%;margin-top:.5rem;}' +
+				'.eql-iconfinder-result-details{width:100%;min-width:0;max-width:100%;}' +
+				'.eql-iconfinder-result select{' +
+					'box-sizing:border-box!important;' +
+					'width:100%!important;' +
+					'min-width:0!important;' +
+					'max-width:100%!important;' +
+				'}' +
+				'.eql-iconfinder-actions{margin-top:.5rem;}' +
 				'.eql-iconfinder-feedback{display:block;min-height:1.2em;font-size:.75rem;color:#aeb8c7;}' +
 				'.eql-iconfinder-filenames{width:100%;margin-top:.5rem;}' +
 
@@ -1876,7 +1883,7 @@
 			var feedback = document.createElement( 'span' );
 
 			card.className = 'eql-iconfinder-result';
-			textWrap.style.width = '100%';
+			textWrap.className = 'eql-iconfinder-result-details';
 			img.src = record.url;
 			img.alt = meta.filename;
 			img.loading = 'lazy';
