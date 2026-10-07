@@ -25,7 +25,8 @@
 	var COLOR_GRID = 16;
 	var IMAGEINFO_BATCH = 50;
 	var DOWNLOAD_CONCURRENCY = 8;
-	var RESULT_COUNT = 10;
+	var RESULT_COUNT = 100;
+	var RESULT_PAGE_SIZE = 20;
 
 	var initializedHost = null;
 	var memoryIndex = null;
@@ -40,10 +41,20 @@
 			id: 'eql-icon-finder-styles',
 			text:
 				'.eql-iconfinder-shell{' +
+					'--eql-icon-size:112px;' +
 					'display:grid;' +
 					'grid-template-columns:minmax(230px,.62fr) minmax(0,1.38fr);' +
 					'gap:1rem;' +
 					'align-items:start;' +
+				'}' +
+
+				'.eql-iconfinder-source{' +
+					'position:sticky;' +
+					'top:4.5rem;' +
+					'align-self:start;' +
+					'z-index:2;' +
+					'background:#080d13;' +
+					'border-radius:8px;' +
 				'}' +
 
 				'.eql-iconfinder-paste{' +
@@ -83,8 +94,8 @@
 
 				'.eql-iconfinder-preview{' +
 					'display:none;' +
-					'width:72px;' +
-					'height:72px;' +
+					'width:var(--eql-icon-size);' +
+					'height:var(--eql-icon-size);' +
 					'object-fit:contain;' +
 					'image-rendering:auto;' +
 					'background:#000;' +
@@ -126,7 +137,9 @@
 
 				'.eql-iconfinder-result{' +
 					'display:grid;' +
-					'grid-template-columns:54px minmax(0,1fr);' +
+					'grid-template-columns:minmax(0,1fr);' +
+					'justify-items:center;' +
+					'text-align:center;' +
 					'gap:.65rem;' +
 					'align-items:center;' +
 					'padding:.65rem;' +
@@ -136,8 +149,8 @@
 				'}' +
 
 				'.eql-iconfinder-result img{' +
-					'width:52px;' +
-					'height:52px;' +
+					'width:var(--eql-icon-size);' +
+					'height:var(--eql-icon-size);' +
 					'object-fit:contain;' +
 					'background:#000;' +
 					'border:1px solid rgba(255,255,255,.1);' +
@@ -153,36 +166,16 @@
 					'word-break:break-word;' +
 				'}' +
 
-				'.eql-iconfinder-result-score{' +
-					'display:block;' +
-					'margin-bottom:.28rem;' +
-					'color:#d8b75c;' +
-					'font-size:.8rem;' +
-					'font-variant-numeric:tabular-nums;' +
+				'.eql-iconfinder-result-details{width:100%;min-width:0;max-width:100%;}' +
+				'.eql-iconfinder-result select{' +
+					'box-sizing:border-box!important;' +
+					'width:100%!important;' +
+					'min-width:0!important;' +
+					'max-width:100%!important;' +
 				'}' +
-
-				'.eql-iconfinder-result-meta{' +
-					'display:block;' +
-					'color:#8f9bac;' +
-					'font-size:.76rem;' +
-					'line-height:1.25;' +
-				'}' +
-
-				'.eql-iconfinder-result-id{' +
-					'display:block;' +
-					'margin:.2rem 0 .35rem;' +
-					'color:#fff0b5;' +
-					'font-size:1.05rem;' +
-					'font-weight:800;' +
-					'font-variant-numeric:tabular-nums;' +
-				'}' +
-
-				'.eql-iconfinder-copy-row{' +
-					'display:flex;' +
-					'flex-wrap:wrap;' +
-					'gap:.3rem;' +
-					'margin-top:.38rem;' +
-				'}' +
+				'.eql-iconfinder-actions{margin-top:.5rem;}' +
+				'.eql-iconfinder-feedback{display:block;min-height:1.2em;font-size:.75rem;color:#aeb8c7;}' +
+				'.eql-iconfinder-filenames{width:100%;margin-top:.5rem;}' +
 
 				'.eql-iconfinder-copy{' +
 					'min-height:1.8rem!important;' +
@@ -198,7 +191,13 @@
 				'}' +
 
 				'@media(max-width:850px){' +
-					'.eql-iconfinder-shell{grid-template-columns:1fr;}' +
+					'.eql-iconfinder-shell{display:block;}' +
+					'.eql-iconfinder-source{margin-bottom:1rem;}' +
+				'}' +
+				'@media(max-width:850px),(max-height:440px){' +
+					'.eql-iconfinder-source.has-preview .eql-iconfinder-paste{min-height:0;padding:.5rem;}' +
+					'.eql-iconfinder-source.has-preview .eql-iconfinder-instruction,' +
+					'.eql-iconfinder-source.has-preview .eql-iconfinder-subinstruction{display:none;}' +
 				'}'
 		} ).appendTo( document.head );
 	}
@@ -1874,21 +1873,7 @@
 		window.prompt( 'Copy:', text );
 	}
 
-	function makeCopyButton( label, value ) {
-		var button = document.createElement( 'button' );
-
-		button.className = 'eql-iconfinder-copy';
-		button.type = 'button';
-		button.textContent = label;
-
-		button.addEventListener( 'click', function () {
-			copyText( value, button );
-		} );
-
-		return button;
-	}
-
-	function renderMatches( container, matches ) {
+	function renderMatches( container, matches, onCountChanged ) {
 		container.innerHTML = '';
 
 
@@ -1896,78 +1881,71 @@
 		grid.className = 'eql-iconfinder-results-grid';
 		container.appendChild( grid );
 
-		matches.forEach( function ( match ) {
+		var shownCount = 0;
+		var moreButton = document.createElement( 'button' );
+		moreButton.className = 'eql-iconfinder-copy';
+		moreButton.type = 'button';
+		moreButton.textContent = 'Show more matches';
+		container.appendChild( moreButton );
+
+		function renderCard( match ) {
 			var record = match.record;
 			var meta = iconMetadata( record.title );
 			var card = document.createElement( 'div' );
 			var img = document.createElement( 'img' );
 			var textWrap = document.createElement( 'div' );
 			var link = document.createElement( 'a' );
-			var score = document.createElement( 'span' );
-			var iconId = document.createElement( 'span' );
-			var metadata = document.createElement( 'span' );
-			var copyRow = document.createElement( 'div' );
+			var actions = document.createElement( 'select' );
+			var feedback = document.createElement( 'span' );
 
 			card.className = 'eql-iconfinder-result';
-
+			textWrap.className = 'eql-iconfinder-result-details';
 			img.src = record.url;
 			img.alt = meta.filename;
 			img.loading = 'lazy';
-
 			link.className = 'eql-iconfinder-result-name';
 			link.href = mw.util.getUrl( record.title );
 			link.target = '_blank';
 			link.rel = 'noopener';
 			link.textContent = meta.filename;
+			actions.className = 'eql-iconfinder-actions';
+			feedback.className = 'eql-iconfinder-feedback';
+			feedback.setAttribute( 'role', 'status' );
 
-			score.className = 'eql-iconfinder-result-score';
-			score.textContent =
-				'Match score ' + match.similarity.toFixed( 1 );
-
-			iconId.className = 'eql-iconfinder-result-id';
-			iconId.textContent = meta.id
-				? 'Icon ' + meta.id
-				: meta.filename;
-
-			metadata.className = 'eql-iconfinder-result-meta';
-			metadata.textContent = meta.kind;
-
-			copyRow.className = 'eql-iconfinder-copy-row';
-
-			if ( meta.id ) {
-				copyRow.appendChild(
-					makeCopyButton( 'Copy ID', meta.id )
-				);
+			function setCopyOptions( selected ) {
+				actions.innerHTML = '';
+				actions.setAttribute( 'aria-label', 'Copy value for ' + selected.filename );
+				var values = [ [ 'Copy…', '' ] ];
+				if ( selected.id ) {
+					values.push( [ 'Copy ID', selected.id ] );
+				}
+				if ( selected.parameter ) {
+					values.push( [ 'Copy Parameter', selected.parameter ] );
+				}
+				values.push( [ 'Raw Wikicode', selected.rawWiki ],
+					[ '32×32 Wikicode', selected.staticWiki ], [ 'Scaled Wikicode', selected.scaledWiki ] );
+				values.forEach( function ( value ) {
+					var option = document.createElement( 'option' );
+					option.textContent = value[ 0 ];
+					option.value = value[ 1 ];
+					actions.appendChild( option );
+				} );
 			}
 
-			if ( meta.parameter ) {
-				copyRow.appendChild(
-					makeCopyButton( 'Copy Parameter', meta.parameter )
-				);
-			}
-
-			copyRow.appendChild(
-				makeCopyButton( 'Raw Wikicode', meta.rawWiki )
-			);
-
-			copyRow.appendChild(
-				makeCopyButton( '32×32', meta.staticWiki )
-			);
-
-			copyRow.appendChild(
-				makeCopyButton( 'Scaled', meta.scaledWiki )
-			);
-
+			setCopyOptions( meta );
+			actions.addEventListener( 'change', function () {
+				var value = actions.value;
+				actions.selectedIndex = 0;
+				if ( value ) {
+					copyText( value, feedback );
+				}
+			} );
 			textWrap.appendChild( link );
-			textWrap.appendChild( iconId );
-			textWrap.appendChild( score );
-			textWrap.appendChild( metadata );
-			textWrap.appendChild( copyRow );
 
 			if ( record.aliases && record.aliases.length > 1 ) {
 				var choices = document.createElement( 'select' );
-				choices.setAttribute( 'aria-label', 'Filename for matching icon' );
-				choices.style.maxWidth = '100%';
+				choices.className = 'eql-iconfinder-filenames';
+				choices.setAttribute( 'aria-label', 'Filename for matching icon ' + meta.filename );
 				record.aliases.forEach( function ( alias, index ) {
 					var option = document.createElement( 'option' );
 					option.value = String( index );
@@ -1979,31 +1957,30 @@
 					var selected = iconMetadata( alias.title );
 					link.href = mw.util.getUrl( alias.title );
 					link.textContent = selected.filename;
-					iconId.textContent = selected.id ? 'Icon ' + selected.id : selected.filename;
 					img.src = alias.url;
 					img.alt = selected.filename;
-					copyRow.innerHTML = '';
-					if ( selected.id ) {
-						copyRow.appendChild( makeCopyButton( 'Copy ID', selected.id ) );
-					}
-					if ( selected.parameter ) {
-						copyRow.appendChild( makeCopyButton( 'Copy Parameter', selected.parameter ) );
-					}
-					copyRow.appendChild( makeCopyButton( 'Raw Wikicode', selected.rawWiki ) );
-					copyRow.appendChild( makeCopyButton( '32×32', selected.staticWiki ) );
-					copyRow.appendChild( makeCopyButton( 'Scaled', selected.scaledWiki ) );
+					setCopyOptions( selected );
 				} );
 				textWrap.appendChild( choices );
-				var aliasNote = document.createElement( 'span' );
-				aliasNote.className = 'eql-iconfinder-result-meta';
-				aliasNote.textContent = record.aliases.length + ' filenames share this artwork';
-				textWrap.appendChild( aliasNote );
 			}
 
+			textWrap.appendChild( actions );
+			textWrap.appendChild( feedback );
 			card.appendChild( img );
 			card.appendChild( textWrap );
 			grid.appendChild( card );
-		} );
+		}
+
+		function showNextPage() {
+			var nextCount = Math.min( shownCount + RESULT_PAGE_SIZE, matches.length );
+			matches.slice( shownCount, nextCount ).forEach( renderCard );
+			shownCount = nextCount;
+			moreButton.hidden = shownCount >= matches.length;
+			onCountChanged( shownCount, matches.length );
+		}
+
+		moreButton.addEventListener( 'click', showNextPage );
+		showNextPage();
 
 		var note = document.createElement( 'div' );
 		note.className = 'eql-iconfinder-note';
@@ -2044,6 +2021,7 @@
 		currentPreviewUrl = URL.createObjectURL( blob );
 		img.src = currentPreviewUrl;
 		img.classList.add( 'is-visible' );
+		img.closest( '.eql-iconfinder-source' ).classList.add( 'has-preview' );
 	}
 
 	function processBlob( blob, preview, status, results, api ) {
@@ -2089,13 +2067,9 @@
 					} );
 			} )
 			.then( function ( matches ) {
-				renderMatches( results, matches );
-
-				setStatus(
-					'Done. Showing the ' +
-						matches.length +
-						' closest matches.'
-				);
+				renderMatches( results, matches, function ( shown, total ) {
+					setStatus( 'Done. Showing ' + shown + ' of ' + total + ' closest matches.' );
+				} );
 			} )
 			.catch( function ( error ) {
 				if ( window.console && console.error ) {
@@ -2123,6 +2097,7 @@
 		shell.className = 'eql-iconfinder-shell';
 
 		var left = document.createElement( 'div' );
+		left.className = 'eql-iconfinder-source';
 		var paste = document.createElement( 'div' );
 		var instruction = document.createElement( 'div' );
 		var subinstruction = document.createElement( 'div' );
