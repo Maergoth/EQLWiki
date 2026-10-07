@@ -1,5 +1,13 @@
 # EQLIconIndex 0.1.0
 
+**Status in EQLWiki (October 7, 2026): inactive.** This older API/job-based approach
+is commented out in the sanitized configuration and absent from the live enabled
+extension inventory. The active finder uses the static JSON builder under
+`ops/host-bin/` instead. See the [current component map](../../docs/EQL_COMPONENTS.md)
+and [operations guide](../../PROJECT.md). The installation/patch scripts below
+describe this optional historical implementation; they are not the current
+EQLWiki setup procedure.
+
 Server-side precomputed fingerprint cache for the existing EQL Icon Finder.
 
 ## Safety / continuity
