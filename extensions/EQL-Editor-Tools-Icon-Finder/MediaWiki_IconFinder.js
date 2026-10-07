@@ -26,7 +26,7 @@
 	var IMAGEINFO_BATCH = 50;
 	var DOWNLOAD_CONCURRENCY = 8;
 	var RESULT_COUNT = 100;
-	var RESULT_PAGE_SIZE = 20;
+	var RESULT_PAGE_SIZE = 8;
 
 	var initializedHost = null;
 	var memoryIndex = null;
@@ -41,7 +41,7 @@
 			id: 'eql-icon-finder-styles',
 			text:
 				'.eql-iconfinder-shell{' +
-					'--eql-icon-size:112px;' +
+					'--eql-icon-size:80px;' +
 					'display:grid;' +
 					'grid-template-columns:minmax(230px,.62fr) minmax(0,1.38fr);' +
 					'gap:1rem;' +
@@ -97,6 +97,7 @@
 					'width:var(--eql-icon-size);' +
 					'height:var(--eql-icon-size);' +
 					'object-fit:contain;' +
+					'box-sizing:border-box;' +
 					'image-rendering:auto;' +
 					'background:#000;' +
 					'border:1px solid rgba(255,255,255,.14);' +
@@ -131,16 +132,17 @@
 
 				'.eql-iconfinder-results-grid{' +
 					'display:grid;' +
-					'grid-template-columns:repeat(auto-fill,minmax(185px,1fr));' +
+					'grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));' +
 					'gap:.65rem;' +
 				'}' +
 
 				'.eql-iconfinder-result{' +
+					'position:relative;' +
 					'display:grid;' +
 					'grid-template-columns:minmax(0,1fr);' +
 					'justify-items:center;' +
 					'text-align:center;' +
-					'gap:.65rem;' +
+					'gap:.4rem;' +
 					'align-items:center;' +
 					'padding:.65rem;' +
 					'background:rgba(255,255,255,.03);' +
@@ -152,6 +154,8 @@
 					'width:var(--eql-icon-size);' +
 					'height:var(--eql-icon-size);' +
 					'object-fit:contain;' +
+					'box-sizing:border-box;' +
+					'display:block;' +
 					'background:#000;' +
 					'border:1px solid rgba(255,255,255,.1);' +
 					'border-radius:4px;' +
@@ -173,8 +177,42 @@
 					'min-width:0!important;' +
 					'max-width:100%!important;' +
 				'}' +
-				'.eql-iconfinder-actions{margin-top:.5rem;}' +
-				'.eql-iconfinder-feedback{display:block;min-height:1.2em;font-size:.75rem;color:#aeb8c7;}' +
+				'.eql-iconfinder-image-copy{' +
+					'display:block!important;padding:0!important;margin:0!important;' +
+					'min-width:0!important;min-height:0!important;width:var(--eql-icon-size)!important;' +
+					'height:var(--eql-icon-size)!important;border:0!important;background:transparent!important;' +
+					'cursor:pointer;' +
+				'}' +
+				'.eql-iconfinder-image-copy:disabled{cursor:default;}' +
+				'.eql-iconfinder-image-copy:focus-visible,.eql-iconfinder-actions summary:focus-visible{' +
+					'outline:2px solid #d8b75c;outline-offset:2px;' +
+				'}' +
+				'.eql-iconfinder-actions{position:absolute;top:.25rem;right:.25rem;}' +
+				'.eql-iconfinder-actions summary{' +
+					'list-style:none;display:flex;align-items:center;justify-content:center;' +
+					'width:1.5rem;height:1.5rem;cursor:pointer;color:#aeb8c7;border-radius:3px;' +
+				'}' +
+				'.eql-iconfinder-actions summary::-webkit-details-marker{display:none;}' +
+				'.eql-iconfinder-actions summary:hover{background:#28313c;color:#fff0b5;}' +
+				'.eql-iconfinder-actions svg{width:16px;height:16px;}' +
+				'.eql-iconfinder-actions[open]{left:.25rem;z-index:3;}' +
+				'.eql-iconfinder-actions[open] summary{margin-left:auto;}' +
+				'.eql-iconfinder-copy-options{' +
+					'padding:.25rem;background:#101820;border:1px solid #8e783b;border-radius:5px;' +
+					'box-shadow:0 4px 12px #0008;' +
+				'}' +
+				'.eql-iconfinder-copy-options button{' +
+					'box-sizing:border-box!important;display:block!important;width:100%!important;' +
+					'min-width:0!important;min-height:0!important;margin:0!important;' +
+					'padding:.4rem!important;font-size:.75rem!important;white-space:normal!important;' +
+					'border:0!important;background:transparent!important;color:#fff0b5!important;text-align:left;' +
+				'}' +
+				'.eql-iconfinder-copy-options button:hover{background:#28313c!important;}' +
+				'.eql-iconfinder-feedback{' +
+					'position:absolute;top:3.8rem;left:50%;transform:translateX(-50%);' +
+					'font-size:.75rem;color:#fff0b5;pointer-events:none;' +
+				'}' +
+				'.eql-iconfinder-feedback:not(:empty){padding:.15rem .35rem;border-radius:3px;background:#080d13;}' +
 				'.eql-iconfinder-filenames{width:100%;margin-top:.5rem;}' +
 
 				'.eql-iconfinder-copy{' +
@@ -1848,13 +1886,12 @@
 		};
 	}
 
-	function copyText( text, button ) {
-		var original = button.textContent;
-
+	function copyText( text, feedback ) {
 		function done() {
-			button.textContent = 'Copied';
-			window.setTimeout( function () {
-				button.textContent = original;
+			window.clearTimeout( feedback.eqlCopyTimeout );
+			feedback.textContent = 'Copied';
+			feedback.eqlCopyTimeout = window.setTimeout( function () {
+				feedback.textContent = '';
 			}, 1000 );
 		}
 
@@ -1893,9 +1930,12 @@
 			var meta = iconMetadata( record.title );
 			var card = document.createElement( 'div' );
 			var img = document.createElement( 'img' );
+			var imageButton = document.createElement( 'button' );
 			var textWrap = document.createElement( 'div' );
 			var link = document.createElement( 'a' );
-			var actions = document.createElement( 'select' );
+			var actions = document.createElement( 'details' );
+			var summary = document.createElement( 'summary' );
+			var copyOptions = document.createElement( 'div' );
 			var feedback = document.createElement( 'span' );
 
 			card.className = 'eql-iconfinder-result';
@@ -1909,13 +1949,32 @@
 			link.rel = 'noopener';
 			link.textContent = meta.filename;
 			actions.className = 'eql-iconfinder-actions';
+			summary.title = 'More copy formats';
+			summary.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">' +
+				'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>';
+			copyOptions.className = 'eql-iconfinder-copy-options';
+			actions.appendChild( summary );
+			actions.appendChild( copyOptions );
+			imageButton.type = 'button';
+			imageButton.className = 'eql-iconfinder-image-copy';
+			imageButton.appendChild( img );
+			imageButton.addEventListener( 'click', function () {
+				if ( meta.id ) {
+					copyText( meta.id, feedback );
+				}
+			} );
 			feedback.className = 'eql-iconfinder-feedback';
 			feedback.setAttribute( 'role', 'status' );
 
 			function setCopyOptions( selected ) {
-				actions.innerHTML = '';
-				actions.setAttribute( 'aria-label', 'Copy value for ' + selected.filename );
-				var values = [ [ 'Copy…', '' ] ];
+				meta = selected;
+				actions.open = false;
+				copyOptions.innerHTML = '';
+				summary.setAttribute( 'aria-label', 'More copy formats for ' + selected.filename );
+				imageButton.disabled = !selected.id;
+				imageButton.setAttribute( 'aria-label', selected.id ? 'Copy icon ID ' + selected.id : selected.filename );
+				imageButton.title = selected.id ? 'Click to copy ID ' + selected.id : selected.filename;
+				var values = [];
 				if ( selected.id ) {
 					values.push( [ 'Copy ID', selected.id ] );
 				}
@@ -1925,19 +1984,38 @@
 				values.push( [ 'Raw Wikicode', selected.rawWiki ],
 					[ '32×32 Wikicode', selected.staticWiki ], [ 'Scaled Wikicode', selected.scaledWiki ] );
 				values.forEach( function ( value ) {
-					var option = document.createElement( 'option' );
+					var option = document.createElement( 'button' );
+					option.type = 'button';
 					option.textContent = value[ 0 ];
-					option.value = value[ 1 ];
-					actions.appendChild( option );
+					option.addEventListener( 'click', function () {
+						copyText( value[ 1 ], feedback );
+						actions.open = false;
+						summary.focus();
+					} );
+					copyOptions.appendChild( option );
 				} );
 			}
 
 			setCopyOptions( meta );
-			actions.addEventListener( 'change', function () {
-				var value = actions.value;
-				actions.selectedIndex = 0;
-				if ( value ) {
-					copyText( value, feedback );
+			actions.addEventListener( 'toggle', function () {
+				if ( actions.open ) {
+					grid.querySelectorAll( '.eql-iconfinder-actions[open]' ).forEach( function ( other ) {
+						if ( other !== actions ) {
+							other.open = false;
+						}
+					} );
+				}
+			} );
+			actions.addEventListener( 'keydown', function ( event ) {
+				if ( event.key === 'Escape' && actions.open ) {
+					actions.open = false;
+					summary.focus();
+					event.preventDefault();
+				}
+			} );
+			actions.addEventListener( 'focusout', function ( event ) {
+				if ( !actions.contains( event.relatedTarget ) ) {
+					actions.open = false;
 				}
 			} );
 			textWrap.appendChild( link );
@@ -1964,10 +2042,10 @@
 				textWrap.appendChild( choices );
 			}
 
-			textWrap.appendChild( actions );
-			textWrap.appendChild( feedback );
-			card.appendChild( img );
+			card.appendChild( imageButton );
 			card.appendChild( textWrap );
+			card.appendChild( actions );
+			card.appendChild( feedback );
 			grid.appendChild( card );
 		}
 
@@ -1985,7 +2063,7 @@
 		var note = document.createElement( 'div' );
 		note.className = 'eql-iconfinder-note';
 		note.textContent =
-			'The tool only identifies likely matches and copies values/wikicode to the clipboard; it never changes the editor. ' +
+			'Click an icon to copy its ID. Use the corner copy menu for other formats. The tool never changes the editor. ' +
 			'For the best result, capture only the square icon with as little surrounding UI as possible.';
 		container.appendChild( note );
 	}
