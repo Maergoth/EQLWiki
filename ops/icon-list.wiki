@@ -1,0 +1,9 @@
+__NOTOC__
+= Item and Spell Icon Reference =
+Browse uploaded item and spell icons, 100 at a time, or find an exact ID. Select an icon to open its file page.
+
+New item icons retain their game-pack IDs as <code>Item_ID.png</code>. Existing wiki files and references are preserved. Identical artwork can have several IDs; this list shows every filename, while the editor's Icon Finder groups identical artwork and lets you choose its ID.
+
+<div id="eql-icon-catalog">Loading icon catalog…</div>
+
+If the catalog is unavailable, use [[Special:ListFiles|the uploaded file list]]. Legacy spell icons retain their original letter or numeric IDs.

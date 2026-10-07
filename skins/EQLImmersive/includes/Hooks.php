@@ -62,6 +62,11 @@ class Hooks implements
 
 		$html = $out->getHTML();
 
+		if ( str_contains( $html, 'id="eql-icon-catalog"' ) ) {
+			$out->addModuleStyles( 'skins.EQLImmersive.iconList' );
+			$out->addModules( 'skins.EQLImmersive.iconList' );
+		}
+
 		/* EQL_PERF_WIDGET_CONDITIONAL_V1
 		 * Diagnostics are useful to editors/admins, but should not be
 		 * part of every anonymous visitor's global ResourceLoader bundle.

@@ -3,10 +3,10 @@ set -u
 
 PATH="/usr/local/bin:/usr/bin:/bin"
 
-WIKI="$HOME/public_html"
-BUILDER="$HOME/bin/eql-icon-static-builder.php"
-LOCK="$HOME/private-cache/mediawiki/eql-icon-static.lock"
-LOG="$HOME/private-cache/mediawiki/eql-icon-static.log"
+WIKI="${EQL_ICON_WIKI_ROOT:-$HOME/public_html}"
+BUILDER="${EQL_ICON_BUILDER:-$HOME/bin/eql-icon-static-builder.php}"
+LOCK="${EQL_ICON_LOCK:-$HOME/private-cache/mediawiki/eql-icon-static.lock}"
+LOG="${EQL_ICON_LOG:-$HOME/private-cache/mediawiki/eql-icon-static.log}"
 
 PHP_BIN="/usr/local/bin/php"
 FLOCK_BIN="$(command -v flock || true)"

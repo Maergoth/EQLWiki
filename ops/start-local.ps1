@@ -1,6 +1,11 @@
 $ErrorActionPreference = 'Stop'
 $eqlRoot = Split-Path $PSScriptRoot -Parent
 $eqlRuntime = Get-Content -LiteralPath "$PSScriptRoot\local-runtime.json" -Raw | ConvertFrom-Json
+foreach ($eqlPathKey in @('databaseExecutable', 'databaseConfig', 'clientExecutable', 'clientConfig', 'logDirectory')) {
+    if (-not [IO.Path]::IsPathRooted($eqlRuntime.$eqlPathKey)) {
+        $eqlRuntime.$eqlPathKey = [IO.Path]::GetFullPath((Join-Path $eqlRoot $eqlRuntime.$eqlPathKey))
+    }
+}
 if (-not (Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort $eqlRuntime.databasePort -State Listen -ErrorAction SilentlyContinue)) {
     Start-Process -FilePath $eqlRuntime.databaseExecutable -ArgumentList "--defaults-file=$($eqlRuntime.databaseConfig)" -WindowStyle Hidden | Out-Null
 }

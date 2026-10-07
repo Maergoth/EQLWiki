@@ -5,10 +5,10 @@
  *
  * Matching workflow:
  * 1. User pastes a screen capture containing JUST the icon.
- * 2. Read the current image list from [[Icon List]].
+ * 2. Read the published catalog of uploaded item and spell icons.
  * 3. Resolve only existing uploaded files through imageinfo.
  * 4. Build compact perceptual fingerprints in the browser.
- * 5. Cache that fingerprint index in IndexedDB keyed to the Icon List revision.
+ * 5. Cache that fingerprint index in IndexedDB keyed to its generation.
  * 6. Rank possible matches by perceptual/pixel similarity.
  *
  * No icon-catalog requests or image downloads happen until the user actually
@@ -315,6 +315,28 @@
 		} ).then( function ( data ) {
 			var parse = data && data.parse ? data.parse : {};
 			var titles = Array.isArray( parse.images ) ? parse.images : [];
+			var signature = 2166136261;
+			function readUploads( prefix, continuation ) {
+				return api.get( Object.assign( {
+						action: 'query', list: 'allimages', aiprefix: prefix,
+					aiprop: 'sha1', ailimit: 500, formatversion: 2
+				}, continuation || {} ) ).then( function ( response ) {
+					( response.query.allimages || [] ).forEach( function ( image ) {
+						if ( !/^(?:Item_[1-9][0-9]*|Spellicon_[A-Za-z0-9]+)\.png$/.test( image.name ) ) {
+							return;
+						}
+						titles.push( image.name );
+						var key = image.name + ':' + image.sha1;
+						for ( var i = 0; i < key.length; i++ ) {
+							signature = Math.imul( signature ^ key.charCodeAt( i ), 16777619 ) >>> 0;
+						}
+					} );
+					return response.continue ? readUploads( prefix, response.continue ) : null;
+				} );
+			}
+			return readUploads( 'Item_' ).then( function () {
+				return readUploads( 'Spellicon_' );
+			} ).then( function () {
 
 			titles = titles
 				.map( normalizeFileTitle )
@@ -324,9 +346,10 @@
 				} );
 
 			return {
-				revid: Number( parse.revid ) || 0,
+				revid: String( parse.revid || 0 ) + ':' + signature,
 				titles: titles
 			};
+			} );
 		} );
 	}
 
@@ -1501,6 +1524,7 @@
 					title: String( record.title || '' ),
 					url: String( record.url || '' ),
 					sha1: String( record.sha1 || '' ),
+					aliases: Array.isArray( record.aliases ) ? record.aliases : [],
 					width: Number( record.width ) || 0,
 					height: Number( record.height ) || 0,
 					hashHi: Number( record.hashHi ) >>> 0,
@@ -1798,7 +1822,7 @@
 
 	function iconMetadata( title ) {
 		var clean = cleanDisplayTitle( title );
-		var itemMatch = clean.match( /^Item\s+(\d+)\.png$/i );
+		var itemMatch = clean.match( /^Item[\s_]+(\d+)\.png$/i );
 		var spellMatch = clean.match( /^Spellicon_([^.]*)\.png$/i );
 		var id = '';
 		var kind = 'Icon file';
@@ -1939,6 +1963,42 @@
 			textWrap.appendChild( score );
 			textWrap.appendChild( metadata );
 			textWrap.appendChild( copyRow );
+
+			if ( record.aliases && record.aliases.length > 1 ) {
+				var choices = document.createElement( 'select' );
+				choices.setAttribute( 'aria-label', 'Filename for matching icon' );
+				choices.style.maxWidth = '100%';
+				record.aliases.forEach( function ( alias, index ) {
+					var option = document.createElement( 'option' );
+					option.value = String( index );
+					option.textContent = cleanDisplayTitle( alias.title );
+					choices.appendChild( option );
+				} );
+				choices.addEventListener( 'change', function () {
+					var alias = record.aliases[ Number( choices.value ) ];
+					var selected = iconMetadata( alias.title );
+					link.href = mw.util.getUrl( alias.title );
+					link.textContent = selected.filename;
+					iconId.textContent = selected.id ? 'Icon ' + selected.id : selected.filename;
+					img.src = alias.url;
+					img.alt = selected.filename;
+					copyRow.innerHTML = '';
+					if ( selected.id ) {
+						copyRow.appendChild( makeCopyButton( 'Copy ID', selected.id ) );
+					}
+					if ( selected.parameter ) {
+						copyRow.appendChild( makeCopyButton( 'Copy Parameter', selected.parameter ) );
+					}
+					copyRow.appendChild( makeCopyButton( 'Raw Wikicode', selected.rawWiki ) );
+					copyRow.appendChild( makeCopyButton( '32×32', selected.staticWiki ) );
+					copyRow.appendChild( makeCopyButton( 'Scaled', selected.scaledWiki ) );
+				} );
+				textWrap.appendChild( choices );
+				var aliasNote = document.createElement( 'span' );
+				aliasNote.className = 'eql-iconfinder-result-meta';
+				aliasNote.textContent = record.aliases.length + ' filenames share this artwork';
+				textWrap.appendChild( aliasNote );
+			}
 
 			card.appendChild( img );
 			card.appendChild( textWrap );
@@ -2091,7 +2151,7 @@
 		status.className = 'eql-iconfinder-status';
 		status.setAttribute( 'aria-live', 'polite' );
 		status.textContent =
-			'Nothing is loaded from Icon List until you paste an image.';
+			'The icon library loads when you paste an image.';
 
 		paste.appendChild( instruction );
 		paste.appendChild( subinstruction );
@@ -2109,7 +2169,7 @@
 
 		results.innerHTML =
 			'<div class="eql-iconfinder-results-empty">' +
-				'Paste an icon to search the uploaded images on Icon List.' +
+				'Paste an icon to search the uploaded item and spell library.' +
 			'</div>';
 
 		right.appendChild( resultsTitle );

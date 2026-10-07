@@ -105,6 +105,11 @@
         "BeforePageDisplay": "EQLImmersiveHooks"
     },
     "ResourceModules": {
+        "skins.EQLImmersive.iconList": {
+            "scripts": [ "resources/icon-list.js" ],
+            "styles": [ "resources/icon-list.css" ],
+            "dependencies": [ "mediawiki.api", "mediawiki.util" ]
+        },
         "skins.EQLImmersive.core": {
             "class": "MediaWiki\\ResourceLoader\\SkinModule",
             "features": {

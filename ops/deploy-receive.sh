@@ -24,7 +24,7 @@ trap 'rm -rf -- "$STAGE"' EXIT
 cat > "$STAGE/release.tar.gz"
 # Only our trusted packaging process creates this archive, but reject path escapes.
 tar -tzf "$STAGE/release.tar.gz" > "$STAGE/archive-list"
-if grep -Eq '(^/|(^|/)\.\.(/|$)|^\.git(/|$)|^LocalSettings\.php$|^BridgeSecrets\.php$|^EQLStaging\.php$|^bb/Settings\.php$|^images/|^cache/|^bb/(uploads|attachments|custom_avatar|cache|exports|Packages)/)' "$STAGE/archive-list"; then
+if grep -Eq '(^/|(^|/)\.\.(/|$)|^\.git(/|$)|^LocalSettings\.php$|^BridgeSecrets\.php$|^EQLStaging\.php$|^bb/Settings\.php$|^images/|^cache/|^static/eql-icon-index/|^bb/(uploads|attachments|custom_avatar|cache|exports|Packages)/)' "$STAGE/archive-list"; then
   echo 'Archive contains a protected path.' >&2; exit 4
 fi
 mkdir "$STAGE/site"
@@ -89,7 +89,11 @@ foreach (file($manifest, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $file) 
     if (!copy($source,$temporary) || !chmod($temporary,0644|(fileperms($source)&0111)) || !rename($temporary,$target)) { exit(1); }
 }
 ' "$STAGE/site" "$ROOT" "$MANIFEST"
-while IFS= read -r FILE; do rm -f -- "$ROOT/$FILE"; done < "$BACKUP/deleted-paths"
+while IFS= read -r FILE; do
+  # Older manifests included generated cache JSON. It is now host-owned.
+  [[ "$FILE" == static/eql-icon-index/* ]] && continue
+  rm -f -- "$ROOT/$FILE"
+done < "$BACKUP/deleted-paths"
 curl --fail --silent --show-error --retry 2 "${HEALTH_AUTH[@]}" "$HEALTH_URL/api.php?action=query&meta=siteinfo&format=json" \
   | php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!isset($j["query"]["general"]["sitename"])) { exit(1); } echo "Wiki API health check passed\n";'
 cp "$MANIFEST" "$STATE/manifest"
