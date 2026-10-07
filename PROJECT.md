@@ -137,6 +137,33 @@ For a local build, set `EQL_ICON_PRIVATE_DIR` and `EQL_ICON_PUBLIC_DIR` to priva
 state and `static/eql-icon-index` paths respectively. Run custom scripts as
 `php maintenance/run.php ./ops/host-bin/eql-icon-static-builder.php` on Windows.
 
+### Plane of Sky reward fields
+
+`skins/EQLImmersive/resources/sky-rewards.js` is the reviewed Plane of Sky
+section of `MediaWiki:Common.js`. Reward identities use item page titles instead
+of hover descriptions, item levels, or stats. Recognizable old account/browser
+field keys and the original browser-only keys migrate without deleting old values.
+Previously lost hashed identities cannot be reconstructed when their original
+text is no longer identifiable. Existing account buckets remain independent of
+anonymous state; first-login migration follows the existing EQLUserState policy.
+
+The resource file is deployed with the application, but Common.js is stored in
+the database. After an approved production deployment, run the reviewed private
+copy of `ops/sync-sky-rewards.php` through that wiki's maintenance runner with
+`--source` pointing to the deployed resource, `--expected-revision` set to the
+reviewed Common.js revision, and `--backup` pointing to a fresh private file.
+The helper saves a recovery copy and replaces only the reward section, refusing
+concurrent edits. Verify both raw Common.js and ResourceLoader's site module.
+Staging's separately installed command wrapper reapplies the section after its
+deployments and database refreshes. Production script updates require owner approval.
+
+For regression checks, install `jsdom@27.0.0` in an ignored test directory, put
+its `node_modules` directory on `NODE_PATH`, and run
+`node ops/test-sky-rewards.cjs <private Common.js snapshot>` against the original
+reward section. Tests exercise the actual EQLUserState service with controlled
+API:Options responses, including tooltip changes, legacy migration, fresh DOM
+sessions with persisted storage, zero/cleared numbers, and account isolation.
+
 ## Existing scheduled jobs
 
 `ops/host-bin` records the current host scripts for review. They are not copied to
