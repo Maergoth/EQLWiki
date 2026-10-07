@@ -1,5 +1,6 @@
 <?php
 use MediaWiki\Maintenance\Maintenance;
+require_once __DIR__ . '/eql-icon-catalog.php';
 
 class EQLIconStaticBuilder extends Maintenance {
     public function __construct() {
@@ -23,8 +24,8 @@ class EQLIconStaticBuilder extends Maintenance {
         $algorithm = 6;
         $iconListPage = 'Icon List';
         
-        $privateDir = '/home/eqlwikdq/private-cache/mediawiki/eql-icon-static';
-        $publicDir = '/home/eqlwikdq/public_html/static/eql-icon-index';
+        $privateDir = getenv( 'EQL_ICON_PRIVATE_DIR' ) ?: '/home/eqlwikdq/private-cache/mediawiki/eql-icon-static';
+        $publicDir = getenv( 'EQL_ICON_PUBLIC_DIR' ) ?: '/home/eqlwikdq/public_html/static/eql-icon-index';
         
         $stateFile = $privateDir . '/state.json';
         $publicMetaFile = $publicDir . '/meta.json';
@@ -254,22 +255,8 @@ class EQLIconStaticBuilder extends Maintenance {
         
         $previousState = $readJson( $stateFile );
         
-        /*
-         * Normal cron path: if the Icon List page revision did not change, exit
-         * without scanning 4,000 files.
-         */
+        // Upload replacements/deletions need detection even when Icon List is unchanged.
         $force = getenv( 'EQL_ICON_FORCE' ) === '1';
-        
-        if (
-        	!$force &&
-        	$previousState &&
-        	(int)( $previousState['algorithm'] ?? 0 ) === $algorithm &&
-        	(int)( $previousState['iconListRevision'] ?? 0 ) === $revisionId &&
-        	is_file( $publicMetaFile )
-        ) {
-        	echo "EQL Icon cache unchanged; Icon List revision {$revisionId}.\n";
-        	return;
-        }
         
         $content = $revision->getContent(
         	\MediaWiki\Revision\SlotRecord::MAIN
@@ -320,6 +307,25 @@ class EQLIconStaticBuilder extends Maintenance {
         	$catalog[] = $fileTitle;
         }
         
+        // The display page may intentionally omit ranges. Enumerate actual uploads.
+        $dbr = $services->getConnectionProvider()->getReplicaDatabase();
+        $uploaded = $dbr->newSelectQueryBuilder()
+            ->select( 'img_name' )->from( 'image' )
+            ->where( $dbr->expr( 'img_name', 'LIKE', new \Wikimedia\Rdbms\LikeValue( 'Item_', $dbr->anyString() ) )
+                ->or( 'img_name', 'LIKE', new \Wikimedia\Rdbms\LikeValue( 'Spellicon_', $dbr->anyString() ) ) )
+            ->orderBy( 'img_name' )->caller( __METHOD__ )->fetchResultSet();
+        foreach ( $uploaded as $row ) {
+            if ( !preg_match( '/^(?:Item_[1-9][0-9]*|Spellicon_[A-Za-z0-9]+)\.png$/D', $row->img_name ) ) {
+                continue;
+            }
+            $fileTitle = \MediaWiki\Title\Title::makeTitle( NS_FILE, $row->img_name );
+            $key = $fileTitle->getPrefixedText();
+            if ( !isset( $seen[$key] ) ) {
+                $seen[$key] = true;
+                $catalog[] = $fileTitle;
+            }
+        }
+
         if ( !$catalog ) {
         	throw new RuntimeException( 'Icon List produced no media links.' );
         }
@@ -363,9 +369,10 @@ class EQLIconStaticBuilder extends Maintenance {
         
         if (
         	$previousState &&
-        	(int)( $previousState['algorithm'] ?? 0 ) === $algorithm
+            (int)( $previousState['algorithm'] ?? 0 ) === $algorithm &&
+            (int)( $previousState['schema'] ?? 0 ) === 3
         ) {
-        	foreach ( $previousState['records'] ?? [] as $record ) {
+            foreach ( $previousState['sourceRecords'] ?? [] as $record ) {
         		if ( isset( $record['title'] ) ) {
         			$oldRecords[$record['title']] = $record;
         		}
@@ -449,6 +456,7 @@ class EQLIconStaticBuilder extends Maintenance {
         		'hashHi' => $fingerprint['hashHi'],
         		'hashLo' => $fingerprint['hashLo'],
         		'rgb' => $fingerprint['rgb'],
+                'pixelHash' => eqlIconPixelHash( $path ),
         	];
         
         	$built++;
@@ -469,7 +477,7 @@ class EQLIconStaticBuilder extends Maintenance {
         }
         
         $generationParts = [
-        	'schema=2',
+            'schema=3;catalog=1',
         	'algorithm=' . $algorithm,
         	'revision=' . $revisionId,
         ];
@@ -484,33 +492,56 @@ class EQLIconStaticBuilder extends Maintenance {
         	0,
         	24
         );
+        if ( !$force && $previousState &&
+            ( $previousState['generation'] ?? '' ) === $generation &&
+            is_file( $publicMetaFile ) ) {
+            echo "EQL Icon cache unchanged; checked " . count( $catalog ) . " files.\n";
+            return;
+        }
+        $sourceRecords = $records;
+        $records = eqlIconGroupRecords( $sourceRecords );
+        // Small display catalog: every filename, without search fingerprints.
+        $displayRecords = [];
+        foreach ( $sourceRecords as $record ) {
+            $name = str_replace( ' ', '_', substr( $record['title'], 5 ) );
+            if ( preg_match( '/^(Item|Spellicon)_([A-Za-z0-9]+)\.png$/D', $name, $match ) ) {
+                $displayRecords[] = [ $match[1] === 'Item' ? 'item' : 'spell', $match[2], $record['title'], $record['url'] ];
+            }
+        }
+        usort( $displayRecords, static function ( array $a, array $b ): int {
+            return strcmp( $a[0], $b[0] ) ?: strnatcasecmp( $a[1], $b[1] );
+        } );
         
         $builtAt = gmdate( 'c' );
         
         $payload = [
         	'ready' => true,
-        	'schema' => 2,
+            'schema' => 3,
         	'algorithm' => $algorithm,
         	'iconListRevision' => $revisionId,
         	'generation' => $generation,
         	'builtAt' => $builtAt,
         	'listedCount' => count( $catalog ),
         	'count' => count( $records ),
+            'fileCount' => count( $sourceRecords ),
         	'records' => $records,
         ];
         
         $meta = [
+            'catalog' => 'catalog-' . $generation . '.json',
         	'ready' => true,
-        	'schema' => 2,
+            'schema' => 3,
         	'algorithm' => $algorithm,
         	'iconListRevision' => $revisionId,
         	'generation' => $generation,
         	'builtAt' => $builtAt,
         	'listedCount' => count( $catalog ),
         	'count' => count( $records ),
+            'fileCount' => count( $sourceRecords ),
         ];
         
         $state = $payload;
+        $state['sourceRecords'] = $sourceRecords;
         
         $payloadJson = json_encode(
         	$payload,
@@ -549,6 +580,8 @@ class EQLIconStaticBuilder extends Maintenance {
          * Browsers therefore never discover a generation before its file exists.
          */
         $atomicWrite( $generationFile, $payloadJson . "\n" );
+        $atomicWrite( $publicDir . '/catalog-' . $generation . '.json',
+            json_encode( [ 'generation' => $generation, 'icons' => $displayRecords ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) . "\n" );
         $atomicWrite( $stateFile, $stateJson . "\n" );
         $atomicWrite( $publicMetaFile, $metaJson . "\n" );
         
@@ -567,6 +600,7 @@ class EQLIconStaticBuilder extends Maintenance {
         
         foreach ( array_slice( $generationFiles, 3 ) as $oldFile ) {
         	@unlink( $oldFile );
+            @unlink( str_replace( '/index-', '/catalog-', $oldFile ) );
         }
         
         echo "EQL Icon static cache published.\n";

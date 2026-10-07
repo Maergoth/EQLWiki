@@ -85,6 +85,58 @@ jobs, and uses local databases and cache paths. The production database snapshot
 contains private account data; keep the local database and migration backup private.
 Stop the site and database with `ops/stop-local.ps1`.
 
+All local install files now live beneath this checkout. `.local/runtime` holds
+the private database, connection settings and process logs; `.local/tools/mariadb`
+holds MariaDB; `.local/recovery` holds the previous install and migration recovery
+files. These directories are ignored by Git, excluded from releases and blocked
+by the local HTTP router. `ops/local-runtime.json` accepts paths relative to this
+checkout. The supplied game icon library is retained privately in `eql_icons`.
+
+### Full game icon library
+
+Run `python ops/audit-icon-library.py eql_icons --output .local/icons/audit`
+to compare game IDs against current uploaded files. This requires Pillow. The
+audit writes a full manifest, missing-only import directory and conflict CSV.
+Compare pixels as well as file hashes: encoding or artwork differences do not
+necessarily indicate a wrong ID. Never renumber existing files speculatively.
+
+Import missing icons with MediaWiki's `importImages` maintenance command, without
+`--overwrite` or `--skip-dupes`: every game ID must retain its own file. The initial
+library import preserves existing canonical uploads; differing supplied versions
+remain only in the local source library. Only previously missing IDs are uploaded,
+always as `Item_<ID>.png`. Existing names, bytes and references remain unchanged.
+The audit and import manifests remain under `.local/icons` for review.
+
+The active finder cache is built by `ops/host-bin/eql-icon-static-builder.php`,
+with `eql-icon-catalog.php` beside it. Install both reviewed files into the host's
+private `bin` directory explicitly. It indexes all uploaded `Item_<ID>.png`
+files plus the existing Icon List media, so the display page's
+range does not limit search. Schema 3 groups exact decoded pixels, retains every
+filename as an alias, and fingerprints each unique image once in browser search.
+The two-minute cron checks upload hashes even when Icon List is unchanged.
+It also publishes a small `catalog-<generation>.json` without fingerprints.
+`Icon List` uses this catalog to render at most 100 lazy-loaded images per page,
+with an exact ID search and separate item/spell libraries. Every filename is
+listed, including aliases grouped by the finder. The API is a metadata-only
+fallback when the display catalog is unavailable.
+Deploy the page from `ops/icon-list.wiki` using `ops/sync-icon-list.php`, with the
+reviewed revision ID and a fresh private backup path. Load the skin module before
+publishing this page content. Enumerating uploaded spell files preserves legacy
+spell icons independently of the page markup.
+For staging, the same cache wrapper supports `EQL_ICON_WIKI_ROOT`,
+`EQL_ICON_PRIVATE_DIR`, `EQL_ICON_PUBLIC_DIR`, `EQL_ICON_LOCK`, and `EQL_ICON_LOG`;
+use separate paths and locks for each environment.
+Generation files are immutable and the latest three remain available.
+
+The live JavaScript is the database page `MediaWiki:IconFinder.js`. Updating the
+versioned copy alone does not update that page. Use `ops/sync-icon-finder.php`
+through the maintenance runner with `--source`, `--expected-revision` and a fresh
+private `--backup` path; it refuses to overwrite a concurrently edited revision.
+Test on staging before applying the same source and cache builder to production.
+For a local build, set `EQL_ICON_PRIVATE_DIR` and `EQL_ICON_PUBLIC_DIR` to private
+state and `static/eql-icon-index` paths respectively. Run custom scripts as
+`php maintenance/run.php ./ops/host-bin/eql-icon-static-builder.php` on Windows.
+
 ## Existing scheduled jobs
 
 `ops/host-bin` records the current host scripts for review. They are not copied to
