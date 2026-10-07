@@ -2,6 +2,11 @@
 // Router for PHP's development server; production routing stays in .htaccess.
 $root = dirname(__DIR__);
 $path = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/');
+// The runtime contains private databases, configuration and recovery copies.
+if (preg_match('#(?:^|/)[.]local(?:/|$)#i', str_replace('\\', '/', $path))) {
+    http_response_code(404);
+    return;
+}
 $candidate = realpath($root . $path);
 if ($candidate !== false && str_starts_with($candidate, $root . DIRECTORY_SEPARATOR) && is_file($candidate)) {
     return false;
