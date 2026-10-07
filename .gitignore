@@ -51,3 +51,6 @@ node_modules/
 
 /ops/local-runtime.json
 /release.tar.gz
+/.local/
+/eql_icons/
+/static/eql-icon-index/
