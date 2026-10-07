@@ -197,7 +197,8 @@ view. Zone Viewer changes need supported browsers and local game files; use its
   code. Do not copy it into normal login code.
 - Staging preparation rewrites an explicit list of production URLs. Local and
   new custom files can still contain live links or fetch live hover data. Check
-  the browser network requests and [`staging-prepare.php`](../ops/staging-prepare.php)
+  the browser network requests and the current
+  [`staging-prepare.php` on the staging branch](https://github.com/Maergoth/EQLWiki/blob/staging/ops/staging-prepare.php)
   before claiming an integration test is completely isolated.
 - Staging deployment/refresh reapplies the reviewed Sky Common.js section. It
   does not automatically publish Icon Finder or Icon List database pages.
