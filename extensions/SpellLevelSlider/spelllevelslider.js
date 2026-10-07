@@ -700,6 +700,7 @@
 
 	// Explicit effectiveness caps increase by +1 per rank in every category.
 	var effectCapBaseText = new WeakMap();
+	var effectCapHighlights = new WeakMap();
 	var EFFECT_CAP_PATTERN = /(\bup\s+to\s+(?:level\s+|L\s*))(\d+)|(\b(?:Mesmerize|Frenzy Radius|Reaction Radius)\s*\(\s*\d+(?:\.\d+)?\s*\/\s*)(\d+)/gi;
 
 	function hasEffectCapText( slotTable ) {
@@ -711,7 +712,7 @@
 		);
 	}
 
-	function applyEffectCapScaling( slotTable, level ) {
+	function applyEffectCapScaling( slotTable, level, highlightNumbers ) {
 		if (
 			!slotTable ||
 			!document.createTreeWalker ||
@@ -721,6 +722,13 @@
 		}
 
 		Array.prototype.forEach.call( slotTable.querySelectorAll( 'td, p' ), function ( cell ) {
+			// Restore original text nodes before rebuilding the number-only highlights.
+			( effectCapHighlights.get( cell ) || [] ).forEach( function ( entry ) {
+				entry.rendered[ 0 ].replaceWith( entry.node );
+				entry.rendered.slice( 1 ).forEach( function ( node ) { node.remove(); } );
+			} );
+			var highlights = [];
+			effectCapHighlights.set( cell, highlights );
 			var walker = document.createTreeWalker( cell, NodeFilter.SHOW_TEXT );
 			var nodes = [];
 			var text = '';
@@ -755,6 +763,24 @@
 					return;
 				}
 				effectCapBaseText.set( entry.node, entry.base );
+				if ( highlightNumbers && level > 0 ) {
+					var fragment = document.createDocumentFragment();
+					var offset = 0;
+					entry.edits.forEach( function ( edit ) {
+						fragment.appendChild( document.createTextNode( entry.base.slice( offset, edit.start ) ) );
+						if ( edit.value ) {
+							var span = document.createElement( 'span' );
+							span.className = 'sls-stat sls-modified';
+							span.textContent = edit.value;
+							fragment.appendChild( span );
+						}
+						offset = edit.end;
+					} );
+					fragment.appendChild( document.createTextNode( entry.base.slice( offset ) ) );
+					highlights.push( { node: entry.node, rendered: Array.from( fragment.childNodes ) } );
+					entry.node.replaceWith( fragment );
+					return;
+				}
 				var scaled = entry.base;
 				entry.edits.reverse().forEach( function ( edit ) {
 					scaled = scaled.slice( 0, edit.start ) + edit.value + scaled.slice( edit.end );
@@ -762,7 +788,7 @@
 				entry.node.nodeValue = scaled;
 			} );
 			if ( hasEffectCapText( { textContent: text } ) ) {
-				cell.classList.toggle( 'sls-slot-modified', level > 0 );
+				cell.classList.toggle( 'sls-slot-modified', !highlightNumbers && level > 0 );
 			}
 		} );
 	}
@@ -1148,7 +1174,7 @@
 		);
 
 		applyEffectCapScaling( context.slotTable, level );
-		applyEffectCapScaling( context.summary, level );
+		applyEffectCapScaling( context.summary, level, true );
 		instance.level = level;
 		instance.slider.value = String( level );
 		instance.slider.setAttribute(
