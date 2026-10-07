@@ -7,12 +7,19 @@ reproduce the installed release; dependency upgrades should be reviewed separate
 
 ## Daily workflow
 
-1. Pull `main`, then create a feature branch: `git switch -c feature/my-change`.
+1. Pull `staging`, then create a feature branch: `git switch -c feature/my-change`.
 2. Develop and test locally. Commit the changes and push the feature branch.
-3. Open a pull request into `main`. The check workflow lints changed PHP and shell
+3. Open a pull request into `staging`. The check workflow lints changed PHP and shell
    files and verifies release packaging.
-4. Merge the pull request. Every push to `main` deploys to production over SSH.
-5. Check the **Deploy EQLWiki** workflow for its API health check and backup path.
+4. The owner reviews and merges the pull request. Staging deploys to the test wiki.
+5. After testing, the owner separately approves promotion of the reviewed changes
+   to `main`. Every main push deploys to production over SSH, including docs changes.
+6. Check the **Deploy EQLWiki** workflow for its API health check and backup path.
+
+For contributor onboarding and component ownership, start with [README.md](README.md),
+[CONTRIBUTING.md](CONTRIBUTING.md), [the development guide](docs/EQL_DEVELOPMENT.md),
+and [the custom component map](docs/EQL_COMPONENTS.md). Never promote the entire
+staging branch to production; it contains environment-specific operational work.
 
 The deployment workflow can also be rerun manually on `main` from Actions.
 Avoid editing production application code in File Manager after this import;
@@ -73,10 +80,15 @@ the hosting provider before replacing it.
 
 ## Local Windows development
 
-Run `powershell -ExecutionPolicy Bypass -File ops/start-local.ps1` from this folder.
+For the already configured private Windows installation, run
+`powershell -ExecutionPolicy Bypass -File ops/start-local.ps1` from this folder.
+This is a launcher, not a fresh-clone installer. It requires the ignored runtime
+configuration, local database/tool files, and private local site settings; see
+[the development guide](docs/EQL_DEVELOPMENT.md) for fresh-clone prerequisites.
 The site is at http://127.0.0.1:8080 and its private MariaDB instance is bound to
-127.0.0.1:3308. Paths and credentials are recorded in the ignored
-`ops/local-runtime.json`; keep that file private.
+127.0.0.1:3308. Tool paths and ports are recorded in the ignored
+`ops/local-runtime.json`; database and bridge credentials belong in the private
+database/site configuration files. Keep these files private.
 An additional PHP process on 127.0.0.1:8081 handles internal wiki/forum bridge and
 REST requests, so the Windows development server does not wait on its own request.
 
@@ -203,7 +215,7 @@ Server-side forum bridge calls authenticate through the password gate.
 
 Administrators enter staging with their existing live wiki login. The access page
 verifies their live MediaWiki session through the production session bridge, then
-checks current live groups: `sysop`, `bureaucrat`, `interface-admin`, or `suppress`.
+checks current live groups: `sysop` (administrator) or `bureaucrat`.
 Ordinary users, bots, and blocked users cannot enter. Passwords and two-factor
 authentication remain on the live wiki; staging does not request or verify them.
 The matching staging user is signed in automatically, and missing staging users
@@ -211,11 +223,29 @@ are provisioned. Elevated staging groups are synchronized from the live identity
 This works even when the staging database snapshot is older than the live account.
 
 Host-only, Secure, HttpOnly access cookies last one hour. A minute cron expires
-their web-server allow-list entries. LiteSpeed briefly caches access rules, so the
+their web-server allow-list entries and rechecks the live session and roles.
+Logging out of production, losing these roles, or becoming blocked revokes staging
+access at the next check (normally within a minute plus the server cache delay).
+The verification cookie is kept in private, mode-0600 server token files, outside
+Git and the web root, and deleted when access expires or is revoked.
+LiteSpeed briefly caches access rules, so the
 sign-in page waits 12 seconds before opening staging. Existing production jobs
 are preserved. Refresh/deployment locks also protect access-rule updates.
 The private Basic Auth account remains for deployment health checks and internal
 forum bridge calls; wiki administrators do not need its shared password.
+Normal staging wiki/API/forum password logins and registration routes redirect
+to the live-login gate or reject authentication requests. This policy is loaded
+only by staging's ignored `EQLStaging.php`; its source is excluded from every
+deployment archive. Production and local development do not load it.
+
+Current staging-specific operational sources are maintained on the `staging`
+branch: [command wrapper](https://github.com/Maergoth/EQLWiki/blob/staging/ops/staging-command.sh),
+[release preparation](https://github.com/Maergoth/EQLWiki/blob/staging/ops/staging-prepare.php),
+[live-session cleanup](https://github.com/Maergoth/EQLWiki/blob/staging/ops/staging-access-cleanup.php),
+[login policy](https://github.com/Maergoth/EQLWiki/blob/staging/ops/staging-login-policy.php),
+and [Sky script synchronization](https://github.com/Maergoth/EQLWiki/blob/staging/ops/staging-sync-sky-rewards.php).
+The `ops/` copies on `main` can lag these changes; use the reviewed staging sources
+for staging host maintenance. These scripts must still be installed privately.
 
 Deployment keys are scoped to GitHub environments. `production` accepts only
 `main`; `staging` accepts `staging` and `main` (for the manual refresh workflow).
