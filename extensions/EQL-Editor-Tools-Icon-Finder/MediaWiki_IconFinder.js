@@ -26,7 +26,7 @@
 	var IMAGEINFO_BATCH = 50;
 	var DOWNLOAD_CONCURRENCY = 8;
 	var RESULT_COUNT = 100;
-	var RESULT_PAGE_SIZE = 8;
+	var RESULT_PAGE_SIZE = 12;
 
 	var initializedHost = null;
 	var memoryIndex = null;
