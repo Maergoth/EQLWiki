@@ -26,8 +26,8 @@ async function main() {
   const container = window.document.getElementById('results');
   const counts = [];
   window.testFinder.renderMatches(container, matches, (shown, total) => counts.push([shown, total]));
-  assert.equal(container.querySelectorAll('.eql-iconfinder-result').length, 8);
-  assert.deepEqual(counts, [[8, 100]]);
+  assert.equal(container.querySelectorAll('.eql-iconfinder-result').length, 12);
+  assert.deepEqual(counts, [[12, 100]]);
   const card = container.querySelector('.eql-iconfinder-result');
   const image = card.querySelector('.eql-iconfinder-image-copy');
   image.click();
@@ -62,6 +62,9 @@ async function main() {
   menu.dispatchEvent(new window.FocusEvent('focusout', {relatedTarget: image}));
   assert.equal(menu.open, false);
   const more = container.querySelector('.eql-iconfinder-copy');
+  more.click();
+  assert.equal(container.querySelectorAll('.eql-iconfinder-result').length, 24);
+  assert.deepEqual(counts.at(-1), [24, 100]);
   while (!more.hidden) more.click();
   assert.equal(container.querySelectorAll('.eql-iconfinder-result').length, 100);
   assert.deepEqual(counts.at(-1), [100, 100]);
@@ -75,6 +78,6 @@ async function main() {
   container.querySelector('.eql-iconfinder-image-copy').click();
   assert.equal(writes.pop(), 'J');
   dom.window.close();
-  console.log('Eight initial matches; all 100 reachable; one-click IDs, aliases, copy formats and keyboard dismissal pass.');
+  console.log('Twelve matches per batch; all 100 reachable; one-click IDs, aliases, copy formats and keyboard dismissal pass.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
