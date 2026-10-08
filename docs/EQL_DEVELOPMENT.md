@@ -151,6 +151,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Icon result UI | `node ops/test-icon-finder-ui.cjs` | jsdom; 12-result batches, 100 reachable candidates, selected-alias copying, flyout formats/dismissal |
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
 | Spell rank caps | `node ops/test-spell-level-slider.cjs` | jsdom; categories, cap shorthand, split markup, base restoration, pets, and dynamic cards |
+| Item range ranks | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; bows, throwing weapons, ammo, fractional ranks, base restoration, and dynamic cards |
 | Sky/account state | `node ops/test-sky-rewards.cjs .local/Common.js` | jsdom and a reviewed Common.js snapshot containing the real state service |
 | Exact-artwork catalog | `php ops/test-icon-catalog.php` | GD and private `eql_icons/500.png`, `3470.png`, `3471.png` |
 | Full icon coverage | `php ops/verify-icon-coverage.php <library> <index-json> <audit-manifest>` | GD and the private source library/current index/audit |
