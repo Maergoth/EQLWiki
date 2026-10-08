@@ -183,6 +183,9 @@ character level 50 using the Dual Wield calculator's working model and floor
 display rounding, while retaining explicit values and the existing Backstab
 default. The template uses listed base weapon stats; item ranks do not alter
 the generated value. No item articles need to be edited or backfilled.
+ItemLevelSlider displays generated and existing plain-text bonuses between DMG
+and Ratio. This placement runs from the slider's Git files; it does not require
+another template publication once these defaults are installed.
 
 Application deployment does not publish this database template. After owner
 approval, reread the current template revision, review any intervening changes,

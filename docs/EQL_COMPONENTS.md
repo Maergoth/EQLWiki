@@ -149,6 +149,9 @@ do not infer them from a displayed slider position. Important contracts:
 - `.itemtopbg` followed by `.itembg .itemdata` and `.itembotbg`; original stats
   are retained in `data-ils-*`. Dynamic content can call
   `window.eqlItemLevelSliderRefresh(root)`.
+- Damage rows display DMG, damage bonus, then Ratio. The slider moves the generated
+  bonus span or wraps an existing plain-text bonus in `.ils-damage-bonus`, retaining
+  its label, value, and level annotation. Rank changes leave the bonus unchanged.
 - Levels cap at 10; fractions use `2^fullLevel`, with a compressed visual slider
   curve. Standalone weapon damage scales; elemental/bane/backstab damage and
   weapon delay do not. Every listed `Range:` value gains +10 per whole level,
