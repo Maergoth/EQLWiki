@@ -28,8 +28,8 @@
  *     Elemental/Bane/Backstab/etc. damage fields remain unchanged.
  *     B > 0: B + INT( B * effectiveLevel / 10 )
  *
- *   Ammo Range:
- *     Slot: AMMO only
+ *   Ranged weapon / ammo Range:
+ *     Any listed Range field
  *     Range = B + ( 10 * fullLevel )
  *
  *   Delay:
@@ -639,7 +639,7 @@
 		return signedBase + intFloor( signedBase * effective / 10 );
 	}
 
-	function scaleAmmoRange( base, state ) {
+	function scaleRange( base, state ) {
 		if ( base < 0 ) {
 			return base;
 		}
@@ -684,7 +684,6 @@
 		var rawText = $itemdata.text();
 		var delayMatch = rawText.match( /Atk[\s\u00a0]+Delay:\s*(\d+(?:\.\d+)?)/i );
 		var delay = delayMatch ? parseFloat( delayMatch[ 1 ] ) : 0;
-		var isAmmo = /\bSlot:\s*AMMO\b/i.test( rawText ) || /\bSlot:\s*AMMO\b/i.test( html );
 		var foundQualifiers = {};
 
 		if ( $itemdata.attr( 'data-ils-instrumented' ) === '1' ) {
@@ -702,11 +701,6 @@
 			 * "Cold DMG:" or "Backstab DMG:". Only instrument a standalone DMG field.
 			 */
 			if ( statKey === 'DMG' && !isStandaloneDamageField( sourceHtml, offset ) ) {
-				return match;
-			}
-
-			/* Range scaling is an ammo-only rule. */
-			if ( statKey === 'RANGE' && !isAmmo ) {
 				return match;
 			}
 
@@ -760,7 +754,7 @@
 			} else if ( statKey === 'DMG' ) {
 				newVal = scaleDamage( signedBase, state );
 			} else if ( statKey === 'RANGE' ) {
-				newVal = scaleAmmoRange( baseAbs, state );
+				newVal = scaleRange( baseAbs, state );
 			} else if ( flatFullLevelStats.indexOf( statKey ) !== -1 ) {
 				newVal = scaleFlatFullLevelStat( signedBase, state );
 			} else if ( statKey === 'WT' ) {

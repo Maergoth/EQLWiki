@@ -134,8 +134,11 @@ do not infer them from a displayed slider position. Important contracts:
   `window.eqlItemLevelSliderRefresh(root)`.
 - Levels cap at 10; fractions use `2^fullLevel`, with a compressed visual slider
   curve. Standalone weapon damage scales; elemental/bane/backstab damage and
-  weapon delay do not. Negative penalties, weight, ammo range, regen/haste, and
-  eligible SV Void have distinct rules. Preserve base values to avoid scaling twice.
+  weapon delay do not. Every listed `Range:` value gains +10 per whole level,
+  covering bows, throwing weapons (including those with melee skills), and ammo;
+  fractional progress does not add range. Items without `Range:` gain no field.
+  Negative penalties, weight, regen/haste, and eligible SV Void have distinct
+  rules. Preserve base values to avoid scaling twice.
 - Defaults persist in `ils-default-level-v2` with legacy `ils-default-level`
   migration. Legacy PHP unconditionally assigns its configuration before hook
   registration, so disabling it before `require_once` is not equivalent to the
