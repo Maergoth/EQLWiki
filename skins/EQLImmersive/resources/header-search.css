@@ -397,10 +397,11 @@ body.skin-eqlimmersive #p-search form#searchform > button.cdx-search-input__end-
 	font-size: 0.82rem !important;
 }
 
-/* Compact mode: search becomes a round icon. Opening it shows the form as a
-   fixed overlay calculated by JS. */
-@media (max-width: 980px) {
-	body.skin-eqlimmersive #p-search {
+/* Compact mode: collapse search before the page navigation loses space.
+   Keep this breakpoint in sync with COMPACT_QUERY in header-search.js.
+   Opening the round icon shows the existing fixed overlay. */
+@media (max-width: 1500px) {
+	body.skin-eqlimmersive .vector-header-end > #p-search {
 		flex: 0 0 var(--eql-search-icon-size) !important;
 		width: var(--eql-search-icon-size) !important;
 		min-width: var(--eql-search-icon-size) !important;
@@ -507,7 +508,7 @@ body.skin-eqlimmersive #p-search form#searchform > button.cdx-search-input__end-
 /* Extra tight widths: keep the header one row and let the overlay use almost
    the full viewport when opened. */
 @media (max-width: 640px) {
-	body.skin-eqlimmersive .mw-logo-wordmark {
+	body.skin-eqlimmersive .vector-header-start .mw-logo-wordmark {
 		max-width: 10rem !important;
 		overflow: hidden !important;
 		text-overflow: ellipsis !important;
@@ -533,7 +534,7 @@ body.skin-eqlimmersive #p-search form#searchform > button.cdx-search-input__end-
 }
 
 @media (max-width: 420px) {
-	body.skin-eqlimmersive .mw-logo-wordmark {
+	body.skin-eqlimmersive .vector-header-start .mw-logo-wordmark {
 		display: none !important;
 	}
 

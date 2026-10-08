@@ -53,6 +53,19 @@ or update both producer and consumer when changing database templates.
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
 
+## Responsive header search
+
+The inline search bar collapses to the existing 38px search icon at viewport
+widths of 1500px or less, before it competes with the subject and Talk tabs.
+Opening it uses the fixed search overlay and native suggestions; Escape returns
+focus to the icon, and Enter submits immediately. Keep the compact media query
+in header-search.css and COMPACT_QUERY in header-search.js aligned.
+
+Subject/Talk navigation remains visible as the header narrows. At 640px or less,
+secondary page actions (Read/Edit/History/Watch) move out of the header; they remain
+available in the main menu. The wordmark is shortened at 640px and hidden at
+420px to leave room for navigation and the existing search/menu controls.
+
 ## Database scripts remain active
 
 **Do not clear MediaWiki:Common.js or Common.css.** The current site is not fully
@@ -88,3 +101,8 @@ For ordinary platform behavior use official
 [skin development](https://www.mediawiki.org/wiki/Manual:Skinning),
 [ResourceLoader](https://www.mediawiki.org/wiki/ResourceLoader), and
 [hook documentation](https://www.mediawiki.org/wiki/Manual:Hooks).
+
+Navigation labels are **Talk** and **History** throughout the wiki. The registered
+navigation hook also applies those labels to other skins; EQL page-tool/sidebar
+links and overflow menus use the same wording. Page/action URLs and DOM IDs remain
+unchanged.

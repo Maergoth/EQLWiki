@@ -156,6 +156,22 @@ class Hooks implements
 		$sktemplate,
 		&$links
 	): void {
+		// Use concise labels throughout the wiki while preserving link contracts.
+		foreach ( [ 'namespaces', 'associated-pages' ] as $group ) {
+			foreach ( $links[$group] ?? [] as $key => $item ) {
+				if ( $key === 'talk' || ( $item['context'] ?? '' ) === 'talk' ) {
+					$links[$group][$key]['text'] = 'Talk';
+				}
+			}
+		}
+		foreach ( [ 'views', 'views-overflow', 'actions' ] as $group ) {
+			foreach ( $links[$group] ?? [] as $key => $item ) {
+				if ( $key === 'history' || $key === 'more-history' ) {
+					$links[$group][$key]['text'] = 'History';
+				}
+			}
+		}
+
 		if ( !$this->isEQLImmersiveSkinName( $sktemplate->getSkinName() ) ) {
 			return;
 		}
@@ -408,7 +424,7 @@ class Hooks implements
 		$this->addSidebarItem(
 			$items,
 			'n-eql-history',
-			'View history',
+			'History',
 			$title->getLocalURL( 'action=history' )
 		);
 
@@ -424,7 +440,7 @@ class Hooks implements
 			$this->addSidebarItem(
 				$items,
 				'n-eql-discussion',
-				'Discussion',
+				'Talk',
 				$talkTitle->getLocalURL()
 			);
 		}

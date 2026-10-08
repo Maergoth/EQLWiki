@@ -38,6 +38,10 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- The registered navigation hook uses **Talk** and **History** across wiki skins.
+  EQL page-tool/sidebar links and overflow menus share those labels; their URLs
+  and DOM IDs are unchanged.
+
 - Skin hooks provide Verify2Edit for named users with unconfirmed email when
   the page's edit denial requires email confirmation,
   Watch/Unwatch header links, and expansion of `__EQL_PAGE_TOOLS__` and
@@ -57,7 +61,7 @@ Major custom skin behavior:
   prefix, including later words, escaped LIKE input, and a Latin first-letter
   index bound. Full-text search still uses the parent MediaWiki backend.
   `header-search.js` uses native Vector/MediaWiki suggestions; its narrow-screen
-  overlay starts at 980px. Actual throttle constants are three characters and
+  overlay starts at 1500px, before subject/Talk navigation needs space. Actual throttle constants are three characters and
   one second idle, despite stale comments. Check `guard a`, `Cat F`, mixed-case
   later words, namespace searches, and Enter/keyboard selection.
 
