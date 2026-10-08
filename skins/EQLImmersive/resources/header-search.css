@@ -401,13 +401,25 @@ body.skin-eqlimmersive #p-search form#searchform > button.cdx-search-input__end-
    Keep this breakpoint in sync with COMPACT_QUERY in header-search.js.
    Opening the round icon shows the existing fixed overlay. */
 @media (max-width: 1500px) {
+	/* Match the spacing on either side of the search slot so its auto margins
+	   center the icon between the logo and the first page tab. */
+	body.skin-eqlimmersive .vector-header,
+	body.skin-eqlimmersive .mw-header {
+		column-gap: 0.35rem !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-start,
+	body.skin-eqlimmersive .mw-header-start {
+		margin-right: 0 !important;
+	}
+
 	body.skin-eqlimmersive .vector-header-end > #p-search {
 		flex: 0 0 var(--eql-search-icon-size) !important;
 		width: var(--eql-search-icon-size) !important;
 		min-width: var(--eql-search-icon-size) !important;
 		max-width: var(--eql-search-icon-size) !important;
-		margin-left: 0 !important;
-		margin-right: 0.2rem !important;
+		margin-left: auto !important;
+		margin-right: auto !important;
 		z-index: 2147483645 !important;
 	}
 
@@ -468,6 +480,12 @@ body.skin-eqlimmersive #p-search form#searchform > button.cdx-search-input__end-
 
 	body.skin-eqlimmersive #p-search .vector-typeahead-search-container {
 		display: none !important;
+	}
+
+	/* Native thumbnail spacing is for inline search; the overlay already has
+	   its viewport gutter and must not shift beyond it. */
+	body.skin-eqlimmersive #p-search .cdx-typeahead-search {
+		margin: 0 !important;
 	}
 
 	body.skin-eqlimmersive #p-search.eql-search-expanded > .search-toggle,

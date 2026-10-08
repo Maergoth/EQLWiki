@@ -61,8 +61,9 @@ Major custom skin behavior:
   prefix, including later words, escaped LIKE input, and a Latin first-letter
   index bound. Full-text search still uses the parent MediaWiki backend.
   `header-search.js` uses native Vector/MediaWiki suggestions; its narrow-screen
-  overlay starts at 1500px, before subject/Talk navigation needs space. Actual throttle constants are three characters and
-  one second idle, despite stale comments. Check `guard a`, `Cat F`, mixed-case
+  overlay starts at 1500px, before subject/Talk navigation needs space. The collapsed
+  icon is centered between the logo and subject tab. Actual throttle constants are
+  three characters and one second idle, despite stale comments. Check `guard a`, `Cat F`, mixed-case
   later words, namespace searches, and Enter/keyboard selection.
 
 Preserve the rendered markers in the following table. Changing a template's

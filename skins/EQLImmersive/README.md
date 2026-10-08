@@ -57,6 +57,8 @@ content. CSS order in skin.json and the database Common.css cascade both matter.
 
 The inline search bar collapses to the existing 38px search icon at viewport
 widths of 1500px or less, before it competes with the subject and Talk tabs.
+The collapsed icon is centered in the available space between the logo and the
+subject tab, while the page actions and account controls stay right-aligned.
 Opening it uses the fixed search overlay and native suggestions; Escape returns
 focus to the icon, and Enter submits immediately. Keep the compact media query
 in header-search.css and COMPACT_QUERY in header-search.js aligned.
