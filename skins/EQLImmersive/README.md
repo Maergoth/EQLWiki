@@ -64,10 +64,12 @@ Opening it uses the fixed search overlay and native suggestions; Escape returns
 focus to the icon, and Enter submits immediately. Keep the compact media query
 in header-search.css and COMPACT_QUERY in header-search.js aligned.
 
-Subject/Talk navigation remains visible as the header narrows. At 640px or less,
-secondary page actions (Read/Edit/History/Watch) move out of the header; they remain
-available in the main menu. The wordmark is shortened at 640px and hidden at
-420px to leave room for navigation and the existing search/menu controls.
+The subject tab remains first, with Talk immediately after Read in the EQL
+header, before the editing and history actions. At 640px or less, the subject and
+Talk links stay visible while Read and secondary page actions move out of the
+header; those actions remain available in the main menu. The wordmark is
+shortened at 640px and hidden at 420px to leave room for navigation and the
+existing search/menu controls.
 
 ## Unseen Talk changes
 
@@ -134,5 +136,7 @@ For ordinary platform behavior use official
 
 Navigation labels are **Talk** and **History** throughout the wiki. The registered
 navigation hook also applies those labels to other skins; EQL page-tool/sidebar
-links and overflow menus use the same wording. Page/action URLs and DOM IDs remain
-unchanged.
+links and overflow menus use the same wording. Only EQL Immersive moves Talk
+beside Read; other skins keep their native placement. The primary Talk link keeps
+`ca-talk`, and its overflow copy uses `ca-more-talk` to avoid duplicate IDs. The
+unread counter covers both links. Page/action URLs remain unchanged.

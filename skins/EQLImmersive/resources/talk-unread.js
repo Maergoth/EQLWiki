@@ -7,7 +7,8 @@
 	var userId = Number( mw.config.get( 'wgUserId' ) ) || 0;
 	var prefix = 'eql-talk-seen-v1:' + encodeURIComponent( mw.config.get( 'wgWikiID' ) ) +
 		':' + ( userId > 0 ? 'user-' + userId : 'anon' ) + ':';
-	var linkSelector = '#ca-talk > a, #n-eql-discussion > a, a#ca-talk-sticky-header';
+	var linkSelector = '#ca-talk > a, #ca-more-talk > a, #n-eql-discussion > a, ' +
+		'a#ca-talk-sticky-header';
 	var started = false;
 	var generation = 0;
 	var activeTitle = talkTitle;

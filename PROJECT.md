@@ -280,6 +280,28 @@ only by staging's ignored `EQLStaging.php`; the source `ops/staging-login-policy
 is excluded from every deployment archive. Production and local development do
 not load it. Server operations must be installed privately by the owner.
 
+Staging's optional [Talk contribution policy](extensions/EQLTalkContributions/README.md)
+uses the reviewed activation block in the private, mode-0600 file
+`/home/eqlwikdq/deploy/EQLWiki-staging/talk-contributions-settings.php`.
+The refresh generator appends a conditional include at the end of staging
+`LocalSettings.php`, after its existing isolation settings; an absent policy file
+leaves the prior behavior unchanged. This retains activation through subsequent
+database refreshes without changing the independent live-login gate. Staging
+keeps email delivery/authentication disabled, so accounts with valid email do
+not exercise production's confirmation-timestamp requirement; verify that
+boundary separately with isolated fixtures.
+
+Deploy the extension before activation. Separately install the reviewed
+`staging-refresh.php` host copy, policy file, and matching include in the current
+ignored staging settings under `deploy.lock`, with no `refresh-in-progress` marker.
+Take fresh private backups of the current settings and host generator first;
+application deployment does not install these private files. Verify staging
+permissions and credentialed API health after activation. For rollback, restore
+the prior rights/settings before disabling the policy hook, following the
+[extension rollback guide](extensions/EQLTalkContributions/README.md#rollback),
+and restore the generator/include if required. Keep staging login and isolation
+overrides intact; these changes do not apply to production settings.
+
 Deployment keys are scoped to GitHub environments. `production` accepts only
 `main`; `staging` accepts `staging` and `main` (for the manual refresh workflow).
 Each host SSH key has a forced command and cannot run arbitrary shell commands.

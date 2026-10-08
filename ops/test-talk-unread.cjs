@@ -118,7 +118,7 @@ async function visit( options = {} ) {
     await tick();
     return {
         w, calls, writes, config, errors, tick,
-        anchors: () => Array.from( w.document.querySelectorAll( '#ca-talk > a, #n-eql-discussion > a, a#ca-talk-sticky-header' ) ),
+        anchors: () => Array.from( w.document.querySelectorAll( '#ca-talk > a, #ca-more-talk > a, #n-eql-discussion > a, a#ca-talk-sticky-header' ) ),
         counts: () => Array.from( w.document.querySelectorAll( '.eql-talk-unread-number' ), el => el.textContent ),
         snapshot: () => Object.fromEntries( Array.from( { length: storage.length }, ( _, i ) => {
             const storageKey = storage.key( i ); return [ storageKey, rawGet( storageKey ) ];
@@ -382,6 +382,15 @@ async function main() {
     oldRequest.resolve( response( initialRows ) ); await page.tick();
     checkCount( page, null, 'Stale earlier response cannot overwrite newer refresh' ); page.close();
 
+    page = await visit( { markup: '<div id="p-views"><ul>' +
+        '<li id="ca-view"><a href="/wiki/Synthetic_example">Read</a></li>' +
+        '<li id="ca-talk"><a href="/wiki/Talk:Synthetic_example">Talk</a></li></ul></div>' +
+        '<div id="p-cactions"><ul><li id="ca-more-talk">' +
+        '<a href="/wiki/Talk:Synthetic_example">Talk</a></li></ul></div>' } );
+    checkCount( page, '3', 'Talk after Read and its distinct overflow link receive the same count' );
+    assert.equal( page.w.document.querySelector( '#ca-view .eql-talk-unread-badge' ), null,
+        'Read action does not receive the Talk counter' );
+    page.close();
     page = await visit( { markup: '<a id="ca-talk-sticky-header" href="/wiki/Talk:Synthetic_example">Talk</a>' } );
     checkCount( page, '3', 'Sticky-header Talk link receives accessible badge' ); page.close();
     page = await visit( { visible: false } );

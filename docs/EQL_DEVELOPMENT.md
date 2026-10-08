@@ -181,7 +181,9 @@ UI smoke checks should match the component: source editor and VisualEditor;
 partial/mixed-case search; item/spell/merchant hovers; dynamic sections after
 `wikipage.content`; era modes without disabling editor controls; anonymous and
 account persistence; mobile menu/flyout containment; and the relevant page-specific
-view. For the Talk counter, check unseen revision counts, opening the current
+view. Check Read/Talk header order, selected and custom-namespace Talk links,
+unique primary/overflow Talk IDs, and Talk visibility on phones. For the Talk
+counter, check unseen revision counts, opening the current
 Talk view, changes newer than the displayed revision, old revisions/diffs/editors,
 anonymous/account separation, redirects, missing/unreadable pages, narrow layouts,
 and reduced motion. The synthetic fixture does not verify live permissions or

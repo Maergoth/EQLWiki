@@ -39,8 +39,12 @@ the custom layout and conditional resources. See the
 Major custom skin behavior:
 
 - The registered navigation hook uses **Talk** and **History** across wiki skins.
-  EQL page-tool/sidebar links and overflow menus share those labels; their URLs
-  and DOM IDs are unchanged.
+  EQL page-tool/sidebar links and overflow menus share those labels. In EQL
+  Immersive, the subject tab stays first and Talk follows Read before editing and
+  history actions; other skins retain their native placement. Phone headers keep
+  the subject and Talk links while secondary actions remain in the main menu.
+  The primary Talk ID stays `ca-talk`; its overflow copy uses `ca-more-talk` and
+  shares the unread count. Navigation URLs are unchanged.
 
 - Skin hooks provide Verify2Edit for named users with unconfirmed email when
   the page's edit denial requires email confirmation,

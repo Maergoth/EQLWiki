@@ -195,7 +195,48 @@ class Hooks implements
 
 		$this->addEmailVerificationLink( $sktemplate, $links );
 		$this->addHeaderWatchLink( $sktemplate, $links );
+		$this->moveTalkNextToRead( $links );
 		$this->createViewsOverflow( $links );
+	}
+
+	/** Keep the subject tab first, with Talk immediately after the Read action. */
+	private function moveTalkNextToRead( array &$links ): void {
+		$talk = null;
+		foreach ( [ 'associated-pages', 'namespaces', 'views' ] as $group ) {
+			foreach ( $links[$group] ?? [] as $key => $item ) {
+				if ( !is_array( $item ) ||
+					( $key !== 'talk' && ( $item['context'] ?? '' ) !== 'talk' )
+				) {
+					continue;
+				}
+				$talk ??= $item;
+				unset( $links[$group][$key] );
+			}
+		}
+		if ( $talk === null ) {
+			return;
+		}
+
+		// Core uses this context after the hook to retain ca-talk and rel=discussion.
+		$talk['context'] = 'talk';
+		$talkClass = $talk['class'] ?? '';
+		$talkClass = is_array( $talkClass ) ? implode( ' ', $talkClass ) : (string)$talkClass;
+		if ( !preg_match( '/(?:^|\s)vector-tab-noicon(?:\s|$)/', $talkClass ) ) {
+			$talkClass = trim( $talkClass . ' vector-tab-noicon' );
+		}
+		$talk['class'] = $talkClass;
+		$views = [];
+		foreach ( $links['views'] ?? [] as $key => $item ) {
+			$views[$key] = $item;
+			if ( $key === 'view' ) {
+				$views['talk'] = $talk;
+			}
+		}
+		if ( !isset( $views['talk'] ) ) {
+			// New pages can have a creation action without a Read action.
+			$views = [ 'talk' => $talk ] + $views;
+		}
+		$links['views'] = $views;
 	}
 
 	private function addEmailVerificationLink(
@@ -337,7 +378,13 @@ class Hooks implements
 
 		foreach ( $links['views'] ?? [] as $key => $item ) {
 			$newItem = $item;
-			$newItem['class'] = trim( ( $newItem['class'] ?? '' ) . ' vector-tab-noicon' );
+			if ( $key === 'talk' ) {
+				// The primary Talk context would otherwise give both links ca-talk.
+				$newItem['id'] = 'ca-more-talk';
+				$newItem['rel'] = $newItem['rel'] ?? 'discussion';
+			} else {
+				$newItem['class'] = trim( ( $newItem['class'] ?? '' ) . ' vector-tab-noicon' );
+			}
 			$newItem['is-collapsible'] = true;
 			$clonedViews['more-' . $key] = $newItem;
 		}

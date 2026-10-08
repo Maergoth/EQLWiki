@@ -726,11 +726,16 @@ body.skin-eqlimmersive .vector-header-end .new > a:hover {
 	}
 }
 
-/* Search has already collapsed; retain subject/Talk tabs on narrow phones.
-   The main menu provides the secondary page actions hidden here. */
+/* Keep the subject and Talk links on phones, with the secondary page actions
+   still available in the main menu. Talk now shares the Read action group. */
 @media ( max-width: 640px ) {
-	body.skin-eqlimmersive .vector-header-end #right-navigation {
+	body.skin-eqlimmersive .vector-header-end #right-navigation #p-views .mw-list-item:not( #ca-talk ),
+	body.skin-eqlimmersive .vector-header-end #right-navigation .vector-page-tools-landmark {
 		display: none !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+		gap: 0.72rem;
 	}
 }
 

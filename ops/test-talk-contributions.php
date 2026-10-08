@@ -197,11 +197,15 @@ class EqlTalkFixturePermissionManager extends PermissionManager {
 }
 
 class EqlTalkFixtureSkin extends SkinTemplate {
-    public function __construct( private ?Title $fixtureTitle, private User $fixtureUser ) {
+    public function __construct(
+        private ?Title $fixtureTitle,
+        private User $fixtureUser,
+        private string $fixtureSkinName = 'eqlimmersive'
+    ) {
     }
 
     public function getSkinName(): string {
-        return 'eqlimmersive';
+        return $this->fixtureSkinName;
     }
 
     public function getTitle(): ?Title {
@@ -259,6 +263,12 @@ try {
             $actionKey => [ 'id' => 'ca-' . $actionKey, 'text' => 'Synthetic edit action',
                 'href' => '/wiki/Synthetic?action=edit' ],
         ] ];
+        if ( $namespace >= NS_MAIN ) {
+            $talk = [ 'text' => 'Discussion', 'href' => '/wiki/Talk:Synthetic',
+                'context' => 'talk', 'class' => $namespace % 2 ? 'selected' : '' ];
+            $links['associated-pages']['synthetic_talk'] = $talk;
+            $links['namespaces']['synthetic_talk'] = $talk;
+        }
         $originalAction = $links['views'][$actionKey];
         $skinHooks->onSkinTemplateNavigation__Universal(
             new EqlTalkFixtureSkin( new EqlTalkFixtureTitle( $namespace, $namespaceInfo ), $users[$name] ),
@@ -274,6 +284,16 @@ try {
             eqlTalkCheck( ( $links['views'][$actionKey] ?? null ) === $originalAction,
                 "$label: existing edit/view-source action changed" );
         }
+        if ( $namespace >= NS_MAIN ) {
+            eqlTalkCheck( array_slice( array_keys( $links['views'] ), 0, 2 ) === [ 'view', 'talk' ],
+                "$label: Talk must immediately follow Read, including Verify2Edit pages" );
+            eqlTalkCheck( $links['views']['talk']['href'] === '/wiki/Talk:Synthetic' &&
+                $links['views']['talk']['context'] === 'talk',
+                "$label: primary Talk lost its destination or core ID context" );
+            eqlTalkCheck( $links['views-overflow']['more-talk']['id'] === 'ca-more-talk' &&
+                $links['views-overflow']['more-talk']['href'] === '/wiki/Talk:Synthetic',
+                "$label: overflow Talk needs a distinct ID and the same destination" );
+        }
         eqlTalkCheck( count( $manager->calls ) === $expectedCalls,
             "$label: unexpected permission checks" );
         if ( $expectedCalls ) {
@@ -281,6 +301,98 @@ try {
                 "$label: navigation used incorrect action or permission rigor" );
         }
     }
+
+    $subject = [ 'text' => 'Synthetic subject', 'href' => '/wiki/Synthetic', 'context' => 'subject' ];
+    $standardTalk = [ 'text' => 'Discussion', 'href' => '/wiki/Talk:Synthetic', 'context' => 'talk' ];
+    $customTalk = [ 'text' => 'Discussion', 'href' => '/wiki/Magelo_Blue_talk:Synthetic',
+        'context' => 'talk', 'class' => 'selected new newtalk', 'lang' => 'en',
+        'data-synthetic' => 'preserve' ];
+    $arrayTalk = $customTalk;
+    $arrayTalk['class'] = [ 'selected', 'new', 'newtalk' ];
+    $arrayTextTalk = $arrayTalk;
+    $arrayTextTalk['class'][] = 'vector-tab-noicon';
+    $baseViews = [
+        'view' => [ 'text' => 'Read', 'href' => '/wiki/Synthetic' ],
+        'edit' => [ 'text' => 'Edit', 'href' => '/wiki/Synthetic?action=edit' ],
+        'history' => [ 'text' => 'View history', 'href' => '/wiki/Synthetic?action=history' ],
+    ];
+    $placementCases = [
+        [ 'standard sources', [ 'associated-pages' => [ 'main' => $subject, 'talk' => $standardTalk ],
+            'namespaces' => [ 'main' => $subject, 'talk' => $standardTalk ], 'views' => $baseViews ],
+            $standardTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+        [ 'custom namespace context', [ 'associated-pages' => [ 'magelo_blue' => $subject,
+            'magelo_blue_talk' => $customTalk ], 'namespaces' => [ 'magelo_blue' => $subject,
+            'magelo_blue_talk' => $customTalk ], 'views' => $baseViews ],
+            $customTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+        [ 'array-valued classes', [ 'associated-pages' => [ 'magelo_blue_talk' => $arrayTalk ],
+            'views' => $baseViews ], $arrayTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+        [ 'array with existing text-tab class', [ 'associated-pages' => [ 'magelo_blue_talk' => $arrayTextTalk ],
+            'views' => $baseViews ], $arrayTextTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+        [ 'legacy namespaces only', [ 'namespaces' => [ 'main' => $subject, 'talk' => $standardTalk ],
+            'views' => $baseViews ], $standardTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+        [ 'explicit primary ID', [ 'associated-pages' => [ 'talk' => $standardTalk + [ 'id' => 'ca-talk' ] ],
+            'views' => $baseViews ], $standardTalk + [ 'id' => 'ca-talk' ],
+            [ 'view', 'talk', 'edit', 'history' ] ],
+        [ 'creation without Read', [ 'associated-pages' => [ 'talk' => $standardTalk ],
+            'views' => [ 'edit' => $baseViews['edit'] ] ], $standardTalk, [ 'talk', 'edit' ] ],
+        [ 'no Talk', [ 'associated-pages' => [ 'main' => $subject ], 'namespaces' => [ 'main' => $subject ],
+            'views' => $baseViews ], null, [ 'view', 'edit', 'history' ] ],
+    ];
+    foreach ( $placementCases as [ $label, $links, $originalTalk, $expectedOrder ] ) {
+        $skin = new EqlTalkFixtureSkin( new EqlTalkFixtureTitle( 500, $namespaceInfo ), $users['anonymous'] );
+        $skinHooks->onSkinTemplateNavigation__Universal( $skin, $links );
+        eqlTalkCheck( array_keys( $links['views'] ) === $expectedOrder, "$label: incorrect header action order" );
+        foreach ( [ 'associated-pages', 'namespaces' ] as $group ) {
+            foreach ( $links[$group] ?? [] as $item ) {
+                eqlTalkCheck( ( $item['context'] ?? '' ) !== 'talk', "$label: duplicate source Talk link" );
+                eqlTalkCheck( $item === $subject, "$label: subject navigation changed" );
+            }
+        }
+        if ( $originalTalk !== null ) {
+            $movedTalk = $links['views']['talk'];
+            eqlTalkCheck( $movedTalk['text'] === 'Talk' && $movedTalk['context'] === 'talk',
+                "$label: Talk label/context changed" );
+            foreach ( $originalTalk as $field => $value ) {
+                if ( $field !== 'text' && $field !== 'class' ) {
+                    eqlTalkCheck( $movedTalk[$field] === $value, "$label: lost Talk field $field" );
+                }
+            }
+            $originalClasses = $originalTalk['class'] ?? '';
+            $originalClasses = is_array( $originalClasses ) ? $originalClasses :
+                preg_split( '/\s+/', trim( $originalClasses ), -1, PREG_SPLIT_NO_EMPTY );
+            eqlTalkCheck( is_string( $movedTalk['class'] ), "$label: Talk classes must normalize without warnings" );
+            foreach ( $originalClasses as $class ) {
+                eqlTalkCheck( in_array( $class, explode( ' ', $movedTalk['class'] ), true ),
+                    "$label: lost Talk class $class" );
+            }
+            eqlTalkCheck( in_array( 'vector-tab-noicon', explode( ' ', $movedTalk['class'] ), true ),
+                "$label: Talk action requires the native text-tab class" );
+            eqlTalkCheck( ( $movedTalk['id'] ?? 'ca-talk' ) === 'ca-talk', "$label: primary Talk ID changed" );
+            $overflow = $links['views-overflow']['more-talk'];
+            eqlTalkCheck( $overflow['id'] === 'ca-more-talk' && $overflow['rel'] === 'discussion' &&
+                $overflow['href'] === $movedTalk['href'] && $overflow['class'] === $movedTalk['class'],
+                "$label: overflow Talk ID/URL/selection is incorrect" );
+        } else {
+            eqlTalkCheck( !isset( $links['views']['talk'] ) && !isset( $links['views-overflow']['more-talk'] ),
+                "$label: hook invented a Talk link" );
+        }
+        $once = $links;
+        $skinHooks->onSkinTemplateNavigation__Universal( $skin, $links );
+        eqlTalkCheck( $links === $once, "$label: repeated navigation hook must be stable" );
+    }
+
+    $links = [ 'associated-pages' => [ 'main' => $subject, 'talk' => $standardTalk ],
+        'namespaces' => [ 'main' => $subject, 'talk' => $standardTalk ], 'views' => $baseViews ];
+    $skinHooks->onSkinTemplateNavigation__Universal(
+        new EqlTalkFixtureSkin( new EqlTalkFixtureTitle( NS_MAIN, $namespaceInfo ), $users['unconfirmed'], 'vector-2022' ),
+        $links
+    );
+    eqlTalkCheck( array_keys( $links['views'] ) === array_keys( $baseViews ) &&
+        $links['associated-pages']['talk']['href'] === $standardTalk['href'] &&
+        $links['namespaces']['talk']['context'] === 'talk' && !isset( $links['views-overflow'] ),
+        'Other skins must retain native Talk placement' );
+    eqlTalkCheck( $links['associated-pages']['talk']['text'] === 'Talk' &&
+        $links['views']['history']['text'] === 'History', 'Other skins retain concise global labels' );
 } finally {
     $instance->setValue( null, $oldInstance );
 }
