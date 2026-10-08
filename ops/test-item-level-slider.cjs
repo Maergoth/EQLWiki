@@ -124,8 +124,47 @@ async function main() {
 	assert.equal( window.document.querySelector( '.ils-stat[data-ils-stat="RANGE"]' ).textContent, '105' );
 	assert.equal( window.document.querySelectorAll( '.ils-slider' ).length, 1 );
 	assert.equal( window.localStorage.getItem( 'ils-default-level-v2' ), '{"full":3,"fraction":5}' );
+
+	// The displayed order is DMG, existing/generated bonus, then calculated ratio.
+	const bonusCases = [
+		{ title: 'Inline generated bonus', stats: 'DMG: 20<span class="eql-generated-damage-bonus">&nbsp;&nbsp;DMG Bonus: 10 @ lvl 50</span><br>BACKSTAB: 20', bonus: 'DMG Bonus: 10 @ lvl 50' },
+		{ title: 'Previous template footer', stats: 'DMG: 20<br>BACKSTAB: 20<br>Race: ALL<br><span class="eql-generated-damage-bonus">DMG Bonus: 10 @ lvl 50</span><br>', bonus: 'DMG Bonus: 10 @ lvl 50' },
+		{ title: 'Inline explicit override', stats: 'DMG: 20  DMG Bonus: 99 @ lvl 30  AC: 3<br>BACKSTAB: 7', bonus: 'DMG Bonus: 99 @ lvl 30' },
+		{ title: 'Separate explicit zero', stats: 'DMG: 20<br>Dmg Bon: 0<br>Class: ALL<br>BACKSTAB: 7', bonus: 'Dmg Bon: 0' },
+		{ title: 'Delay-line override', stats: 'DMG: 20<br>Atk Delay: 20 Damage Bonus: +7 @ lvl 50<br>Class: ALL', bonus: 'Damage Bonus: +7 @ lvl 50' },
+		{ title: 'Short full-word label', stats: 'DAMAGE: 20<br>damage bon: 5<br>Class: ALL', bonus: 'damage bon: 5' }
+	];
+	for ( const test of bonusCases ) {
+		window.localStorage.clear();
+		window.document.body.innerHTML = card( test.title, 'Slot: PRIMARY<br>Skill: 1H Blunt Atk Delay: 20<br>' + test.stats );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const wrapper = window.document.querySelector( '.ils-item-wrapper' );
+		const item = wrapper.querySelector( '.itemdata' );
+		const damage = item.querySelector( '.ils-stat[data-ils-stat="DMG"]' );
+		const bonus = item.querySelector( '.eql-generated-damage-bonus, .ils-damage-bonus' );
+		const ratio = item.querySelector( '.ils-ratio' );
+		assert.equal( bonus.textContent.trim(), test.bonus, `${test.title}: original bonus text` );
+		assert.equal( bonus.nextSibling, ratio, `${test.title}: bonus directly before ratio` );
+		assert.ok( damage.compareDocumentPosition( bonus ) & window.Node.DOCUMENT_POSITION_FOLLOWING, `${test.title}: bonus follows damage` );
+		assert.equal( damage.parentNode, bonus.parentNode, `${test.title}: one damage line` );
+		assert.doesNotMatch( item.innerHTML.slice( item.innerHTML.indexOf( '</span>' ) + 7, item.innerHTML.indexOf( bonus.outerHTML ) ), /<br\b/i, `${test.title}: no break before bonus` );
+		if ( test.title === 'Inline explicit override' ) {
+			assert.equal( item.querySelector( '.ils-stat[data-ils-stat="AC"]' ).textContent, '3' );
+			assert.match( item.textContent, /BACKSTAB: 7/ );
+		}
+		const baseHtml = item.innerHTML;
+		input( window, wrapper.querySelector( '.ils-slider' ), 10000 );
+		assert.equal( damage.textContent, '40', `${test.title}: rank damage still scales` );
+		assert.equal( bonus.textContent.trim(), test.bonus, `${test.title}: rank preserves bonus` );
+		assert.equal( ratio.querySelector( '.ils-ratio-value' ).textContent, '(2.00)' );
+		window.eqlItemLevelSliderRefresh( wrapper );
+		assert.equal( item.querySelectorAll( '.eql-generated-damage-bonus, .ils-damage-bonus' ).length, 1, `${test.title}: refresh does not duplicate bonus` );
+		input( window, wrapper.querySelector( '.ils-slider' ), 0 );
+		assert.equal( item.innerHTML, baseHtml, `${test.title}: base restoration preserves placement` );
+	}
+
 	window.close();
-	console.log( `Item slider: ${cases.length} synthetic cards pass whole/fractional ranks, cap, reset, and dynamic content.` );
+	console.log( `Item slider: ${cases.length} range cards and ${bonusCases.length} damage-bonus cards pass ranks, reset, ordering, and refresh.` );
 }
 
 main().catch( error => { console.error( error ); process.exitCode = 1; } );
