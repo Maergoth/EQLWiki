@@ -151,8 +151,8 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Icon metadata | `node ops/test-icon-finder.cjs` | No third-party package; IDs, parameters, aliases |
 | Icon result UI | `node ops/test-icon-finder-ui.cjs` | jsdom; 12-result batches, 100 reachable candidates, selected-alias copying, flyout formats/dismissal |
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
-| Item range ranks | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; bows, throwing weapons, ammo, fractional ranks, base restoration, and dynamic cards |
 | Spell rank caps | `node ops/test-spell-level-slider.cjs` | jsdom; categories, cap shorthand, split markup, base restoration, pets, and dynamic cards |
+| Item range ranks and bonus layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; bows, throwing weapons, ammo, fractional ranks, base restoration, dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
 | Itembox damage bonus | `php maintenance/run.php ./ops/test-itembox.php` | Configured local wiki with ParserFunctions string functions and Variables; supplies the reviewed template in memory, parses synthetic cards, and saves no pages. Covers handedness, level-50 rounding, delay cap, explicit/zero overrides, Backstab, excluded items, and per-card isolation |
 | Sky/account state | `node ops/test-sky-rewards.cjs .local/Common.js` | jsdom and a reviewed Common.js snapshot containing the real state service |
 | Exact-artwork catalog | `php ops/test-icon-catalog.php` | GD and private `eql_icons/500.png`, `3470.png`, `3471.png` |
@@ -185,6 +185,8 @@ For Itembox, use a synthetic primary-capable 2H Blunt weapon with DMG 45 and
 Atk Delay 52: the generated bonus should be `34 @ lvl 50`. A 1H weapon with
 DMG 40 and delay 50 should show 25. Check existing explicit values on the DMG
 line, delay line, and their own line, plus zero; no second bonus should appear.
+With the slider active, generated and plain-text explicit bonuses appear between
+DMG and Ratio. Check this order on narrow cards and after dynamic content refresh.
 Check article and item hover output on staging after the separately approved
 template publication. Item rank changes should leave this base-stat default
 unchanged, just as they leave Backstab unchanged. The parser fixture verifies

@@ -678,6 +678,61 @@
 		return Math.abs( Number( a ) - Number( b ) ) > 0.0000001;
 	}
 
+	function placeDamageBonusBeforeRatio( $itemdata ) {
+		var $ratio = $itemdata.find( '.ils-ratio' ).first();
+		var $bonus = $itemdata.find( '.eql-generated-damage-bonus' ).first();
+		var node;
+		var match;
+		var field;
+		var before;
+		var after;
+
+		if ( !$ratio.length ) {
+			return;
+		}
+
+		if ( !$bonus.length ) {
+			// Explicit values remain authoritative; move their existing text only.
+			var walker = document.createTreeWalker( $itemdata[ 0 ], NodeFilter.SHOW_TEXT );
+			var bonusRegex = /\b(?:DMG|Damage)\s+Bon(?:us)?\s*:\s*[+\-]?\d+(?:\.\d+)?(?:\s*@\s*lvl\s*\d+)?/i;
+			while ( ( node = walker.nextNode() ) ) {
+				match = node.nodeValue.match( bonusRegex );
+				if ( !match ) {
+					continue;
+				}
+				node = node.splitText( match.index );
+				node.splitText( match[ 0 ].length );
+				field = document.createElement( 'span' );
+				field.className = 'ils-damage-bonus';
+				node.parentNode.replaceChild( field, node );
+				field.appendChild( node );
+				$bonus = $( field );
+				break;
+			}
+		}
+
+		if ( !$bonus.length ) {
+			return;
+		}
+
+		// Remove the old row's break only when the bonus occupied that row alone.
+		before = $bonus[ 0 ].previousSibling;
+		after = $bonus[ 0 ].nextSibling;
+		while ( before && before.nodeType === 3 && !before.nodeValue.trim() ) {
+			before = before.previousSibling;
+		}
+		while ( after && after.nodeType === 3 && !after.nodeValue.trim() ) {
+			after = after.nextSibling;
+		}
+		if ( ( !before || before.nodeName === 'BR' ) && after && after.nodeName === 'BR' ) {
+			$( after ).remove();
+		}
+		if ( !/^\s/.test( $bonus.text() ) ) {
+			$bonus.prepend( '\u00a0\u00a0' );
+		}
+		$bonus.insertBefore( $ratio );
+	}
+
 	function instrumentStats( $itemdata ) {
 		var html = $itemdata.html();
 		var regex = buildStatRegex();
@@ -736,6 +791,7 @@
 		'"></span>';
 
 		$itemdata.html( html );
+		placeDamageBonusBeforeRatio( $itemdata );
 	}
 
 	function applyLevel( $container, state ) {
