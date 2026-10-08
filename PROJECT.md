@@ -176,6 +176,38 @@ reward section. Tests exercise the actual EQLUserState service with controlled
 API:Options responses, including tooltip changes, legacy migration, fresh DOM
 sessions with persisted storage, zero/cleared numbers, and account isolation.
 
+## Weapon damage bonus defaults
+
+[`ops/itembox.wiki`](ops/itembox.wiki) is the reviewed `Template:Itembox` source,
+starting from live revision 157242. It generates missing damage bonuses at
+character level 50 using the Dual Wield calculator's working model and floor
+display rounding, while retaining explicit values and the existing Backstab
+default. The template uses listed base weapon stats; item ranks do not alter
+the generated value. No item articles need to be edited or backfilled.
+ItemLevelSlider displays generated and existing plain-text bonuses between DMG
+and Ratio. This placement runs from the slider's Git files; it does not require
+another template publication once these defaults are installed.
+
+Application deployment does not publish this database template. After owner
+approval, reread the current template revision, review any intervening changes,
+and run the reviewed private copy of `ops/sync-itembox.php` through the target
+wiki's maintenance runner with `--source` set to the reviewed wikitext,
+`--expected-revision` set to that freshly reviewed revision ID, and `--backup`
+set to a new file in an existing private directory outside the web root. Local
+development can use the router-blocked `.local/` directory. The helper targets
+only Itembox, refuses concurrent edits, and saves a recovery copy before writing.
+Inspect `--help` first; do not run this publishing helper as a routine test.
+
+Use `php maintenance/run.php ./ops/test-itembox.php` for read-only parser checks:
+the harness supplies an unsaved template revision in memory. After approved
+publication, verify weapon articles and hovers, explicit overrides, and Rogue
+Backstab. If rollback is needed, reread the current revision, save a fresh
+private copy, and restore the original wikitext with the wiki's
+[source editor and edit-conflict protection](https://www.mediawiki.org/wiki/Help:Edit_conflict).
+The publishing helper validates the new damage-bonus contracts and does not
+accept the original template as rollback input. A full staging database refresh
+replaces staging-only template changes; republish the reviewed template after refresh.
+
 ## Existing scheduled jobs
 
 `ops/host-bin` records the current host scripts for review. They are not copied to
