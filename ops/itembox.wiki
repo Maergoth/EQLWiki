@@ -1,0 +1,39 @@
+<includeonly><div class="itemtopbg"><div class="itemtitle">{{{itemname}}}</div></div>
+<div class="itembg"><div class="itemdata"><div class="itemicon">[[File:item_{{{lucy_img_ID}}}.png|right|link=]]</div><!--
+-->{{#vardefine:itembox_stats|{{{statsblock|}}}}}<!--
+-->{{#vardefine:itembox_classline|{{#explode:{{#explode:{{#var:itembox_stats}}|Class:|1|2}}|<br>|0|2}}}}<!--
+-->{{#vardefine:itembox_rogusable|{{#if:{{#pos:{{#var:itembox_classline}}|ROG}}|1|{{#if:{{#pos:{{#var:itembox_classline}}|ALL}}|1|}}}}}}<!--
+ Damage bonus uses the Dual Wield calculator display model at character level 50.
+ Explicit bonus labels always win; item rank does not change this base-stat default.
+-->{{#vardefine:itembox_db_stats|{{#replace:{{#replace:{{uc:{{#var:itembox_stats}}}}|<BR />|<BR>}}|<BR/>|<BR>}}}}<!--
+-->{{#vardefine:itembox_db_override|{{#if:{{#pos:{{#var:itembox_db_stats}}|DMG BONUS:}}|1|{{#if:{{#pos:{{#var:itembox_db_stats}}|DMG BON:}}|1|{{#if:{{#pos:{{#var:itembox_db_stats}}|DAMAGE BONUS:}}|1|{{#if:{{#pos:{{#var:itembox_db_stats}}|DAMAGE BON:}}|1|}}}}}}}}}}<!--
+-->{{#vardefine:itembox_db_slots|{{#explode:{{#explode:{{#var:itembox_db_stats}}|SLOT:|1|2}}|<BR>|0|2}}}}<!--
+-->{{#vardefine:itembox_db_skill|{{#explode:{{#explode:{{#explode:{{#var:itembox_db_stats}}|SKILL:|1|2}}|<BR>|0|2}}|ATK DELAY:|0|2}}}}<!--
+-->{{#vardefine:itembox_db_hand|{{#switch:{{#var:itembox_db_skill}}|1H BLUNT=0.8|1H SLASHING=0.8|PIERCING=0.8|1H PIERCING=0.8|HAND TO HAND=0.8|2H BLUNT=1.1|2H SLASHING=1.1|2H PIERCING=1.1|#default=}}}}<!--
+-->{{#vardefine:itembox_db_damage_label|{{#if:{{#pos:{{#var:itembox_db_stats}}|DMG:}}|DMG:|DAMAGE:}}}}<!--
+-->{{#vardefine:itembox_db_damage_prefix|{{#explode:{{#explode:{{#var:itembox_db_stats}}|{{#var:itembox_db_damage_label}}|0|2}}|<BR>|-1}}}}<!--
+-->{{#vardefine:itembox_db_damage_line|{{#if:{{#var:itembox_db_damage_prefix}}||{{#explode:{{#explode:{{#var:itembox_db_stats}}|{{#var:itembox_db_damage_label}}|1|2}}|<BR>|0|2}}}}}}<!--
+-->{{#vardefine:itembox_db_damage|{{#iferror:{{#expr:0 + {{#explode:{{#var:itembox_db_damage_line}}| |0|2}}}}|0}}}}<!--
+-->{{#vardefine:itembox_db_delay|{{#iferror:{{#expr:0 + {{#explode:{{#explode:{{#explode:{{#var:itembox_db_stats}}|ATK DELAY:|1|2}}|<BR>|0|2}}| |0|2}}}}|0}}}}<!--
+-->{{#vardefine:itembox_db_value|{{#if:{{#var:itembox_db_override}}||{{#if:{{#pos:{{#var:itembox_db_slots}}|PRIMARY}}|{{#if:{{#var:itembox_db_hand}}|{{#ifexpr:{{#var:itembox_db_damage}} > 0 and {{#var:itembox_db_delay}} > 0|{{#expr:floor ({{#var:itembox_db_hand}} * {{#ifexpr:{{#var:itembox_db_damage}} > 50|{{#var:itembox_db_damage}}|50}} * {{#ifexpr:{{#var:itembox_db_delay}} > 50|50|{{#var:itembox_db_delay}}}} / 40 * (50 / 100))}}|}}|}}|}}}}}}<!--
+-->{{#if:{{#var:itembox_rogusable}}|{{#if:{{#pos:{{#var:itembox_stats}}|Skill: Piercing}}|{{#if:{{#pos:{{#var:itembox_stats}}|DMG:}}|{{#if:{{#pos:{{#var:itembox_stats}}|BACKSTAB:}}|{{#var:itembox_stats}}|{{#explode:{{#var:itembox_stats}}|DMG:|0|2}}DMG: {{#expr:{{#explode:{{#explode:{{#var:itembox_stats}}|DMG:|1|2}}|<br>|0|2}}}}<br>BACKSTAB: {{#expr:{{#explode:{{#explode:{{#var:itembox_stats}}|DMG:|1|2}}|<br>|0|2}}}}<br>{{#explode:{{#explode:{{#var:itembox_stats}}|DMG:|1|2}}|<br>|1|2}}}}|{{#var:itembox_stats}}}}|{{#var:itembox_stats}}}}|{{#var:itembox_stats}}}}<!--
+-->{{#if:{{#var:itembox_db_value}}|{{#ifeq:{{#sub:{{#var:itembox_db_stats}}|-4}}|<BR>||<br>}}<span class="eql-generated-damage-bonus">DMG Bonus: {{#var:itembox_db_value}} @ lvl 50</span><br>}}<!--
+-->{{#if:{{{focus_effect|}}}|Focus Effect: [[{{{focus_effect}}}|<span class="itemeff">{{{focus_effect}}}</span>]]<br>}}
+</div></div><div class="itembotbg"></div></includeonly><noinclude>
+===Description===
+This is the template page for the item stats box.
+
+This template is used internally by [[Template:Itempage]].
+
+For Rogue-usable piercing weapons, Backstab damage defaults to the weapon's listed damage. An explicit <code>BACKSTAB:</code> line in the stats block overrides that assumption.
+
+For primary-capable melee weapons without an explicit <code>DMG Bonus:</code>, <code>Dmg Bon:</code>, <code>Damage Bonus:</code>, or <code>Damage Bon:</code> field (case insensitive), damage bonus is generated at character level 50 from the listed base weapon damage and attack delay:
+
+<pre>floor(Hand Modifier * max(50, Damage) * min(Delay, 50) / 40 * (50 / 100))</pre>
+
+The hand modifier is 0.8 for one-handed weapons (including Piercing and Hand to Hand) and 1.1 for two-handed weapons. The weapon must list PRIMARY, a supported melee skill, positive standalone DMG/DAMAGE, and positive Atk Delay. Ranged-only weapons, ammo, and secondary-only weapons receive no generated field.
+
+The generated value is a primary-hand estimate using the working [[Skill Dual Wield#Working Legends Damage Bonus Model|Dual Wield calculator model]], including its provisional floor rounding. Existing values, including zero, remain unchanged. This default is calculated when the shared template renders; it is never saved into the item article. Like the Backstab default, it uses listed base damage and does not follow item-rank slider changes.
+
+[[Category:Templates]]
+</noinclude>
