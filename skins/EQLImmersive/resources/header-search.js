@@ -12,7 +12,8 @@
 
 	var OPEN_CLASS = 'eql-search-open';
 	var EXPANDED_CLASS = 'eql-search-expanded';
-	var COMPACT_QUERY = '(max-width: 980px)';
+	// Keep in sync with the compact-mode CSS breakpoint.
+	var COMPACT_QUERY = '(max-width: 1500px)';
 	var initialized = false;
 	var resizeTimer = null;
 

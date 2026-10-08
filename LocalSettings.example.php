@@ -191,7 +191,16 @@ $wgTurnstileSecretKey= 'CHANGE_ME';
 $wgCaptchaTriggers['create'] = false;
 $wgCaptchaTriggers['sendemail'] = false;
 
-$wgEmailConfirmToEdit = true;
+// Talk pages allow IP-attributed edits; all subject pages require a named account.
+// The extension preserves confirmed-email editing and required signup email.
+wfLoadExtension( 'EQLTalkContributions' );
+$wgEmailConfirmToEdit = false;
+$wgEQLTalkContributionsRequireConfirmedEmail = true;
+$wgGroupPermissions['*']['edit'] = true;
+$wgGroupPermissions['*']['createtalk'] = true;
+$wgGroupPermissions['*']['createpage'] = false;
+$wgGroupPermissions['user']['createpage'] = true;
+$wgAutoCreateTempUser['enabled'] = false;
 
 # Max upload size
 $wgMaxUploadSize = 134217728;

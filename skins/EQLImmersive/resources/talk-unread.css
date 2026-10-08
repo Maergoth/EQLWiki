@@ -1,0 +1,75 @@
+/* EQLImmersive: a quiet green unread counter beside Talk. */
+body.skin-eqlimmersive .eql-talk-unread-badge {
+	position: relative;
+	isolation: isolate;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	min-width: 1.45em;
+	height: 1.45em;
+	margin-inline-start: 0.4em;
+	padding: 0 0.2em;
+	overflow: hidden;
+	border: 1px solid rgba( 116, 219, 148, 0.4 );
+	border-radius: 999px;
+	background: #153623;
+	box-shadow: 0 0 5px rgba( 91, 207, 125, 0.12 );
+	color: #c3f5d0;
+	font: 700 0.68rem/1 system-ui, sans-serif;
+	letter-spacing: 0;
+	text-shadow: none;
+	vertical-align: middle;
+}
+
+body.skin-eqlimmersive .eql-talk-unread-badge::before {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 200%;
+	aspect-ratio: 1;
+	background: conic-gradient( transparent 35%, rgba( 130, 239, 164, 0.65 ) 65%, transparent 90% );
+	animation: eql-talk-unread-swirl 7s linear infinite;
+}
+
+body.skin-eqlimmersive .eql-talk-unread-badge::after {
+	content: '';
+	position: absolute;
+	inset: 1px;
+	border-radius: inherit;
+	background: #153623;
+}
+
+body.skin-eqlimmersive .eql-talk-unread-number {
+	position: relative;
+	z-index: 1;
+}
+
+body.skin-eqlimmersive #ca-talk-sticky-header.eql-talk-has-unread {
+	width: auto;
+}
+
+/* Leave room for the three-digit badge and personal tools on phones. */
+@media ( max-width: 420px ) {
+	body.skin-eqlimmersive .vector-header-end .eql-header-page-actions-wrap:has( .eql-talk-unread-badge ) .vector-menu-tabs .mw-list-item > a {
+		padding-inline: 0.3rem !important;
+	}
+
+	body.skin-eqlimmersive .eql-talk-unread-badge {
+		margin-inline-start: 0.3em;
+		padding-inline: 0.1em;
+	}
+}
+
+@keyframes eql-talk-unread-swirl {
+	from { transform: translate( -50%, -50% ) rotate( 0turn ); }
+	to { transform: translate( -50%, -50% ) rotate( 1turn ); }
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	body.skin-eqlimmersive .eql-talk-unread-badge::before {
+		animation: none;
+		transform: translate( -50%, -50% );
+	}
+}

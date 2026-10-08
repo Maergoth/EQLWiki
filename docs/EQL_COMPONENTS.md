@@ -38,7 +38,16 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
-- Skin hooks provide Verify2Edit for named users with unconfirmed email,
+- The registered navigation hook uses **Talk** and **History** across wiki skins.
+  EQL page-tool/sidebar links and overflow menus share those labels. In EQL
+  Immersive, the subject tab stays first and Talk follows Read before editing and
+  history actions; other skins retain their native placement. Phone headers keep
+  the subject and Talk links while secondary actions remain in the main menu.
+  The primary Talk ID stays `ca-talk`; its overflow copy uses `ca-more-talk` and
+  shares the unread count. Navigation URLs are unchanged.
+
+- Skin hooks provide Verify2Edit for named users with unconfirmed email when
+  the page's edit denial requires email confirmation,
   Watch/Unwatch header links, and expansion of `__EQL_PAGE_TOOLS__` and
   `__EQL_ADMIN_TOOLS__`. Admin menus check sysop/bureaucrat/interface-admin
   membership plus actual action permissions.
@@ -49,6 +58,19 @@ Major custom skin behavior:
 - `main.css`, `header-actions.css`, `sidebar-redlinks.css`, `responsive-mobile.css`,
   and related modules: game-themed shell, article/table layouts, mobile handling,
   fixed footer, and menus. Database Common.css adds further overrides.
+- [`talk-unread.js/css`](../skins/EQLImmersive/resources/talk-unread.js), loaded
+  as `skins.EQLImmersive.talkUnread`: green Talk counter for unseen revision
+  changes, capped at `99+`, with a subtle swirl that respects reduced motion.
+  `Hooks.php` supplies the associated Talk title and displayed revision metadata;
+  bounded read-only API queries resolve Talk redirects and check readability.
+  A visible current Talk view records only its displayed revision. Old revisions,
+  diffs, editors, and background tabs do not clear unseen changes. Browser-local
+  `eql-talk-seen-v1` markers are separated by wiki, account/anonymous identity, and
+  canonical Talk title; they neither sync across devices nor use Common.js state.
+  Missing/unreadable pages and API failures hide the counter. See the
+  [skin guide](../skins/EQLImmersive/README.md#unseen-talk-changes) for the contract
+  and [MediaWiki Revisions](https://www.mediawiki.org/wiki/API:Revisions) /
+  [Info](https://www.mediawiki.org/wiki/API:Info) for API mechanics.
 - `announcements.js`: collapse state and recognition of new announcement entries.
   `perf-widget.js`: registered-user diagnostics and page statistics.
 - [`SearchMySQL.php`](../skins/EQLImmersive/includes/SearchMySQL.php): registered
@@ -56,8 +78,9 @@ Major custom skin behavior:
   prefix, including later words, escaped LIKE input, and a Latin first-letter
   index bound. Full-text search still uses the parent MediaWiki backend.
   `header-search.js` uses native Vector/MediaWiki suggestions; its narrow-screen
-  overlay starts at 980px. Actual throttle constants are three characters and
-  one second idle, despite stale comments. Check `guard a`, `Cat F`, mixed-case
+  overlay starts at 1500px, before subject/Talk navigation needs space. The collapsed
+  icon is centered between the logo and subject tab. Actual throttle constants are
+  three characters and one second idle, despite stale comments. Check `guard a`, `Cat F`, mixed-case
   later words, namespace searches, and Enter/keyboard selection.
 
 Preserve the rendered markers in the following table. Changing a template's
@@ -75,6 +98,29 @@ class can silently stop its skin module from loading:
 `wikipage.content` is the normal integration point for dynamically inserted
 parsed fragments. Preserve refresh hooks so hovers/sliders/state attach after
 lazy loading, not only on the initial document.
+
+## Optional talk contribution policy
+
+[`extensions/EQLTalkContributions/`](../extensions/EQLTalkContributions/) is a new
+optional extension, absent from the audited live inventory. The sanitized
+settings example includes its activation block; ignored environment settings
+must be updated separately before it runs.
+
+`extension.json` registers `includes/Hooks.php` for `getUserPermissionsErrors`
+and `AuthChangeFormFields`. With the documented configuration, anonymous visitors
+and named users without confirmed email may edit/create talk pages, while every
+subject namespace requires a named account with confirmed email. Magelo talk
+namespaces 501/503 use the same policy. Existing namespace/page protection,
+blocks, sessions, CAPTCHA, and rate limits remain enforced by MediaWiki. Automatic
+temporary accounts are disabled in the activation block so anonymous revisions
+retain IP attribution. The signup form still requires email, and the skin leaves
+usable talk edit links available to unconfirmed named users.
+
+See the [extension guide](../extensions/EQLTalkContributions/README.md) for exact
+settings, verification, and rollback ordering. Restoring the prior restrictions
+before unloading the hook is required to avoid opening subject-page editing.
+Staging's independent login gate remains active and limits anonymous browser
+testing. Standard permissions are described in the [MediaWiki user rights manual](https://www.mediawiki.org/wiki/Manual:User_rights).
 
 ## Metadata, era filtering, and verification
 

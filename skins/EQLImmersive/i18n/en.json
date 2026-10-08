@@ -3,5 +3,7 @@
 		"authors": [ "EverQuest Legends Wiki" ]
 	},
 	"skinname-eqlimmersive": "EQL Immersive",
-	"eqlimmersive-skin-desc": "Immersive dark-fantasy theme for EverQuest Legends Wiki."
+	"eqlimmersive-skin-desc": "Immersive dark-fantasy theme for EverQuest Legends Wiki.",
+	"eql-talk-unread-label": "$1 unseen Talk {{PLURAL:$1|change|changes}}",
+	"eql-talk-unread-label-more": "More than 99 unseen Talk changes"
 }

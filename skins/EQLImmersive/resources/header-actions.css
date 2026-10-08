@@ -716,10 +716,6 @@ body.skin-eqlimmersive .vector-header-end .new > a:hover {
 		min-width: 220px;
 		max-width: 340px;
 	}
-
-	body.skin-eqlimmersive .vector-header-end #left-navigation {
-		display: none !important;
-	}
 }
 
 @media ( max-width: 1150px ) {
@@ -728,9 +724,18 @@ body.skin-eqlimmersive .vector-header-end .new > a:hover {
 		min-width: 200px;
 		max-width: none;
 	}
+}
 
-	body.skin-eqlimmersive .vector-header-end > .eql-header-page-actions-wrap {
+/* Keep the subject and Talk links on phones, with the secondary page actions
+   still available in the main menu. Talk now shares the Read action group. */
+@media ( max-width: 640px ) {
+	body.skin-eqlimmersive .vector-header-end #right-navigation #p-views .mw-list-item:not( #ca-talk ),
+	body.skin-eqlimmersive .vector-header-end #right-navigation .vector-page-tools-landmark {
 		display: none !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+		gap: 0.72rem;
 	}
 }
 
