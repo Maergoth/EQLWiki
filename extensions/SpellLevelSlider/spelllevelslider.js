@@ -469,6 +469,7 @@
 
 		context = {
 			spellPage: spellPage,
+			summary: summary,
 			detailTable: detailTable,
 			slotTable: slotTable,
 			mana: createField( findDetailCell( detailTable, 'Mana' ) ),
@@ -697,28 +698,21 @@
 		return sign + trimDecimal( percentage, 2 ) + '%';
 	}
 
-	// SpellLevelSlider charm cap scaling.
-	// Charmable mob level increases by exactly +1 per slider rank.
-	var charmCapBaseText = new WeakMap();
+	// Explicit effectiveness caps increase by +1 per rank in every category.
+	var effectCapBaseText = new WeakMap();
+	var effectCapHighlights = new WeakMap();
+	var EFFECT_CAP_PATTERN = /(\bup\s+to\s+(?:level\s+|L\s*))(\d+)|(\b(?:Mesmerize|Frenzy Radius|Reaction Radius)\s*\(\s*\d+(?:\.\d+)?\s*\/\s*)(\d+)/gi;
 
-	function hasCharmCapText( slotTable ) {
+	function hasEffectCapText( slotTable ) {
 		return !!(
 			slotTable &&
-			/\bcharm\b[^.\n]{0,120}?\bup\s+to\s+level\s+\d+/i.test(
+			new RegExp( EFFECT_CAP_PATTERN.source, 'i' ).test(
 				String( slotTable.textContent || '' )
 			)
 		);
 	}
 
-	function applyCharmCapScaling( slotTable, level ) {
-		var walker;
-		var node;
-		var baseText;
-		var testPattern =
-			/\bcharm\b[^.\n]{0,120}?\bup\s+to\s+level\s+\d+/i;
-		var replacePattern =
-			/(\bcharm\b[^.\n]{0,120}?\bup\s+to\s+level\s+)(\d+)/gi;
-
+	function applyEffectCapScaling( slotTable, level, highlightNumbers ) {
 		if (
 			!slotTable ||
 			!document.createTreeWalker ||
@@ -727,39 +721,79 @@
 			return;
 		}
 
-		walker = document.createTreeWalker(
-			slotTable,
-			NodeFilter.SHOW_TEXT
-		);
+		Array.prototype.forEach.call( slotTable.querySelectorAll( 'td, p' ), function ( cell ) {
+			// Restore original text nodes before rebuilding the number-only highlights.
+			( effectCapHighlights.get( cell ) || [] ).forEach( function ( entry ) {
+				entry.rendered[ 0 ].replaceWith( entry.node );
+				entry.rendered.slice( 1 ).forEach( function ( node ) { node.remove(); } );
+			} );
+			var highlights = [];
+			effectCapHighlights.set( cell, highlights );
+			var walker = document.createTreeWalker( cell, NodeFilter.SHOW_TEXT );
+			var nodes = [];
+			var text = '';
+			var node;
+			var pattern = new RegExp( EFFECT_CAP_PATTERN.source, 'gi' );
+			var match;
 
-		while ( ( node = walker.nextNode() ) ) {
-			if ( charmCapBaseText.has( node ) ) {
-				baseText = charmCapBaseText.get( node );
-			} else {
-				baseText = String( node.nodeValue || '' );
-
-				if ( !testPattern.test( baseText ) ) {
-					continue;
-				}
-
-				charmCapBaseText.set( node, baseText );
+			// Match the complete cell so links/spans may split the label or number.
+			while ( ( node = walker.nextNode() ) ) {
+				var base = effectCapBaseText.has( node )
+					? effectCapBaseText.get( node ) : String( node.nodeValue || '' );
+				nodes.push( { node: node, base: base, start: text.length, edits: [] } );
+				text += base;
 			}
-
-			node.nodeValue = baseText.replace(
-				replacePattern,
-				function ( match, prefix, number ) {
-					return prefix + String(
-						parseInt( number, 10 ) + level
-					);
+			while ( ( match = pattern.exec( text ) ) ) {
+				var prefix = match[ 1 ] || match[ 3 ];
+				var number = match[ 2 ] || match[ 4 ];
+				var start = match.index + prefix.length;
+				var end = start + number.length;
+				var replacement = String( parseInt( number, 10 ) + level );
+				nodes.forEach( function ( entry ) {
+					var left = Math.max( start, entry.start );
+					var right = Math.min( end, entry.start + entry.base.length );
+					if ( left < right ) {
+						entry.edits.push( { start: left - entry.start, end: right - entry.start,
+							value: left === start ? replacement : '' } );
+					}
+				} );
+			}
+			nodes.forEach( function ( entry ) {
+				if ( !entry.edits.length ) {
+					return;
 				}
-			);
-		}
+				effectCapBaseText.set( entry.node, entry.base );
+				if ( highlightNumbers && level > 0 ) {
+					var fragment = document.createDocumentFragment();
+					var offset = 0;
+					entry.edits.forEach( function ( edit ) {
+						fragment.appendChild( document.createTextNode( entry.base.slice( offset, edit.start ) ) );
+						if ( edit.value ) {
+							var span = document.createElement( 'span' );
+							span.className = 'sls-stat sls-modified';
+							span.textContent = edit.value;
+							fragment.appendChild( span );
+						}
+						offset = edit.end;
+					} );
+					fragment.appendChild( document.createTextNode( entry.base.slice( offset ) ) );
+					highlights.push( { node: entry.node, rendered: Array.from( fragment.childNodes ) } );
+					entry.node.replaceWith( fragment );
+					return;
+				}
+				var scaled = entry.base;
+				entry.edits.reverse().forEach( function ( edit ) {
+					scaled = scaled.slice( 0, edit.start ) + edit.value + scaled.slice( edit.end );
+				} );
+				entry.node.nodeValue = scaled;
+			} );
+			if ( hasEffectCapText( { textContent: text } ) ) {
+				cell.classList.toggle( 'sls-slot-modified', !highlightNumbers && level > 0 );
+			}
+		} );
 	}
 	// SpellLevelSlider summoned pet level scaling and slot highlighting.
 	var summonedPetLevelBaseText = new WeakMap();
-
-	var CHARM_CAP_MODIFIED_TEST =
-		/\bcharm\b[^.\n]{0,120}?\bup\s+to\s+level\s+\d+/i;
 
 	var SUMMONED_PET_LEVEL_TEST_A =
 		/\bsummon(?:ed|ing|s)?\b[^.\n]{0,160}?\b(?:lvl|level)\s*\d+[^.\n]{0,160}?\bpet\b/i;
@@ -803,32 +837,6 @@
 				!!modified
 			);
 		}
-	}
-
-	function markCharmCapModified( slotTable, modified ) {
-		var cells;
-
-		if ( !slotTable ) {
-			return;
-		}
-
-		cells = slotTable.querySelectorAll( 'td' );
-
-		Array.prototype.forEach.call(
-			cells,
-			function ( cell ) {
-				if (
-					CHARM_CAP_MODIFIED_TEST.test(
-						String( cell.textContent || '' )
-					)
-				) {
-					cell.classList.toggle(
-						'sls-slot-modified',
-						!!modified
-					);
-				}
-			}
-		);
 	}
 
 	function scaleSummonedPetLevelText(
@@ -1072,11 +1080,10 @@
 		}
 
 		if (
-			instance.categoryKey === 'charm_mez' &&
-			hasCharmCapText( context.slotTable )
+			hasEffectCapText( context.slotTable ) || hasEffectCapText( context.summary )
 		) {
 			parts.push(
-				'Charm cap +' + level +
+				'Level cap +' + level +
 				( level === 1 ? ' level' : ' levels' )
 			);
 		}
@@ -1160,20 +1167,14 @@
 			restoreField( context.duration );
 		}
 
-		if ( instance.categoryKey === 'charm_mez' ) {
-			applyCharmCapScaling( context.slotTable, level );
-		}
 		applySummonedPetLevelScaling(
 			context.slotTable,
 			getSummonedPetLevelPerRank( instance ),
 			level
 		);
 
-		markCharmCapModified(
-			context.slotTable,
-			instance.categoryKey === 'charm_mez' &&
-				level > 0
-		);
+		applyEffectCapScaling( context.slotTable, level );
+		applyEffectCapScaling( context.summary, level, true );
 		instance.level = level;
 		instance.slider.value = String( level );
 		instance.slider.setAttribute(

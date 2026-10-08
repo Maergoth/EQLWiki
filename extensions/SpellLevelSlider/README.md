@@ -9,7 +9,8 @@ individual spell pages and scales:
 - Duration, when the category has a duration rate and the value contains a
   recognized time unit
 - Explicit summoned-pet level, by one level per slider rank
-- Charm maximum-level caps, through the separate charm-cap adjustment
+- Explicit effectiveness level caps, by one target level per slider rank
+  (charm, mez, calm/pacify/lull/harmony, and stun)
 
 It does not contain or reuse any ItemLevelSlider formulas.
 
@@ -70,8 +71,23 @@ All rates are stored once in `$wgSpellLevelSliderRules` inside
 | Pet | unchanged | unchanged | unchanged |
 
 Pet rules add one to an explicitly stated summoned-pet level per slider rank.
-Charm level caps use `applyCharmCapScaling()`; they are separate from the
-percentage duration/cast/mana rules below.
+Effectiveness caps use `applyEffectCapScaling()` independently of the category's
+percentage duration/cast/mana rules. Overview text and effect cells recognize
+`up to level X` and `up to LX`. The cap (second number) in `Mesmerize (2/55)`,
+`Frenzy Radius (5/50)`, and `Reaction Radius (5/50)` also increases; the first
+number remains unchanged. Embedded links and base text survive rank changes
+and resetting to zero. Other numbers, class learning levels, and `@L44`
+annotations remain unchanged. No template or database-page publication is needed.
+In Overview descriptions, only the changed cap number turns green; surrounding
+text retains its normal styling. Rank zero removes the highlight and restores
+the original markup.
+
+Recast time and resist adjustment remain unscaled: their per-category/per-rank
+rates need confirmation. Track that work in
+[issue #22](https://github.com/Maergoth/EQLWiki/issues/22).
+
+Run the synthetic DOM regression with `node ops/test-spell-level-slider.cjs`
+(requires jsdom 27; see the development guide for the private test runtime).
 
 Scaling is linear from the spell page's base value:
 
