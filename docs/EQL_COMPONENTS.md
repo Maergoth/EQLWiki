@@ -38,7 +38,8 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
-- Skin hooks provide Verify2Edit for named users with unconfirmed email,
+- Skin hooks provide Verify2Edit for named users with unconfirmed email when
+  the page's edit denial requires email confirmation,
   Watch/Unwatch header links, and expansion of `__EQL_PAGE_TOOLS__` and
   `__EQL_ADMIN_TOOLS__`. Admin menus check sysop/bureaucrat/interface-admin
   membership plus actual action permissions.
@@ -75,6 +76,29 @@ class can silently stop its skin module from loading:
 `wikipage.content` is the normal integration point for dynamically inserted
 parsed fragments. Preserve refresh hooks so hovers/sliders/state attach after
 lazy loading, not only on the initial document.
+
+## Optional talk contribution policy
+
+[`extensions/EQLTalkContributions/`](../extensions/EQLTalkContributions/) is a new
+optional extension, absent from the audited live inventory. The sanitized
+settings example includes its activation block; ignored environment settings
+must be updated separately before it runs.
+
+`extension.json` registers `includes/Hooks.php` for `getUserPermissionsErrors`
+and `AuthChangeFormFields`. With the documented configuration, anonymous visitors
+and named users without confirmed email may edit/create talk pages, while every
+subject namespace requires a named account with confirmed email. Magelo talk
+namespaces 501/503 use the same policy. Existing namespace/page protection,
+blocks, sessions, CAPTCHA, and rate limits remain enforced by MediaWiki. Automatic
+temporary accounts are disabled in the activation block so anonymous revisions
+retain IP attribution. The signup form still requires email, and the skin leaves
+usable talk edit links available to unconfirmed named users.
+
+See the [extension guide](../extensions/EQLTalkContributions/README.md) for exact
+settings, verification, and rollback ordering. Restoring the prior restrictions
+before unloading the hook is required to avoid opening subject-page editing.
+Staging's independent login gate remains active and limits anonymous browser
+testing. Standard permissions are described in the [MediaWiki user rights manual](https://www.mediawiki.org/wiki/Manual:User_rights).
 
 ## Metadata, era filtering, and verification
 

@@ -22,7 +22,8 @@ not be loaded alongside this skin. This is not the old `EQLImmersiveTEST` skin.
 Some inherited template files are unused by the active outer template;
 `Header.mustache` is not the active search header.
 
-Hooks also provide Verify2Edit for named users with unconfirmed email,
+Hooks also provide Verify2Edit when a named user's edit permission requires
+email confirmation,
 Watch/Unwatch header links, and `__EQL_PAGE_TOOLS__` / `__EQL_ADMIN_TOOLS__`
 sidebar placeholders. Admin tools require the configured privileged wiki groups
 and the relevant action permissions; preserve those checks when changing menus.

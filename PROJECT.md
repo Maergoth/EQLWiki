@@ -37,6 +37,16 @@ Complete sanitized templates are provided alongside them. Changes to site settin
 must be reviewed in the template and applied separately to the relevant ignored
 settings file. Never replace production settings with local development settings.
 
+The optional [`EQLTalkContributions`](extensions/EQLTalkContributions/README.md)
+policy also requires separate activation in ignored settings; it is not enabled
+on production by publishing source or the sanitized example. Deploy the reviewed
+files before applying its exact settings block with owner approval. Verify local
+permissions and the anonymous browser flow first: staging's independent live-login
+gate remains in place. For rollback, restore the previous email/group/temporary
+account restrictions before unloading the extension or restoring older files,
+so its absence cannot open anonymous subject-page editing. No database-page
+publication or schema migration is required.
+
 The four wiki/forum bridge scripts and the forum theme read their existing shared keys from
 `BridgeSecrets.php`. Each wiki key must match the corresponding forum key.
 Production secrets remain on the server. Local development uses separate keys.

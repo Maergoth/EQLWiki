@@ -6,6 +6,7 @@ use MediaWiki\Hook\BeforePageDisplayHook;
 use MediaWiki\Hook\SkinBuildSidebarHook;
 use MediaWiki\Hook\SkinTemplateNavigation__UniversalHook;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\SpecialPage\SpecialPage;
 use SkinTemplate;
 
@@ -181,6 +182,15 @@ class Hooks implements
 			!$user->isNamed() ||
 			$user->isEmailConfirmed()
 		) {
+			return;
+		}
+
+		// Talk contributions may be allowed before email confirmation. Only show
+		// Verify2Edit when the server actually reports that requirement.
+		$status = MediaWikiServices::getInstance()->getPermissionManager()->getPermissionStatus(
+			'edit', $user, $title, PermissionManager::RIGOR_QUICK
+		);
+		if ( !$status->hasMessage( 'confirmedittext' ) ) {
 			return;
 		}
 
