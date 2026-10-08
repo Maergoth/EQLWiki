@@ -125,6 +125,23 @@ and API output aligned when changing a template or a parser.
 
 ## Item and spell levels
 
+`Template:Itempage` delegates article and tooltip stat blocks to the database
+`Template:Itembox`. Reviewed source is now tracked in
+[`ops/itembox.wiki`](../ops/itembox.wiki), based on live Itembox revision 157242.
+Its existing Rogue-usable piercing Backstab default remains unchanged. Missing
+weapon damage bonuses are generated at character level 50 using the Dual Wield
+calculator's working formula and floor display rounding: 0.8 for one-handed
+melee weapons, 1.1 for two-handed weapons, the greater of damage and character
+level, and delay capped at 50. Generation requires PRIMARY, a supported melee skill,
+positive standalone DMG/DAMAGE, and positive Atk Delay. An existing DMG Bonus,
+Dmg Bon, Damage Bonus, or Damage Bon field wins regardless of case or value
+(including zero). Generated values carry `.eql-generated-damage-bonus`, use
+listed base stats, and remain independent of the item-rank slider like Backstab.
+They are rendered defaults, never written into item articles. Publishing requires
+the guarded [`sync-itembox.php`](../ops/sync-itembox.php); application deployment
+alone does not update the template. See the [development guide](EQL_DEVELOPMENT.md)
+for read-only parser checks and [operations guide](../PROJECT.md) for publication.
+
 [`ItemLevelSlider`](../extensions/ItemLevelSlider/) loads its module broadly and
 attaches to compatible item markup. Source formulas are in `itemlevelslider.js`;
 do not infer them from a displayed slider position. Important contracts:
