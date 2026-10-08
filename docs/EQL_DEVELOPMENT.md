@@ -119,6 +119,7 @@ and remove it from public routes after verification.
 | Blueprint tools | Database `MediaWiki:BlueprintLoader.js` | Separately publish the reviewed filesystem source with a revision check and recovery copy |
 | Plane of Sky reward fields | A section of database `MediaWiki:Common.js` | [`sync-sky-rewards.php`](../ops/sync-sky-rewards.php), replacing only that section |
 | Icon List container | Database `Icon List` | [`sync-icon-list.php`](../ops/sync-icon-list.php) plus the skin listing module |
+| Itembox stat defaults | Database `Template:Itembox` | Reviewed [`ops/itembox.wiki`](../ops/itembox.wiki), separately published with [`sync-itembox.php`](../ops/sync-itembox.php) |
 | Other Common.js/CSS or ClassGuideDropdown behavior | Database interface pages | Review and publish the affected page; no complete canonical Git mirror currently exists |
 | Template/Lua/category/verification/era data | Wiki database | An explicit content change/export/import, separate from file deployment |
 | Host cache builders, cron wrappers, staging policies, deployment receiver | Owner-installed private host files | Separate installation; `ops/` is excluded from application releases |
@@ -152,6 +153,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
 | Item range ranks | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; bows, throwing weapons, ammo, fractional ranks, base restoration, and dynamic cards |
 | Spell rank caps | `node ops/test-spell-level-slider.cjs` | jsdom; categories, cap shorthand, split markup, base restoration, pets, and dynamic cards |
+| Itembox damage bonus | `php maintenance/run.php ./ops/test-itembox.php` | Configured local wiki with ParserFunctions string functions and Variables; supplies the reviewed template in memory, parses synthetic cards, and saves no pages. Covers handedness, level-50 rounding, delay cap, explicit/zero overrides, Backstab, excluded items, and per-card isolation |
 | Sky/account state | `node ops/test-sky-rewards.cjs .local/Common.js` | jsdom and a reviewed Common.js snapshot containing the real state service |
 | Exact-artwork catalog | `php ops/test-icon-catalog.php` | GD and private `eql_icons/500.png`, `3470.png`, `3471.png` |
 | Full icon coverage | `php ops/verify-icon-coverage.php <library> <index-json> <audit-manifest>` | GD and the private source library/current index/audit |
@@ -178,6 +180,15 @@ account persistence; mobile menu/flyout containment; and the relevant page-speci
 view. Zone Viewer changes need supported browsers and local game files; use its
 [build guide](../extensions/EQLZoneViewer/build/README.md) and
 [validation notes](../extensions/EQLZoneViewer/docs/VALIDATION_1.15.0.txt).
+
+For Itembox, use a synthetic primary-capable 2H Blunt weapon with DMG 45 and
+Atk Delay 52: the generated bonus should be `34 @ lvl 50`. A 1H weapon with
+DMG 40 and delay 50 should show 25. Check existing explicit values on the DMG
+line, delay line, and their own line, plus zero; no second bonus should appear.
+Check article and item hover output on staging after the separately approved
+template publication. Item rank changes should leave this base-stat default
+unchanged, just as they leave Backstab unchanged. The parser fixture verifies
+template output, not live ResourceLoader, uploaded icons, or staging hovers.
 
 ## Staging and release quirks
 
