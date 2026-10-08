@@ -151,6 +151,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Whitespace | `git diff --check` | Git |
 | Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |
 | Talk permissions integration | `php maintenance/run.php ./ops/test-talk-permissions.php --conf .local/talk-contributions/LocalSettings.php` | Configured isolated local wiki and ignored activation overlay; read-only core permission checks, no page/account/protection writes |
+| Unseen Talk counter | `node ops/test-talk-unread.cjs` | jsdom 27 via `NODE_PATH`; synthetic DOM/API/storage fixtures, no database writes or live-site verification |
 | Icon metadata | `node ops/test-icon-finder.cjs` | No third-party package; IDs, parameters, aliases |
 | Icon result UI | `node ops/test-icon-finder-ui.cjs` | jsdom; 12-result batches, 100 reachable candidates, selected-alias copying, flyout formats/dismissal |
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
@@ -180,7 +181,13 @@ UI smoke checks should match the component: source editor and VisualEditor;
 partial/mixed-case search; item/spell/merchant hovers; dynamic sections after
 `wikipage.content`; era modes without disabling editor controls; anonymous and
 account persistence; mobile menu/flyout containment; and the relevant page-specific
-view. Zone Viewer changes need supported browsers and local game files; use its
+view. For the Talk counter, check unseen revision counts, opening the current
+Talk view, changes newer than the displayed revision, old revisions/diffs/editors,
+anonymous/account separation, redirects, missing/unreadable pages, narrow layouts,
+and reduced motion. The synthetic fixture does not verify live permissions or
+ResourceLoader delivery. See the [skin guide](../skins/EQLImmersive/README.md#unseen-talk-changes)
+for storage and refresh behavior. Zone Viewer changes need supported browsers and
+local game files; use its
 [build guide](../extensions/EQLZoneViewer/build/README.md) and
 [validation notes](../extensions/EQLZoneViewer/docs/VALIDATION_1.15.0.txt).
 

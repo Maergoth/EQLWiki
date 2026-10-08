@@ -42,6 +42,7 @@ or update both producer and consumer when changing database templates.
 | --- | --- |
 | Header, menu, TOC and cards | `main.js`, `main.css`, header/sidebar/layout/responsive styles; native Vector TOC is disabled |
 | Search | `header-search.js/css`, native Vector/MediaWiki suggestion UI and SearchMySQL.php |
+| Talk activity | `talk-unread.js/css`, `skins.EQLImmersive.talkUnread`, server-provided subject/Talk pairing and read-only revision metadata |
 | Era/verification | `era-filter.js/css`, `verified-pages.js`, EQLClientData and database PageEra/VerifiedPages configuration |
 | Item/spell hovers | `item-hover.js`, `spell-effect-hover.js`, `merchant-spell-hover.js`, AjaxHoverHelper and compatible template HTML |
 | Spell sections | `checkbox-lists.js` currently performs Category:Spells lazy loading; `spell-lazy-loader.js` stabilizes item hovers |
@@ -67,6 +68,33 @@ Subject/Talk navigation remains visible as the header narrows. At 640px or less,
 secondary page actions (Read/Edit/History/Watch) move out of the header; they remain
 available in the main menu. The wordmark is shortened at 640px and hidden at
 420px to leave room for navigation and the existing search/menu controls.
+
+## Unseen Talk changes
+
+`skins.EQLImmersive.talkUnread` adds a green counter beside Talk navigation for
+changes since this visitor last opened the Talk page. It counts revisions rather
+than topics or comments, displays 1–99 and then `99+`, and includes readable
+history on a first visit. The subtle swirl stops when reduced motion is requested.
+Missing or unreadable Talk pages and API failures leave the counter hidden.
+
+The skin hook supplies the associated Talk title and the revision actually
+rendered. A normal current Talk view advances the seen marker only while the
+page is visible, through that displayed revision; newer edits remain unseen.
+Old revisions, diffs, editors, and background tabs do not mark changes as seen.
+Talk redirects share the destination's marker; redirects outside a Talk
+namespace do not produce a counter. A recreated page starts with a new marker.
+
+Markers use browser local storage under `eql-talk-seen-v1`, scoped to the wiki,
+account ID (or anonymous visitor), and canonical Talk destination title. They do
+not sync across devices or import anonymous state when someone logs in. This
+module does not use or alter Common.js/EQLUserState. Other tabs and browser
+back/forward restoration refresh the counter; there is no timer polling.
+
+The module makes at most two bounded read-only API requests per refresh, asking
+for revision IDs/timestamps and read permission, not comment text or authors.
+For the upstream API contracts see [Revisions](https://www.mediawiki.org/wiki/API:Revisions)
+and [Info](https://www.mediawiki.org/wiki/API:Info). Deploying these skin resources
+needs no database-page sync or private host/settings change.
 
 ## Database scripts remain active
 

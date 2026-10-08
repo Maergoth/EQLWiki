@@ -54,6 +54,19 @@ Major custom skin behavior:
 - `main.css`, `header-actions.css`, `sidebar-redlinks.css`, `responsive-mobile.css`,
   and related modules: game-themed shell, article/table layouts, mobile handling,
   fixed footer, and menus. Database Common.css adds further overrides.
+- [`talk-unread.js/css`](../skins/EQLImmersive/resources/talk-unread.js), loaded
+  as `skins.EQLImmersive.talkUnread`: green Talk counter for unseen revision
+  changes, capped at `99+`, with a subtle swirl that respects reduced motion.
+  `Hooks.php` supplies the associated Talk title and displayed revision metadata;
+  bounded read-only API queries resolve Talk redirects and check readability.
+  A visible current Talk view records only its displayed revision. Old revisions,
+  diffs, editors, and background tabs do not clear unseen changes. Browser-local
+  `eql-talk-seen-v1` markers are separated by wiki, account/anonymous identity, and
+  canonical Talk title; they neither sync across devices nor use Common.js state.
+  Missing/unreadable pages and API failures hide the counter. See the
+  [skin guide](../skins/EQLImmersive/README.md#unseen-talk-changes) for the contract
+  and [MediaWiki Revisions](https://www.mediawiki.org/wiki/API:Revisions) /
+  [Info](https://www.mediawiki.org/wiki/API:Info) for API mechanics.
 - `announcements.js`: collapse state and recognition of new announcement entries.
   `perf-widget.js`: registered-user diagnostics and page statistics.
 - [`SearchMySQL.php`](../skins/EQLImmersive/includes/SearchMySQL.php): registered

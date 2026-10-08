@@ -48,6 +48,23 @@ class Hooks implements
 		}
 
 		$this->addConditionalResourceModules( $out, $skin );
+		$this->addTalkActivityModule( $out, $skin );
+	}
+
+	/** Provide authoritative Talk pairing and the timestamp of rendered content. */
+	private function addTalkActivityModule( $out, $skin ): void {
+		$title = $skin->getTitle();
+		$talkTitle = $title ? $title->getTalkPageIfDefined() : null;
+		if ( !$talkTitle ) {
+			return;
+		}
+		$timestamp = $out->getMetadata()->getRevisionTimestamp();
+		$out->addJsConfigVars( [
+			'wgEQLTalkPageName' => $talkTitle->getPrefixedDBkey(),
+			'wgEQLTalkIsTalkPage' => $title->isTalkPage(),
+			'wgEQLTalkRevisionTimestamp' => $timestamp ? wfTimestamp( TS_ISO_8601, $timestamp ) : null
+		] );
+		$out->addModules( 'skins.EQLImmersive.talkUnread' );
 	}
 
 	/**
