@@ -233,7 +233,8 @@
 			var childStyle = window.getComputedStyle( child );
 			var rect;
 			if ( childStyle.display === 'none' || childStyle.position === 'absolute' ||
-				childStyle.position === 'fixed' ) {
+				childStyle.position === 'fixed' ||
+				childStyle.getPropertyValue( '--eql-search-separate-row' ).trim() === '1' ) {
 				return;
 			}
 			count++;

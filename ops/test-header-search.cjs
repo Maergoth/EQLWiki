@@ -36,7 +36,7 @@ function fixture( options = {} ) {
             '<div id="simpleSearch" class="cdx-search-input__input-wrapper"><div class="cdx-text-input">' +
             '<input id="searchInput" name="search" type="search" aria-label="Search wiki"></div></div>' +
             '<button class="cdx-search-input__end-button">Search</button></form></div></div></div>' ) +
-        '<div class="eql-header-page-actions-wrap"><a>Read</a><a>Talk</a><a>Edit source</a><a>History</a></div>' +
+        '<div class="eql-header-page-actions-wrap"><a>Talk</a><a>Read</a><a>Edit source</a><a>History</a></div>' +
         '<button id="eql-era-filter-toggle">Era</button><div class="vector-user-links"><a>Example user</a></div>' +
         '</div></header></div><button id="outside">Outside</button>' +
         '<div id="eql-header-search-suggestions"><a id="custom-suggestion" href="/wiki/Synthetic">Synthetic</a></div>' +
@@ -57,7 +57,8 @@ function fixture( options = {} ) {
     const user = d.querySelector( '.vector-user-links' );
     const state = { viewport: 1400, endWidth: 832, startWidth: 240,
         actionsWidth: 280, userWidth: 96, eraWidth: 38, gap: 8, padding: 12,
-        actionMargin: 3, userMargin: 2, hideActions: false, hideUser: false, ...options.geometry };
+        actionMargin: 3, userMargin: 2, hideActions: false, hideUser: false,
+        separateActionsRow: false, ...options.geometry };
     let now = 0;
     let sequence = 0;
     const timers = new Map();
@@ -89,7 +90,8 @@ function fixture( options = {} ) {
     function available() {
         const fixed = [ [ actions, state.actionsWidth, state.actionMargin ], [ era, state.eraWidth, 0 ],
             [ user, state.userWidth, state.userMargin ] ].concat( widgets.map( widget =>
-            [ widget.element, widget.width, 0 ] ) ).filter( ( [ element ] ) => !hidden( element ) );
+            [ widget.element, widget.width, 0 ] ) ).filter( ( [ element ] ) =>
+            !hidden( element ) && !( element === actions && state.separateActionsRow ) );
         return state.endWidth - state.padding * 2 -
             fixed.reduce( ( sum, [ , width, margin ] ) => sum + width + margin * 2, 0 ) - state.gap * fixed.length;
     }
@@ -138,6 +140,9 @@ function fixture( options = {} ) {
         return new Proxy( base, { get( target, property ) {
             if ( Object.hasOwn( overrides, property ) ) { return overrides[ property ]; }
             if ( property === 'getPropertyValue' ) { return name => {
+                if ( element === actions && name === '--eql-search-separate-row' ) {
+                    return state.separateActionsRow ? '1' : '';
+                }
                 const camel = name.replace( /-([a-z])/g, ( _, letter ) => letter.toUpperCase() );
                 return Object.hasOwn( overrides, camel ) ? overrides[ camel ] : target.getPropertyValue( name );
             }; }
@@ -290,7 +295,31 @@ async function main() {
     check( page.search.style.getPropertyValue( '--eql-search-overlay-width' ) === '',
         'Returning inline clears obsolete overlay positioning' ); page.close();
 
-    page = fixture( { geometry: { viewport: 375, endWidth: 160, hideActions: true, userWidth: 38 } } );
+    page = fixture( { geometry: { viewport: 375, endWidth: 238, actionsWidth: 900,
+        userWidth: 80, separateActionsRow: true } } );
+    check( page.available() === 76 && !page.compact() && page.narrow(),
+        'Visible separate-row actions consume neither top-row width nor a top-row gap at the inline minimum' );
+    page.input.value = 'Separate row selected query'; page.input.focus(); page.input.setSelectionRange( 2, 8 );
+    page.state.actionsWidth = 1600; page.notify( page.actions ); page.flushFrames();
+    check( !page.compact() && !page.open() && !page.actions.hidden,
+        'Even very wide visible actions on a separate row leave search inline' );
+    page.state.endWidth--; page.notify( page.end ); page.flushFrames();
+    check( page.compact() && page.open() && page.d.activeElement === page.input,
+        'Search still collapses when its own top-row budget falls below the inline minimum' );
+    page.state.endWidth++; page.notify( page.end ); page.flushFrames();
+    check( !page.compact() && !page.open() && page.d.activeElement === page.input,
+        'Returning to the minimum restores inline search while the actions remain visible' );
+    page.state.separateActionsRow = false; page.notify( page.end ); page.flushFrames();
+    check( page.compact() && page.open() && page.d.activeElement === page.input,
+        'Moving actions into the search row updates layout without changing viewport width' );
+    page.state.separateActionsRow = true; page.notify( page.end ); page.flushFrames(); page.advance( 200 );
+    check( !page.compact() && !page.open() && page.d.activeElement === page.input,
+        'Moving actions back to their own row restores inline search at the same viewport width' );
+    check( page.input.value === 'Separate row selected query' && page.input.selectionStart === 2 &&
+        page.input.selectionEnd === 8, 'Row changes preserve query, focus and selection through delayed work' );
+    check( page.state.viewport === 375, 'Row placement alone drives these layout transitions' ); page.close();
+
+    page = fixture( { geometry: { viewport: 375, endWidth: 160, separateActionsRow: true, userWidth: 38 } } );
     check( page.compact(), 'Phone-sized content budget uses the icon' );
     page.clickToggle(); page.advance( 150 );
     const width = parseFloat( page.search.style.getPropertyValue( '--eql-search-overlay-width' ) );

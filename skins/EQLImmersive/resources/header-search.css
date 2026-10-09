@@ -523,8 +523,7 @@ body.skin-eqlimmersive.eql-search-compact.eql-search-open #eql-era-filter-toggle
 	z-index: 1000 !important;
 }
 
-/* Extra tight widths: keep the header one row and let the overlay use almost
-   the full viewport when opened. */
+/* Extra tight widths: keep the search overlay within the viewport. */
 @media (max-width: 640px) {
 	body.skin-eqlimmersive .vector-header-start .mw-logo-wordmark {
 		max-width: 10rem !important;
@@ -867,7 +866,7 @@ body.skin-eqlimmersive.eql-search-narrow-inline #p-search .cdx-text-input.cdx-te
 	}
 }
 
-/* Preserve the full action row at the seam before phone actions move to the menu. */
+/* Use tighter action spacing before the full toolbar wraps on phones. */
 @media (max-width: 980px) {
 	body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item > a {
 		padding-left: 0.3rem !important;
@@ -894,5 +893,85 @@ body.skin-eqlimmersive.eql-search-narrow-inline #p-search .cdx-text-input.cdx-te
 	body.skin-eqlimmersive .vector-header-end #vector-user-links-dropdown-label {
 		width: 28px !important;
 		min-width: 28px !important;
+	}
+}
+
+
+/* Phone actions use their own wrapping row instead of disappearing. Keep this
+   separate-row marker aligned with the header-search.js space calculation. */
+@media (max-width: 640px) {
+	body.skin-eqlimmersive .vector-header {
+		align-items: flex-start !important;
+		padding-top: 0.4rem;
+		padding-bottom: 0.4rem;
+	}
+
+	body.skin-eqlimmersive .vector-header .vector-header-end {
+		display: grid !important;
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		row-gap: 0.35rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #p-search {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	body.skin-eqlimmersive:not(.eql-search-compact) .vector-header-end > #p-search {
+		width: 100% !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #eql-era-filter-toggle {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > .vector-user-links {
+		grid-column: 3;
+		grid-row: 1;
+	}
+
+	body.skin-eqlimmersive .vector-header .vector-header-end > .eql-header-page-actions-wrap {
+		--eql-search-separate-row: 1;
+		grid-column: 1 / -1;
+		grid-row: 2;
+		width: 100%;
+		justify-content: flex-start;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar,
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+		width: 100% !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+		align-items: flex-start !important;
+		justify-content: flex-start;
+		flex-wrap: wrap !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end #left-navigation {
+		flex: 0 0 auto;
+	}
+
+	body.skin-eqlimmersive .vector-header-end #right-navigation {
+		/* Move this group below a long subject tab before splitting Talk/Read. */
+		flex: 1 1 9rem;
+		min-width: min(100%, 9rem);
+	}
+
+	body.skin-eqlimmersive .vector-header-end #p-views,
+	body.skin-eqlimmersive .vector-header-end #p-views .vector-menu-content,
+	body.skin-eqlimmersive .vector-header-end #p-views .vector-menu-content-list {
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	body.skin-eqlimmersive .vector-header-end #p-views .vector-menu-content-list {
+		flex-wrap: wrap !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .eql-header-page-actions-wrap .mw-list-item {
+		flex: 0 0 auto;
 	}
 }

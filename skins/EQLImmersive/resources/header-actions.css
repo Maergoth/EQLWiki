@@ -390,6 +390,18 @@ body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item a:hove
 }
 
 
+/* Keep the divider with Read; the adjacent selector omits it when Read is absent. */
+body.skin-eqlimmersive .vector-header-end #p-views #ca-talk + #ca-view::before {
+	content: '';
+	flex: 0 0 1px;
+	width: 1px;
+	height: 1.25rem;
+	margin-inline: 0.1rem 0.38rem;
+	background: rgba( 216, 183, 92, 0.38 );
+	pointer-events: none;
+}
+
+
 /* =====================================================
    Verify-email editing action
    ===================================================== */
@@ -723,19 +735,6 @@ body.skin-eqlimmersive .vector-header-end .new > a:hover {
 		flex: 1 1 auto;
 		min-width: 200px;
 		max-width: none;
-	}
-}
-
-/* Keep the subject and Talk links on phones, with the secondary page actions
-   still available in the main menu. Talk now shares the Read action group. */
-@media ( max-width: 640px ) {
-	body.skin-eqlimmersive .vector-header-end #right-navigation #p-views .mw-list-item:not( #ca-talk ),
-	body.skin-eqlimmersive .vector-header-end #right-navigation .vector-page-tools-landmark {
-		display: none !important;
-	}
-
-	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
-		gap: 0.72rem;
 	}
 }
 
