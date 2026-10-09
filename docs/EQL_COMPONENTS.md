@@ -77,11 +77,17 @@ Major custom skin behavior:
   through `SearchMappings`; title completion uses a case-insensitive whole-title
   prefix, including later words, escaped LIKE input, and a Latin first-letter
   index bound. Full-text search still uses the parent MediaWiki backend.
-  `header-search.js` uses native Vector/MediaWiki suggestions; its narrow-screen
-  overlay starts at 1500px, before subject/Talk navigation needs space. The collapsed
-  icon is centered between the logo and subject tab. Actual throttle constants are
-  three characters and one second idle, despite stale comments. Check `guard a`, `Cat F`, mixed-case
-  later words, namespace searches, and Enter/keyboard selection.
+  `header-search.js` uses native Vector/MediaWiki suggestions and measures the
+  space left by header navigation/account controls. The inline field shrinks to
+  76px; below 180px it hides the submit button and reduces icon padding, with
+  Enter still available. If the field cannot fit, a centered 38px icon opens the
+  overlay. ResizeObserver responds to badge, account, tool, and font width changes;
+  resizing preserves the input value and caret. The narrow header stays on one
+  row; at 980px or less, account overflow links move to the existing user menu
+  only after it initializes. Small-phone spacing keeps the controls together.
+  Actual throttle constants are
+  three characters and one second idle, despite stale comments. Check `guard a`,
+  `Cat F`, mixed-case later words, namespace searches, and Enter/keyboard selection.
 
 Preserve the rendered markers in the following table. Changing a template's
 class can silently stop its skin module from loading:

@@ -3,19 +3,21 @@
  * Uses the native Vector/Codex header search already present in the DOM:
  * #p-search, .search-toggle, form#searchform, input#searchInput.
  *
- * Wide screens are inline-only. Compact screens use the native search icon as
- * a toggle and render the form as a fixed overlay so it can cover header tools
- * without changing header justification.
+ * The inline field shrinks with the space left by navigation/account controls.
+ * When it cannot fit, the centered native icon opens the same form as an overlay.
  */
 (function () {
 	'use strict';
 
 	var OPEN_CLASS = 'eql-search-open';
 	var EXPANDED_CLASS = 'eql-search-expanded';
-	// Keep in sync with the compact-mode CSS breakpoint.
-	var COMPACT_QUERY = '(max-width: 1500px)';
+	var COMPACT_CLASS = 'eql-search-compact';
+	var NARROW_CLASS = 'eql-search-narrow-inline';
 	var initialized = false;
 	var resizeTimer = null;
+	var layoutFrame = null;
+	var layoutObserver = null;
+	var focusRequest = 0;
 
 	function getSearch() {
 		return document.getElementById( 'p-search' );
@@ -39,7 +41,7 @@
 	}
 
 	function isCompact() {
-		return !!( window.matchMedia && window.matchMedia( COMPACT_QUERY ).matches );
+		return !!( document.body && document.body.classList.contains( COMPACT_CLASS ) );
 	}
 
 	function isOpen() {
@@ -67,9 +69,10 @@
 	}
 
 	function focusInputRepeatedly( input ) {
+		var request = ++focusRequest;
 		[ 0, 16, 45, 100 ].forEach( function ( delay ) {
 			window.setTimeout( function () {
-				if ( isOpen() || !isCompact() ) {
+				if ( request === focusRequest && ( isOpen() || !isCompact() ) ) {
 					placeCursorAtEnd( input );
 				}
 			}, delay );
@@ -135,7 +138,7 @@
 		}
 	}
 
-	function openSearch() {
+	function openSearch( preserveSelection ) {
 		var search = getSearch();
 		var toggle = getToggle( search );
 		var input = getInput( search );
@@ -152,7 +155,13 @@
 		}
 
 		positionOverlay();
-		focusInputRepeatedly( input );
+		if ( preserveSelection ) {
+			focusRequest++;
+			// Resize reuses the same input; focus it without moving its caret.
+			input.focus( { preventScroll: true } );
+		} else {
+			focusInputRepeatedly( input );
+		}
 
 		document.dispatchEvent( new CustomEvent( 'eqlSearchOpen' ) );
 	}
@@ -165,6 +174,7 @@
 			return;
 		}
 
+		focusRequest++;
 		document.body.classList.remove( OPEN_CLASS );
 		search.classList.remove( EXPANDED_CLASS );
 
@@ -189,6 +199,85 @@
 		);
 	}
 
+	function pixels( style, property ) {
+		return parseFloat( style.getPropertyValue( property ) ) || 0;
+	}
+
+	function updateLayout() {
+		var search = getSearch();
+		var end = search && search.parentElement;
+		var form = getForm( search );
+		var input = getInput( search );
+		var toggle = getToggle( search );
+		var active = document.activeElement;
+		var style;
+		var available;
+		var count = 0;
+		var minimum;
+		var compact;
+		var narrow;
+		var wasCompact = isCompact();
+
+		if ( !end || !form || !input || !document.body ) {
+			return;
+		}
+
+		style = window.getComputedStyle( end );
+		available = end.getBoundingClientRect().width - pixels( style, 'padding-left' ) -
+			pixels( style, 'padding-right' ) - pixels( style, 'border-left-width' ) -
+			pixels( style, 'border-right-width' );
+		if ( available <= 0 ) {
+			return;
+		}
+		Array.prototype.forEach.call( end.children, function ( child ) {
+			var childStyle = window.getComputedStyle( child );
+			var rect;
+			if ( childStyle.display === 'none' || childStyle.position === 'absolute' ||
+				childStyle.position === 'fixed' ) {
+				return;
+			}
+			count++;
+			if ( child === search ) {
+				// Ignore search width and its auto margins so changing mode is stable.
+				return;
+			}
+			rect = child.getBoundingClientRect();
+			available -= rect.width + pixels( childStyle, 'margin-left' ) +
+				pixels( childStyle, 'margin-right' );
+		} );
+		available -= Math.max( 0, count - 1 ) * pixels( style, 'column-gap' );
+		minimum = pixels( window.getComputedStyle( search ), '--eql-search-inline-min' ) || 76;
+		compact = available < minimum;
+		narrow = !compact && available < 180;
+
+		// Keep a focused form visible before compact CSS takes it out of the row.
+		if ( compact && !wasCompact && form.contains( active ) ) {
+			document.body.classList.add( OPEN_CLASS );
+			search.classList.add( EXPANDED_CLASS );
+		}
+		document.body.classList.toggle( COMPACT_CLASS, compact );
+		document.body.classList.toggle( NARROW_CLASS, narrow );
+		if ( compact && !wasCompact && form.contains( active ) ) {
+			openSearch( true );
+		} else if ( !compact && isOpen() ) {
+			closeSearch();
+		}
+		if ( !compact && ( active === toggle || ( narrow && form.contains( active ) && active !== input ) ) ) {
+			input.focus( { preventScroll: true } );
+		}
+		positionOverlay();
+	}
+
+	function scheduleLayout() {
+		if ( layoutFrame !== null ) {
+			return;
+		}
+		layoutFrame = window.requestAnimationFrame( function () {
+			layoutFrame = null;
+			updateLayout();
+		} );
+	}
+
 	function handleResizeOrScroll() {
 		window.clearTimeout( resizeTimer );
 		positionOverlay();
@@ -196,9 +285,7 @@
 		resizeTimer = window.setTimeout( function () {
 			positionOverlay();
 
-			if ( !isCompact() && isOpen() ) {
-				closeSearch();
-			}
+			scheduleLayout();
 		}, 80 );
 	}
 
@@ -235,14 +322,14 @@
 				}
 
 				event.preventDefault();
-				event.stopPropagation();
+				event.stopImmediatePropagation();
 
 				if ( isOpen() ) {
 					closeSearch();
 				} else {
 					openSearch();
 				}
-			} );
+			}, true );
 		}
 
 		input.addEventListener( 'focus', function () {
@@ -278,9 +365,35 @@
 			}
 		} );
 
-		window.addEventListener( 'resize', handleResizeOrScroll );
+		window.addEventListener( 'resize', scheduleLayout );
 		window.addEventListener( 'scroll', handleResizeOrScroll, true );
-		positionOverlay();
+		if ( window.ResizeObserver ) {
+			layoutObserver = new window.ResizeObserver( scheduleLayout );
+			layoutObserver.observe( search.parentElement );
+			if ( search.closest( '.vector-header' ) ) {
+				layoutObserver.observe( search.closest( '.vector-header' ) );
+			}
+			Array.prototype.forEach.call( search.parentElement.children, function ( child ) {
+				if ( child !== search ) {
+					layoutObserver.observe( child );
+				}
+			} );
+		}
+		// Header widgets can be inserted after ResourceLoader initializes search.
+		if ( window.MutationObserver ) {
+			new window.MutationObserver( function () {
+				if ( layoutObserver ) {
+					Array.prototype.forEach.call( search.parentElement.children, function ( child ) {
+						if ( child !== search ) { layoutObserver.observe( child ); }
+					} );
+				}
+				scheduleLayout();
+			} ).observe( search.parentElement, { childList: true } );
+		}
+		if ( document.fonts && document.fonts.ready ) {
+			document.fonts.ready.then( scheduleLayout );
+		}
+		updateLayout();
 	}
 
 	if ( document.readyState === 'loading' ) {
