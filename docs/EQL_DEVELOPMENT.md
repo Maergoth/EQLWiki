@@ -192,10 +192,14 @@ native suggestions, Enter submission, and Escape focus return in a real browser.
 The synthetic layout fixture does not verify actual CSS/font measurements or
 ResourceLoader delivery.
 
-Check Read/Talk header order, selected and custom-namespace Talk links,
-unique primary/overflow Talk IDs, and Talk visibility on phones. For the Talk
-counter, check unseen revision counts, opening the current
-Talk view, changes newer than the displayed revision, old revisions/diffs/editors,
+Check Talk immediately before Read and Read's thin leading divider, selected
+and custom-namespace Talk links, and unique primary/overflow Talk IDs. On phones,
+verify the full page-action toolbar wraps below the search/era/account row with
+all available subject, Talk, Read, edit, History, and Watch buttons visible and
+unclipped. The divider stays visible with Read on phones and is absent only when
+Read is absent, including page creation. For the Talk counter, check unseen
+revision counts, opening the current Talk view, changes newer than the displayed
+revision, old revisions/diffs/editors,
 anonymous/account separation, redirects, missing/unreadable pages, narrow layouts,
 and reduced motion. The synthetic fixture does not verify live permissions or
 ResourceLoader delivery. See the [skin guide](../skins/EQLImmersive/README.md#unseen-talk-changes)

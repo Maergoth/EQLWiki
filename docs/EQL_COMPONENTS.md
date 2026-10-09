@@ -40,9 +40,12 @@ Major custom skin behavior:
 
 - The registered navigation hook uses **Talk** and **History** across wiki skins.
   EQL page-tool/sidebar links and overflow menus share those labels. In EQL
-  Immersive, the subject tab stays first and Talk follows Read before editing and
-  history actions; other skins retain their native placement. Phone headers keep
-  the subject and Talk links while secondary actions remain in the main menu.
+  Immersive, the subject tab stays first and Talk immediately precedes Read,
+  with a thin leading divider on Read, followed by editing, history, and watch
+  actions; other skins retain their native placement. The divider stays visible
+  on phones and is omitted only when Read is absent. At 640px or less, the full
+  page-action toolbar occupies a separate row and wraps as needed. All available
+  page-action buttons remain visible; responsive styling does not hide them.
   The primary Talk ID stays `ca-talk`; its overflow copy uses `ca-more-talk` and
   shares the unread count. Navigation URLs are unchanged.
 
@@ -82,11 +85,11 @@ Major custom skin behavior:
   76px; below 180px it hides the submit button and reduces icon padding, with
   Enter still available. If the field cannot fit, a centered 38px icon opens the
   overlay. ResizeObserver responds to badge, account, tool, and font width changes;
-  resizing preserves the input value and caret. The narrow header stays on one
-  row; at 980px or less, account overflow links move to the existing user menu
-  only after it initializes. Small-phone spacing keeps the controls together.
-  Actual throttle constants are
-  three characters and one second idle, despite stale comments. Check `guard a`,
+  resizing preserves the input value and caret. At 640px or less, search, era,
+  and account controls use the upper row above the wrapping page-action toolbar.
+  At 980px or less, account overflow links use the existing user menu only after
+  it initializes. Actual throttle constants are three characters and one second
+  idle, despite stale comments. Check `guard a`,
   `Cat F`, mixed-case later words, namespace searches, and Enter/keyboard selection.
 
 Preserve the rendered markers in the following table. Changing a template's

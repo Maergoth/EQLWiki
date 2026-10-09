@@ -56,12 +56,12 @@ content. CSS order in skin.json and the database Common.css cascade both matter.
 
 ## Responsive header search
 
-The inline search field shrinks with the actual space left by the logo,
-page actions, and account controls. It remains inline down to 76px, roughly twice
+The inline search field shrinks with the actual space left by the logo and
+other controls in its header row. It remains inline down to 76px, roughly twice
 the 38px search icon's width. Below 180px, the field hides its submit button and
 reduces icon padding; Enter still submits immediately. When less than 76px is
-available, it collapses to the existing 38px icon centered between the logo and
-subject tab. Opening that icon uses the fixed overlay and native suggestions;
+available, it collapses to the existing 38px icon centered in the available
+header space. Opening that icon uses the fixed overlay and native suggestions;
 Escape returns focus to the icon.
 
 `header-search.js` measures available header space rather than using a fixed
@@ -70,16 +70,19 @@ page-tool, and font widths. The same search input retains its value and caret
 when resizing between inline and overlay layouts. Keep the minimum width in
 `header-search.css` aligned with the JavaScript layout calculation.
 
-The narrow header stays on one row, with tighter spacing on small phones. At
-980px or less, account overflow links use the existing user menu once that menu
-has initialized; until then their native header links remain available.
+At 980px or less, account overflow links use the existing user menu once that
+menu has initialized; until then their native header links remain available.
 
-The subject tab remains first, with Talk immediately after Read in the EQL
-header, before the editing and history actions. At 640px or less, the subject and
-Talk links stay visible while Read and secondary page actions move out of the
-header; those actions remain available in the main menu. The wordmark is
-shortened at 640px and hidden at 420px to leave room for navigation and the
-existing search/menu controls.
+The subject tab remains first, with Talk immediately before Read, followed by
+editing, history, and watch actions. Read carries a thin leading divider to
+separate it from Talk. The divider remains on phones and is omitted only when
+the Read action is absent, such as during page creation.
+
+At 640px or less, search, era, and account controls occupy the upper header row.
+The full page-action toolbar moves to a row below and wraps as needed; every
+available subject, Talk, Read, edit, History, and Watch button stays visible.
+Responsive styling does not hide page-action buttons. The wordmark is shortened
+at 640px and hidden at 420px, with tighter spacing on small phones.
 
 ## Unseen Talk changes
 

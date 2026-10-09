@@ -199,7 +199,7 @@ class Hooks implements
 		$this->createViewsOverflow( $links );
 	}
 
-	/** Keep the subject tab first, with Talk immediately after the Read action. */
+	/** Keep the subject tab first, with Talk immediately before the Read action. */
 	private function moveTalkNextToRead( array &$links ): void {
 		$talk = null;
 		foreach ( [ 'associated-pages', 'namespaces', 'views' ] as $group ) {
@@ -227,10 +227,10 @@ class Hooks implements
 		$talk['class'] = $talkClass;
 		$views = [];
 		foreach ( $links['views'] ?? [] as $key => $item ) {
-			$views[$key] = $item;
 			if ( $key === 'view' ) {
 				$views['talk'] = $talk;
 			}
+			$views[$key] = $item;
 		}
 		if ( !isset( $views['talk'] ) ) {
 			// New pages can have a creation action without a Read action.

@@ -285,8 +285,8 @@ try {
                 "$label: existing edit/view-source action changed" );
         }
         if ( $namespace >= NS_MAIN ) {
-            eqlTalkCheck( array_slice( array_keys( $links['views'] ), 0, 2 ) === [ 'view', 'talk' ],
-                "$label: Talk must immediately follow Read, including Verify2Edit pages" );
+            eqlTalkCheck( array_slice( array_keys( $links['views'] ), 0, 2 ) === [ 'talk', 'view' ],
+                "$label: Talk must immediately precede Read, including Verify2Edit pages" );
             eqlTalkCheck( $links['views']['talk']['href'] === '/wiki/Talk:Synthetic' &&
                 $links['views']['talk']['context'] === 'talk',
                 "$label: primary Talk lost its destination or core ID context" );
@@ -319,20 +319,20 @@ try {
     $placementCases = [
         [ 'standard sources', [ 'associated-pages' => [ 'main' => $subject, 'talk' => $standardTalk ],
             'namespaces' => [ 'main' => $subject, 'talk' => $standardTalk ], 'views' => $baseViews ],
-            $standardTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+            $standardTalk, [ 'talk', 'view', 'edit', 'history' ] ],
         [ 'custom namespace context', [ 'associated-pages' => [ 'magelo_blue' => $subject,
             'magelo_blue_talk' => $customTalk ], 'namespaces' => [ 'magelo_blue' => $subject,
             'magelo_blue_talk' => $customTalk ], 'views' => $baseViews ],
-            $customTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+            $customTalk, [ 'talk', 'view', 'edit', 'history' ] ],
         [ 'array-valued classes', [ 'associated-pages' => [ 'magelo_blue_talk' => $arrayTalk ],
-            'views' => $baseViews ], $arrayTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+            'views' => $baseViews ], $arrayTalk, [ 'talk', 'view', 'edit', 'history' ] ],
         [ 'array with existing text-tab class', [ 'associated-pages' => [ 'magelo_blue_talk' => $arrayTextTalk ],
-            'views' => $baseViews ], $arrayTextTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+            'views' => $baseViews ], $arrayTextTalk, [ 'talk', 'view', 'edit', 'history' ] ],
         [ 'legacy namespaces only', [ 'namespaces' => [ 'main' => $subject, 'talk' => $standardTalk ],
-            'views' => $baseViews ], $standardTalk, [ 'view', 'talk', 'edit', 'history' ] ],
+            'views' => $baseViews ], $standardTalk, [ 'talk', 'view', 'edit', 'history' ] ],
         [ 'explicit primary ID', [ 'associated-pages' => [ 'talk' => $standardTalk + [ 'id' => 'ca-talk' ] ],
             'views' => $baseViews ], $standardTalk + [ 'id' => 'ca-talk' ],
-            [ 'view', 'talk', 'edit', 'history' ] ],
+            [ 'talk', 'view', 'edit', 'history' ] ],
         [ 'creation without Read', [ 'associated-pages' => [ 'talk' => $standardTalk ],
             'views' => [ 'edit' => $baseViews['edit'] ] ], $standardTalk, [ 'talk', 'edit' ] ],
         [ 'no Talk', [ 'associated-pages' => [ 'main' => $subject ], 'namespaces' => [ 'main' => $subject ],

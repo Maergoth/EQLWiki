@@ -383,11 +383,11 @@ async function main() {
     checkCount( page, null, 'Stale earlier response cannot overwrite newer refresh' ); page.close();
 
     page = await visit( { markup: '<div id="p-views"><ul>' +
-        '<li id="ca-view"><a href="/wiki/Synthetic_example">Read</a></li>' +
-        '<li id="ca-talk"><a href="/wiki/Talk:Synthetic_example">Talk</a></li></ul></div>' +
+        '<li id="ca-talk"><a href="/wiki/Talk:Synthetic_example">Talk</a></li>' +
+        '<li id="ca-view"><a href="/wiki/Synthetic_example">Read</a></li></ul></div>' +
         '<div id="p-cactions"><ul><li id="ca-more-talk">' +
         '<a href="/wiki/Talk:Synthetic_example">Talk</a></li></ul></div>' } );
-    checkCount( page, '3', 'Talk after Read and its distinct overflow link receive the same count' );
+    checkCount( page, '3', 'Talk before Read and its distinct overflow link receive the same count' );
     assert.equal( page.w.document.querySelector( '#ca-view .eql-talk-unread-badge' ), null,
         'Read action does not receive the Talk counter' );
     page.close();
