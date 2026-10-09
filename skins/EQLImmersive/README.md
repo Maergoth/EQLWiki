@@ -56,13 +56,23 @@ content. CSS order in skin.json and the database Common.css cascade both matter.
 
 ## Responsive header search
 
-The inline search bar collapses to the existing 38px search icon at viewport
-widths of 1500px or less, before it competes with the subject and Talk tabs.
-The collapsed icon is centered in the available space between the logo and the
-subject tab, while the page actions and account controls stay right-aligned.
-Opening it uses the fixed search overlay and native suggestions; Escape returns
-focus to the icon, and Enter submits immediately. Keep the compact media query
-in header-search.css and COMPACT_QUERY in header-search.js aligned.
+The inline search field shrinks with the actual space left by the logo,
+page actions, and account controls. It remains inline down to 76px, roughly twice
+the 38px search icon's width. Below 180px, the field hides its submit button and
+reduces icon padding; Enter still submits immediately. When less than 76px is
+available, it collapses to the existing 38px icon centered between the logo and
+subject tab. Opening that icon uses the fixed overlay and native suggestions;
+Escape returns focus to the icon.
+
+`header-search.js` measures available header space rather than using a fixed
+viewport cutoff. A ResizeObserver accommodates changing Talk badge, account,
+page-tool, and font widths. The same search input retains its value and caret
+when resizing between inline and overlay layouts. Keep the minimum width in
+`header-search.css` aligned with the JavaScript layout calculation.
+
+The narrow header stays on one row, with tighter spacing on small phones. At
+980px or less, account overflow links use the existing user menu once that menu
+has initialized; until then their native header links remain available.
 
 The subject tab remains first, with Talk immediately after Read in the EQL
 header, before the editing and history actions. At 640px or less, the subject and

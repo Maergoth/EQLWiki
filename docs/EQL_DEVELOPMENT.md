@@ -161,6 +161,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Sky/account state | `node ops/test-sky-rewards.cjs .local/Common.js` | jsdom and a reviewed Common.js snapshot containing the real state service |
 | Exact-artwork catalog | `php ops/test-icon-catalog.php` | GD and private `eql_icons/500.png`, `3470.png`, `3471.png` |
 | Full icon coverage | `php ops/verify-icon-coverage.php <library> <index-json> <audit-manifest>` | GD and the private source library/current index/audit |
+| Header search layout | `node ops/test-header-search.cjs` | jsdom 27 via `NODE_PATH`; synthetic header measurements, resize, and input fixtures, not real browser layout or native suggestion integration |
 | Search integration | `python ops/check-search.py http://127.0.0.1:8080` | A running populated wiki with the expected item/title fixtures; use `--help` for staging options |
 | Release archive | `python ops/build-release.py --output .local/release-review.tar.gz` | Python; create `.local/` first. Tracked files only, so stage new files before checking inclusion |
 
@@ -181,7 +182,17 @@ UI smoke checks should match the component: source editor and VisualEditor;
 partial/mixed-case search; item/spell/merchant hovers; dynamic sections after
 `wikipage.content`; era modes without disabling editor controls; anonymous and
 account persistence; mobile menu/flyout containment; and the relevant page-specific
-view. Check Read/Talk header order, selected and custom-namespace Talk links,
+view.
+
+For header search, resize through the available-space thresholds with different
+account/tool widths and a Talk badge. Check the 76px inline minimum, narrow
+fields below 180px, the centered icon when the field cannot fit, and overlay
+containment. Keep a typed query and caret selection while resizing; verify
+native suggestions, Enter submission, and Escape focus return in a real browser.
+The synthetic layout fixture does not verify actual CSS/font measurements or
+ResourceLoader delivery.
+
+Check Read/Talk header order, selected and custom-namespace Talk links,
 unique primary/overflow Talk IDs, and Talk visibility on phones. For the Talk
 counter, check unseen revision counts, opening the current
 Talk view, changes newer than the displayed revision, old revisions/diffs/editors,
