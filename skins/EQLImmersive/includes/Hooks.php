@@ -6,6 +6,7 @@ use MediaWiki\Hook\BeforePageDisplayHook;
 use MediaWiki\Hook\SkinBuildSidebarHook;
 use MediaWiki\Hook\SkinTemplateNavigation__UniversalHook;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\SpecialPage\SpecialPage;
 use SkinTemplate;
 
@@ -47,6 +48,23 @@ class Hooks implements
 		}
 
 		$this->addConditionalResourceModules( $out, $skin );
+		$this->addTalkActivityModule( $out, $skin );
+	}
+
+	/** Provide authoritative Talk pairing and the timestamp of rendered content. */
+	private function addTalkActivityModule( $out, $skin ): void {
+		$title = $skin->getTitle();
+		$talkTitle = $title ? $title->getTalkPageIfDefined() : null;
+		if ( !$talkTitle ) {
+			return;
+		}
+		$timestamp = $out->getMetadata()->getRevisionTimestamp();
+		$out->addJsConfigVars( [
+			'wgEQLTalkPageName' => $talkTitle->getPrefixedDBkey(),
+			'wgEQLTalkIsTalkPage' => $title->isTalkPage(),
+			'wgEQLTalkRevisionTimestamp' => $timestamp ? wfTimestamp( TS_ISO_8601, $timestamp ) : null
+		] );
+		$out->addModules( 'skins.EQLImmersive.talkUnread' );
 	}
 
 	/**
@@ -155,13 +173,70 @@ class Hooks implements
 		$sktemplate,
 		&$links
 	): void {
+		// Use concise labels throughout the wiki while preserving link contracts.
+		foreach ( [ 'namespaces', 'associated-pages' ] as $group ) {
+			foreach ( $links[$group] ?? [] as $key => $item ) {
+				if ( $key === 'talk' || ( $item['context'] ?? '' ) === 'talk' ) {
+					$links[$group][$key]['text'] = 'Talk';
+				}
+			}
+		}
+		foreach ( [ 'views', 'views-overflow', 'actions' ] as $group ) {
+			foreach ( $links[$group] ?? [] as $key => $item ) {
+				if ( $key === 'history' || $key === 'more-history' ) {
+					$links[$group][$key]['text'] = 'History';
+				}
+			}
+		}
+
 		if ( !$this->isEQLImmersiveSkinName( $sktemplate->getSkinName() ) ) {
 			return;
 		}
 
 		$this->addEmailVerificationLink( $sktemplate, $links );
 		$this->addHeaderWatchLink( $sktemplate, $links );
+		$this->moveTalkNextToRead( $links );
 		$this->createViewsOverflow( $links );
+	}
+
+	/** Keep the subject tab first, with Talk immediately before the Read action. */
+	private function moveTalkNextToRead( array &$links ): void {
+		$talk = null;
+		foreach ( [ 'associated-pages', 'namespaces', 'views' ] as $group ) {
+			foreach ( $links[$group] ?? [] as $key => $item ) {
+				if ( !is_array( $item ) ||
+					( $key !== 'talk' && ( $item['context'] ?? '' ) !== 'talk' )
+				) {
+					continue;
+				}
+				$talk ??= $item;
+				unset( $links[$group][$key] );
+			}
+		}
+		if ( $talk === null ) {
+			return;
+		}
+
+		// Core uses this context after the hook to retain ca-talk and rel=discussion.
+		$talk['context'] = 'talk';
+		$talkClass = $talk['class'] ?? '';
+		$talkClass = is_array( $talkClass ) ? implode( ' ', $talkClass ) : (string)$talkClass;
+		if ( !preg_match( '/(?:^|\s)vector-tab-noicon(?:\s|$)/', $talkClass ) ) {
+			$talkClass = trim( $talkClass . ' vector-tab-noicon' );
+		}
+		$talk['class'] = $talkClass;
+		$views = [];
+		foreach ( $links['views'] ?? [] as $key => $item ) {
+			if ( $key === 'view' ) {
+				$views['talk'] = $talk;
+			}
+			$views[$key] = $item;
+		}
+		if ( !isset( $views['talk'] ) ) {
+			// New pages can have a creation action without a Read action.
+			$views = [ 'talk' => $talk ] + $views;
+		}
+		$links['views'] = $views;
 	}
 
 	private function addEmailVerificationLink(
@@ -181,6 +256,15 @@ class Hooks implements
 			!$user->isNamed() ||
 			$user->isEmailConfirmed()
 		) {
+			return;
+		}
+
+		// Talk contributions may be allowed before email confirmation. Only show
+		// Verify2Edit when the server actually reports that requirement.
+		$status = MediaWikiServices::getInstance()->getPermissionManager()->getPermissionStatus(
+			'edit', $user, $title, PermissionManager::RIGOR_QUICK
+		);
+		if ( !$status->hasMessage( 'confirmedittext' ) ) {
 			return;
 		}
 
@@ -294,7 +378,13 @@ class Hooks implements
 
 		foreach ( $links['views'] ?? [] as $key => $item ) {
 			$newItem = $item;
-			$newItem['class'] = trim( ( $newItem['class'] ?? '' ) . ' vector-tab-noicon' );
+			if ( $key === 'talk' ) {
+				// The primary Talk context would otherwise give both links ca-talk.
+				$newItem['id'] = 'ca-more-talk';
+				$newItem['rel'] = $newItem['rel'] ?? 'discussion';
+			} else {
+				$newItem['class'] = trim( ( $newItem['class'] ?? '' ) . ' vector-tab-noicon' );
+			}
 			$newItem['is-collapsible'] = true;
 			$clonedViews['more-' . $key] = $newItem;
 		}
@@ -398,7 +488,7 @@ class Hooks implements
 		$this->addSidebarItem(
 			$items,
 			'n-eql-history',
-			'View history',
+			'History',
 			$title->getLocalURL( 'action=history' )
 		);
 
@@ -414,7 +504,7 @@ class Hooks implements
 			$this->addSidebarItem(
 				$items,
 				'n-eql-discussion',
-				'Discussion',
+				'Talk',
 				$talkTitle->getLocalURL()
 			);
 		}

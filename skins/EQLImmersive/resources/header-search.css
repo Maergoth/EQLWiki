@@ -21,7 +21,7 @@ body.skin-eqlimmersive {
 	--eql-search-height: 38px;
 	--eql-search-icon-size: 38px;
 	--eql-search-radius: 8px;
-	--eql-search-wide-min: 14rem;
+	--eql-search-inline-min: 76px;
 	--eql-search-wide-max: 34rem;
 	--eql-search-overlay-max: 36rem;
 	--eql-search-gutter: 8px;
@@ -53,12 +53,13 @@ body.skin-eqlimmersive .mw-header {
 	display: flex !important;
 	align-items: center !important;
 	flex-wrap: nowrap !important;
-	gap: 0.65rem !important;
+	gap: 0.35rem !important;
 }
 
 body.skin-eqlimmersive .vector-header-start,
 body.skin-eqlimmersive .mw-header-start {
-	flex: 0 1 auto !important;
+	flex: 0 0 auto !important;
+	margin-right: 0 !important;
 }
 
 body.skin-eqlimmersive .vector-header-end,
@@ -66,13 +67,14 @@ body.skin-eqlimmersive .mw-header-end {
 	display: flex !important;
 	align-items: center !important;
 	justify-content: flex-end !important;
+	flex-wrap: nowrap !important;
 	flex: 1 1 auto !important;
 	gap: 0.35rem !important;
 	position: relative !important;
 }
 
 body.skin-eqlimmersive .eql-header-page-actions-wrap {
-	flex: 0 1 auto !important;
+	flex: 0 0 auto !important;
 	min-width: 0 !important;
 	max-width: 100% !important;
 	overflow: visible !important;
@@ -86,17 +88,17 @@ body.skin-eqlimmersive .vector-user-menu {
 }
 
 /* Native Vector search portlet. It owns the elastic width on wide screens. */
-body.skin-eqlimmersive #p-search {
+body.skin-eqlimmersive .vector-header-end > #p-search {
 	position: relative !important;
 	z-index: 400 !important;
 
 	display: block !important;
-	flex: 1 1 clamp(var(--eql-search-wide-min), 28vw, var(--eql-search-wide-max)) !important;
+	flex: 1 1 var(--eql-search-wide-max) !important;
 	width: auto !important;
-	min-width: var(--eql-search-wide-min) !important;
+	min-width: var(--eql-search-inline-min) !important;
 	max-width: var(--eql-search-wide-max) !important;
 
-	margin: 0 0.25rem 0 auto !important;
+	margin: 0 auto !important;
 	padding: 0 !important;
 	overflow: visible !important;
 	box-sizing: border-box !important;
@@ -119,6 +121,7 @@ body.skin-eqlimmersive #p-search .cdx-typeahead-search {
 	min-height: var(--eql-search-height) !important;
 	overflow: visible !important;
 	box-sizing: border-box !important;
+	margin: 0 !important;
 }
 
 /* Hide Codex/Vector's own rendered menu if it appears. Our typeahead file
@@ -397,117 +400,132 @@ body.skin-eqlimmersive #p-search form#searchform > button.cdx-search-input__end-
 	font-size: 0.82rem !important;
 }
 
-/* Compact mode: search becomes a round icon. Opening it shows the form as a
-   fixed overlay calculated by JS. */
-@media (max-width: 980px) {
-	body.skin-eqlimmersive #p-search {
-		flex: 0 0 var(--eql-search-icon-size) !important;
-		width: var(--eql-search-icon-size) !important;
-		min-width: var(--eql-search-icon-size) !important;
-		max-width: var(--eql-search-icon-size) !important;
-		margin-left: 0 !important;
-		margin-right: 0.2rem !important;
-		z-index: 2147483645 !important;
-	}
-
-	body.skin-eqlimmersive #p-search > .search-toggle {
-		display: inline-flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		width: var(--eql-search-icon-size) !important;
-		height: var(--eql-search-icon-size) !important;
-		min-width: var(--eql-search-icon-size) !important;
-		min-height: var(--eql-search-icon-size) !important;
-		margin: 0 !important;
-		padding: 0 !important;
-		border: 1px solid var(--eql-search-border) !important;
-		border-radius: 999px !important;
-		background:
-			linear-gradient(
-				180deg,
-				rgba(43, 33, 14, 0.94),
-				rgba(13, 18, 26, 0.98)
-			) !important;
-		box-shadow:
-			0 0 0 1px rgba(0, 0, 0, 0.50),
-			inset 0 1px 0 rgba(255, 255, 255, 0.06),
-			0 4px 12px rgba(0, 0, 0, 0.32) !important;
-		color: var(--eql-search-gold) !important;
-		cursor: pointer !important;
-		box-sizing: border-box !important;
-	}
-
-	body.skin-eqlimmersive #p-search > .search-toggle:hover,
-	body.skin-eqlimmersive #p-search > .search-toggle:focus {
-		border-color: var(--eql-search-border-focus) !important;
-		box-shadow:
-			0 0 0 1px rgba(0, 0, 0, 0.58),
-			0 0 0 3px rgba(216, 183, 92, 0.12),
-			inset 0 1px 0 rgba(255, 255, 255, 0.08),
-			0 5px 14px rgba(0, 0, 0, 0.38) !important;
-		outline: 0 !important;
-	}
-
-	body.skin-eqlimmersive #p-search > .search-toggle .vector-icon,
-	body.skin-eqlimmersive #p-search > .search-toggle .mw-ui-icon-search {
-		background-color: var(--eql-search-gold) !important;
-	}
-
-	body.skin-eqlimmersive #p-search > .search-toggle span:not(.vector-icon) {
-		position: absolute !important;
-		width: 1px !important;
-		height: 1px !important;
-		padding: 0 !important;
-		margin: -1px !important;
-		overflow: hidden !important;
-		clip: rect(0, 0, 0, 0) !important;
-		white-space: nowrap !important;
-		border: 0 !important;
-	}
-
-	body.skin-eqlimmersive #p-search .vector-typeahead-search-container {
-		display: none !important;
-	}
-
-	body.skin-eqlimmersive #p-search.eql-search-expanded > .search-toggle,
-	body.skin-eqlimmersive.eql-search-open #p-search > .search-toggle {
-		visibility: hidden !important;
-		pointer-events: none !important;
-	}
-
-	body.skin-eqlimmersive #p-search.eql-search-expanded .vector-typeahead-search-container,
-	body.skin-eqlimmersive.eql-search-open #p-search .vector-typeahead-search-container {
-		display: block !important;
-		position: fixed !important;
-		left: var(--eql-search-overlay-left, 8px) !important;
-		top: var(--eql-search-overlay-top, 8px) !important;
-		width: var(--eql-search-overlay-width, calc(100vw - 16px)) !important;
-		max-width: calc(100vw - 16px) !important;
-		height: var(--eql-search-height) !important;
-		z-index: 2147483646 !important;
-		margin: 0 !important;
-		overflow: visible !important;
-	}
-
-	body.skin-eqlimmersive #p-search.eql-search-expanded form#searchform.cdx-search-input,
-	body.skin-eqlimmersive.eql-search-open #p-search form#searchform.cdx-search-input {
-		width: 100% !important;
-		max-width: 100% !important;
-	}
-
-	body.skin-eqlimmersive.eql-search-open .vector-user-links,
-	body.skin-eqlimmersive.eql-search-open #p-personal,
-	body.skin-eqlimmersive.eql-search-open .vector-user-menu,
-	body.skin-eqlimmersive.eql-search-open .eql-header-page-actions-wrap,
-	body.skin-eqlimmersive.eql-search-open #eql-era-filter-toggle {
-		z-index: 1000 !important;
-	}
+/* Compact mode is measured from the space left by fixed header controls.
+   Opening the centered icon shows the existing fixed overlay. */
+/* Match the spacing on either side of the search slot so its auto margins
+   center the icon between the logo and the first page tab. */
+body.skin-eqlimmersive.eql-search-compact .vector-header,
+body.skin-eqlimmersive.eql-search-compact .mw-header {
+	column-gap: 0.35rem !important;
 }
 
-/* Extra tight widths: keep the header one row and let the overlay use almost
-   the full viewport when opened. */
+body.skin-eqlimmersive.eql-search-compact .vector-header-start,
+body.skin-eqlimmersive.eql-search-compact .mw-header-start {
+	margin-right: 0 !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact .vector-header-end > #p-search {
+	flex: 0 0 var(--eql-search-icon-size) !important;
+	width: var(--eql-search-icon-size) !important;
+	min-width: var(--eql-search-icon-size) !important;
+	max-width: var(--eql-search-icon-size) !important;
+	margin-left: auto !important;
+	margin-right: auto !important;
+	z-index: 2147483645 !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search > .search-toggle {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: var(--eql-search-icon-size) !important;
+	height: var(--eql-search-icon-size) !important;
+	min-width: var(--eql-search-icon-size) !important;
+	min-height: var(--eql-search-icon-size) !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 1px solid var(--eql-search-border) !important;
+	border-radius: 999px !important;
+	background:
+		linear-gradient(
+			180deg,
+			rgba(43, 33, 14, 0.94),
+			rgba(13, 18, 26, 0.98)
+		) !important;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.50),
+		inset 0 1px 0 rgba(255, 255, 255, 0.06),
+		0 4px 12px rgba(0, 0, 0, 0.32) !important;
+	color: var(--eql-search-gold) !important;
+	cursor: pointer !important;
+	box-sizing: border-box !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search > .search-toggle:hover,
+body.skin-eqlimmersive.eql-search-compact #p-search > .search-toggle:focus {
+	border-color: var(--eql-search-border-focus) !important;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.58),
+		0 0 0 3px rgba(216, 183, 92, 0.12),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08),
+		0 5px 14px rgba(0, 0, 0, 0.38) !important;
+	outline: 0 !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search > .search-toggle .vector-icon,
+body.skin-eqlimmersive.eql-search-compact #p-search > .search-toggle .mw-ui-icon-search {
+	background-color: var(--eql-search-gold) !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search > .search-toggle span:not(.vector-icon) {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search .vector-typeahead-search-container {
+	display: none !important;
+}
+
+/* Native thumbnail spacing is for inline search; the overlay already has
+   its viewport gutter and must not shift beyond it. */
+body.skin-eqlimmersive.eql-search-compact #p-search .cdx-typeahead-search {
+	margin: 0 !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search.eql-search-expanded > .search-toggle,
+body.skin-eqlimmersive.eql-search-compact.eql-search-open #p-search > .search-toggle {
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search.eql-search-expanded .vector-typeahead-search-container,
+body.skin-eqlimmersive.eql-search-compact.eql-search-open #p-search .vector-typeahead-search-container {
+	display: block !important;
+	position: fixed !important;
+	left: var(--eql-search-overlay-left, 8px) !important;
+	top: var(--eql-search-overlay-top, 8px) !important;
+	width: var(--eql-search-overlay-width, calc(100vw - 16px)) !important;
+	max-width: calc(100vw - 16px) !important;
+	height: var(--eql-search-height) !important;
+	z-index: 2147483646 !important;
+	margin: 0 !important;
+	overflow: visible !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact #p-search.eql-search-expanded form#searchform.cdx-search-input,
+body.skin-eqlimmersive.eql-search-compact.eql-search-open #p-search form#searchform.cdx-search-input {
+	width: 100% !important;
+	max-width: 100% !important;
+}
+
+body.skin-eqlimmersive.eql-search-compact.eql-search-open .vector-user-links,
+body.skin-eqlimmersive.eql-search-compact.eql-search-open #p-personal,
+body.skin-eqlimmersive.eql-search-compact.eql-search-open .vector-user-menu,
+body.skin-eqlimmersive.eql-search-compact.eql-search-open .eql-header-page-actions-wrap,
+body.skin-eqlimmersive.eql-search-compact.eql-search-open #eql-era-filter-toggle {
+	z-index: 1000 !important;
+}
+
+/* Extra tight widths: keep the search overlay within the viewport. */
 @media (max-width: 640px) {
-	body.skin-eqlimmersive .mw-logo-wordmark {
+	body.skin-eqlimmersive .vector-header-start .mw-logo-wordmark {
 		max-width: 10rem !important;
 		overflow: hidden !important;
 		text-overflow: ellipsis !important;
@@ -533,7 +551,7 @@ body.skin-eqlimmersive #p-search form#searchform > button.cdx-search-input__end-
 }
 
 @media (max-width: 420px) {
-	body.skin-eqlimmersive .mw-logo-wordmark {
+	body.skin-eqlimmersive .vector-header-start .mw-logo-wordmark {
 		display: none !important;
 	}
 
@@ -821,4 +839,139 @@ body.skin-eqlimmersive #p-search,
 body.skin-eqlimmersive .vector-typeahead-search-container,
 body.skin-eqlimmersive .cdx-typeahead-search {
 	overflow: visible !important;
+}
+/* Leave room to type when the inline field is nearly as small as the icon.
+   The normal submit button remains available in wider fields and the overlay. */
+body.skin-eqlimmersive.eql-search-narrow-inline #p-search form#searchform > button.cdx-search-input__end-button {
+	display: none !important;
+}
+
+body.skin-eqlimmersive.eql-search-narrow-inline #p-search input#searchInput {
+	padding-left: 2.3rem !important;
+	padding-right: 0.35rem !important;
+}
+
+body.skin-eqlimmersive.eql-search-narrow-inline #p-search .cdx-text-input.cdx-text-input--has-start-icon::before {
+	left: 0.55rem !important;
+}
+
+body.skin-eqlimmersive.eql-search-narrow-inline #p-search .cdx-text-input.cdx-text-input--has-start-icon::after {
+	left: calc(0.55rem + 13px) !important;
+}
+
+/* Avoid a second header row after account links have moved into the user menu. */
+@media (max-width: 980px) {
+	body.skin-eqlimmersive.eql-user-menu-js .vector-header-end > .vector-user-links #p-vector-user-menu-overflow {
+		display: none !important;
+	}
+}
+
+/* Use tighter action spacing before the full toolbar wraps on phones. */
+@media (max-width: 980px) {
+	body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item > a {
+		padding-left: 0.3rem !important;
+		padding-right: 0.3rem !important;
+	}
+}
+
+/* The hidden phone wordmark should not leave an empty logo slot or menu margin. */
+@media (max-width: 420px) {
+	body.skin-eqlimmersive .vector-header-start .mw-logo {
+		display: none !important;
+	}
+	body.skin-eqlimmersive .vector-header-start .eql-main-menu-landmark {
+		margin-right: 0 !important;
+	}
+}
+
+/* Keep all phone controls reachable even on the smallest supported header. */
+@media (max-width: 360px) {
+	body.skin-eqlimmersive .vector-header .vector-header-end .eql-header-page-actions-wrap .vector-menu-tabs .vector-menu-content .mw-list-item > a {
+		padding-left: 0.15rem !important;
+		padding-right: 0.15rem !important;
+	}
+	body.skin-eqlimmersive .vector-header-end #vector-user-links-dropdown-label {
+		width: 28px !important;
+		min-width: 28px !important;
+	}
+}
+
+
+/* Phone actions use their own wrapping row instead of disappearing. Keep this
+   separate-row marker aligned with the header-search.js space calculation. */
+@media (max-width: 640px) {
+	body.skin-eqlimmersive .vector-header {
+		align-items: flex-start !important;
+		padding-top: 0.4rem;
+		padding-bottom: 0.4rem;
+	}
+
+	body.skin-eqlimmersive .vector-header .vector-header-end {
+		display: grid !important;
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		row-gap: 0.35rem;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #p-search {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	body.skin-eqlimmersive:not(.eql-search-compact) .vector-header-end > #p-search {
+		width: 100% !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > #eql-era-filter-toggle {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	body.skin-eqlimmersive .vector-header-end > .vector-user-links {
+		grid-column: 3;
+		grid-row: 1;
+	}
+
+	body.skin-eqlimmersive .vector-header .vector-header-end > .eql-header-page-actions-wrap {
+		--eql-search-separate-row: 1;
+		grid-column: 1 / -1;
+		grid-row: 2;
+		width: 100%;
+		justify-content: flex-start;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar,
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+		width: 100% !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .vector-page-toolbar-container {
+		align-items: flex-start !important;
+		justify-content: flex-start;
+		flex-wrap: wrap !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end #left-navigation {
+		flex: 0 0 auto;
+	}
+
+	body.skin-eqlimmersive .vector-header-end #right-navigation {
+		/* Move this group below a long subject tab before splitting Talk/Read. */
+		flex: 1 1 9rem;
+		min-width: min(100%, 9rem);
+	}
+
+	body.skin-eqlimmersive .vector-header-end #p-views,
+	body.skin-eqlimmersive .vector-header-end #p-views .vector-menu-content,
+	body.skin-eqlimmersive .vector-header-end #p-views .vector-menu-content-list {
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	body.skin-eqlimmersive .vector-header-end #p-views .vector-menu-content-list {
+		flex-wrap: wrap !important;
+	}
+
+	body.skin-eqlimmersive .vector-header-end .eql-header-page-actions-wrap .mw-list-item {
+		flex: 0 0 auto;
+	}
 }
