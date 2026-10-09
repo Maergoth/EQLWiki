@@ -120,6 +120,7 @@ and remove it from public routes after verification.
 | Plane of Sky reward fields | A section of database `MediaWiki:Common.js` | [`sync-sky-rewards.php`](../ops/sync-sky-rewards.php), replacing only that section |
 | Icon List container | Database `Icon List` | [`sync-icon-list.php`](../ops/sync-icon-list.php) plus the skin listing module |
 | Itembox stat defaults | Database `Template:Itembox` | Reviewed [`ops/itembox.wiki`](../ops/itembox.wiki), separately published with [`sync-itembox.php`](../ops/sync-itembox.php) |
+| Optional talk contribution policy | Registered `EQLTalkContributions` PHP hooks plus ignored environment settings | Deploy files, then separately activate the reviewed settings block; source deployment alone does not enable it |
 | Other Common.js/CSS or ClassGuideDropdown behavior | Database interface pages | Review and publish the affected page; no complete canonical Git mirror currently exists |
 | Template/Lua/category/verification/era data | Wiki database | An explicit content change/export/import, separate from file deployment |
 | Host cache builders, cron wrappers, staging policies, deployment receiver | Owner-installed private host files | Separate installation; `ops/` is excluded from application releases |
@@ -148,6 +149,9 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
 | Whitespace | `git diff --check` | Git |
+| Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |
+| Talk permissions integration | `php maintenance/run.php ./ops/test-talk-permissions.php --conf .local/talk-contributions/LocalSettings.php` | Configured isolated local wiki and ignored activation overlay; read-only core permission checks, no page/account/protection writes |
+| Unseen Talk counter | `node ops/test-talk-unread.cjs` | jsdom 27 via `NODE_PATH`; synthetic DOM/API/storage fixtures, no database writes or live-site verification |
 | Icon metadata | `node ops/test-icon-finder.cjs` | No third-party package; IDs, parameters, aliases |
 | Icon result UI | `node ops/test-icon-finder-ui.cjs` | jsdom; 12-result batches, 100 reachable candidates, selected-alias copying, flyout formats/dismissal |
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
@@ -157,6 +161,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Sky/account state | `node ops/test-sky-rewards.cjs .local/Common.js` | jsdom and a reviewed Common.js snapshot containing the real state service |
 | Exact-artwork catalog | `php ops/test-icon-catalog.php` | GD and private `eql_icons/500.png`, `3470.png`, `3471.png` |
 | Full icon coverage | `php ops/verify-icon-coverage.php <library> <index-json> <audit-manifest>` | GD and the private source library/current index/audit |
+| Header search layout | `node ops/test-header-search.cjs` | jsdom 27 via `NODE_PATH`; synthetic header measurements, resize, and input fixtures, not real browser layout or native suggestion integration |
 | Search integration | `python ops/check-search.py http://127.0.0.1:8080` | A running populated wiki with the expected item/title fixtures; use `--help` for staging options |
 | Release archive | `python ops/build-release.py --output .local/release-review.tar.gz` | Python; create `.local/` first. Tracked files only, so stage new files before checking inclusion |
 
@@ -177,7 +182,29 @@ UI smoke checks should match the component: source editor and VisualEditor;
 partial/mixed-case search; item/spell/merchant hovers; dynamic sections after
 `wikipage.content`; era modes without disabling editor controls; anonymous and
 account persistence; mobile menu/flyout containment; and the relevant page-specific
-view. Zone Viewer changes need supported browsers and local game files; use its
+view.
+
+For header search, resize through the available-space thresholds with different
+account/tool widths and a Talk badge. Check the 76px inline minimum, narrow
+fields below 180px, the centered icon when the field cannot fit, and overlay
+containment. Keep a typed query and caret selection while resizing; verify
+native suggestions, Enter submission, and Escape focus return in a real browser.
+The synthetic layout fixture does not verify actual CSS/font measurements or
+ResourceLoader delivery.
+
+Check Talk immediately before Read and Read's thin leading divider, selected
+and custom-namespace Talk links, and unique primary/overflow Talk IDs. On phones,
+verify the full page-action toolbar wraps below the search/era/account row with
+all available subject, Talk, Read, edit, History, and Watch buttons visible and
+unclipped. The divider stays visible with Read on phones and is absent only when
+Read is absent, including page creation. For the Talk counter, check unseen
+revision counts, opening the current Talk view, changes newer than the displayed
+revision, old revisions/diffs/editors,
+anonymous/account separation, redirects, missing/unreadable pages, narrow layouts,
+and reduced motion. The synthetic fixture does not verify live permissions or
+ResourceLoader delivery. See the [skin guide](../skins/EQLImmersive/README.md#unseen-talk-changes)
+for storage and refresh behavior. Zone Viewer changes need supported browsers and
+local game files; use its
 [build guide](../extensions/EQLZoneViewer/build/README.md) and
 [validation notes](../extensions/EQLZoneViewer/docs/VALIDATION_1.15.0.txt).
 
@@ -191,6 +218,26 @@ Check article and item hover output on staging after the separately approved
 template publication. Item rank changes should leave this base-stat default
 unchanged, just as they leave Backstab unchanged. The parser fixture verifies
 template output, not live ResourceLoader, uploaded icons, or staging hovers.
+
+## Optional anonymous talk contributions
+
+[`EQLTalkContributions`](../extensions/EQLTalkContributions/README.md) is not yet
+enabled on the audited live site. Its activation changes private environment
+settings as well as loading the extension. Use the exact block in its guide:
+anonymous and unconfirmed named users may contribute to talk pages; subject
+pages require a named account with confirmed email. Core protection, blocks,
+sessions, CAPTCHA, and rate limits still apply. The policy covers all talk
+namespaces, including Magelo Blue/Red talk, and keeps IP attribution by disabling
+automatic temporary accounts.
+
+Use an ignored local configuration overlay for the read-only integration check
+above. Browser verification should cover existing/new talk pages, subject-page
+denials, confirmed/unconfirmed accounts, Verify2Edit navigation, protected talk,
+and the signup form's required email. Permission probes do not verify saved
+revision attribution; state separately whether a synthetic local save was checked.
+Staging's live-login gate remains unchanged and prevents a normal logged-out
+browser check. Restore the previous restrictive settings before unloading the
+extension; see the extension guide for safe rollback ordering.
 
 ## Staging and release quirks
 

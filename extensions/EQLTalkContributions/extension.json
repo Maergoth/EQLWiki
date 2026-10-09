@@ -1,0 +1,33 @@
+{
+    "name": "EQLTalkContributions",
+    "version": "1.0.0",
+    "author": "EverQuest Legends Wiki",
+    "description": "Allows IP-attributed talk contributions while requiring named accounts for subject-page edits.",
+    "type": "other",
+    "license-name": "GPL-2.0-or-later",
+    "requires": {
+        "MediaWiki": ">= 1.45"
+    },
+    "AutoloadNamespaces": {
+        "EQLTalkContributions\\": "includes/"
+    },
+    "HookHandlers": {
+        "main": {
+            "class": "EQLTalkContributions\\Hooks",
+            "services": [ "MainConfig" ]
+        }
+    },
+    "Hooks": {
+        "getUserPermissionsErrors": "main",
+        "AuthChangeFormFields": "main"
+    },
+    "MessagesDirs": {
+        "EQLTalkContributions": [ "i18n" ]
+    },
+    "config": {
+        "EQLTalkContributionsRequireConfirmedEmail": {
+            "value": true
+        }
+    },
+    "manifest_version": 2
+}

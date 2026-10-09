@@ -105,6 +105,12 @@
         "BeforePageDisplay": "EQLImmersiveHooks"
     },
     "ResourceModules": {
+        "skins.EQLImmersive.talkUnread": {
+            "scripts": [ "resources/talk-unread.js" ],
+            "styles": [ "resources/talk-unread.css" ],
+            "dependencies": [ "mediawiki.api" ],
+            "messages": [ "eql-talk-unread-label", "eql-talk-unread-label-more" ]
+        },
         "skins.EQLImmersive.iconList": {
             "scripts": [ "resources/icon-list.js" ],
             "styles": [ "resources/icon-list.css" ],

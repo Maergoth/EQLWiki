@@ -390,6 +390,18 @@ body.skin-eqlimmersive .vector-header-end .vector-menu-tabs .mw-list-item a:hove
 }
 
 
+/* Keep the divider with Read; the adjacent selector omits it when Read is absent. */
+body.skin-eqlimmersive .vector-header-end #p-views #ca-talk + #ca-view::before {
+	content: '';
+	flex: 0 0 1px;
+	width: 1px;
+	height: 1.25rem;
+	margin-inline: 0.1rem 0.38rem;
+	background: rgba( 216, 183, 92, 0.38 );
+	pointer-events: none;
+}
+
+
 /* =====================================================
    Verify-email editing action
    ===================================================== */
@@ -716,10 +728,6 @@ body.skin-eqlimmersive .vector-header-end .new > a:hover {
 		min-width: 220px;
 		max-width: 340px;
 	}
-
-	body.skin-eqlimmersive .vector-header-end #left-navigation {
-		display: none !important;
-	}
 }
 
 @media ( max-width: 1150px ) {
@@ -727,10 +735,6 @@ body.skin-eqlimmersive .vector-header-end .new > a:hover {
 		flex: 1 1 auto;
 		min-width: 200px;
 		max-width: none;
-	}
-
-	body.skin-eqlimmersive .vector-header-end > .eql-header-page-actions-wrap {
-		display: none !important;
 	}
 }
 

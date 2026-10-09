@@ -22,7 +22,8 @@ not be loaded alongside this skin. This is not the old `EQLImmersiveTEST` skin.
 Some inherited template files are unused by the active outer template;
 `Header.mustache` is not the active search header.
 
-Hooks also provide Verify2Edit for named users with unconfirmed email,
+Hooks also provide Verify2Edit when a named user's edit permission requires
+email confirmation,
 Watch/Unwatch header links, and `__EQL_PAGE_TOOLS__` / `__EQL_ADMIN_TOOLS__`
 sidebar placeholders. Admin tools require the configured privileged wiki groups
 and the relevant action permissions; preserve those checks when changing menus.
@@ -41,6 +42,7 @@ or update both producer and consumer when changing database templates.
 | --- | --- |
 | Header, menu, TOC and cards | `main.js`, `main.css`, header/sidebar/layout/responsive styles; native Vector TOC is disabled |
 | Search | `header-search.js/css`, native Vector/MediaWiki suggestion UI and SearchMySQL.php |
+| Talk activity | `talk-unread.js/css`, `skins.EQLImmersive.talkUnread`, server-provided subject/Talk pairing and read-only revision metadata |
 | Era/verification | `era-filter.js/css`, `verified-pages.js`, EQLClientData and database PageEra/VerifiedPages configuration |
 | Item/spell hovers | `item-hover.js`, `spell-effect-hover.js`, `merchant-spell-hover.js`, AjaxHoverHelper and compatible template HTML |
 | Spell sections | `checkbox-lists.js` currently performs Category:Spells lazy loading; `spell-lazy-loader.js` stabilizes item hovers |
@@ -51,6 +53,63 @@ or update both producer and consumer when changing database templates.
 
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
+
+## Responsive header search
+
+The inline search field shrinks with the actual space left by the logo and
+other controls in its header row. It remains inline down to 76px, roughly twice
+the 38px search icon's width. Below 180px, the field hides its submit button and
+reduces icon padding; Enter still submits immediately. When less than 76px is
+available, it collapses to the existing 38px icon centered in the available
+header space. Opening that icon uses the fixed overlay and native suggestions;
+Escape returns focus to the icon.
+
+`header-search.js` measures available header space rather than using a fixed
+viewport cutoff. A ResizeObserver accommodates changing Talk badge, account,
+page-tool, and font widths. The same search input retains its value and caret
+when resizing between inline and overlay layouts. Keep the minimum width in
+`header-search.css` aligned with the JavaScript layout calculation.
+
+At 980px or less, account overflow links use the existing user menu once that
+menu has initialized; until then their native header links remain available.
+
+The subject tab remains first, with Talk immediately before Read, followed by
+editing, history, and watch actions. Read carries a thin leading divider to
+separate it from Talk. The divider remains on phones and is omitted only when
+the Read action is absent, such as during page creation.
+
+At 640px or less, search, era, and account controls occupy the upper header row.
+The full page-action toolbar moves to a row below and wraps as needed; every
+available subject, Talk, Read, edit, History, and Watch button stays visible.
+Responsive styling does not hide page-action buttons. The wordmark is shortened
+at 640px and hidden at 420px, with tighter spacing on small phones.
+
+## Unseen Talk changes
+
+`skins.EQLImmersive.talkUnread` adds a green counter beside Talk navigation for
+changes since this visitor last opened the Talk page. It counts revisions rather
+than topics or comments, displays 1–99 and then `99+`, and includes readable
+history on a first visit. The subtle swirl stops when reduced motion is requested.
+Missing or unreadable Talk pages and API failures leave the counter hidden.
+
+The skin hook supplies the associated Talk title and the revision actually
+rendered. A normal current Talk view advances the seen marker only while the
+page is visible, through that displayed revision; newer edits remain unseen.
+Old revisions, diffs, editors, and background tabs do not mark changes as seen.
+Talk redirects share the destination's marker; redirects outside a Talk
+namespace do not produce a counter. A recreated page starts with a new marker.
+
+Markers use browser local storage under `eql-talk-seen-v1`, scoped to the wiki,
+account ID (or anonymous visitor), and canonical Talk destination title. They do
+not sync across devices or import anonymous state when someone logs in. This
+module does not use or alter Common.js/EQLUserState. Other tabs and browser
+back/forward restoration refresh the counter; there is no timer polling.
+
+The module makes at most two bounded read-only API requests per refresh, asking
+for revision IDs/timestamps and read permission, not comment text or authors.
+For the upstream API contracts see [Revisions](https://www.mediawiki.org/wiki/API:Revisions)
+and [Info](https://www.mediawiki.org/wiki/API:Info). Deploying these skin resources
+needs no database-page sync or private host/settings change.
 
 ## Database scripts remain active
 
@@ -87,3 +146,10 @@ For ordinary platform behavior use official
 [skin development](https://www.mediawiki.org/wiki/Manual:Skinning),
 [ResourceLoader](https://www.mediawiki.org/wiki/ResourceLoader), and
 [hook documentation](https://www.mediawiki.org/wiki/Manual:Hooks).
+
+Navigation labels are **Talk** and **History** throughout the wiki. The registered
+navigation hook also applies those labels to other skins; EQL page-tool/sidebar
+links and overflow menus use the same wording. Only EQL Immersive moves Talk
+beside Read; other skins keep their native placement. The primary Talk link keeps
+`ca-talk`, and its overflow copy uses `ca-more-talk` to avoid duplicate IDs. The
+unread counter covers both links. Page/action URLs remain unchanged.
