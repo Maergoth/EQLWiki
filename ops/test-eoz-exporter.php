@@ -34,6 +34,8 @@ $catalogPath = var_export( $root . '/maintenance/zone-catalog.json', true );
 $methods = [
     str_replace( "__DIR__ . '/zone-catalog.json'", $catalogPath, $method( 'loadZoneCatalog', 'listPagesInCategory' ) ),
     $method( 'buildNpcRecords', 'buildItemRecord' ),
+    $method( 'rememberNpcLootSources', 'mergeNpcLootSources' ),
+    $method( 'dropSourceMarkup', 'dropSourceNames' ),
     $method( 'detectZonesFromCategories', 'detectZonesFromField' ),
     $method( 'detectZonesFromField', 'detectZonesFromTitle' ),
     $method( 'detectZonesFromTitle', 'detectEra' ),
@@ -51,10 +53,12 @@ $methods = [
 
 // Only the title/page API surface used by buildNpcRecords is supplied. These
 // stubs contain no real wiki content and cannot load MediaWiki or a database.
+define( 'NS_MAIN', 0 );
 class Title {
     private string $text;
-    public function __construct( string $text ) { $this->text = str_replace( '_', ' ', $text ); }
+    public function __construct( string $text ) { $this->text = ucfirst( str_replace( '_', ' ', $text ) ); }
     public static function makeTitle( $namespace, string $text ): self { return new self( $text ); }
+    public static function newFromText( string $text, $namespace = 0 ): self { return new self( $text ); }
     public function getText(): string { return $this->text; }
 }
 
@@ -63,6 +67,7 @@ eval( 'class EozExporterFixture {
     private array $zoneCatalog = [];
     private array $zoneAliasMap = [];
     private array $wikiEntityNames = [];
+    private array $npcLootSources = [];
     ' . $classCodes[0] . implode( "\n", $methods ) . '
     public function fatalError( string $message ) { throw new RuntimeException( $message ); }
     public function classes( string $stats ): array { return $this->parseClasses( $stats ); }
@@ -76,10 +81,11 @@ eval( 'class EozExporterFixture {
         ];
     }
     public function zoneField( string $text ): array { return $this->detectZonesFromField( $text ); }
+    public function lootSources(): array { return $this->npcLootSources; }
     public function npc( string $title, ?string $zoneField, array $categories, string $templateName ): array {
         $this->loadZoneCatalog();
         $zoneLine = $zoneField === null ? "" : "\n| zone = " . $zoneField;
-        $text = "{{" . $templateName . $zoneLine . "\n| level = 10-12\n| race = Synthetic race\n| class = Synthetic class\n| description = [[Synthetic page|Synthetic description]]\n| location = {{loc|15|-27|-5}}\n}}";
+        $text = "{{" . $templateName . $zoneLine . "\n| level = 10-12\n| race = Synthetic race\n| class = Synthetic class\n| description = [[Synthetic page|Synthetic description]]\n| location = {{loc|15|-27|-5}}\n| known_loot = <ul><li>{{:synthetic_fixture_drop}}</li></ul>\n}}";
         $page = new class( $text ) {
             private string $text;
             public function __construct( string $text ) { $this->text = $text; }
@@ -195,5 +201,9 @@ foreach ( [
     }
 }
 $expect( $fixture->npc( 'Synthetic non-NPC page', 'Qeynos Hills', [ 'Qeynos Hills' ], 'UnrelatedTemplate' ), [], 'Non-NPC pages remain excluded' );
+$loot = $fixture->lootSources();
+$expect( array_keys( $loot ), [ 'Synthetic fixture drop' ], 'Actual NPC-loot helper canonicalizes the first letter and spaces' );
+$expect( $loot['Synthetic fixture drop']['sources'][0]['name'], 'Synthetic merchant', 'Actual NPC-loot helper retains the NPC source' );
+$expect( $loot['Synthetic fixture drop']['sources'][0]['zone'], 'East Commonlands', 'NPC-loot helper keeps explicit source-zone provenance' );
 
 echo "Eye of Zomm producer contracts passed: {$checks} synthetic checks.\n";

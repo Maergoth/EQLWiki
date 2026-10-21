@@ -277,6 +277,7 @@ class BuildEyeOfZommPack extends Maintenance {
         }
         $text = $content->getText();
         $allRecords = [];
+        $lootTemplates = [];
         foreach ( $this->instanceSections( $text, true ) as $section ) {
             $text = $section['text'];
 
@@ -360,13 +361,26 @@ class BuildEyeOfZommPack extends Maintenance {
                 if ( $description !== '' ) {
                     $record['description'] = $description;
                 }
-                $this->rememberNpcLootSources(
-                    $this->extractParamByLine( $body, [ 'known_loot', 'knownloot' ] ),
-                    $record, $section['explicit']
-                );
+                $lootTemplates[] = [ 'text' => $this->extractParamByLine( $body, [ 'known_loot', 'knownloot' ] ),
+                    'npc' => $record, 'explicit' => $section['explicit'] ];
                 $records[] = $record;
             }
             $allRecords = array_merge( $allRecords, $records );
+        }
+        $separateTemplateVariants = [];
+        foreach ( $allRecords as $record ) {
+            if ( $record['_instanceExplicit'] ) {
+                $separateTemplateVariants[$this->instanceKey( $record['zone'], $record['name'] )][(int)$record['raidInstance']] = true;
+            }
+        }
+        foreach ( $lootTemplates as $entry ) {
+            $npc = $entry['npc'];
+            // A page with its own raid NPC template documents separate loot
+            // for the preceding, unlabeled public NPC template. The two lists
+            // must not be cloned across variants. A single shared template
+            // still follows the normal/raid zone membership index.
+            $oppositeTemplate = isset( $separateTemplateVariants[$this->instanceKey( $npc['zone'], $npc['name'] )][(int)!$npc['raidInstance']] );
+            $this->rememberNpcLootSources( $entry['text'], $npc, $entry['explicit'], $oppositeTemplate );
         }
         return $allRecords;
     }
@@ -449,8 +463,10 @@ class BuildEyeOfZommPack extends Maintenance {
         return $record;
     }
 
-    private function rememberNpcLootSources( string $knownLoot, array $npc, bool $explicit ): void {
-        foreach ( $this->instanceSections( $knownLoot, false, $npc['raidInstance'], $explicit ) as $section ) {
+    private function rememberNpcLootSources( string $knownLoot, array $npc, bool $explicit, bool $templateScoped = false ): void {
+        $sections = $this->instanceSections( $knownLoot, false, $npc['raidInstance'], $explicit );
+        $hasLootSections = (bool)array_filter( $sections, static fn ( $section ) => $section['explicit'] );
+        foreach ( $sections as $section ) {
             // Only an item at the start of a list entry establishes loot.
             // Links in rarity notes, prose, comments or unknown templates do
             // not turn arbitrary pages into drops. Main-namespace item
@@ -480,7 +496,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 $source = [ 'zone' => $npc['zone'], 'name' => $npc['name'],
                     'raidInstance' => $section['raidInstance'],
                     'instanceType' => $section['raidInstance'] ? 'raid' : 'normal',
-                    '_instanceExplicit' => $section['explicit'],
+                    '_instanceExplicit' => $section['explicit'] || $templateScoped || $hasLootSections,
                     'lootSources' => [ [ 'wikiTitle' => $npc['wikiTitle'], 'revisionId' => $npc['revisionId'],
                         'field' => 'known_loot', 'section' => $section['explicit'] ? $section['heading'] : '' ] ] ];
                 if ( $npc['instanceSources'] ?? [] ) {
@@ -1237,10 +1253,10 @@ class BuildEyeOfZommPack extends Maintenance {
                         $sections[] = [ 'text' => $body, 'raidInstance' => $raid, 'explicit' => $explicit, 'heading' => $heading ];
                     }
                     $body = '';
-                    $raid = $isRaid;
-                    $explicit = $isRaid || $isNormal;
-                    $heading = $isRaid ? 'Raid Instance' : 'Normal Instance';
-                    $scopeLevel = $explicit ? strlen( $match[1] ) : null;
+                    $raid = $isRaid || ( !$isNormal && $defaultRaid );
+                    $explicit = $isRaid || $isNormal || $defaultExplicit;
+                    $heading = $raid ? 'Raid Instance' : 'Normal Instance';
+                    $scopeLevel = $isRaid || $isNormal ? strlen( $match[1] ) : null;
                     continue;
                 }
             }

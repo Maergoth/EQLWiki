@@ -391,7 +391,11 @@ resolution for aliases. They add distinct zone/name/instance sources and public
 NPC revision/field provenance in `lootSources`; item metadata, classes and eras
 remain authoritative on the item record. Missing/statless items are not invented.
 Normal/raid template and loot-section scope is preserved through the existing
-instance index. Comments, namespace links, unknown wrappers, prose and links in
+instance index. An unlabeled public template beside a separate explicit raid NPC
+template keeps its own loot; one shared template still supplies both variants.
+Explicit loot sections remain sources when the corresponding stat block is
+missing; they never synthesize NPC stats. A sibling heading restores the enclosing
+template's instance. Comments, namespace links, unknown wrappers, prose and links in
 rarity notes do not establish additional drops. `meta.npcLootSourcesIncluded`
 marks completion; `npcLootSourceCounts` reports candidate titles, distinct
 resolved items, unresolved titles, enriched items and added source variants.
