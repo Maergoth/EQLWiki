@@ -545,6 +545,17 @@ class BuildEyeOfZommPack extends Maintenance {
             return [];
         }
         $text = strtoupper( $this->cleanWikiText( $m[1] ) );
+        if ( preg_match( '/^ALL\s+EXCEPT\b(.*)$/s', $text, $excluded ) ) {
+            preg_match_all( '/\b[A-Z]{3}\b/', $excluded[1], $matches );
+            $playable = array_values( array_diff( self::CLASS_CODES, [ 'ALL' ] ) );
+            $allowed = array_values( array_diff( $playable, $matches[0] ?? [] ) );
+            // Empty metadata means unknown to clients; NONE means no class can
+            // equip the item and must not silently become unrestricted.
+            return $allowed ?: [ 'NONE' ];
+        }
+        if ( preg_match( '/^NONE\b/', $text ) ) {
+            return [ 'NONE' ];
+        }
         preg_match_all( '/\b[A-Z]{3}\b|\bALL\b/', $text, $matches );
         $out = [];
         foreach ( $matches[0] ?? [] as $code ) {

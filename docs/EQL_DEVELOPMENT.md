@@ -147,6 +147,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | --- | --- | --- |
 | JS syntax | `node --check path/to/changed.js` | Node; syntax only |
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
+| Eye of Zomm producer | `php ops/test-eoz-exporter.php` | Source-only synthetic class restrictions, exact zone aliases, and location ordering; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
 | Whitespace | `git diff --check` | Git |
 | Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |
@@ -268,6 +269,21 @@ extension; see the extension guide for safe rollback ordering.
   currently targets production. Keep separate recovery copies for data edits.
 
 ## Maintenance scripts are not routine tests
+
+For Eye of Zomm producer changes, run the source-only regression above and lint
+`maintenance/BuildEyeOfZommPack.php`. Keep the corresponding producer and catalog
+in the [desktop repository](https://github.com/Maergoth/EQL-EOZ/tree/codex/wiki-map-integration-audit)
+aligned. `Class: ALL except` must export the playable-class complement, explicit
+`NONE` must remain distinct from unknown `[]`, and wiki `Y, X, Z` location order
+must not be converted to viewer axes in the producer. Add exact zone aliases
+without renaming the canonical viewer records or guessing unknown zones.
+
+The fixture evaluates selected pure methods from the actual exporter source;
+it does not exercise MediaWiki content extraction or prove live dataset coverage.
+An approved source deployment and subsequent dataset rebuild/publication are
+separate release steps, described in [PROJECT.md](../PROJECT.md#existing-scheduled-jobs).
+Do not use a production export as a routine test or commit database snapshots,
+generated packs, settings, uploads, or client archives.
 
 The [component map](EQL_COMPONENTS.md) lists historical data-repair and dataset
 tools. Read flags and defaults before executing them. Most repair scripts offer
