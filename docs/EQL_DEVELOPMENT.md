@@ -297,6 +297,15 @@ A full presence index must retain categorized pages skipped for missing stats an
 titles; limited exports must set `wikiEntitiesComplete` false. Never interpret a
 filtered intel list as the complete set of wiki pages.
 
+NPC `known_loot` reconciliation regressions must include an item absent from its
+own reverse source list, duplicate evidence in both directions, differing item
+page/display names, internally case-distinct titles, a local redirect, a repeated
+merge with zero new-source counters, normal/raid NPC template and nested loot
+sections, shared variants and public revision/field provenance. Unknown wrappers,
+namespace targets, notes, comments and prose cannot invent drops; no item record
+may be synthesized from a missing/statless item page. `npcLootSourcesIncluded`
+and reconciliation counters distinguish rebuilt datasets from older exports.
+
 The fixture evaluates actual exporter methods with synthetic page objects;
 it does not bootstrap MediaWiki or prove live database coverage.
 An approved source deployment and subsequent dataset rebuild/publication are
