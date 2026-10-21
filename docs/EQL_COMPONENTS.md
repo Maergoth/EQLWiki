@@ -383,6 +383,25 @@ scope. Unknown/multiple zone fields remain unresolved rather than guessed.
 Explicit normal/raid zone anchors on a row take precedence over its section.
 See [`ops/test-eoz-raid-exporter.php`](../ops/test-eoz-raid-exporter.php).
 
+The exporter reconciles NPC-template `known_loot` with item `dropsfrom`, because
+editors maintain these lists independently. Leading item transclusions or direct
+item links join exact exported item page titles (preserving internal case after
+MediaWiki first-letter/space normalization), with bounded local redirect
+resolution for aliases. They add distinct zone/name/instance sources and public
+NPC revision/field provenance in `lootSources`; item metadata, classes and eras
+remain authoritative on the item record. Missing/statless items are not invented.
+Normal/raid template and loot-section scope is preserved through the existing
+instance index. An unlabeled public template beside a separate explicit raid NPC
+template keeps its own loot; one shared template still supplies both variants.
+Explicit loot sections remain sources when the corresponding stat block is
+missing; they never synthesize NPC stats. A sibling heading restores the enclosing
+template's instance. Comments, namespace links, unknown wrappers, prose and links in
+rarity notes do not establish additional drops. `meta.npcLootSourcesIncluded`
+marks completion; `npcLootSourceCounts` reports candidate titles, distinct
+resolved items, unresolved titles, enriched items and added source variants.
+This is a filtered dataset change requiring a rebuild/publication after source
+deployment, without article edits or a database migration.
+
 The additive `wikiEntities` presence index contains NPC/item candidate titles,
 recognized template name aliases, and public main-namespace titles including
 redirects. Skipped stat records remain known; private/user namespaces and account
