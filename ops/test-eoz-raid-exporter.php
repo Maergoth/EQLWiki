@@ -35,6 +35,12 @@ $fixtures = [
     'Synthetic skipped item' => [ 'text' => "{{Itempage\n|itemname=Synthetic alternate item\n}}" ],
     'Synthetic skipped NPC' => [ 'text' => 'A public categorized NPC without a recognized stat template.' ],
 ];
+$hateNpc = 'Synthetic Grandmaster R`Tal';
+$fixtures['Plane of Hate'] = [ 'text' => "= Raid Instance =\n! Raid Boss NPCs\n|[[{$hateNpc}]]\n|-" ];
+$fixtures[$hateNpc] = [ 'text' => $npc( 'Plane of Hate', 54 ) ];
+$fixtures['Synthetic styled Hate gem'] = [ 'text' => $item( 'Synthetic styled Hate gem', "[[Plane of Hate]]\n* {{VeliousGray| [[{$hateNpc}|Unrelated display label]] (Hate 2.0)}}\n** {{Loc|Plane of Hate|-12,+34,56|(-12,+34,56)}}\n== Raid Instance ==\n[[Plane of Hate]]\n* {{VeliousGray| [[{$hateNpc}]] (Hate 2.0)}}" ) ];
+$fixtures['Synthetic ground book'] = [ 'text' => $item( 'Synthetic ground book', "[[Plane of Hate]]\n* Ground Spawn\n** {{Loc|Plane of Hate|-12,+34,56|(-12,+34,56)}}" ) ];
+$fixtures['Synthetic wrapped zones'] = [ 'text' => $item( 'Synthetic wrapped zones', "[[West Karana]]\n* [[Synthetic western NPC]]\n{{VeliousGray| [[The Warrens]] }}\n* {{VeliousGray| [[Synthetic warrens NPC]] }}\n[[Timorous Deep]] {{Era|Kunark}}\n* [[Synthetic ocean NPC|Display name]] {{Era|Kunark}} (see [[Synthetic false note]])\n** [[Synthetic nested NPC]]\n** {{UnknownSource|[[Synthetic false NPC]]}}\n** [[File:Map Icon.png]]" ) ];
 $factory = new class {
     public function newFromTitle( $title ) {
         return new class( $GLOBALS['fixtures'][$title->getText()] ?? null ) {
@@ -82,6 +88,28 @@ $expect = static function ( $actual, $expected, string $label ) use ( &$checks )
 };
 $records = static fn ( string $name ) => array_values( array_filter( $npcs, static fn ( $record ) => $record['name'] === $name ) );
 $variants = static fn ( string $name ) => array_column( $records( $name ), 'raidInstance' );
+$sourceTuples = static fn ( string $name ) => array_map(
+    static fn ( $record ) => [ $record['zone'], $record['name'], $record['raidInstance'] ], $items[$name]['dropSources'] );
+$expect( $sourceTuples( 'Synthetic styled Hate gem' ), [
+    [ 'Plane of Hate', $hateNpc, false ], [ 'Plane of Hate', $hateNpc, true ],
+], 'Styled Hate links use exact NPC destinations, without display labels/revamp annotations' );
+foreach ( $items['Synthetic styled Hate gem']['dropSources'] as $drop ) {
+    $joins = array_filter( $records( $drop['name'] ), static fn ( $record ) =>
+        $record['zone'] === $drop['zone'] && $record['raidInstance'] === $drop['raidInstance'] );
+    $expect( count( $joins ), 1, 'Styled drop joins exactly one exported NPC instance variant' );
+}
+$expect( $sourceTuples( 'Synthetic ground book' ), [ [ 'Plane of Hate', 'Ground Spawn', false ] ], 'Location-only nested bullets never create monsters/drop sources' );
+$expect( $sourceTuples( 'Synthetic wrapped zones' ), [
+    [ 'West Karana', 'Synthetic western NPC', false ],
+    [ 'The Warrens', 'Synthetic warrens NPC', false ],
+    [ 'Timorous Deep', 'Synthetic ocean NPC', false ],
+    [ 'Timorous Deep', 'Synthetic nested NPC', false ],
+], 'Wrapped/era headings set the correct zone; real nested NPCs survive; unresolved templates/file links do not' );
+foreach ( $items as $itemRecord ) {
+    foreach ( $itemRecord['dropSources'] as $drop ) {
+        $expect( (bool)preg_match( '/[{}\[\]|]/', $drop['name'] ), false, 'Source identities never contain raw template/link markup' );
+    }
+}
 $expect( $variants( 'King Tranix' ), [ true ], 'Explicit raid-only boss' );
 $expect( $variants( 'Fire Giant Warrior' ), [ true, false ], 'Shared NPC emits raid before normal for legacy clients' );
 $expect( isset( $records( 'Fire Giant Warrior' )[0]['loc'] ), false, 'No borrowed public raid coordinate' );

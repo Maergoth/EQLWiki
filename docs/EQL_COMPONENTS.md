@@ -368,6 +368,14 @@ For an identical zone/name pair, raid records precede normal records so older
 Eye of Zomm clients that collapse the pair with last-record-wins retain normal
 coordinates and stats. Variant-aware clients still keep both identities.
 Item source sections preserve both variants without marking a whole item raid.
+Drop-source parsing unwraps the presentation-only `VeliousGray` template and
+ignores `Era`/`Loc` annotations. NPC identity comes from the actual wiki-link
+destination, preserving its drop/stat-page association across display labels and
+revamp notes. Wrapped zone headings still establish the next source list's zone;
+real nested NPC bullets remain valid, while coordinate-only bullets, file links,
+and unresolved templates cannot become monsters. Plain non-NPC sources such as
+Ground Spawn remain item sources. This correction requires a fresh published
+dataset after producer deployment; no article or database edit is needed.
 See [`ops/test-eoz-raid-exporter.php`](../ops/test-eoz-raid-exporter.php).
 
 The additive `wikiEntities` presence index contains NPC/item candidate titles,
