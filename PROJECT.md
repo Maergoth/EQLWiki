@@ -231,6 +231,28 @@ That job publishes its dataset to the separate `Maergoth/EQL-EOZ` repository.
 It remains independent of application deployment. Review and copy host-bin changes
 to `/home/eqlwikdq/bin` deliberately, preserving executable permissions.
 
+The application-side producer is `maintenance/BuildEyeOfZommPack.php` with
+`maintenance/zone-catalog.json`; Eye of Zomm retains a matching source copy in
+its `server/` directory. Review the
+[companion desktop integration changes](https://github.com/Maergoth/EQL-EOZ/tree/codex/wiki-map-integration-audit)
+when updating this contract. `ALL except` class restrictions export an explicit
+playable-class complement; `NONE` is distinct from unknown `[]`. Exact wiki zone
+aliases retain the viewer's existing canonical names, and NPC locations retain
+displayed `Y, X, Z` order. These are JSON-content changes, with no SQL migration
+or wiki-page edits.
+
+A staging merge does not install production producer files or publish corrected
+records. After owner-approved promotion of the reviewed producer/catalog, the
+next scheduled rebuild (or separately authorized manual rebuild) publishes the
+filtered dataset. Keep host-script installation separate from application file
+deployment. Verify the resulting manifest version, SHA-256, and aggregate output
+before reporting the new data available to clients. Keep database snapshots,
+settings, generated packs, and other private data outside the source PR.
+
+`php ops/test-eoz-exporter.php` runs synthetic source-only contract checks without
+bootstrapping MediaWiki, contacting a database, writing a pack, or publishing data.
+It does not substitute for checking an approved rebuilt dataset.
+
 ## Staging and contributions
 
 `main` deploys production; `staging` deploys https://test.eqlwiki.com. Forks open
