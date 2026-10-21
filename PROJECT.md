@@ -245,6 +245,18 @@ all listed zones, and fall back to categories/title suffixes only when unresolve
 When rebuilding after alias changes, check conflicting categories and multi-zone
 pages as well as blank-zone recovery; record multiplicity can change legitimately.
 
+The producer also discovers Raid Instance sections from categorized zone pages,
+preserving normal/raid NPC and item-source variants with public revision
+provenance. Shared public coordinates are withheld from derived raid copies.
+The presence-only `wikiEntities` index covers NPC/item candidates, template name
+aliases and main-namespace page/redirect titles; only full exports mark it
+complete. It contains no account data or private namespaces. After deployment,
+verify King Tranix is raid-only, Fire Giant Warrior retains both variants, the
+entrance Voidling stays normal, and a known skipped item remains in the presence
+index. Check actual refreshed production counts rather than local snapshot totals.
+The `kerraridge` alias resolves the Legends map/log stem to Kerra Island without
+renaming the canonical viewer entry.
+
 A staging merge does not install production producer files or publish corrected
 records. After owner-approved promotion of the reviewed producer/catalog, the
 next scheduled rebuild (or separately authorized manual rebuild) publishes the
