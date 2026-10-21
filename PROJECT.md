@@ -241,6 +241,11 @@ aliases retain the viewer's existing canonical names, and NPC locations retain
 displayed `Y, X, Z` order. These are JSON-content changes, with no SQL migration
 or wiki-page edits.
 
+Explicit recognized NPC template zones take precedence over categories, retain
+all listed zones, and fall back to categories/title suffixes only when unresolved.
+When rebuilding after alias changes, check conflicting categories and multi-zone
+pages as well as blank-zone recovery; record multiplicity can change legitimately.
+
 A staging merge does not install production producer files or publish corrected
 records. After owner-approved promotion of the reviewed producer/catalog, the
 next scheduled rebuild (or separately authorized manual rebuild) publishes the
