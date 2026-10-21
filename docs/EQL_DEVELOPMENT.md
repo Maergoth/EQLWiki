@@ -289,6 +289,9 @@ Drop-source regressions must also cover Hate-shaped `VeliousGray` NPC links,
 display labels/revamp notes, wrapped/era-annotated zone headings, nested actual
 NPCs versus `Loc` annotations, and an exact normal/raid drop-to-NPC join. Never
 repair these identities by stripping arbitrary template text in the client.
+Include a structured `ItemWhereRow` with piped links, multiline/numeric arguments,
+an unrelated Area link, an unknown zone, and normal/raid source joins. Its own
+zone must not leak into the surrounding bullet list.
 A full presence index must retain categorized pages skipped for missing stats and main-namespace redirect
 titles; limited exports must set `wikiEntitiesComplete` false. Never interpret a
 filtered intel list as the complete set of wiki pages.

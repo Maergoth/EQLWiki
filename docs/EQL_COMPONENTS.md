@@ -376,6 +376,11 @@ real nested NPC bullets remain valid, while coordinate-only bullets, file links,
 and unresolved templates cannot become monsters. Plain non-NPC sources such as
 Ground Spawn remain item sources. This correction requires a fresh published
 dataset after producer deployment; no article or database edit is needed.
+Structured `ItemWhereRow` sources supply explicit Zone/NPC fields, preserving
+piped links and multiline/numeric positional arguments. Area/Loc columns and
+the `ItemWhereTable` wrapper do not create identities or alter surrounding zone
+scope. Unknown/multiple zone fields remain unresolved rather than guessed.
+Explicit normal/raid zone anchors on a row take precedence over its section.
 See [`ops/test-eoz-raid-exporter.php`](../ops/test-eoz-raid-exporter.php).
 
 The additive `wikiEntities` presence index contains NPC/item candidate titles,

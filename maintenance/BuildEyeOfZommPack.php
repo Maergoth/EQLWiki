@@ -747,7 +747,33 @@ class BuildEyeOfZommPack extends Maintenance {
             }
         };
 
-        foreach ( preg_split( '/\r\n|\n|\r/', $dropsFrom ) as $line ) {
+        foreach ( $this->dropSourceLines( $dropsFrom ) as $line ) {
+            $row = $this->extractBalancedTemplate( $line, 'ItemWhereRow' );
+            if ( $row !== '' ) {
+                $fields = $this->dropSourceRowFields( $this->stripTemplateWrapper( $row, 'ItemWhereRow' ) );
+                $zoneField = $this->dropSourceMarkup( $fields[1] ?? '' );
+                $zones = $this->detectZonesFromField( $zoneField );
+                $names = $this->dropSourceNames( $this->dropSourceMarkup( $fields[2] ?? '' ) );
+                $rowRaid = $raidInstance;
+                $rowExplicit = $explicit;
+                if ( preg_match( '/\[\[[^|\]]*#(raid|normal|public)[ _]+instances?(?:\||\]\])/i', $zoneField, $anchor ) ) {
+                    $rowRaid = strtolower( $anchor[1] ) === 'raid';
+                    $rowExplicit = true;
+                }
+                // ItemWhereRow is Zone | NPC/Merchant | Area | Loc. Area and
+                // Loc are annotations; a row's zone never changes list scope.
+                if ( count( $zones ) === 1 ) {
+                    foreach ( $names as $name ) {
+                        $key = $this->instanceKey( $zones[0], $name ) . '|' . (int)$rowRaid;
+                        if ( !isset( $seen[$key] ) ) {
+                            $sources[] = [ 'zone' => $zones[0], 'name' => $name, 'raidInstance' => $rowRaid,
+                                'instanceType' => $rowRaid ? 'raid' : 'normal', '_instanceExplicit' => $rowExplicit ];
+                            $seen[$key] = true;
+                        }
+                    }
+                }
+                continue;
+            }
             $line = $this->dropSourceMarkup( (string)$line );
             if ( $line === '' ) {
                 continue;
@@ -804,6 +830,60 @@ class BuildEyeOfZommPack extends Maintenance {
 
         $flushStandaloneHeading();
         return $sources;
+    }
+
+    private function dropSourceLines( string $text ): array {
+        $text = preg_replace( '/<!--.*?-->/s', '', $text );
+        // Keep balanced structured rows intact even when formatted over
+        // several lines or placed beside another row/table wrapper.
+        $out = [];
+        $offset = 0;
+        while ( preg_match( '/\{\{\s*ItemWhereRow\b/i', $text, $match, PREG_OFFSET_CAPTURE, $offset ) ) {
+            $start = $match[0][1];
+            $row = $this->extractBalancedTemplate( substr( $text, $start ), 'ItemWhereRow' );
+            if ( $row === '' ) {
+                break;
+            }
+            $out = array_merge( $out, preg_split( '/\r\n|\n|\r/', substr( $text, $offset, $start - $offset ) ) );
+            $out[] = $row;
+            $offset = $start + strlen( $row );
+        }
+        return array_merge( $out, preg_split( '/\r\n|\n|\r/', substr( $text, $offset ) ) );
+    }
+
+    private function dropSourceRowFields( string $body ): array {
+        $parts = [];
+        $start = 0;
+        $links = 0;
+        $templates = 0;
+        $length = strlen( $body );
+        for ( $i = 0; $i < $length; $i++ ) {
+            $pair = substr( $body, $i, 2 );
+            if ( $pair === '[[' || $pair === ']]' || $pair === '{{' || $pair === '}}' ) {
+                if ( $pair === '[[' ) { $links++; }
+                elseif ( $pair === ']]' ) { $links = max( 0, $links - 1 ); }
+                elseif ( $pair === '{{' ) { $templates++; }
+                else { $templates = max( 0, $templates - 1 ); }
+                $i++;
+            } elseif ( $body[$i] === '|' && !$links && !$templates ) {
+                $parts[] = trim( substr( $body, $start, $i - $start ) );
+                $start = $i + 1;
+            }
+        }
+        $parts[] = trim( substr( $body, $start ) );
+        if ( ( $parts[0] ?? '' ) === '' ) {
+            array_shift( $parts );
+        }
+        $fields = [];
+        $position = 1;
+        foreach ( $parts as $part ) {
+            if ( preg_match( '/^([1-4])\s*=\s*(.*)$/s', $part, $match ) ) {
+                $fields[(int)$match[1]] = trim( $match[2] );
+            } else {
+                $fields[$position++] = $part;
+            }
+        }
+        return $fields;
     }
 
     private function dropSourceMarkup( string $text ): string {

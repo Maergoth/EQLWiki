@@ -41,6 +41,11 @@ $fixtures[$hateNpc] = [ 'text' => $npc( 'Plane of Hate', 54 ) ];
 $fixtures['Synthetic styled Hate gem'] = [ 'text' => $item( 'Synthetic styled Hate gem', "[[Plane of Hate]]\n* {{VeliousGray| [[{$hateNpc}|Unrelated display label]] (Hate 2.0)}}\n** {{Loc|Plane of Hate|-12,+34,56|(-12,+34,56)}}\n== Raid Instance ==\n[[Plane of Hate]]\n* {{VeliousGray| [[{$hateNpc}]] (Hate 2.0)}}" ) ];
 $fixtures['Synthetic ground book'] = [ 'text' => $item( 'Synthetic ground book', "[[Plane of Hate]]\n* Ground Spawn\n** {{Loc|Plane of Hate|-12,+34,56|(-12,+34,56)}}" ) ];
 $fixtures['Synthetic wrapped zones'] = [ 'text' => $item( 'Synthetic wrapped zones', "[[West Karana]]\n* [[Synthetic western NPC]]\n{{VeliousGray| [[The Warrens]] }}\n* {{VeliousGray| [[Synthetic warrens NPC]] }}\n[[Timorous Deep]] {{Era|Kunark}}\n* [[Synthetic ocean NPC|Display name]] {{Era|Kunark}} (see [[Synthetic false note]])\n** [[Synthetic nested NPC]]\n** {{UnknownSource|[[Synthetic false NPC]]}}\n** [[File:Map Icon.png]]" ) ];
+$structuredNpc = 'Synthetic mischievous batling';
+$fixtures['The Warrens'] = [ 'text' => "= Raid Instance =\n! Types of Monsters\n|[[{$structuredNpc}]]\n|-" ];
+$fixtures[$structuredNpc] = [ 'text' => $npc( 'The Warrens', 12 ) ];
+$fixtures['Synthetic anchored shuriken'] = [ 'text' => $item( 'Synthetic anchored shuriken', "{{ItemWhereRow|[[The Warrens#Raid_Instance|The Warrens]]|[[{$structuredNpc}]]|Behind Muglwump|()}}\n= Raid Instance =\n{{ItemWhereRow|[[The Warrens#Normal_Instance|The Warrens]]|[[{$structuredNpc}]]|Behind Muglwump|()}}" ) ];
+$fixtures['Synthetic structured shuriken'] = [ 'text' => $item( 'Synthetic structured shuriken', "= Normal Instance =\n[[West Karana]]\n* [[Synthetic western NPC]]\n{{ItemWhereTable|\n{{ItemWhereRow\n | [[The Warrens|Displayed zone]]\n | [[{$structuredNpc}|Displayed merchant]]\n | Behind [[Synthetic false area]]\n | {{Loc|The Warrens|-15,40|location label}}\n}}\n}}\n* [[Synthetic trailing western NPC]]\n{{ItemWhereRow|Unmapped place|[[Synthetic false NPC]]|Area|()}}\n= Raid Instance =\n{{ItemWhereTable|{{ItemWhereRow|1=[[The Warrens]]|2=[[{$structuredNpc}]]|3=Behind Muglwump|4=()}}}}" ) ];
 $factory = new class {
     public function newFromTitle( $title ) {
         return new class( $GLOBALS['fixtures'][$title->getText()] ?? null ) {
@@ -90,6 +95,7 @@ $records = static fn ( string $name ) => array_values( array_filter( $npcs, stat
 $variants = static fn ( string $name ) => array_column( $records( $name ), 'raidInstance' );
 $sourceTuples = static fn ( string $name ) => array_map(
     static fn ( $record ) => [ $record['zone'], $record['name'], $record['raidInstance'] ], $items[$name]['dropSources'] );
+$expect( $call( 'parseDropSourceLines', "<!-- Hidden structured row\n{{ItemWhereRow|[[The Warrens]]|[[Synthetic comment ghost]]|Area|()}}\n-->", false, false ), [], 'Multiline HTML comments are removed before direct structured-row tokenization' );
 $expect( $sourceTuples( 'Synthetic styled Hate gem' ), [
     [ 'Plane of Hate', $hateNpc, false ], [ 'Plane of Hate', $hateNpc, true ],
 ], 'Styled Hate links use exact NPC destinations, without display labels/revamp annotations' );
@@ -105,6 +111,21 @@ $expect( $sourceTuples( 'Synthetic wrapped zones' ), [
     [ 'Timorous Deep', 'Synthetic ocean NPC', false ],
     [ 'Timorous Deep', 'Synthetic nested NPC', false ],
 ], 'Wrapped/era headings set the correct zone; real nested NPCs survive; unresolved templates/file links do not' );
+$expect( $sourceTuples( 'Synthetic structured shuriken' ), [
+    [ 'West Karana', 'Synthetic western NPC', false ],
+    [ 'The Warrens', $structuredNpc, false ],
+    [ 'West Karana', 'Synthetic trailing western NPC', false ],
+    [ 'The Warrens', $structuredNpc, true ],
+], 'Balanced multiline ItemWhereRow keeps piped/numeric fields, ignores area/Loc/unmapped zones and does not change surrounding zone scope' );
+$expect( $sourceTuples( 'Synthetic anchored shuriken' ), [
+    [ 'The Warrens', $structuredNpc, true ], [ 'The Warrens', $structuredNpc, false ],
+], 'Explicit structured row zone anchors override an opposite normal/raid section' );
+foreach ( $items['Synthetic structured shuriken']['dropSources'] as $drop ) {
+    if ( $drop['name'] !== $structuredNpc ) { continue; }
+    $joins = array_filter( $records( $drop['name'] ), static fn ( $record ) =>
+        $record['zone'] === $drop['zone'] && $record['raidInstance'] === $drop['raidInstance'] );
+    $expect( count( $joins ), 1, 'Structured source joins exactly one normal/raid NPC variant' );
+}
 foreach ( $items as $itemRecord ) {
     foreach ( $itemRecord['dropSources'] as $drop ) {
         $expect( (bool)preg_match( '/[{}\[\]|]/', $drop['name'] ), false, 'Source identities never contain raw template/link markup' );
