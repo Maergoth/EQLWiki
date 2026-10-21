@@ -277,9 +277,12 @@ aligned. `Class: ALL except` must export the playable-class complement, explicit
 `NONE` must remain distinct from unknown `[]`, and wiki `Y, X, Z` location order
 must not be converted to viewer axes in the producer. Add exact zone aliases
 without renaming the canonical viewer records or guessing unknown zones.
+Recognized explicit NPC template zones win over categories and preserve every
+listed zone; categories and title suffixes are fallbacks. Include conflicting
+categories and multi-zone fields in producer regressions.
 
-The fixture evaluates selected pure methods from the actual exporter source;
-it does not exercise MediaWiki content extraction or prove live dataset coverage.
+The fixture evaluates actual exporter methods with synthetic page objects;
+it does not bootstrap MediaWiki or prove live database coverage.
 An approved source deployment and subsequent dataset rebuild/publication are
 separate release steps, described in [PROJECT.md](../PROJECT.md#existing-scheduled-jobs).
 Do not use a production export as a routine test or commit database snapshots,
