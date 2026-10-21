@@ -343,6 +343,22 @@ The weekly `eoz-pack-refresh.sh` validates/publishes a dataset;
 Its force-pushed data branch is independent of this repository's protected
 application branches. Use `--local-only` when testing the wrapper without publishing.
 
+The producer exports explicit usable class codes for Itembox `Class: ALL except`
+restrictions. `ALL` means unrestricted, `NONE` means no playable class, and an
+empty class list means missing/unknown metadata. Its zone catalog resolves exact
+wiki category, field, and title-suffix aliases while retaining existing canonical
+viewer names; unknown zones remain unmapped. NPC locations keep the wiki's
+displayed `Y, X, Z` order. Source-only synthetic coverage lives in
+[`ops/test-eoz-exporter.php`](../ops/test-eoz-exporter.php).
+
+Keep this producer/catalog aligned with the
+[Eye of Zomm integration changes](https://github.com/Maergoth/EQL-EOZ/tree/codex/wiki-map-integration-audit).
+Merging desktop changes does not update this producer. Reviewed producer files
+must reach the target wiki's `maintenance/` directory, followed by a separate
+scheduled or owner-authorized rebuild/publication before clients receive new
+records. No database migration or article edits are required; private database
+snapshots, settings, and generated packs do not belong in a contribution PR.
+
 ## Wiki/forum integration
 
 SMF lives under [`bb/`](../bb/) (checked-in entrypoint reports 2.1.7). MediaWiki
