@@ -147,7 +147,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | --- | --- | --- |
 | JS syntax | `node --check path/to/changed.js` | Node; syntax only |
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
-| Eye of Zomm producer | `php ops/test-eoz-exporter.php` | Source-only synthetic class restrictions, exact zone aliases, and location ordering; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
+| Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, section-scoped raid variants, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
 | Whitespace | `git diff --check` | Git |
 | Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |
@@ -281,6 +281,14 @@ without renaming the canonical viewer records or guessing unknown zones.
 Recognized explicit NPC template zones win over categories and preserve every
 listed zone; categories and title suffixes are fallbacks. Include conflicting
 categories and multi-zone fields in producer regressions.
+
+Raid tests must include an uncatalogued future zone, nested/sibling headings,
+normal and raid variants with the same NPC name, an explicit raid-only boss,
+entrance Voidling exclusion, and section-specific item sources. Do not copy a
+public NPC coordinate into a derived raid variant. A full presence index must
+retain categorized pages skipped for missing stats and main-namespace redirect
+titles; limited exports must set `wikiEntitiesComplete` false. Never interpret a
+filtered intel list as the complete set of wiki pages.
 
 The fixture evaluates actual exporter methods with synthetic page objects;
 it does not bootstrap MediaWiki or prove live database coverage.

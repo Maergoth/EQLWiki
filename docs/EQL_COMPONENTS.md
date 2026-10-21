@@ -350,12 +350,31 @@ wiki category, field, and title-suffix aliases while retaining existing canonica
 viewer names. Recognized explicit NPC template zones take precedence and retain
 all listed zones; categories are a fallback, then the article-title suffix.
 Stale categories must not override explicit fields or discard a second zone.
-Unknown zones remain unmapped. NPC locations keep the wiki's
+Unknown zones remain unmapped unless a categorized zone article with a Raid
+Instance section establishes a new canonical zone. NPC locations keep the wiki's
 displayed `Y, X, Z` order. Source-only synthetic coverage lives in
 [`ops/test-eoz-exporter.php`](../ops/test-eoz-exporter.php).
 
+Raid discovery reads `Category:Zones` articles and latches onto `Raid Instance`
+headings at any wiki heading level; it has no raid-zone allowlist. Monster/boss
+table fields establish membership within that section. Entrance prose, unrelated
+links, nested NPC-template descriptions, and later sibling sections do not.
+Explicit raid-only annotations, respawn fields, and `Raid Encounters` categories
+establish exclusivity; explicit per-template sections take precedence. NPC and
+individual item-source records expose `raidInstance`, `instanceType`, and public
+`instanceSources` provenance. Identity includes zone/name/instance variant. Shared
+NPCs keep both variants, and derived raid copies omit the public spawn location.
+Item source sections preserve both variants without marking a whole item raid.
+See [`ops/test-eoz-raid-exporter.php`](../ops/test-eoz-raid-exporter.php).
+
+The additive `wikiEntities` presence index contains NPC/item candidate titles,
+recognized template name aliases, and public main-namespace titles including
+redirects. Skipped stat records remain known; private/user namespaces and account
+data are excluded. `meta.wikiEntitiesComplete` is true only for full exports;
+clients must not infer absence from an old/limited pack or a filtered intel list.
+
 Keep this producer/catalog aligned with the
-[Eye of Zomm integration changes](https://github.com/Maergoth/EQL-EOZ/tree/codex/wiki-map-integration-audit).
+[Eye of Zomm producer source](https://github.com/Maergoth/EQL-EOZ/tree/main/server).
 Merging desktop changes does not update this producer. Reviewed producer files
 must reach the target wiki's `maintenance/` directory, followed by a separate
 scheduled or owner-authorized rebuild/publication before clients receive new

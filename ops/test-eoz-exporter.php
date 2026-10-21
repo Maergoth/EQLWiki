@@ -62,6 +62,7 @@ class Title {
 eval( 'class EozExporterFixture {
     private array $zoneCatalog = [];
     private array $zoneAliasMap = [];
+    private array $wikiEntityNames = [];
     ' . $classCodes[0] . implode( "\n", $methods ) . '
     public function fatalError( string $message ) { throw new RuntimeException( $message ); }
     public function classes( string $stats ): array { return $this->parseClasses( $stats ); }
@@ -143,6 +144,7 @@ foreach ( [
     [ "Beholder's Maze", 'Gorge of King Xorbb' ],
     [ 'Clan Runnyeye', 'Runnyeye Citadel' ],
     [ 'Kerra Isle', 'Kerra Island' ],
+    [ 'kerraridge', 'Kerra Island' ],
     [ 'Qeynos Catacombs', 'Qeynos Aqueducts' ],
     [ 'Southern Ro', 'South Ro' ],
     [ 'North Felwithe', 'Northern Felwithe' ],
