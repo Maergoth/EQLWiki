@@ -364,6 +364,9 @@ establish exclusivity; explicit per-template sections take precedence. NPC and
 individual item-source records expose `raidInstance`, `instanceType`, and public
 `instanceSources` provenance. Identity includes zone/name/instance variant. Shared
 NPCs keep both variants, and derived raid copies omit the public spawn location.
+For an identical zone/name pair, raid records precede normal records so older
+Eye of Zomm clients that collapse the pair with last-record-wins retain normal
+coordinates and stats. Variant-aware clients still keep both identities.
 Item source sections preserve both variants without marking a whole item raid.
 See [`ops/test-eoz-raid-exporter.php`](../ops/test-eoz-raid-exporter.php).
 
