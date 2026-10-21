@@ -300,7 +300,10 @@ NPC `known_loot` reconciliation regressions must include an item absent from its
 own reverse source list, duplicate evidence in both directions, differing item
 page/display names, internally case-distinct titles, a local redirect, a repeated
 merge with zero new-source counters, normal/raid NPC template and nested loot
-sections, shared variants and public revision/field provenance. Unknown wrappers,
+sections, unlabeled public templates beside separate raid stat templates, shared
+variants and public revision/field provenance. Include explicit instance loot
+without that instance's stat block and verify that a sibling loot heading returns
+to its enclosing normal/raid template. Unknown wrappers,
 namespace targets, notes, comments and prose cannot invent drops; no item record
 may be synthesized from a missing/statless item page. `npcLootSourcesIncluded`
 and reconciliation counters distinguish rebuilt datasets from older exports.

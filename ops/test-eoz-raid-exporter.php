@@ -60,10 +60,12 @@ $fixtures['Synthetic display collision'] = [ 'text' => $item( 'Synthetic canonic
 $fixtures['Synthetic scoped looter'] = [ 'text' => $withLoot( $npc( $zone ), '* {{:Synthetic normal-only loot}}' ) . "\n= Raid Instance =\n" . $withLoot( $npc( $zone, 60 ), '* {{:Synthetic raid-only loot}}' ) ];
 $fixtures['Synthetic normal-only loot'] = [ 'text' => $item( 'Synthetic normal-only loot', '' ) ];
 $fixtures['Synthetic raid-only loot'] = [ 'text' => $item( 'Synthetic raid-only loot', '' ) ];
-$fixtures['Synthetic nested looter'] = [ 'text' => $withLoot( $npc( $zone, 50 ), "* {{:Synthetic normal-only loot}}\n== Raid Instance ==\n* {{:Synthetic raid-only loot}}\n== Other drops ==\n* {{:Synthetic NPC-only wand}}" ) ];
+$fixtures['Synthetic nested looter'] = [ 'text' => $withLoot( $npc( $zone, 50 ), "* {{:Synthetic normal-only loot}}\n== Raid Instance ==\n* {{:Synthetic raid-only loot}}\n== Other drops ==\n* {{:Synthetic NPC-only wand}}" ) . "\n= Raid Instance =\n" . $npc( $zone, 60 ) ];
 $fixtures['Synthetic case looter'] = [ 'text' => $withLoot( $npc( $zone, 40 ), '* {{:synthetic_case_charm}}' ) ];
 $fixtures['Synthetic case charm'] = [ 'text' => $item( 'Synthetic case charm', '' ) ];
 $fixtures['Synthetic Case charm'] = [ 'text' => $item( 'Synthetic Case charm', '' ) ];
+$fixtures['Synthetic loot-only raid looter'] = [ 'text' => $withLoot( $npc( $zone, 50 ), "* {{:Synthetic normal-only loot}}\n== Raid Instance ==\n* {{:Synthetic raid-only loot}}\n== Other drops ==\n* {{:Synthetic NPC-only wand}}" ) ];
+$fixtures['Synthetic outer raid looter'] = [ 'text' => "= Raid Instance =\n" . $withLoot( $npc( $zone, 60 ), "* {{:Synthetic raid-only loot}}\n== Normal Instance ==\n* {{:Synthetic normal-only loot}}\n== Other drops ==\n* {{:Synthetic NPC-only wand}}" ) ];
 $factory = new class {
     public function newFromTitle( $title ) {
         return new class( $GLOBALS['fixtures'][$title->getText()] ?? null ) {
@@ -129,9 +131,16 @@ $expect( $npcDrops( 'Synthetic linked shield', 'Synthetic loot priest' )[0]['loo
 $expect( array_column( $npcDrops( 'Synthetic NPC-only wand', 'Fire Giant Warrior' ), 'raidInstance' ), [ false, true ], 'Shared NPC-only loot follows its normal and raid variants' );
 $expect( count( $npcDrops( 'Synthetic NPC-only wand', 'Synthetic loot priest' ) ), 1, 'Local item redirect joins the canonical item' );
 $expect( array_column( $npcDrops( 'Synthetic normal-only loot', 'Synthetic scoped looter' ), 'raidInstance' ), [ false ], 'Explicit normal template loot stays normal' );
+$expect( $npcDrops( 'Synthetic normal-only loot', 'Synthetic scoped looter' )[0]['lootSources'][0]['section'], '', 'Unlabeled public template does not invent a Normal Instance header' );
 $expect( array_column( $npcDrops( 'Synthetic raid-only loot', 'Synthetic scoped looter' ), 'raidInstance' ), [ true ], 'Explicit raid template loot stays raid' );
 $expect( array_column( $npcDrops( 'Synthetic raid-only loot', 'Synthetic nested looter' ), 'raidInstance' ), [ true ], 'Nested known_loot Raid Instance scopes sources' );
 $expect( array_column( $npcDrops( 'Synthetic NPC-only wand', 'Synthetic nested looter' ), 'raidInstance' ), [ false ], 'Sibling heading ends nested loot raid scope' );
+$expect( $variants( 'Synthetic loot-only raid looter' ), [ false ], 'Loot section cannot invent a missing raid stat block' );
+$expect( array_column( $npcDrops( 'Synthetic raid-only loot', 'Synthetic loot-only raid looter' ), 'raidInstance' ), [ true ], 'Explicit raid loot survives without raid stats' );
+$expect( $npcDrops( 'Synthetic raid-only loot', 'Synthetic loot-only raid looter' )[0]['lootSources'][0]['section'], 'Raid Instance', 'Missing-instance source retains explicit loot-section evidence' );
+$expect( array_column( $npcDrops( 'Synthetic normal-only loot', 'Synthetic loot-only raid looter' ), 'raidInstance' ), [ false ], 'Unlabeled normal loot beside a raid section remains normal' );
+$expect( array_column( $npcDrops( 'Synthetic NPC-only wand', 'Synthetic loot-only raid looter' ), 'raidInstance' ), [ false ], 'Sibling loot returns to enclosing normal template scope' );
+$expect( array_column( $npcDrops( 'Synthetic NPC-only wand', 'Synthetic outer raid looter' ), 'raidInstance' ), [ true ], 'Sibling loot returns to enclosing explicit raid template after inner normal section' );
 $expect( $items['Synthetic note item']['dropSources'], [], 'Notes, comments, nowiki, namespaces and unknown templates cannot invent drops' );
 $expect( $items['Synthetic prose item']['dropSources'], [], 'Non-list prose cannot establish loot' );
 $expect( isset( $items['Synthetic no-stat drop'] ), false, 'NPC loot never synthesizes missing item stats' );
@@ -144,8 +153,10 @@ $expect( strpos( $source, '$items = $this->mergeNpcLootSources( $items, $wikiPag
 foreach ( $items as $itemRecord ) {
     foreach ( $itemRecord['dropSources'] as $drop ) {
         if ( !isset( $drop['lootSources'] ) ) { continue; }
-        $joins = array_filter( $records( $drop['name'] ), static fn ( $record ) => $record['zone'] === $drop['zone'] && $record['raidInstance'] === $drop['raidInstance'] );
-        $expect( count( $joins ), 1, 'Every NPC-derived source joins exactly one exported NPC variant' );
+        $siblings = array_filter( $records( $drop['name'] ), static fn ( $record ) => $record['zone'] === $drop['zone'] );
+        $joins = array_filter( $siblings, static fn ( $record ) => $record['raidInstance'] === $drop['raidInstance'] );
+        $explicitLootWithoutStats = !$joins && $siblings && array_filter( $drop['lootSources'], static fn ( $entry ) => $entry['section'] === ( $drop['raidInstance'] ? 'Raid Instance' : 'Normal Instance' ) );
+        $expect( count( $joins ) === 1 || (bool)$explicitLootWithoutStats, true, 'NPC source joins one exact variant or has explicit loot evidence beside other-instance stats' );
     }
 }
 $expect( $call( 'parseDropSourceLines', "<!-- Hidden structured row\n{{ItemWhereRow|[[The Warrens]]|[[Synthetic comment ghost]]|Area|()}}\n-->", false, false ), [], 'Multiline HTML comments are removed before direct structured-row tokenization' );
