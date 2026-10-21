@@ -286,10 +286,12 @@ class BuildEyeOfZommPack extends Maintenance {
         }
         $locationText = $this->extractParamByLine( $body, [ 'location', 'loc' ] );
         $loc = $this->parseLocation( $locationText );
-        $zones = $this->detectZonesFromCategories( $categories );
+        // The NPC template describes its explicit spawn zones. Categories can
+        // be incomplete or stale, so use them only when no field zone resolves.
+        $zoneText = $this->extractParamByLine( $body, [ 'zone' ] );
+        $zones = $this->detectZonesFromField( $zoneText );
         if ( !$zones ) {
-            $zoneText = $this->extractParamByLine( $body, [ 'zone' ] );
-            $zones = $this->detectZonesFromField( $zoneText );
+            $zones = $this->detectZonesFromCategories( $categories );
         }
         if ( !$zones ) {
             $zones = $this->detectZonesFromTitle( $title->getText() );

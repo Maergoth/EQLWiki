@@ -347,7 +347,10 @@ The producer exports explicit usable class codes for Itembox `Class: ALL except`
 restrictions. `ALL` means unrestricted, `NONE` means no playable class, and an
 empty class list means missing/unknown metadata. Its zone catalog resolves exact
 wiki category, field, and title-suffix aliases while retaining existing canonical
-viewer names; unknown zones remain unmapped. NPC locations keep the wiki's
+viewer names. Recognized explicit NPC template zones take precedence and retain
+all listed zones; categories are a fallback, then the article-title suffix.
+Stale categories must not override explicit fields or discard a second zone.
+Unknown zones remain unmapped. NPC locations keep the wiki's
 displayed `Y, X, Z` order. Source-only synthetic coverage lives in
 [`ops/test-eoz-exporter.php`](../ops/test-eoz-exporter.php).
 
