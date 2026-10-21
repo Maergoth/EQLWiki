@@ -20,6 +20,9 @@ class BuildEyeOfZommPack extends Maintenance {
 
     private array $zoneCatalog = [];
     private array $zoneAliasMap = [];
+    private array $raidNpcIndex = [];
+    private array $npcVariantIndex = [];
+    private array $wikiEntityNames = [ 'npcs' => [], 'items' => [], 'titles' => [] ];
     private int $pauseUs = 20000;
 
     public function __construct() {
@@ -66,6 +69,7 @@ class BuildEyeOfZommPack extends Maintenance {
         $services = MediaWikiServices::getInstance();
         $dbr = $services->getDBLoadBalancer()->getConnection( DB_REPLICA );
         $wikiPageFactory = $services->getWikiPageFactory();
+        $this->loadRaidInstanceIndex( $wikiPageFactory, $this->listPagesInCategory( $dbr, 'Zones', 0 ) );
 
         $this->output( "EQLWiki - Eye of Zomm static dataset build\n" );
         $this->output( "HTTP/API requests: 0\n" );
@@ -74,6 +78,11 @@ class BuildEyeOfZommPack extends Maintenance {
 
         $npcRows = $this->listPagesInCategory( $dbr, 'NPCs', $limit );
         $itemRows = $this->listPagesInCategory( $dbr, 'Items', $limit );
+        // Public namespace titles (including redirect aliases) are a fallback
+        // for pages without entity templates/categories. No revision, user,
+        // account or private namespace data enters this presence-only index.
+        $this->indexWikiEntityCandidates( $npcRows, $itemRows,
+            $dbr->select( 'page', [ 'page_title' ], [ 'page_namespace' => NS_MAIN ], __METHOD__ ) );
 
         $allIds = [];
         foreach ( [ $npcRows, $itemRows ] as $rows ) {
@@ -109,6 +118,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 $this->output( 'NPC pages processed: ' . ( $index + 1 ) . "\n" );
             }
         }
+        $npcs = $this->applyNpcInstanceVariants( $npcs );
 
         $items = [];
         $itemSkipped = 0;
@@ -130,8 +140,8 @@ class BuildEyeOfZommPack extends Maintenance {
         }
 
         usort( $npcs, static function ( $a, $b ) {
-            return [ strtolower( $a['zone'] ), strtolower( $a['name'] ) ]
-                <=> [ strtolower( $b['zone'] ), strtolower( $b['name'] ) ];
+            return [ strtolower( $a['zone'] ), strtolower( $a['name'] ), (int)$a['raidInstance'] ]
+                <=> [ strtolower( $b['zone'] ), strtolower( $b['name'] ), (int)$b['raidInstance'] ];
         } );
         usort( $items, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
 
@@ -147,6 +157,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 'sample' => false,
                 'source' => 'EQLWiki local MediaWiki maintenance build',
                 'distribution' => 'GitHub dataset branch',
+                'wikiEntitiesComplete' => $limit === 0,
                 'counts' => [
                     'zones' => count( $this->zoneCatalog ),
                     'npcs' => count( $npcs ),
@@ -158,6 +169,7 @@ class BuildEyeOfZommPack extends Maintenance {
             'npcs' => $npcs,
             'items' => $items,
             'icons' => (object)$icons,
+            'wikiEntities' => $this->wikiEntityIndex(),
         ];
 
         $this->writeAtomicJson( $output, $pack );
@@ -259,72 +271,95 @@ class BuildEyeOfZommPack extends Maintenance {
             return [];
         }
         $text = $content->getText();
+        $allRecords = [];
+        foreach ( $this->instanceSections( $text, true ) as $section ) {
+            $text = $section['text'];
 
-        // EQLWiki NPC pages primarily use {{Namedmobpage}} and {{MerchantPage}}.
-        // Keep {{NPCpage}} as a compatibility fallback for older pages.
-        $template = '';
-        $templateName = '';
-        foreach ( [ 'Namedmobpage', 'MerchantPage', 'NPCpage' ] as $candidate ) {
-            $candidateTemplate = $this->extractBalancedTemplate( $text, $candidate );
-            if ( $candidateTemplate !== '' ) {
-                $template = $candidateTemplate;
-                $templateName = $candidate;
-                break;
+            // EQLWiki NPC pages primarily use {{Namedmobpage}} and {{MerchantPage}}.
+            // Keep {{NPCpage}} as a compatibility fallback for older pages.
+            $template = '';
+            $templateName = '';
+            foreach ( [ 'Namedmobpage', 'MerchantPage', 'NPCpage' ] as $candidate ) {
+                $candidateTemplate = $this->extractBalancedTemplate( $text, $candidate );
+                if ( $candidateTemplate !== '' ) {
+                    $template = $candidateTemplate;
+                    $templateName = $candidate;
+                    break;
+                }
             }
-        }
-        if ( $template === '' ) {
-            return [];
-        }
-        $body = $this->stripTemplateWrapper( $template, $templateName );
-        $levelText = $this->extractParamByLine( $body, [ 'level' ] );
-        [ $levelMin, $levelMax, $avgLevel ] = $this->parseLevelRange( $levelText );
-        $race = $this->cleanWikiText( $this->extractParamByLine( $body, [ 'race' ] ) );
-        $npcClass = $this->cleanWikiText( $this->extractParamByLine( $body, [ 'class' ] ) );
-        $description = $this->cleanWikiText( $this->extractParamByLine( $body, [ 'description' ] ) );
-        if ( strlen( $description ) > 500 ) {
-            $description = substr( $description, 0, 497 ) . '...';
-        }
-        $locationText = $this->extractParamByLine( $body, [ 'location', 'loc' ] );
-        $loc = $this->parseLocation( $locationText );
-        // The NPC template describes its explicit spawn zones. Categories can
-        // be incomplete or stale, so use them only when no field zone resolves.
-        $zoneText = $this->extractParamByLine( $body, [ 'zone' ] );
-        $zones = $this->detectZonesFromField( $zoneText );
-        if ( !$zones ) {
-            $zones = $this->detectZonesFromCategories( $categories );
-        }
-        if ( !$zones ) {
-            $zones = $this->detectZonesFromTitle( $title->getText() );
-        }
-        if ( !$zones ) {
-            $zones = [ '' ];
-        }
-        $era = $this->detectEra( $categories );
-        $revision = $page->getRevisionRecord();
-        $revisionId = $revision ? (int)$revision->getId() : 0;
-        $records = [];
-        foreach ( $zones as $zone ) {
-            $record = [
-                'name' => $title->getText(),
-                'zone' => $zone,
-                'levelMin' => $levelMin,
-                'levelMax' => $levelMax,
-                'avgLevel' => $avgLevel,
-                'race' => $race,
-                'class' => $npcClass,
-                'era' => $era,
-                'wikiTitle' => $title->getText(),
-                'revisionId' => $revisionId,
-            ];
-            if ( $loc !== null ) {
-                $record['loc'] = $loc;
+            if ( $template === '' ) {
+                continue;
             }
-            if ( $description !== '' ) {
-                $record['description'] = $description;
+            $body = $this->stripTemplateWrapper( $template, $templateName );
+            $this->rememberWikiEntity( 'npcs', $title->getText(), $this->cleanWikiText( $this->extractParamByLine( $body, [ 'name' ] ) ) );
+            $levelText = $this->extractParamByLine( $body, [ 'level' ] );
+            [ $levelMin, $levelMax, $avgLevel ] = $this->parseLevelRange( $levelText );
+            $race = $this->cleanWikiText( $this->extractParamByLine( $body, [ 'race' ] ) );
+            $npcClass = $this->cleanWikiText( $this->extractParamByLine( $body, [ 'class' ] ) );
+            $description = $this->cleanWikiText( $this->extractParamByLine( $body, [ 'description' ] ) );
+            if ( strlen( $description ) > 500 ) {
+                $description = substr( $description, 0, 497 ) . '...';
             }
-            $records[] = $record;
+            $locationText = $this->extractParamByLine( $body, [ 'location', 'loc' ] );
+            $loc = $this->parseLocation( $locationText );
+            // The NPC template describes its explicit spawn zones. Categories can
+            // be incomplete or stale, so use them only when no field zone resolves.
+            $zoneText = $this->extractParamByLine( $body, [ 'zone' ] );
+            $zones = $this->detectZonesFromField( $zoneText );
+            if ( !$zones ) {
+                $zones = $this->detectZonesFromCategories( $categories );
+            }
+            if ( !$zones ) {
+                $zones = $this->detectZonesFromTitle( $title->getText() );
+            }
+            if ( !$zones ) {
+                $zones = [ '' ];
+            }
+            $era = $this->detectEra( $categories );
+            $raidCategory = in_array( 'raid encounters', array_map(
+                static fn ( $value ) => strtolower( trim( str_replace( '_', ' ', (string)$value ) ) ), $categories
+            ), true );
+            $respawn = $this->cleanWikiText( $this->extractParamByLine( $body, [ 'respawn_time' ] ) );
+            $raidRespawn = (bool)preg_match( '/(?:only[^.]*raid\s+instances?|once\s+per\s+raid\s+instance)/i', $respawn );
+            $revision = $page->getRevisionRecord();
+            $revisionId = $revision ? (int)$revision->getId() : 0;
+            $records = [];
+            foreach ( $zones as $zone ) {
+                $record = [
+                    'name' => $title->getText(),
+                    'zone' => $zone,
+                    'levelMin' => $levelMin,
+                    'levelMax' => $levelMax,
+                    'avgLevel' => $avgLevel,
+                    'race' => $race,
+                    'class' => $npcClass,
+                    'era' => $era,
+                    'wikiTitle' => $title->getText(),
+                    'revisionId' => $revisionId,
+                    'raidInstance' => $section['raidInstance'],
+                    'instanceType' => $section['raidInstance'] ? 'raid' : 'normal',
+                    '_instanceExplicit' => $section['explicit'],
+                    '_raidOnly' => $raidCategory || $raidRespawn,
+                ];
+                if ( $section['explicit'] ) {
+                    $record['instanceSources'] = [ [ 'wikiTitle' => $title->getText(),
+                        'revisionId' => $revisionId, 'section' => $section['heading'] ] ];
+                }
+                elseif ( $raidCategory || $raidRespawn ) {
+                    $record['instanceSources'] = [ [ 'wikiTitle' => $title->getText(), 'revisionId' => $revisionId,
+                        'section' => '', 'reason' => $raidCategory ? 'Raid Encounters category' : 'raid-only respawn field' ] ];
+                }
+                if ( $loc !== null ) {
+                    $record['loc'] = $loc;
+                }
+                if ( $description !== '' ) {
+                    $record['description'] = $description;
+                }
+                $records[] = $record;
+            }
+            $allRecords = array_merge( $allRecords, $records );
         }
-        return $records;
+        return $allRecords;
     }
 
     private function buildItemRecord( $wikiPageFactory, $row, array $categories ): ?array {
@@ -340,14 +375,14 @@ class BuildEyeOfZommPack extends Maintenance {
             return null;
         }
         $body = $this->stripTemplateWrapper( $template, 'Itempage' );
-        $statsBlock = $this->extractParamByLine( $body, [ 'statsblock', 'stats_block' ] );
-        if ( $statsBlock === '' ) {
-            return null;
-        }
-
         $itemName = $this->extractParamByLine( $body, [ 'itemname', 'item_name' ] );
         if ( $itemName === '' ) {
             $itemName = $title->getText();
+        }
+        $this->rememberWikiEntity( 'items', $title->getText(), $this->cleanWikiText( $itemName ) );
+        $statsBlock = $this->extractParamByLine( $body, [ 'statsblock', 'stats_block' ] );
+        if ( $statsBlock === '' ) {
+            return null;
         }
         $notes = $this->cleanWikiText(
             $this->extractParamByLine( $body, [ 'notes' ] )
@@ -358,10 +393,32 @@ class BuildEyeOfZommPack extends Maintenance {
         $displayLines = $this->parseItemDisplayLines( $statsBlock );
         $iconText = $this->extractParamByLine( $body, [ 'lucy_img_ID', 'lucy_img_id' ] );
         $iconId = preg_match( '/\d+/', $iconText, $iconMatch ) ? (int)$iconMatch[0] : 0;
-        $dropsFrom = $this->extractParamByLine( $body, [ 'dropsfrom', 'drops_from' ] );
-        $dropSources = $this->parseDropSources( $dropsFrom );
         $revision = $page->getRevisionRecord();
         $revisionId = $revision ? (int)$revision->getId() : 0;
+        $dropSources = [];
+        foreach ( $this->instanceSections( $text, true ) as $section ) {
+            $sectionTemplate = $this->extractBalancedTemplate( $section['text'], 'Itempage' );
+            if ( $sectionTemplate === '' ) {
+                continue;
+            }
+            $sectionBody = $this->stripTemplateWrapper( $sectionTemplate, 'Itempage' );
+            $sectionItemName = $this->cleanWikiText( $this->extractParamByLine( $sectionBody, [ 'itemname', 'item_name' ] ) );
+            if ( $sectionItemName !== '' && strcasecmp( $sectionItemName, $this->cleanWikiText( $itemName ) ) !== 0 ) {
+                continue;
+            }
+            $sources = $this->parseDropSources(
+                $this->extractParamByLine( $sectionBody, [ 'dropsfrom', 'drops_from' ] ),
+                $section['raidInstance'], $section['explicit']
+            );
+            foreach ( $sources as $source ) {
+                if ( $source['_instanceExplicit'] ?? false ) {
+                    $source['instanceSources'] = [ [ 'wikiTitle' => $title->getText(),
+                        'revisionId' => $revisionId, 'section' => $source['raidInstance'] ? 'Raid Instance' : 'Normal Instance' ] ];
+                }
+                $dropSources[] = $source;
+            }
+        }
+        $dropSources = $this->expandDropSourceVariants( $dropSources );
 
         $record = [
             'name' => $this->cleanWikiText( $itemName ),
@@ -650,7 +707,25 @@ class BuildEyeOfZommPack extends Maintenance {
         return $stats;
     }
 
-    private function parseDropSources( string $dropsFrom ): array {
+    private function parseDropSources( string $dropsFrom, bool $raidInstance = false, bool $explicit = false ): array {
+        $sources = [];
+        $seen = [];
+        $counts = [ 0, 0 ];
+        foreach ( $this->instanceSections( $dropsFrom, false, $raidInstance, $explicit ) as $section ) {
+            foreach ( $this->parseDropSourceLines( $section['text'], $section['raidInstance'], $section['explicit'] ) as $source ) {
+                $key = $this->instanceKey( $source['zone'], $source['name'] ) . '|' . (int)$source['raidInstance'];
+                $variant = (int)$source['raidInstance'];
+                if ( !isset( $seen[$key] ) && $counts[$variant] < 24 ) {
+                    $sources[] = $source;
+                    $seen[$key] = true;
+                    $counts[$variant]++;
+                }
+            }
+        }
+        return $sources;
+    }
+
+    private function parseDropSourceLines( string $dropsFrom, bool $raidInstance, bool $explicit ): array {
         if ( trim( $dropsFrom ) === '' ) {
             return [];
         }
@@ -661,13 +736,16 @@ class BuildEyeOfZommPack extends Maintenance {
         $currentZone = '';
         $headingHadBullets = false;
 
-        $flushStandaloneHeading = function () use ( &$sources, &$seen, &$currentHeading, &$currentZone, &$headingHadBullets ): void {
+        $defaultRaid = $raidInstance;
+        $defaultExplicit = $explicit;
+        $flushStandaloneHeading = function () use ( &$sources, &$seen, &$currentHeading, &$currentZone, &$headingHadBullets, &$raidInstance, &$explicit ): void {
             if ( $currentHeading === '' || $headingHadBullets || $currentZone !== '' ) {
                 return;
             }
-            $key = '|'.strtolower( $currentHeading );
+            $key = '|'.strtolower( $currentHeading ) . '|' . (int)$raidInstance;
             if ( !isset( $seen[$key] ) ) {
-                $sources[] = [ 'zone' => '', 'name' => $currentHeading ];
+                $sources[] = [ 'zone' => '', 'name' => $currentHeading, 'raidInstance' => $raidInstance,
+                    'instanceType' => $raidInstance ? 'raid' : 'normal', '_instanceExplicit' => $explicit ];
                 $seen[$key] = true;
             }
         };
@@ -677,6 +755,9 @@ class BuildEyeOfZommPack extends Maintenance {
             if ( $line === '' ) {
                 continue;
             }
+            if ( preg_match( '/^={1,6}.*?={1,6}$/', $line ) ) {
+                continue;
+            }
 
             // A standalone wiki link is normally either a zone heading or a
             // non-NPC source such as Fletching / Quest / Purchased.
@@ -684,7 +765,14 @@ class BuildEyeOfZommPack extends Maintenance {
                 $flushStandaloneHeading();
                 $currentHeading = $this->cleanWikiText( $line );
                 $headingHadBullets = false;
-                $zoneKey = $this->normalizeZone( $m[1] );
+                [ $zoneTitle, $anchor ] = array_pad( explode( '#', $m[1], 2 ), 2, '' );
+                $raidInstance = $defaultRaid;
+                $explicit = $defaultExplicit;
+                if ( preg_match( '/^raid[ _]+instance$/i', trim( $anchor ) ) ) {
+                    $raidInstance = true;
+                    $explicit = true;
+                }
+                $zoneKey = $this->normalizeZone( $zoneTitle );
                 $currentZone = isset( $this->zoneAliasMap[$zoneKey] )
                     ? (string)( $this->zoneAliasMap[$zoneKey]['name'] ?? $currentHeading )
                     : '';
@@ -697,31 +785,30 @@ class BuildEyeOfZommPack extends Maintenance {
                 if ( $name === '' ) {
                     continue;
                 }
-                $key = strtolower( $currentZone . '|' . $name );
+                $key = strtolower( $currentZone . '|' . $name ) . '|' . (int)$raidInstance;
                 if ( isset( $seen[$key] ) ) {
                     continue;
                 }
-                $sources[] = [ 'zone' => $currentZone, 'name' => $name ];
+                $sources[] = [ 'zone' => $currentZone, 'name' => $name, 'raidInstance' => $raidInstance,
+                    'instanceType' => $raidInstance ? 'raid' : 'normal', '_instanceExplicit' => $explicit ];
                 $seen[$key] = true;
-                if ( count( $sources ) >= 24 ) {
-                    break;
-                }
                 continue;
             }
 
             // Conservative fallback for a direct plain-text source line.
             $name = $this->cleanWikiText( $line );
             if ( $name !== '' && strlen( $name ) <= 160 ) {
-                $key = '|'.strtolower( $name );
+                $key = '|'.strtolower( $name ) . '|' . (int)$raidInstance;
                 if ( !isset( $seen[$key] ) ) {
-                    $sources[] = [ 'zone' => '', 'name' => $name ];
+                    $sources[] = [ 'zone' => '', 'name' => $name, 'raidInstance' => $raidInstance,
+                        'instanceType' => $raidInstance ? 'raid' : 'normal', '_instanceExplicit' => $explicit ];
                     $seen[$key] = true;
                 }
             }
         }
 
         $flushStandaloneHeading();
-        return array_slice( $sources, 0, 24 );
+        return $sources;
     }
 
     private function parseLevelRange( string $text ): array {
@@ -755,7 +842,8 @@ class BuildEyeOfZommPack extends Maintenance {
             return count( $values ) >= 2 ? $values : null;
         };
 
-        // EQLWiki commonly stores coordinates in {{loc|x|y|z}}.
+        // EQLWiki loc templates preserve EverQuest's displayed Y, X, Z order.
+        // The app normalizes this dataset boundary into world X, Y, Z.
         if ( preg_match(
             '/\{\{\s*(?:loc|location)\s*\|\s*(' . $number . ')\s*\|\s*(' . $number . ')(?:\s*\|\s*(' . $number . '))?/i',
             $text,
@@ -856,6 +944,231 @@ class BuildEyeOfZommPack extends Maintenance {
             'nagafen\'s lair' => 'nagafen\'s lair',
         ];
         return $aliases[$text] ?? $text;
+    }
+
+    private function instanceSections( string $text, bool $respectTemplates = false, bool $defaultRaid = false, bool $defaultExplicit = false ): array {
+        $text = preg_replace( '/<!--.*?-->|<(nowiki|pre|source|syntaxhighlight)\b[^>]*>.*?<\/\1>/is', '', $text );
+        $sections = [];
+        $body = '';
+        $raid = $defaultRaid;
+        $explicit = $defaultExplicit;
+        $heading = $raid ? 'Raid Instance' : 'Normal Instance';
+        $scopeLevel = null;
+        $templateDepth = 0;
+        foreach ( preg_split( '/\r\n|\n|\r/', $text ) as $line ) {
+            if ( ( !$respectTemplates || $templateDepth === 0 ) && preg_match( '/^(={1,6})\s*(.*?)\s*\1[ \t]*$/', trim( $line ), $match ) ) {
+                $label = strtolower( trim( str_replace( [ '_', "'''", "''" ], [ ' ', '', '' ], $this->cleanWikiText( $match[2] ) ) ) );
+                $isRaid = (bool)preg_match( '/^raid\s+instances?$/', $label );
+                $isNormal = (bool)preg_match( '/^(?:normal|public)\s+instances?$/', $label );
+                if ( $isRaid || $isNormal || ( $scopeLevel !== null && strlen( $match[1] ) <= $scopeLevel ) ) {
+                    if ( trim( $body ) !== '' ) {
+                        $sections[] = [ 'text' => $body, 'raidInstance' => $raid, 'explicit' => $explicit, 'heading' => $heading ];
+                    }
+                    $body = '';
+                    $raid = $isRaid;
+                    $explicit = $isRaid || $isNormal;
+                    $heading = $isRaid ? 'Raid Instance' : 'Normal Instance';
+                    $scopeLevel = $explicit ? strlen( $match[1] ) : null;
+                    continue;
+                }
+            }
+            $body .= $line . "\n";
+            $templateDepth = max( 0, $templateDepth + substr_count( $line, '{{' ) - substr_count( $line, '}}' ) );
+        }
+        if ( trim( $body ) !== '' ) {
+            $sections[] = [ 'text' => $body, 'raidInstance' => $raid, 'explicit' => $explicit, 'heading' => $heading ];
+        }
+        return $sections;
+    }
+
+    private function instanceKey( string $zone, string $name ): string {
+        return $this->normalizeZone( $zone ) . '|' . strtolower( trim( str_replace( '_', ' ', $name ) ) );
+    }
+
+    private function wikiLinkTargets( string $text ): array {
+        preg_match_all( '/\[\[\s*([^|\]#]+)(?:#[^|\]]*)?(?:\|[^\]]*)?\]\]/', $text, $matches );
+        return array_values( array_unique( array_map( 'trim', $matches[1] ?? [] ) ) );
+    }
+
+    private function loadRaidInstanceIndex( $wikiPageFactory, array $zoneRows = [] ): void {
+        $this->raidNpcIndex = [];
+        $candidates = [];
+        foreach ( $this->zoneCatalog as $zone ) {
+            $candidates[(string)( $zone['wikiTitle'] ?? $zone['name'] )] = $zone;
+        }
+        // Discover source pages from the wiki's zone category. The catalog is
+        // an alias/map registry, never a hardcoded list of zones with raids.
+        foreach ( $zoneRows as $row ) {
+            $title = str_replace( '_', ' ', (string)$row->page_title );
+            $known = $this->zoneAliasMap[$this->normalizeZone( $title )] ?? null;
+            $candidates[$title] = $known ?: [ 'name' => $title, 'wikiTitle' => $title, '_newZone' => true ];
+            $candidates[$title]['wikiTitle'] = $title;
+        }
+        foreach ( $candidates as $zone ) {
+            $zoneTitle = (string)( $zone['wikiTitle'] ?? $zone['name'] );
+            $title = Title::newFromText( $zoneTitle, NS_MAIN );
+            if ( !$title || !$title->exists() ) {
+                continue;
+            }
+            $page = $wikiPageFactory->newFromTitle( $title );
+            $content = $page->getContent();
+            if ( !$content || !method_exists( $content, 'getText' ) ) {
+                continue;
+            }
+            if ( $zone['_newZone'] ?? false ) {
+                $hasRaid = false;
+                foreach ( $this->instanceSections( $content->getText(), true ) as $section ) {
+                    $hasRaid = $hasRaid || $section['raidInstance'];
+                }
+                if ( !$hasRaid ) {
+                    continue;
+                }
+                unset( $zone['_newZone'] );
+                $zone['viewerName'] = $zone['name'];
+                $zone['aliases'] = [];
+                $this->zoneCatalog[] = $zone;
+                $this->zoneAliasMap[$this->normalizeZone( $zone['name'] )] = $zone;
+            }
+            $revision = $page->getRevisionRecord();
+            $this->collectZoneRaidReferences( $content->getText(), (string)$zone['name'], $zoneTitle,
+                $revision ? (int)$revision->getId() : 0, $wikiPageFactory );
+        }
+    }
+
+    private function collectZoneRaidReferences( string $text, string $zone, string $wikiTitle, int $revisionId, $wikiPageFactory = null ): void {
+        $source = [ 'wikiTitle' => $wikiTitle, 'revisionId' => $revisionId, 'section' => 'Raid Instance' ];
+        $add = function ( string $name ) use ( $zone, $source, $wikiPageFactory ): void {
+            $names = [ $name ];
+            if ( $wikiPageFactory ) {
+                $targetTitle = Title::newFromText( $name, NS_MAIN );
+                $page = $targetTitle && $targetTitle->exists() ? $wikiPageFactory->newFromTitle( $targetTitle ) : null;
+                if ( $page && method_exists( $page, 'getRedirectTarget' ) ) {
+                    $target = $page->getRedirectTarget();
+                    if ( $target ) {
+                        $names[] = $target->getText();
+                    }
+                }
+            }
+            foreach ( $names as $resolved ) {
+                $this->raidNpcIndex[$this->instanceKey( $zone, $resolved )] = [ 'only' => false, 'source' => $source ];
+            }
+        };
+        foreach ( $this->instanceSections( $text, true ) as $section ) {
+            if ( !$section['raidInstance'] ) {
+                continue;
+            }
+            $npcField = false;
+            $targetTable = false;
+            foreach ( preg_split( '/\r\n|\n|\r/', $section['text'] ) as $line ) {
+                if ( preg_match( '/^[!|]\s*.*?(?:Types of Monsters|(?:Mini\s+|Raid\s+)?Boss NPCs|Mini Boss NPCs)/i', $line ) ) {
+                    $npcField = true;
+                } elseif ( preg_match( '/^\|-|^\|\}/', trim( $line ) ) ) {
+                    $npcField = false;
+                    if ( preg_match( '/^\|\}/', trim( $line ) ) ) {
+                        $targetTable = false;
+                    }
+                }
+                if ( preg_match( '/^!.*\bMob Name\b/i', trim( $line ) ) ) {
+                    $targetTable = true;
+                }
+                if ( $npcField || ( $targetTable && preg_match( '/^\|\s*\[\[/', trim( $line ) ) ) ) {
+                    $targets = $this->wikiLinkTargets( $targetTable ? explode( '||', $line )[0] : $line );
+                    foreach ( $targets as $name ) {
+                        $add( $name );
+                    }
+                }
+            }
+        }
+        // Bind an explicit "Only" annotation to its nearest preceding link,
+        // not every NPC mentioned in the same room/map paragraph.
+        preg_match_all( '/\[\[\s*([^|\]#]+)(?:\|[^\]]*)?\]\](?:(?!\[\[).){0,200}?\(Raid Instance Only\)/i', $text, $matches );
+        foreach ( $matches[1] ?? [] as $name ) {
+            $key = $this->instanceKey( $zone, trim( $name ) );
+            if ( isset( $this->raidNpcIndex[$key] ) ) {
+                $this->raidNpcIndex[$key]['only'] = true;
+            }
+        }
+    }
+
+    private function applyNpcInstanceVariants( array $records ): array {
+        $out = [];
+        $this->npcVariantIndex = [];
+        foreach ( $records as $record ) {
+            $key = $this->instanceKey( $record['zone'], $record['name'] );
+            $membership = $this->raidNpcIndex[$key] ?? null;
+            $raidOnly = (bool)( $record['_raidOnly'] ?? false ) || (bool)( $membership['only'] ?? false );
+            $explicit = (bool)( $record['_instanceExplicit'] ?? false );
+            unset( $record['_instanceExplicit'], $record['_raidOnly'] );
+            if ( !$explicit && $raidOnly ) {
+                $record['raidInstance'] = true;
+                $record['instanceType'] = 'raid';
+            }
+            $variants = [ $record ];
+            if ( $membership && !$record['raidInstance'] && !$explicit ) {
+                $raid = $record;
+                $raid['raidInstance'] = true;
+                $raid['instanceType'] = 'raid';
+                // A shared NPC's public spawn point does not establish its
+                // placement inside a separate raid instance.
+                unset( $raid['loc'] );
+                $variants[] = $raid;
+            }
+            foreach ( $variants as $variant ) {
+                if ( $membership && $variant['raidInstance'] ) {
+                    $variant['instanceSources'] = array_merge( $variant['instanceSources'] ?? [], [ $membership['source'] ] );
+                }
+                $variantKey = $key . '|' . (int)$variant['raidInstance'];
+                $out[$variantKey] = $variant;
+                $this->npcVariantIndex[$key][(int)$variant['raidInstance']] = $variant['instanceSources'] ?? [];
+            }
+        }
+        return array_values( $out );
+    }
+
+    private function expandDropSourceVariants( array $sources ): array {
+        $out = [];
+        foreach ( $sources as $source ) {
+            $key = $this->instanceKey( $source['zone'], $source['name'] );
+            $variants = $this->npcVariantIndex[$key] ?? null;
+            $explicit = (bool)( $source['_instanceExplicit'] ?? false );
+            unset( $source['_instanceExplicit'] );
+            foreach ( $explicit || !$variants ? [ (int)$source['raidInstance'] => $source['instanceSources'] ?? [] ] : $variants as $raid => $provenance ) {
+                $variant = $source;
+                $variant['raidInstance'] = (bool)$raid;
+                $variant['instanceType'] = $raid ? 'raid' : 'normal';
+                if ( $provenance ) {
+                    $variant['instanceSources'] = $provenance;
+                }
+                $out[$key . '|' . $raid] = $variant;
+            }
+        }
+        return array_values( $out );
+    }
+
+    private function indexWikiEntityCandidates( array $npcRows, array $itemRows, iterable $titleRows ): void {
+        foreach ( [ 'npcs' => $npcRows, 'items' => $itemRows, 'titles' => $titleRows ] as $kind => $rows ) {
+            foreach ( $rows as $row ) {
+                $this->rememberWikiEntity( $kind, str_replace( '_', ' ', $row->page_title ) );
+            }
+        }
+    }
+
+    private function rememberWikiEntity( string $kind, string ...$names ): void {
+        foreach ( $names as $name ) {
+            $name = trim( preg_replace( '/\s+/', ' ', str_replace( '_', ' ', $name ) ) );
+            if ( $name !== '' ) {
+                $this->wikiEntityNames[$kind][strtolower( $name )] = $name;
+            }
+        }
+    }
+
+    private function wikiEntityIndex(): array {
+        $index = [];
+        foreach ( [ 'npcs', 'items', 'titles' ] as $kind ) {
+            $index[$kind] = array_values( $this->wikiEntityNames[$kind] ?? [] );
+            usort( $index[$kind], 'strcasecmp' );
+        }
+        return $index;
     }
 
     private function intIfWhole( float $value ) {
