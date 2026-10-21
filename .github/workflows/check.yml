@@ -27,3 +27,5 @@ jobs:
         run: |
           php ops/test-eoz-exporter.php
           php ops/test-eoz-raid-exporter.php
+      - name: Check Eye of Zomm refresh wrapper
+        run: bash ops/test-eoz-refresh-wrapper.sh

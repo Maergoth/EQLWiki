@@ -43,13 +43,16 @@ echo "[$(date -u -Is)] Building EQLWiki - Eye of Zomm dataset at low priority...
 
 [[ -s "$TMP" ]] || { echo "Builder produced no data; refusing to publish." >&2; exit 3; }
 
-"$PHPBIN" -r '
+# The CLI default can be 128M even though MediaWiki raises its own limit.
+# Pass validator code on stdin so cPanel's selector never stats multiline argv.
+"$PHPBIN" -d memory_limit=768M -d display_errors=stderr -f /dev/stdin -- "$TMP" <<'PHP'
+<?php
 $f=$argv[1];
 $j=json_decode(file_get_contents($f), true);
 if (!is_array($j) || ($j["meta"]["schemaVersion"] ?? null) !== 3 || !isset($j["zones"],$j["npcs"],$j["items"])) { fwrite(STDERR,"Eye of Zomm dataset schemaVersion 3 is required\n"); exit(4); }
 if (count($j["zones"]) < 1 || count($j["npcs"]) < 1 || count($j["items"]) < 1) { fwrite(STDERR,"Dataset is unexpectedly empty\n"); exit(5); }
 echo "Validated: zones=".count($j["zones"])." npcs=".count($j["npcs"])." items=".count($j["items"])."\n";
-' "$TMP"
+PHP
 
 mv -f "$TMP" "$FINAL"
 bash "$PUBLISHER" "$FINAL" "$DATASET"
