@@ -22,6 +22,8 @@ class BuildEyeOfZommPack extends Maintenance {
     private array $zoneAliasMap = [];
     private array $raidNpcIndex = [];
     private array $npcVariantIndex = [];
+    private array $npcLootSources = [];
+    private array $npcLootSourceCounts = [];
     private array $wikiEntityNames = [ 'npcs' => [], 'items' => [], 'titles' => [] ];
     private int $pauseUs = 20000;
 
@@ -139,6 +141,10 @@ class BuildEyeOfZommPack extends Maintenance {
             }
         }
 
+        // NPC known_loot and item dropsfrom are independently maintained on
+        // the wiki. Preserve either documented direction instead of requiring
+        // editors to duplicate every source on both articles.
+        $items = $this->mergeNpcLootSources( $items, $wikiPageFactory );
         $npcs = $this->sortNpcRecords( $npcs );
         usort( $items, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
 
@@ -155,6 +161,8 @@ class BuildEyeOfZommPack extends Maintenance {
                 'source' => 'EQLWiki local MediaWiki maintenance build',
                 'distribution' => 'GitHub dataset branch',
                 'wikiEntitiesComplete' => $limit === 0,
+                'npcLootSourcesIncluded' => true,
+                'npcLootSourceCounts' => $this->npcLootSourceCounts,
                 'counts' => [
                     'zones' => count( $this->zoneCatalog ),
                     'npcs' => count( $npcs ),
@@ -269,6 +277,7 @@ class BuildEyeOfZommPack extends Maintenance {
         }
         $text = $content->getText();
         $allRecords = [];
+        $lootTemplates = [];
         foreach ( $this->instanceSections( $text, true ) as $section ) {
             $text = $section['text'];
 
@@ -352,9 +361,26 @@ class BuildEyeOfZommPack extends Maintenance {
                 if ( $description !== '' ) {
                     $record['description'] = $description;
                 }
+                $lootTemplates[] = [ 'text' => $this->extractParamByLine( $body, [ 'known_loot', 'knownloot' ] ),
+                    'npc' => $record, 'explicit' => $section['explicit'] ];
                 $records[] = $record;
             }
             $allRecords = array_merge( $allRecords, $records );
+        }
+        $separateTemplateVariants = [];
+        foreach ( $allRecords as $record ) {
+            if ( $record['_instanceExplicit'] ) {
+                $separateTemplateVariants[$this->instanceKey( $record['zone'], $record['name'] )][(int)$record['raidInstance']] = true;
+            }
+        }
+        foreach ( $lootTemplates as $entry ) {
+            $npc = $entry['npc'];
+            // A page with its own raid NPC template documents separate loot
+            // for the preceding, unlabeled public NPC template. The two lists
+            // must not be cloned across variants. A single shared template
+            // still follows the normal/raid zone membership index.
+            $oppositeTemplate = isset( $separateTemplateVariants[$this->instanceKey( $npc['zone'], $npc['name'] )][(int)!$npc['raidInstance']] );
+            $this->rememberNpcLootSources( $entry['text'], $npc, $entry['explicit'], $oppositeTemplate );
         }
         return $allRecords;
     }
@@ -435,6 +461,130 @@ class BuildEyeOfZommPack extends Maintenance {
             $record['iconId'] = $iconId;
         }
         return $record;
+    }
+
+    private function rememberNpcLootSources( string $knownLoot, array $npc, bool $explicit, bool $templateScoped = false ): void {
+        $sections = $this->instanceSections( $knownLoot, false, $npc['raidInstance'], $explicit );
+        $hasLootSections = (bool)array_filter( $sections, static fn ( $section ) => $section['explicit'] );
+        foreach ( $sections as $section ) {
+            // Only an item at the start of a list entry establishes loot.
+            // Links in rarity notes, prose, comments or unknown templates do
+            // not turn arbitrary pages into drops. Main-namespace item
+            // transclusions ({{:Item}}) and direct links are both supported.
+            $text = preg_replace( '/<\/?(?:ul|ol)\b[^>]*>|<\/li\s*>/i', "\n", $section['text'] );
+            $text = preg_replace( '/<li\b[^>]*>/i', "\n", $text );
+            foreach ( preg_split( '/\r\n|\n|\r/', $text ) as $line ) {
+                $line = preg_replace( '/^[ \t]*[*#;:]+[ \t]*/', '', $this->dropSourceMarkup( $line ) );
+                // A presentation wrapper can contain a real transclusion;
+                // unwrap the balanced outer template without interpreting
+                // unknown templates or the transcluded item's contents.
+                for ( $depth = 0; $depth < 4 && preg_match( '/^\{\{\s*VeliousGray\b/i', $line ); $depth++ ) {
+                    $wrapper = $this->extractBalancedTemplate( $line, 'VeliousGray' );
+                    if ( $wrapper === '' ) { break; }
+                    $line = ltrim( $this->stripTemplateWrapper( $wrapper, 'VeliousGray' ), "| \t\r\n" );
+                }
+                $target = '';
+                if ( preg_match( '/^\{\{\s*:\s*([^{}|#]+?)(?:\|[^{}]*)?\}\}/', $line, $match ) ||
+                    preg_match( '/^\[\[\s*([^|\]#]+)(?:#[^|\]]*)?(?:\|[^\]]*)?\]\]/', $line, $match ) ) {
+                    $target = trim( $match[1] );
+                }
+                // Exclude namespaces/interwiki targets; an exact exported
+                // Itempage record must still resolve before any source joins.
+                if ( $target === '' || strpos( $target, ':' ) !== false || $npc['zone'] === '' ) {
+                    continue;
+                }
+                $source = [ 'zone' => $npc['zone'], 'name' => $npc['name'],
+                    'raidInstance' => $section['raidInstance'],
+                    'instanceType' => $section['raidInstance'] ? 'raid' : 'normal',
+                    '_instanceExplicit' => $section['explicit'] || $templateScoped || $hasLootSections,
+                    'lootSources' => [ [ 'wikiTitle' => $npc['wikiTitle'], 'revisionId' => $npc['revisionId'],
+                        'field' => 'known_loot', 'section' => $section['explicit'] ? $section['heading'] : '' ] ] ];
+                if ( $npc['instanceSources'] ?? [] ) {
+                    $source['instanceSources'] = $npc['instanceSources'];
+                }
+                $key = $this->itemTitleKey( $target );
+                $this->npcLootSources[$key]['title'] = $target;
+                $this->npcLootSources[$key]['sources'][] = $source;
+            }
+        }
+    }
+
+    private function itemTitleKey( string $title ): string {
+        $normalized = trim( preg_replace( '/\s+/', ' ', str_replace( '_', ' ', $title ) ) );
+        // MediaWiki canonicalizes the first letter and spaces, but the rest
+        // of a page title remains case-sensitive. Never fold two real item
+        // pages together by lowercasing their internal letters.
+        $parsed = Title::newFromText( $normalized, NS_MAIN );
+        return $parsed ? $parsed->getText() : $normalized;
+    }
+
+    private function mergeNpcLootSources( array $items, $wikiPageFactory ): array {
+        $itemIndex = [];
+        $resolvedItems = [];
+        $enrichedItems = [];
+        $this->npcLootSourceCounts = [ 'candidateItems' => count( $this->npcLootSources ),
+            'resolvedItems' => 0, 'unresolvedItems' => 0, 'itemsEnriched' => 0, 'sourcesAdded' => 0 ];
+        foreach ( $items as $index => $item ) {
+            // A display name is not a page identity and cannot override a
+            // different item whose actual page has that title.
+            $itemIndex[$this->itemTitleKey( $item['wikiTitle'] )] = $index;
+        }
+        foreach ( $this->npcLootSources as $key => $reference ) {
+            $target = $reference['title'];
+            $visited = [];
+            for ( $hop = 0; !isset( $itemIndex[$key] ) && $hop < 4; $hop++ ) {
+                if ( isset( $visited[$key] ) ) {
+                    break;
+                }
+                $visited[$key] = true;
+                $this->maybePause();
+                $title = Title::newFromText( $target, NS_MAIN );
+                if ( !$title || !$title->exists() ) {
+                    break;
+                }
+                $page = $wikiPageFactory->newFromTitle( $title );
+                $redirect = method_exists( $page, 'getRedirectTarget' ) ? $page->getRedirectTarget() : null;
+                if ( !$redirect || ( method_exists( $redirect, 'getNamespace' ) && $redirect->getNamespace() !== NS_MAIN ) ||
+                    ( method_exists( $redirect, 'isExternal' ) && $redirect->isExternal() ) || strpos( $redirect->getText(), ':' ) !== false ) {
+                    break;
+                }
+                $target = $redirect->getText();
+                $key = $this->itemTitleKey( $target );
+            }
+            if ( !isset( $itemIndex[$key] ) ) {
+                $this->npcLootSourceCounts['unresolvedItems']++;
+                continue;
+            }
+            $index = $itemIndex[$key];
+            $resolvedItems[$index] = true;
+            $sources = [];
+            foreach ( $items[$index]['dropSources'] as $source ) {
+                $identity = $this->instanceKey( $source['zone'], $source['name'] ) . '|' . (int)$source['raidInstance'];
+                $sources[$identity] = $source;
+            }
+            foreach ( $this->expandDropSourceVariants( $reference['sources'] ) as $source ) {
+                $identity = $this->instanceKey( $source['zone'], $source['name'] ) . '|' . (int)$source['raidInstance'];
+                if ( isset( $sources[$identity] ) ) {
+                    foreach ( [ 'instanceSources', 'lootSources' ] as $field ) {
+                        $provenance = [];
+                        foreach ( array_merge( $sources[$identity][$field] ?? [], $source[$field] ?? [] ) as $entry ) {
+                            $provenance[json_encode( $entry )] = $entry;
+                        }
+                        if ( $provenance ) {
+                            $sources[$identity][$field] = array_values( $provenance );
+                        }
+                    }
+                } else {
+                    $sources[$identity] = $source;
+                    $this->npcLootSourceCounts['sourcesAdded']++;
+                    $enrichedItems[$index] = true;
+                }
+            }
+            $items[$index]['dropSources'] = array_values( $sources );
+        }
+        $this->npcLootSourceCounts['resolvedItems'] = count( $resolvedItems );
+        $this->npcLootSourceCounts['itemsEnriched'] = count( $enrichedItems );
+        return $items;
     }
 
     private function parseItemDisplayLines( string $statsBlock ): array {
@@ -1103,10 +1253,10 @@ class BuildEyeOfZommPack extends Maintenance {
                         $sections[] = [ 'text' => $body, 'raidInstance' => $raid, 'explicit' => $explicit, 'heading' => $heading ];
                     }
                     $body = '';
-                    $raid = $isRaid;
-                    $explicit = $isRaid || $isNormal;
-                    $heading = $isRaid ? 'Raid Instance' : 'Normal Instance';
-                    $scopeLevel = $explicit ? strlen( $match[1] ) : null;
+                    $raid = $isRaid || ( !$isNormal && $defaultRaid );
+                    $explicit = $isRaid || $isNormal || $defaultExplicit;
+                    $heading = $raid ? 'Raid Instance' : 'Normal Instance';
+                    $scopeLevel = $isRaid || $isNormal ? strlen( $match[1] ) : null;
                     continue;
                 }
             }
