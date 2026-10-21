@@ -139,10 +139,7 @@ class BuildEyeOfZommPack extends Maintenance {
             }
         }
 
-        usort( $npcs, static function ( $a, $b ) {
-            return [ strtolower( $a['zone'] ), strtolower( $a['name'] ), (int)$a['raidInstance'] ]
-                <=> [ strtolower( $b['zone'] ), strtolower( $b['name'] ), (int)$b['raidInstance'] ];
-        } );
+        $npcs = $this->sortNpcRecords( $npcs );
         usort( $items, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
 
         $icons = $this->buildItemIconMap( $services->getRepoGroup(), $items );
@@ -1088,6 +1085,16 @@ class BuildEyeOfZommPack extends Maintenance {
                 $this->raidNpcIndex[$key]['only'] = true;
             }
         }
+    }
+
+    private function sortNpcRecords( array $records ): array {
+        // Legacy clients collapse zone/name pairs with last-record-wins. Keep
+        // public coordinates and stats by emitting the normal variant last.
+        usort( $records, static function ( $a, $b ) {
+            return [ strtolower( $a['zone'] ), strtolower( $a['name'] ), -(int)$a['raidInstance'] ]
+                <=> [ strtolower( $b['zone'] ), strtolower( $b['name'] ), -(int)$b['raidInstance'] ];
+        } );
+        return $records;
     }
 
     private function applyNpcInstanceVariants( array $records ): array {

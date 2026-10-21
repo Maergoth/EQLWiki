@@ -69,6 +69,7 @@ $call( 'indexWikiEntityCandidates', $npcRows, $itemRows, $titleRows );
 $npcs = [];
 foreach ( $npcRows as $row ) { $npcs = array_merge( $npcs, $call( 'buildNpcRecords', $factory, $row, [] ) ); }
 $npcs = $call( 'applyNpcInstanceVariants', $npcs );
+$npcs = $call( 'sortNpcRecords', $npcs );
 $items = [];
 foreach ( $itemRows as $row ) {
     $record = $call( 'buildItemRecord', $factory, $row, [] );
@@ -82,8 +83,15 @@ $expect = static function ( $actual, $expected, string $label ) use ( &$checks )
 $records = static fn ( string $name ) => array_values( array_filter( $npcs, static fn ( $record ) => $record['name'] === $name ) );
 $variants = static fn ( string $name ) => array_column( $records( $name ), 'raidInstance' );
 $expect( $variants( 'King Tranix' ), [ true ], 'Explicit raid-only boss' );
-$expect( $variants( 'Fire Giant Warrior' ), [ false, true ], 'Shared normal/raid NPC' );
-$expect( isset( $records( 'Fire Giant Warrior' )[1]['loc'] ), false, 'No borrowed public raid coordinate' );
+$expect( $variants( 'Fire Giant Warrior' ), [ true, false ], 'Shared NPC emits raid before normal for legacy clients' );
+$expect( isset( $records( 'Fire Giant Warrior' )[0]['loc'] ), false, 'No borrowed public raid coordinate' );
+$legacy = [];
+foreach ( $npcs as $record ) { $legacy[strtolower( $record['zone'] . '|' . $record['name'] )] = $record; }
+$legacyShared = $legacy[strtolower( $records( 'Fire Giant Warrior' )[0]['zone'] . '|Fire Giant Warrior' )];
+$expect( $legacyShared['loc'], [ 10, 20, 30 ], 'Legacy last-wins projection keeps normal coordinate' );
+$expect( $legacyShared['raidInstance'], false, 'Legacy last-wins projection keeps normal variant' );
+$expect( $legacy[strtolower( $records( 'King Tranix' )[0]['zone'] . '|King Tranix' )]['raidInstance'], true, 'Legacy projection retains raid-only boss' );
+$expect( strpos( $source, '$npcs = $this->sortNpcRecords( $npcs );' ) !== false, true, 'Production uses tested sort helper' );
 $expect( $variants( 'Voidling' ), [ false ], 'Entrance prose does not establish membership' );
 $expect( $variants( 'Synthetic public guard' ), [ false ], 'Sibling heading ends raid scope' );
 $expect( $variants( 'Synthetic future boss' ), [ true ], 'Future uncatalogued zone needs no allowlist' );
