@@ -230,6 +230,17 @@ That job publishes its dataset to the separate `Maergoth/EQL-EOZ` repository.
 It remains independent of application deployment. Review and copy host-bin changes
 to `/home/eqlwikdq/bin` deliberately, preserving executable permissions.
 
+The refresh wrapper validates the completed filtered JSON in a separate PHP CLI
+process, with a bounded `768M` allowance before decoding and errors on stderr.
+MediaWiki's own memory allowance does not carry into that process; the host CLI
+default can be `128M`. Validator code is passed through stdin rather than a
+multiline `-r` argument, because cPanel's PHP selector stats command arguments as
+candidate filenames. Failed validation keeps the previously published pack and
+does not invoke the publisher/syncer. `EQL_PHP_BIN` remains an optional override.
+`bash ops/test-eoz-refresh-wrapper.sh` exercises the actual wrapper with synthetic
+files, a low-memory selector fixture, and stub publisher/syncer commands; it does
+not contact MediaWiki/GitHub or establish that a host copy has been installed.
+
 The application-side producer is `maintenance/BuildEyeOfZommPack.php` with
 `maintenance/zone-catalog.json`; Eye of Zomm retains a matching source copy in
 its `server/` directory. Review the
