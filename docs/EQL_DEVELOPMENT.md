@@ -285,8 +285,12 @@ categories and multi-zone fields in producer regressions.
 Raid tests must include an uncatalogued future zone, nested/sibling headings,
 normal and raid variants with the same NPC name, an explicit raid-only boss,
 entrance Voidling exclusion, and section-specific item sources. Do not copy a
-public NPC coordinate into a derived raid variant. A full presence index must
-retain categorized pages skipped for missing stats and main-namespace redirect
+public NPC coordinate into a derived raid variant.
+Drop-source regressions must also cover Hate-shaped `VeliousGray` NPC links,
+display labels/revamp notes, wrapped/era-annotated zone headings, nested actual
+NPCs versus `Loc` annotations, and an exact normal/raid drop-to-NPC join. Never
+repair these identities by stripping arbitrary template text in the client.
+A full presence index must retain categorized pages skipped for missing stats and main-namespace redirect
 titles; limited exports must set `wikiEntitiesComplete` false. Never interpret a
 filtered intel list as the complete set of wiki pages.
 
