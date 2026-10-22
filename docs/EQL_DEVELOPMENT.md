@@ -247,9 +247,20 @@ extension; see the extension guide for safe rollback ordering.
 - Every push to either deployment branch runs a file deployment, even docs-only
   pushes. The receiver validates, backs up managed files, and checks the wiki API.
   It does not apply database schema migrations or publish arbitrary wiki pages.
-- A staging push copies the entire live wiki/forum database when the previous
-  successful refresh is at least 24 hours old. Manual refresh bypasses the limit.
+- A staging push or hourly scheduled eligibility check copies the entire live
+  wiki/forum database when the previous successful refresh is at least 24 hours
+  old. Explicit manual refresh bypasses the limit; scheduled refresh never forces
+  recovery of an interrupted replacement. The workflow schedule runs from `main`,
+  so a staging-only workflow merge is insufficient to activate it.
   This is a full replacement, not a database diff: staging-only DB edits disappear.
+- The public Eye of Zomm pack uses the same hourly-check/24-hour-success rule,
+  with a separate private marker written only after successful GitHub publication.
+  The desktop checks the small manifest at startup/hourly and downloads changed
+  data; it does not request private DBs or trigger a host build. Local-only builds,
+  skipped/overlapping checks, and failed publication never defer the next automatic
+  source refresh; a successful manual publication does advance freshness.
+  See [the complete shared policy](../PROJECT.md#unified-data-refresh-policy) for
+  timing, force behavior, recovery, and separate host installation requirements.
 - Only missing uploads/attachments and related mutable assets are copied.
   Existing staging files stay; replacements can remain older and production
   deletions do not propagate. Compare the relevant image bytes when reproducing
