@@ -1,5 +1,7 @@
 name: Refresh staging data
 on:
+  schedule:
+    - cron: '47 * * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +23,8 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/eqlwiki_deploy
           printf '%s\n' "$HOST_KEYS" > ~/.ssh/known_hosts
-      - name: Force a fresh production snapshot into staging
+      - name: Refresh staging if eligible, or force an explicit manual refresh
+        env:
+          REFRESH_MODE: ${{ github.event_name == 'schedule' && 'if-stale' || 'force' }}
         run: |
-          bash ops/ssh-command.sh 'refresh force'
+          bash ops/ssh-command.sh "refresh $REFRESH_MODE"
