@@ -338,10 +338,22 @@ viewer markup asset versions, and worker URLs consistent when releasing changes.
 wiki-data/asset export tooling, not a browser upload flow. The builder reads the
 local wiki database/assets without calling its own HTTP server and requires an
 output JSON file path, for example `--output=.local/eoz/eye-of-zomm-pack.json`.
-The weekly `eoz-pack-refresh.sh` validates/publishes a dataset;
+The private `eoz-pack-refresh.sh --if-stale` checks hourly and validates/publishes
+a dataset after at least 24 hours since its last successful GitHub publication;
 `eoz-sync-github.sh` manages the separate **Maergoth/EQL-EOZ dataset branch**.
 Its force-pushed data branch is independent of this repository's protected
-application branches. Use `--local-only` when testing the wrapper without publishing.
+application branches. The private `eoz-pack-last-success` epoch advances atomically
+only after synchronization succeeds; malformed/future markers trigger a rebuild.
+Default/manual runs force a build, and `--local-only` always builds without
+publishing or advancing freshness. An unpublished staged manifest never counts as
+a success. The desktop checks the public manifest at startup/hourly and replaces
+its cache only after a changed pack passes validation. Both staging and the public
+export derive from production; SQL/account/settings data never goes to the public
+dataset. See [the shared timing, failure, and installation policy](../PROJECT.md#unified-data-refresh-policy).
+Its separate JSON validator sets a `768M` CLI bound and reads code from stdin to
+avoid cPanel selector filename checks on multiline arguments. A failed validation
+preserves the existing pack; source-only synthetic wrapper coverage lives in
+[`ops/test-eoz-refresh-wrapper.sh`](../ops/test-eoz-refresh-wrapper.sh).
 
 The producer exports explicit usable class codes for Itembox `Class: ALL except`
 restrictions. `ALL` means unrestricted, `NONE` means no playable class, and an

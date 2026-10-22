@@ -218,18 +218,71 @@ The publishing helper validates the new damage-bonus contracts and does not
 accept the original template as rollback input. A full staging database refresh
 replaces staging-only template changes; republish the reviewed template after refresh.
 
-## Existing scheduled jobs
+## Unified data refresh policy
 
-`ops/host-bin` records the current host scripts for review. They are not copied to
-`public_html` by deployment. The weekly Eye of Zomm job remains:
+Production wiki pages and revisions are authoritative. Staging and Eye of Zomm
+are separate consumers of that source; the desktop never pulls a private SQL
+database, and its checks do not start exports on the host. Private database dumps,
+accounts, settings, and uploads must never be published to the dataset branch.
 
+| Consumer | Automatic eligibility checks | Expensive work | Manual behavior |
+| --- | --- | --- | --- |
+| Eye of Zomm public dataset | Host cron at minute 17 every hour, UTC | Build from production only when the last successful GitHub publication is at least 24 hours old | Default wrapper invocation forces a build/publication; `--local-only` forces a build/stage without publication |
+| Staging wiki/forum copy | GitHub Actions at minute 47 every hour, UTC, and before staging deployments | Replace staging DBs when the last successful replacement is at least 24 hours old | Explicit **Refresh staging data** dispatch uses `force`; scheduled runs use `if-stale` |
+| Eye of Zomm desktop cache | Startup and hourly while the app is running | Check the small public manifest, download only a changed dataset, and validate before replacing the cache | **Sync with Wiki** requests a check immediately; it does not rebuild the source dataset |
+
+Hourly eligibility checks avoid the roughly 48-hour gap that can occur when a
+once-daily job tests a 24-hour threshold measured from yesterday's completion.
+They do not mean hourly database replacements or full exports. Healthy automatic
+rebuilds are normally 24–25 hours apart, plus work time and scheduler delay; this
+is not a strict publication-time guarantee. The two host consumers use separate
+locks and success markers, and do not claim one atomic snapshot of the wiki,
+forum, and desktop data. Keep their start times offset to reduce coincident load.
+
+`ops/host-bin` files are private host sources, excluded from application releases.
+After review, install `eoz-pack-refresh.sh` into `/home/eqlwikdq/bin` separately,
+preserving executable permissions. Replace only the existing Eye of Zomm cron
+entry with the following rule; preserve every unrelated host job:
+
+```cron
+17 * * * * /bin/bash /home/eqlwikdq/bin/eoz-pack-refresh.sh --if-stale >> /home/eqlwikdq/private-cache/mediawiki/eoz-pack-refresh.log 2>&1
 ```
-/bin/bash /home/eqlwikdq/bin/eoz-pack-refresh.sh >> /home/eqlwikdq/private-cache/mediawiki/eoz-pack-refresh.log 2>&1
-```
 
-That job publishes its dataset to the separate `Maergoth/EQL-EOZ` repository.
-It remains independent of application deployment. Review and copy host-bin changes
-to `/home/eqlwikdq/bin` deliberately, preserving executable permissions.
+Under the existing `eoz-pack.lock`, the wrapper reads the private plain epoch
+`eoz-pack-last-success`. It atomically advances that marker **only after** the
+validated pack has been staged and `eoz-sync-github.sh` has succeeded. Local-only,
+failed, skipped, and overlapping runs never advance it. Missing, malformed, or
+future markers cause a rebuild rather than suppressing refreshes. Never infer
+publication from the staged manifest's age: a successful local-only build or
+failed Git push can leave an unpublished staged pack. When introducing the marker
+after a separately audited manual publication, seed it only after verifying the
+public manifest and pack hash against the reviewed pair; otherwise leave it absent.
+
+Failed builds/validation do not publish, and failed synchronization leaves the
+previous public dataset available. Keep the old success time so the next hourly
+check retries. Desktop download/validation failures retain the last usable cache.
+The dedicated force-pushed `Maergoth/EQL-EOZ` dataset branch contains only the
+filtered public manifest and compressed pack, independently of application deploys.
+
+The scheduled staging workflow must also be promoted as an isolated reviewed
+change to default branch `main`: [GitHub runs scheduled workflows only from the
+default branch](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+Merging the workflow into `staging` alone does not activate its schedule. Scheduled
+and manual refreshes retain the same `eqlwiki-staging` concurrency group as staging
+deploys. Do not use forced scheduled refreshes to bypass a failed replacement;
+review its private log and recover explicitly. Source changes and host installation
+are separate operations and must be verified separately.
+
+The refresh wrapper validates the completed filtered JSON in a separate PHP CLI
+process, with a bounded `768M` allowance before decoding and errors on stderr.
+MediaWiki's own memory allowance does not carry into that process; the host CLI
+default can be `128M`. Validator code is passed through stdin rather than a
+multiline `-r` argument, because cPanel's PHP selector stats command arguments as
+candidate filenames. Failed validation keeps the previously published pack and
+does not invoke the publisher/syncer. `EQL_PHP_BIN` remains an optional override.
+`bash ops/test-eoz-refresh-wrapper.sh` exercises the actual wrapper with synthetic
+files, a low-memory selector fixture, and stub publisher/syncer commands; it does
+not contact MediaWiki/GitHub or establish that a host copy has been installed.
 
 The application-side producer is `maintenance/BuildEyeOfZommPack.php` with
 `maintenance/zone-catalog.json`; Eye of Zomm retains a matching source copy in
@@ -279,11 +332,12 @@ Only @Maergoth can update `main`. Both branches reject force pushes and deletion
 The owner can directly update staging for administration and can promote tested
 changes to main. Never automatically merge staging into production.
 
-Each staging push runs a refresh before deployment, unless the last successful
-refresh was less than 24 hours ago. The manual **Refresh staging data** GitHub
-Actions workflow bypasses the time limit. A refresh replaces the entire staging
+Each staging push and scheduled hourly check requests `refresh if-stale`, unless
+the last successful database refresh was less than 24 hours ago. The manual
+**Refresh staging data** GitHub Actions workflow explicitly uses `force` and
+bypasses the time limit. A refresh replaces the entire staging
 wiki and forum databases, including any staging-only edits or accounts. Snapshots
-use `mysqldump --single-transaction`; production databases are read only during
+use separate `mysqldump --single-transaction` snapshots; production databases are read only during
 this operation. Uploaded files are independent copies: missing files are copied,
 existing staging files are kept, and production deletions are not propagated.
 Replaced production images can therefore remain older on staging.
@@ -351,7 +405,7 @@ and restore the generator/include if required. Keep staging login and isolation
 overrides intact; these changes do not apply to production settings.
 
 Deployment keys are scoped to GitHub environments. `production` accepts only
-`main`; `staging` accepts `staging` and `main` (for the manual refresh workflow).
+`main`; `staging` accepts `staging` and `main` (for manual/scheduled refreshes).
 Each host SSH key has a forced command and cannot run arbitrary shell commands.
 Pull-request checks receive no deployment secrets.
 
@@ -370,9 +424,14 @@ explicit file list when introducing other custom files with absolute site URLs.
 During database replacement staging returns HTTP 403. A failed refresh leaves
 staging in maintenance mode and does not advance its timestamp. Review the private
 `refresh.log`, fix the problem, then rerun the manual refresh. Previous staging
-refresh failures also block deployments and bypassing the failure via the daily
+refresh failures also block deployments and bypassing the failure via the hourly
 skip check. A forced retry keeps the original recovery dumps until it succeeds.
 Previous staging
 database dumps are retained at `refresh/wiki-previous.sql` and
 `refresh/forum-previous.sql`; only the latest recovery point is kept. Access
 credentials and SQL dumps are stored outside document roots and outside Git.
+The staging `last-refresh` epoch advances after databases, isolated settings,
+missing-file copying, and API health succeed. The command wrapper then separately
+reapplies the reviewed Sky Common.js section. A failure in that final script sync
+fails the workflow without rolling back the successful database timestamp; a later
+`if-stale` call still retries the script sync even if the database copy is skipped.
