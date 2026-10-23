@@ -6,7 +6,7 @@
 	var MAX_BYTES = 60000;
 	var MAX_ITEMS = 100;
 	var MAX_NOTES = 16000;
-	var SAVE_DELAY = 750;
+	var SAVE_DELAY = 2000;
 	var userId = Number( mw.config.get( 'wgUserId' ) ) || 0;
 	var userName = mw.config.get( 'wgUserName' );
 	var account = userId > 0 && typeof userName === 'string' && userName.length > 0 &&
@@ -216,7 +216,17 @@
 		return initialPromise;
 	}
 
-	function flush() {
+	function scheduleSave( delay ) {
+		if ( timer !== null ) {
+			window.clearTimeout( timer );
+		}
+		timer = window.setTimeout( function () {
+			timer = null;
+			flush( true ).catch( function () {} );
+		}, delay );
+	}
+
+	function flush( automatic ) {
 		if ( timer !== null ) {
 			window.clearTimeout( timer );
 			timer = null;
@@ -225,6 +235,11 @@
 			return load();
 		}
 		if ( pendingSave ) {
+			// An expired autosave must not queue an immediate write that bypasses
+			// the quiet period of edits made while this request is still running.
+			if ( automatic ) {
+				return pendingSave;
+			}
 			return pendingSave.then( function () {
 				return dirty ? flush() : snapshot();
 			} );
@@ -270,8 +285,12 @@
 			baseline = value;
 			dirty = revision !== savedRevision;
 			if ( dirty ) {
-				// A newer edit made during this request must also reach storage.
-				return flush();
+				// Each newer edit already reset its own two-second timer. If that
+				// timer expired during this request, the quiet period is satisfied.
+				if ( timer === null ) {
+					scheduleSave( 0 );
+				}
+				return snapshot();
 			}
 			setStatus( 'saved' );
 			return snapshot();
@@ -309,13 +328,7 @@
 		if ( state !== 'error' ) {
 			state = 'saving';
 			message = '';
-			if ( timer !== null ) {
-				window.clearTimeout( timer );
-			}
-			timer = window.setTimeout( function () {
-				timer = null;
-				flush().catch( function () {} );
-			}, SAVE_DELAY );
+			scheduleSave( SAVE_DELAY );
 		}
 		notify();
 	}
