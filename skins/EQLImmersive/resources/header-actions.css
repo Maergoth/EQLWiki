@@ -22,6 +22,48 @@ body.skin-eqlimmersive .vector-header-container {
 	-webkit-backdrop-filter: blur( 6px );
 }
 
+/* Keep the actual navigation/search header available at every scroll position. */
+body.skin-eqlimmersive .vector-header-container:not( .vector-sticky-header-container ) {
+	position: sticky !important;
+	top: 0;
+}
+
+/* Vector's condensed duplicate is unnecessary while the real header follows. */
+body.skin-eqlimmersive .vector-sticky-header-container,
+body.skin-eqlimmersive .vector-sticky-header {
+	display: none !important;
+}
+
+html.eql-locked-header {
+	scroll-padding-top: calc( var( --eql-header-height, 60px ) + 12px ) !important;
+}
+
+body.skin-eqlimmersive .ve-ui-toolbar-floating > .oo-ui-toolbar-bar {
+	top: var( --eql-header-height, 60px );
+}
+
+/* Vector otherwise adds another fixed 75px on top of the root scroll padding. */
+body.skin-eqlimmersive .mw-heading > :is( h1, h2, h3, h4, h5, h6 ) {
+	scroll-margin-top: 0;
+}
+
+body.skin-eqlimmersive:not( .eql-main-menu-pinned ) #eql-main-menu-host #vector-main-menu {
+	max-height: calc( 100dvh - var( --eql-header-height, 60px ) - 64px ) !important;
+	overflow-y: auto !important;
+}
+
+body.skin-eqlimmersive #eql-user-menu-host {
+	max-width: calc( 100vw - 16px );
+	min-width: min( 220px, calc( 100vw - 16px ) );
+	overflow-y: auto;
+}
+
+@media print {
+	body.skin-eqlimmersive .vector-header-container:not( .vector-sticky-header-container ) {
+		position: static !important;
+	}
+}
+
 body.skin-eqlimmersive .mw-header,
 body.skin-eqlimmersive .vector-header {
 	display: flex !important;

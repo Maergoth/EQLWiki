@@ -154,7 +154,8 @@
                 "resources/table-sizing.css",
                 "resources/responsive-mobile.css",
                 "resources/toc-limit.css",
-                "resources/header-search.css"
+                "resources/header-search.css",
+                "resources/todo.css"
             ]
         },
         "skins.EQLImmersive.homepage.styles": {
@@ -209,7 +210,9 @@
                 "resources/header-search.js",
                 "resources/upload-converter.js",
                 "resources/upload-purge.js",
-                "resources/upload-links.js"
+                "resources/upload-links.js",
+                "resources/todo-store.js",
+                "resources/todo.js"
             ],
             "dependencies": [
                 "jquery",
