@@ -58,6 +58,17 @@ Major custom skin behavior:
   cards, the custom TOC built from article headings, `toclimit-N` markup, removal
   of empty build-ability panels, and `File:Connections.png` map magnification.
   Native Vector TOC is disabled. Preserve menu storage migrations and layout slots.
+- The site header remains locked while scrolling; measured height controls
+  fragment and menu offsets. Final navigation processing after extension hooks
+  exposes one source-first Edit action while retaining editor switching and
+  Verify2Edit. `todo.js/css` supplies the header todo icon and confirmed title/
+  heading capture, source links, collapsible entries, sanitized rich-text notes,
+  nested note checklists and optional progress. `todo-store.js` owns the global
+  `userjs-eql-todo-v1` account option and separate wiki-scoped anonymous storage;
+  it never imports anonymous lists into an account or touches Common.js buckets.
+  See the [skin guide](../skins/EQLImmersive/README.md#header-and-personal-todo-list)
+  for limits, draft recovery and concurrent-write limitations. Watchlist remains
+  in the user menu; only its direct header shortcut is replaced.
 - `main.css`, `header-actions.css`, `sidebar-redlinks.css`, `responsive-mobile.css`,
   and related modules: game-themed shell, article/table layouts, mobile handling,
   fixed footer, and menus. Database Common.css adds further overrides.

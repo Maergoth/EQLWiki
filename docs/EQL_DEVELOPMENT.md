@@ -146,6 +146,10 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Check | Command from repository root | Prerequisites / coverage |
 | --- | --- | --- |
 | JS syntax | `node --check path/to/changed.js` | Node; syntax only |
+| Header editing policy | `php ops/test-header-editing.php` | Synthetic navigation fixtures; source Edit, extension ordering, permissions and Verify2Edit |
+| Locked header | `node ops/test-locked-header.cjs` | Synthetic DOM; measured offsets, menu bounds, VisualEditor toolbar and source-action handling |
+| Todo persistence | `node ops/test-todo-store.cjs` | Synthetic API/storage; lazy load, account isolation, failures, limits, concurrent baselines, progress and navigation warnings |
+| Todo UI | `node ops/test-todo-ui.cjs` | jsdom; confirmation, page/section identities, deduplication, sanitized notes, progress, collapse, reload and editor retention |
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
 | Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
@@ -279,6 +283,18 @@ extension; see the extension guide for safe rollback ordering.
 - Host-script changes are installed separately. A receiver rollback restores
   managed application files, not arbitrary DB changes; [`rollback.sh`](../ops/rollback.sh)
   currently targets production. Keep separate recovery copies for data edits.
+
+## Header and todo browser checks
+
+Check a scrolled article and fragment navigation, floating menus, keyboard
+access/Escape and narrow layouts. Confirm one Edit opens source while native
+editor switching still works. Add a page and a section, cancel confirmation,
+edit rich notes/nested checkboxes, move progress to/from 100 and reload. Check
+anonymous/account separation and a failed save without discarding its draft.
+Synthetic API/DOM tests do not establish a live account save or browser layout.
+Normal application deployment loads these registered skin modules; no database
+interface-page sync or schema update is needed. Staging database refreshes can
+replace account preference lists.
 
 ## Maintenance scripts are not routine tests
 
