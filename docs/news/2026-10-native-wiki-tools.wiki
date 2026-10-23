@@ -1,0 +1,23 @@
+== 10/23/2026 ==
+
+A few useful wiki updates are now live! These features are built into the wiki; no browser extension is needed.
+
+* '''Simpler editing:''' The single '''Edit''' button opens the source editor.
+* '''A header that stays with you:''' Search, page actions, and your account menu remain within reach while you scroll.
+* '''Your own todo list:''' Open the checklist icon in the header. Click a page title or section heading and confirm to add it. Each entry links back to its source, and you can collapse it, mark it complete, or remove it. Watchlist remains available in your user menu.
+* '''Heading shortcuts:''' Hover over a section heading to reveal its checklist button with a green '''+''' and edit pencil. They also appear when you tab to them and stay visible on touchscreens.
+* '''Notes and progress:''' Add formatted notes, links, lists, and your own checklists inside an entry. Enable its optional progress slider to track partial progress. Reaching 100% checks the entry; moving below 100% reopens it.
+
+Autosave starts two seconds after your last change. Wait for the saved message before leaving.
+
+When you're logged out, your todo list stays in this browser. When you're logged in, it saves to your wiki account. These are separate lists; signing in does not copy your logged-out list into your account.
+
+[[File:EQLWiki_Native_Todo_2026-10.gif|center|alt=Adding a wiki section to the todo list, writing formatted notes and checklist items, and changing progress.]]
+
+* '''Search selected text:''' Highlight a short piece of article text, then choose '''Search wiki''' to search for it.
+* '''Partial title searches:''' Submitting a partial name such as '''Raku''' now finds [[Rakusha Cloak]] in the search results.
+
+[[File:EQLWiki_Search_and_Header_2026-10.gif|center|alt=The header stays visible while scrolling, selected article text opens a wiki search, and a search for Raku finds Rakusha Cloak.]]
+
+Please report feedback in [https://discord.com/channels/1435786469968183456/1521564179587268649 the wiki Discord].
+
