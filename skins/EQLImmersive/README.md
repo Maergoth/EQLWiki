@@ -72,7 +72,8 @@ in the personal menu, and page Watch/Unwatch actions are unchanged. Clicking an
 article title or heading (or its keyboard-accessible plus button) asks for
 confirmation, then adds only the page name or `page > heading`, with its actual
 section anchor. Links and section-edit controls retain their normal action.
-The plus and section-edit pencil appear on heading hover or keyboard focus;
+The add button uses the header's checklist icon with a small green plus.
+It and the section-edit pencil appear on heading hover or keyboard focus;
 devices without hover keep these controls visible for touch access.
 Entries deduplicate by page/anchor, collapse independently, and support rich-text
 notes with nested checklist items. An optional 0–100 progress slider checks the
