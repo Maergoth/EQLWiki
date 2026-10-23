@@ -148,6 +148,20 @@
 			toggle.removeAttribute( 'hidden' );
 			toggle.setAttribute( 'aria-expanded', shouldShow ? 'true' : 'false' );
 		}
+		positionMainMenu();
+	}
+
+	function positionMainMenu() {
+		var host = document.getElementById( 'eql-main-menu-host' );
+		var header = document.querySelector( '.vector-header-container:not( .vector-sticky-header-container )' );
+		if ( !host || !header ) {
+			return;
+		}
+		if ( hasBodyClass( 'eql-main-menu-pinned' ) ) {
+			host.style.removeProperty( 'top' );
+		} else {
+			host.style.top = Math.ceil( header.getBoundingClientRect().bottom + 8 ) + 'px';
+		}
 	}
 
 	function updateMainMenuPinButton( pinned ) {
@@ -323,7 +337,7 @@
 		clone = heading.cloneNode( true );
 		removable = clone.querySelectorAll(
 			'.mw-editsection, .mw-editsection-bracket, .mw-editsection-divider, ' +
-			'.mw-headline-number, .headerlink, script, style'
+			'.mw-headline-number, .headerlink, .eql-todo-add, script, style'
 		);
 
 		removable.forEach( function ( node ) {
@@ -842,6 +856,8 @@
 		var host = document.getElementById( 'eql-user-menu-host' );
 		var rect;
 		var right;
+		var top;
+		var header;
 
 		if (
 			!body ||
@@ -854,9 +870,12 @@
 
 		rect = label.getBoundingClientRect();
 		right = Math.max( 8, window.innerWidth - rect.right );
+		header = document.querySelector( '.vector-header-container:not( .vector-sticky-header-container )' );
+		top = Math.ceil( Math.max( rect.bottom, header ? header.getBoundingClientRect().bottom : 0 ) + 6 );
 
-		host.style.top = Math.round( rect.bottom + 6 ) + 'px';
+		host.style.top = top + 'px';
 		host.style.right = Math.round( right ) + 'px';
+		host.style.maxHeight = Math.max( 0, window.innerHeight - top - 48 ) + 'px';
 	}
 
 	function openUserMenu() {
@@ -1030,7 +1049,81 @@
 		} );
 	}
 
+	/** Keep anchor jumps and the detached menu panels clear of the real header. */
+	function initLockedHeader() {
+		var header = document.querySelector( '.vector-header-container:not( .vector-sticky-header-container )' );
+		if ( !hasBodyClass( 'skin-eqlimmersive' ) || !header ) {
+			return;
+		}
+		document.documentElement.classList.add( 'eql-locked-header' );
+		function measure() {
+			var height = Math.ceil( header.getBoundingClientRect().height );
+			document.documentElement.style.setProperty( '--eql-header-height',
+				height + 'px' );
+			// VE uses this native offset both to float its toolbar and to keep the
+			// editing selection in view. Resizing can change a wrapping header.
+			if ( window.mw && window.mw.config && window.mw.config.set ) {
+				window.mw.config.set( 'wgVisualEditorToolbarScrollOffset', height );
+			}
+			if ( window.ve && window.ve.init && window.ve.init.target ) {
+				window.ve.init.target.toolbarScrollOffset = height;
+			}
+			positionMainMenu();
+			positionUserMenu();
+		}
+		measure();
+		if ( window.ResizeObserver ) {
+			new window.ResizeObserver( measure ).observe( header );
+		}
+		window.addEventListener( 'resize', measure );
+		window.addEventListener( 'pageshow', measure );
+	}
+
+	/**
+	 * VE's single-tab preference may bind ca-edit to visual mode regardless of
+	 * its URL. On reading pages, retain this explicit source-editor navigation.
+	 * During an active VE session its own switching/unsaved-change flow applies.
+	 */
+	function initSourceEditActions() {
+		if ( !hasBodyClass( 'skin-eqlimmersive' ) ) {
+			return;
+		}
+		function sourceLink( event ) {
+			var link = event.target.closest && event.target.closest(
+				'.eql-source-edit-action a, a.eql-source-edit-action, #n-eql-edit a, a#n-eql-edit'
+			);
+			if ( !link || document.documentElement.classList.contains( 've-activated' ) ||
+				document.documentElement.classList.contains( 've-deactivating' ) ) {
+				return;
+			}
+			var url = new URL( link.href, document.baseURI );
+			url.searchParams.delete( 'veaction' );
+			url.searchParams.set( 'action', 'edit' );
+			url.searchParams.set( 'veswitched', '1' );
+			link.href = url.href;
+			if ( event.type === 'click' ) {
+				// Keep the browser's normal navigation, including modified clicks.
+				event.stopImmediatePropagation();
+			}
+		}
+		document.addEventListener( 'click', sourceLink, true );
+		document.addEventListener( 'contextmenu', sourceLink, true );
+		document.addEventListener( 'mousedown', sourceLink, true );
+		document.addEventListener( 'focusin', sourceLink, true );
+		if ( window.mw && window.mw.hook ) {
+			window.mw.hook( 've.deactivationComplete' ).add( function () {
+				// Remember-last mode can relabel ca-edit while changing editors.
+				document.querySelectorAll( '.eql-source-edit-action a' ).forEach( function ( link ) {
+					var label = link.querySelector( 'span' ) || link;
+					label.textContent = 'Edit';
+				} );
+			} );
+		}
+	}
+
 	function init() {
+		initLockedHeader();
+		initSourceEditActions();
 		initMainMenu();
 		initUserMenu();
 		initClickableCards();

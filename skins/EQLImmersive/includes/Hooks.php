@@ -199,6 +199,39 @@ class Hooks implements
 		$this->createViewsOverflow( $links );
 	}
 
+	/**
+	 * Run after all extension navigation hooks, including VisualEditor. Its hook
+	 * can add a second tab or relabel the source tab after our registered hook.
+	 * Keep ca-edit for the native editor integration and its mode-switch toolbar.
+	 */
+	public function finalizeNavigation( SkinTemplate $skin, array &$links ): void {
+		$title = $skin->getRelevantTitle();
+		if ( !$title || $title->isSpecialPage() ) {
+			return;
+		}
+
+		if ( isset( $links['views']['edit'] ) ) {
+			$edit = &$links['views']['edit'];
+			$options = $skin->editUrlOptions();
+			unset( $options['veaction'] );
+			$options['action'] = 'edit';
+			// Native VE recognizes this request as an explicit source-editor choice,
+			// including for accounts whose remembered editor is the visual editor.
+			$options['veswitched'] = 1;
+			$edit['href'] = $title->getLocalURL( $options );
+			$edit['text'] = 'Edit';
+			$classes = $edit['class'] ?? '';
+			$classes = is_array( $classes ) ? $classes : preg_split( '/\s+/', trim( $classes ) );
+			$classes = array_diff( $classes, [ '', 'visualeditor-showtabdialog' ] );
+			$classes[] = 'eql-source-edit-action';
+			$edit['class'] = implode( ' ', array_unique( $classes ) );
+			unset( $links['views']['ve-edit'] );
+			unset( $edit );
+		}
+
+		$this->createViewsOverflow( $links );
+	}
+
 	/** Keep the subject tab first, with Talk immediately before the Read action. */
 	private function moveTalkNextToRead( array &$links ): void {
 		$talk = null;
@@ -384,6 +417,9 @@ class Hooks implements
 				$newItem['rel'] = $newItem['rel'] ?? 'discussion';
 			} else {
 				$newItem['class'] = trim( ( $newItem['class'] ?? '' ) . ' vector-tab-noicon' );
+				if ( isset( $newItem['id'] ) ) {
+					$newItem['id'] = 'ca-more-' . $key;
+				}
 			}
 			$newItem['is-collapsible'] = true;
 			$clonedViews['more-' . $key] = $newItem;
@@ -474,14 +510,7 @@ class Hooks implements
 				$items,
 				'n-eql-edit',
 				'Edit',
-				$title->getLocalURL( 'veaction=edit' )
-			);
-
-			$this->addSidebarItem(
-				$items,
-				'n-eql-edit-source',
-				'Edit source',
-				$title->getLocalURL( 'action=edit' )
+				$title->getLocalURL( [ 'action' => 'edit', 'veswitched' => 1 ] )
 			);
 		}
 
