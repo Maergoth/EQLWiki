@@ -147,7 +147,8 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | --- | --- | --- |
 | JS syntax | `node --check path/to/changed.js` | Node; syntax only |
 | Header editing policy | `php ops/test-header-editing.php` | Synthetic navigation fixtures; source Edit, extension ordering, permissions and Verify2Edit |
-| Locked header | `node ops/test-locked-header.cjs` | Synthetic DOM; measured offsets, menu bounds, VisualEditor toolbar and source-action handling |
+| Locked header inheritance | `php ops/test-locked-header.php` | Source-only stub parent; omits inherited duplicate markup and enabled class while preserving original header data |
+| Locked header | `node ops/test-locked-header.cjs` | Synthetic DOM plus bundled Vector observer; prevents duplicate takeover, measured offsets, menu bounds, VisualEditor toolbar and source-action handling |
 | Todo persistence | `node ops/test-todo-store.cjs` | Synthetic API/storage; lazy load, account isolation, failures, limits, concurrent baselines, progress and navigation warnings |
 | Todo UI | `node ops/test-todo-ui.cjs` | jsdom; confirmation, page/section identities, deduplication, sanitized notes, progress, collapse, reload and editor retention |
 | Selected-text search | `node ops/test-selection-search.cjs` | jsdom; article-only selection, URL/label safety, bounds, dismissal and frame scheduling |
@@ -288,7 +289,12 @@ extension; see the extension guide for safe rollback ordering.
 ## Header and todo browser checks
 
 Check a scrolled article and fragment navigation, floating menus, keyboard
-access/Escape and narrow layouts. Confirm one Edit opens source while native
+access/Escape and narrow layouts. For signed-in readers, scroll below the title
+and confirm the original search and menu controls remain accessible; no duplicate
+Vector header should be rendered. Check plus/pencil visibility on modern heading
+wrappers and legacy headings: hover and keyboard focus reveal both controls,
+moving onto the pencil keeps them visible, and touch devices retain direct access.
+Confirm one Edit opens source while native
 editor switching still works. Add a page and a section, cancel confirmation,
 edit rich notes/nested checkboxes, move progress to/from 100 and reload. Check
 anonymous/account separation and a failed save without discarding its draft.

@@ -60,8 +60,10 @@ content. CSS order in skin.json and the database Common.css cascade both matter.
 The actual site header stays at the top while scrolling, including on narrow
 screens. Body height follows document content and horizontal overflow uses
 `clip` so it does not become a false scroll container for the sticky header.
-`main.js` measures the header for anchor offsets and floating menu containment;
-the inherited duplicate Vector sticky header is hidden. Navigation is finalized
+`main.js` measures the header for anchor offsets and floating menu containment.
+`SkinEQLImmersive.php` omits the inherited duplicate Vector sticky header before
+rendering and removes its enabled class so native header takeover cannot initialize.
+Navigation is finalized
 after extension hooks so one `Edit` action opens source editing, including when
 VisualEditor loads later. Native editor switching and Verify2Edit remain.
 
@@ -70,6 +72,9 @@ in the personal menu, and page Watch/Unwatch actions are unchanged. Clicking an
 article title or heading (or its keyboard-accessible plus button) asks for
 confirmation, then adds only the page name or `page > heading`, with its actual
 section anchor. Links and section-edit controls retain their normal action.
+The add button uses the header's checklist icon with a small green plus.
+It and the section-edit pencil appear on heading hover or keyboard focus;
+devices without hover keep these controls visible for touch access.
 Entries deduplicate by page/anchor, collapse independently, and support rich-text
 notes with nested checklist items. An optional 0–100 progress slider checks the
 entry at 100 and unchecks it below 100; the main checkbox also updates progress.

@@ -59,7 +59,9 @@ Major custom skin behavior:
   of empty build-ability panels, and `File:Connections.png` map magnification.
   Native Vector TOC is disabled. Preserve menu storage migrations and layout slots.
 - The site header remains locked while scrolling; measured height controls
-  fragment and menu offsets. Final navigation processing after extension hooks
+  fragment and menu offsets. `SkinEQLImmersive.php` omits Vector's duplicate
+  header and enabled class before rendering, preventing native scroll behavior
+  from taking over the original header. Final navigation processing after extension hooks
   exposes one source-first Edit action while retaining editor switching and
   Verify2Edit. `todo.js/css` supplies the header todo icon and confirmed title/
   heading capture, source links, collapsible entries, sanitized rich-text notes,
@@ -71,6 +73,8 @@ Major custom skin behavior:
   See the [skin guide](../skins/EQLImmersive/README.md#header-and-personal-todo-list)
   for limits, draft recovery and concurrent-write limitations. Watchlist remains
   in the user menu; only its direct header shortcut is replaced.
+  The heading plus and section-edit pencil appear on hover or keyboard focus;
+  devices without hover keep both controls visible for touch access.
 - `main.css`, `header-actions.css`, `sidebar-redlinks.css`, `responsive-mobile.css`,
   and related modules: game-themed shell, article/table layouts, mobile handling,
   fixed footer, and menus. Database Common.css adds further overrides.
