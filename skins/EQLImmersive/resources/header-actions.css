@@ -23,9 +23,18 @@ body.skin-eqlimmersive .vector-header-container {
 }
 
 /* Keep the actual navigation/search header available at every scroll position. */
+body.skin-eqlimmersive {
+	/* overflow-x:hidden promotes body to a non-scrolling sticky container.
+	 * Clip horizontal spill without creating that ancestor scroll container. */
+	overflow-x: clip !important;
+	overflow-y: visible !important;
+	height: auto !important;
+}
+
 body.skin-eqlimmersive .vector-header-container:not( .vector-sticky-header-container ) {
 	position: sticky !important;
 	top: 0;
+	z-index: 100 !important;
 }
 
 /* Vector's condensed duplicate is unnecessary while the real header follows. */

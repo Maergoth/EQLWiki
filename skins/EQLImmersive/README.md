@@ -58,7 +58,9 @@ content. CSS order in skin.json and the database Common.css cascade both matter.
 ## Header and personal todo list
 
 The actual site header stays at the top while scrolling, including on narrow
-screens. `main.js` measures it for anchor offsets and floating menu containment;
+screens. Body height follows document content and horizontal overflow uses
+`clip` so it does not become a false scroll container for the sticky header.
+`main.js` measures the header for anchor offsets and floating menu containment;
 the inherited duplicate Vector sticky header is hidden. Navigation is finalized
 after extension hooks so one `Edit` action opens source editing, including when
 VisualEditor loads later. Native editor switching and Verify2Edit remain.
