@@ -9,10 +9,19 @@ body.skin-eqlimmersive .eql-todo-toggle {
 .eql-todo-add {
 	display: inline-block; vertical-align: middle; margin-inline-start: .4rem;
 	width: 1.5rem; height: 1.5rem; padding: 0; border: 1px solid transparent;
-	background: transparent; color: var(--eql-gold, #d8b75c); cursor: pointer; opacity: .55;
+	background: transparent; color: var(--eql-gold, #d8b75c); cursor: pointer;
+	opacity: 0; pointer-events: none;
 }
 .eql-todo-add::before { content: '+'; font: 700 1rem system-ui, sans-serif; }
-.eql-todo-heading:hover .eql-todo-add, .eql-todo-add:focus-visible { opacity: 1; border-color: currentColor; }
+.eql-todo-heading:hover .eql-todo-add,
+.eql-todo-heading:focus-within .eql-todo-add,
+.mw-heading:hover .eql-todo-add,
+.mw-heading:focus-within .eql-todo-add,
+.eql-todo-add:focus-visible { opacity: 1; pointer-events: auto; border-color: currentColor; }
+/* Touch devices have no mouseover; keep their controls discoverable. */
+@media (hover: none) {
+	.eql-todo-add { opacity: 1; pointer-events: auto; }
+}
 .ve-activated .eql-todo-add { display: none; }
 .eql-todo-panel {
 	box-sizing: border-box; width: min(46rem, calc(100vw - 1.5rem));
