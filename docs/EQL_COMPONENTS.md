@@ -65,7 +65,9 @@ Major custom skin behavior:
   heading capture, source links, collapsible entries, sanitized rich-text notes,
   nested note checklists and optional progress. `todo-store.js` owns the global
   `userjs-eql-todo-v1` account option and separate wiki-scoped anonymous storage;
-  it never imports anonymous lists into an account or touches Common.js buckets.
+  autosaves wait two seconds after the last change, including changes made
+  during an in-flight save. It never imports anonymous lists into an account
+  or touches Common.js buckets.
   See the [skin guide](../skins/EQLImmersive/README.md#header-and-personal-todo-list)
   for limits, draft recovery and concurrent-write limitations. Watchlist remains
   in the user menu; only its direct header shortcut is replaced.

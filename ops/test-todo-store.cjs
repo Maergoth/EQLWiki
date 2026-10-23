@@ -27,6 +27,8 @@ function visit( options = {} ) {
     const events = {};
     const timers = new Map();
     const reads = [], writes = [], localReads = [], localWrites = [];
+    const readTimes = [], writeTimes = [], localWriteTimes = [];
+    let now = 0;
     let timerId = 0;
     let localBlocked = Boolean( options.localBlocked );
     let getResults = ( options.getResults || [] ).slice();
@@ -41,10 +43,12 @@ function visit( options = {} ) {
     const api = {
         get( params ) {
             reads.push( plain( params ) );
+            readTimes.push( now );
             return result( getResults.length ? getResults.shift() : info( accountOptions ) );
         },
         postWithToken( token, params ) {
             writes.push( { token, ...plain( params ) } );
+            writeTimes.push( now );
             return result( postResults.length ? postResults.shift() : { options: 'success' } ).then( value => {
                 if ( value && value.options === 'success' && !value.warnings && !value.error ) {
                     accountOptions[ params.optionname ] = params.optionvalue;
@@ -55,7 +59,10 @@ function visit( options = {} ) {
     };
     const window = {
         location: { host: 'wiki.example' },
-        setTimeout( callback ) { timers.set( ++timerId, callback ); return timerId; },
+        setTimeout( callback, delay = 0 ) {
+            timers.set( ++timerId, { callback, at: now + Math.max( 0, Number( delay ) || 0 ) } );
+            return timerId;
+        },
         clearTimeout( id ) { timers.delete( id ); },
         addEventListener( event, callback ) { events[ event ] = callback; },
         localStorage: {
@@ -67,27 +74,49 @@ function visit( options = {} ) {
             setItem( key, value ) {
                 if ( localBlocked ) { throw new Error( 'Storage disabled' ); }
                 localWrites.push( { key, value } );
+                localWriteTimes.push( now );
                 local.set( key, value );
             }
         }
     };
+    class FixtureDate extends Date {
+        constructor( ...args ) { super( ...( args.length ? args : [ now ] ) ); }
+        static now() { return now; }
+    }
+    window.Date = FixtureDate;
     const mw = {
         config: { get: key => config[ key ] },
         Api: function () { return api; },
         log: { error() {} },
         user: { options: { get() { throw new Error( 'Cached account options are not authoritative' ); } } }
     };
-    vm.runInNewContext( source, { window, mw, Promise, URL, console } );
+    vm.runInNewContext( source, { window, mw, Promise, URL, console, Date: FixtureDate } );
+    const settle = () => new Promise( resolve => setImmediate( resolve ) );
+    async function advance( milliseconds ) {
+        const target = now + milliseconds;
+        let runs = 0;
+        while ( true ) {
+            const due = [ ...timers.entries() ].filter( ( [ , timer ] ) => timer.at <= target )
+                .sort( ( a, b ) => a[ 1 ].at - b[ 1 ].at || a[ 0 ] - b[ 0 ] )[ 0 ];
+            if ( !due ) { break; }
+            assert.ok( ++runs < 1000, 'Fake timers must not spin without advancing time' );
+            now = due[ 1 ].at;
+            timers.delete( due[ 0 ] );
+            due[ 1 ].callback();
+            await settle();
+        }
+        now = target;
+        await settle();
+    }
     return { store: window.EQLTodoStore, config, local, events, reads, writes, localReads, localWrites, accountOptions,
+        readTimes, writeTimes, localWriteTimes, advance, settle,
+        now: () => now,
         setLocalBlocked( value ) { localBlocked = value; },
         queueGet( value ) { getResults.push( value ); },
         queuePost( value ) { postResults.push( value ); },
         async debounce() {
-            const callbacks = [ ...timers.values() ];
-            timers.clear();
-            callbacks.forEach( callback => callback() );
-            // One turn also drains the store's native promise chain.
-            await new Promise( resolve => setImmediate( resolve ) );
+            const deadline = Math.max( now, ...[ ...timers.values() ].map( timer => timer.at ) );
+            await advance( deadline - now );
         }
     };
 }
@@ -450,6 +479,134 @@ async function test( name, callback ) {
         warned = false;
         f.events.beforeunload( event );
         assert.equal( warned, false );
+    } );
+
+    for ( const account of [ false, true ] ) {
+        await test( ( account ? 'account' : 'anonymous' ) +
+            ' notes and slider steps coalesce after two seconds of idle time', async () => {
+            const f = visit( { config: account ? { wgUserId: 7, wgUserName: 'Synthetic User' } : {} } );
+            await f.store.ready();
+            const { id } = f.store.add( { title: 'Continuous changes' } );
+            const writes = account ? f.writes : f.localWrites;
+            const times = account ? f.writeTimes : f.localWriteTimes;
+            const readCount = f.reads.length;
+            for ( let step = 1; step <= 12; step++ ) {
+                await f.advance( 350 );
+                assert.equal( writes.length, 0, 'Continuous activity must postpone autosave' );
+                f.store.update( id, { notes: '<p>Draft ' + step + '</p>' } );
+                f.store.update( id, { slider: true, progress: step } );
+            }
+            assert.equal( f.reads.length, readCount, 'Typing and dragging do not request account preflight reads' );
+            assert.equal( f.store.getItems()[ 0 ].progress, 12, 'Local progress updates immediately' );
+            assert.equal( f.store.getItems()[ 0 ].notes, '<p>Draft 12</p>', 'Local notes update immediately' );
+            const lastEdit = f.now();
+            await f.advance( 1999 );
+            assert.equal( writes.length, 0, 'No write can occur before two idle seconds' );
+            assert.equal( f.reads.length, readCount, 'Account preflight also waits for the idle deadline' );
+            await f.advance( 1 );
+            assert.equal( writes.length, 1, 'Exactly one write persists the whole burst' );
+            assert.equal( times[ 0 ] - lastEdit, 2000 );
+            const saved = JSON.parse( account ? writes[ 0 ].optionvalue : writes[ 0 ].value ).items[ 0 ];
+            assert.equal( saved.notes, '<p>Draft 12</p>' );
+            assert.equal( saved.progress, 12 );
+            assert.equal( saved.slider, true );
+            assert.equal( f.store.getStatus().dirty, false );
+            await f.advance( 5000 );
+            assert.equal( writes.length, 1, 'No redundant save follows an acknowledged burst' );
+        } );
+    }
+
+    await test( 'successful pending response does not bypass the newest edit idle deadline', async () => {
+        const first = deferred();
+        const f = visit( { config: { wgUserId: 7, wgUserName: 'Synthetic User' }, postResults: [ first.promise ] } );
+        await f.store.ready();
+        const { id } = f.store.add( { title: 'Pending autosave' } );
+        await f.advance( 2000 );
+        assert.equal( f.writes.length, 1 );
+        f.store.update( id, { notes: 'Typed while the first request is pending' } );
+        await f.advance( 500 );
+        f.store.update( id, { progress: 73, slider: true } );
+        const lastEdit = f.now();
+        first.resolve( { options: 'success' } );
+        await f.settle();
+        assert.equal( f.writes.length, 1, 'A successful response cannot immediately save newer edits' );
+        assert.equal( f.store.getStatus().dirty, true );
+        await f.advance( 1999 );
+        assert.equal( f.writes.length, 1 );
+        await f.advance( 1 );
+        assert.equal( f.writes.length, 2 );
+        assert.equal( f.writeTimes[ 1 ] - lastEdit, 2000 );
+        const saved = JSON.parse( f.writes[ 1 ].optionvalue ).items[ 0 ];
+        assert.equal( saved.notes, 'Typed while the first request is pending' );
+        assert.equal( saved.progress, 73 );
+        assert.equal( f.store.getStatus().dirty, false );
+    } );
+
+    await test( 'an expired timer waiting for a request cannot bypass a later edit deadline', async () => {
+        const first = deferred();
+        const f = visit( { config: { wgUserId: 7, wgUserName: 'Synthetic User' }, postResults: [ first.promise ] } );
+        await f.store.ready();
+        const { id } = f.store.add( { title: 'Delayed response' } );
+        await f.advance( 2000 );
+        f.store.update( id, { notes: 'First pending edit' } );
+        await f.advance( 2100 );
+        assert.equal( f.writes.length, 1, 'Requests stay serialized after the timer expires' );
+        f.store.update( id, { notes: 'Newest pending edit' } );
+        const lastEdit = f.now();
+        first.resolve( { options: 'success' } );
+        await f.settle();
+        assert.equal( f.writes.length, 1, 'An expired timer cannot force a save of a newer edit' );
+        await f.advance( 1999 );
+        assert.equal( f.writes.length, 1 );
+        await f.advance( 1 );
+        assert.equal( f.writes.length, 2 );
+        assert.equal( f.writeTimes[ 1 ] - lastEdit, 2000 );
+        assert.equal( JSON.parse( f.writes[ 1 ].optionvalue ).items[ 0 ].notes, 'Newest pending edit' );
+    } );
+
+    await test( 'long requests allow one follow-up once the latest edit has already been idle two seconds', async () => {
+        const first = deferred();
+        const f = visit( { config: { wgUserId: 7, wgUserName: 'Synthetic User' }, postResults: [ first.promise ] } );
+        await f.store.ready();
+        const { id } = f.store.add( { title: 'Slow response' } );
+        await f.advance( 2000 );
+        f.store.update( id, { notes: 'Already quiet' } );
+        await f.advance( 3000 );
+        assert.equal( f.writes.length, 1 );
+        first.resolve( { options: 'success' } );
+        await f.settle();
+        await f.advance( 0 );
+        assert.equal( f.writes.length, 2, 'An already satisfied idle interval needs no extra full delay' );
+        assert.ok( f.writeTimes[ 1 ] >= 4000 );
+        await f.advance( 5000 );
+        assert.equal( f.writes.length, 2, 'Expired pending callbacks do not duplicate the follow-up' );
+    } );
+
+    await test( 'a failed timed save retains newer edits without automatic retries', async () => {
+        const first = deferred();
+        const f = visit( { config: { wgUserId: 7, wgUserName: 'Synthetic User' }, postResults: [ first.promise ] } );
+        await f.store.ready();
+        const { id } = f.store.add( { title: 'Timed failure' } );
+        await f.advance( 2000 );
+        f.store.update( id, { notes: 'Keep pending text' } );
+        await f.advance( 500 );
+        f.store.update( id, { slider: true, progress: 64 } );
+        first.reject( new Error( 'Network failed' ) );
+        await f.settle();
+        assert.equal( f.store.getStatus().state, 'error' );
+        await f.advance( 10000 );
+        assert.equal( f.writes.length, 1, 'Failure cancels all automatic retries' );
+        f.store.update( id, { notes: 'More edits retained after failure' } );
+        await f.advance( 10000 );
+        assert.equal( f.writes.length, 1, 'Editing after failure still requires an explicit retry' );
+        const retryTime = f.now();
+        await f.store.retry();
+        assert.equal( f.writes.length, 2 );
+        assert.equal( f.writeTimes[ 1 ], retryTime, 'An explicit retry bypasses the idle timer' );
+        const saved = JSON.parse( f.writes[ 1 ].optionvalue ).items[ 0 ];
+        assert.equal( saved.notes, 'More edits retained after failure' );
+        assert.equal( saved.progress, 64 );
+        assert.equal( f.store.getStatus().dirty, false );
     } );
 
     console.log( cases + ' synthetic to-do persistence regressions passed.' );

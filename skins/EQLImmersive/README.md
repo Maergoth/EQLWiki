@@ -81,8 +81,9 @@ styles, scripts and event handlers are excluded. No article bodies are fetched.
 per-page Common.js state buckets. Anonymous storage uses the wiki-scoped
 `eql-todo-v1:<wiki identity>:anon` key and never imports into an account. Account
 reads/writes assert the signed-in state and expected username. Lists load on
-demand, saves debounce and serialize, and failures keep drafts visible with
-retry and a navigation warning. The backup button downloads the current draft
+demand; autosaves wait two seconds after the last change and serialize requests,
+including edits made while a previous save is still running. Failures keep drafts
+visible with retry and a navigation warning. The backup button downloads the current draft
 as JSON, including oversized notes; it does not publish notes as wiki pages.
 
 Limits are 100 entries, 16,000 note characters per entry and 60,000 UTF-8 bytes
