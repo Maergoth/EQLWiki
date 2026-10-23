@@ -89,8 +89,11 @@ Major custom skin behavior:
   `perf-widget.js`: registered-user diagnostics and page statistics.
 - [`SearchMySQL.php`](../skins/EQLImmersive/includes/SearchMySQL.php): registered
   through `SearchMappings`; title completion uses a case-insensitive whole-title
-  prefix, including later words, escaped LIKE input, and a Latin first-letter
-  index bound. Full-text search still uses the parent MediaWiki backend.
+  prefix, including later words, escaped LIKE input, and first-four-character
+  ASCII index bounds. Submitted plain title queries of at least three characters
+  use matching prefix candidates consistently across result pages (`Raku` finds
+  `Rakusha Cloak`). Advanced/short/unmatched queries retain native title search;
+  body/full-text search still uses the parent MediaWiki backend.
   `header-search.js` uses native Vector/MediaWiki suggestions and measures the
   space left by header navigation/account controls. The inline field shrinks to
   76px; below 180px it hides the submit button and reduces icon padding, with
@@ -102,6 +105,9 @@ Major custom skin behavior:
   it initializes. Actual throttle constants are three characters and one second
   idle, despite stale comments. Check `guard a`,
   `Cat F`, mixed-case later words, namespace searches, and Enter/keyboard selection.
+- `selection-search.js/css` offers a native `Special:Search` link for a short
+  selection of article text. It excludes editable/control/hover regions, sends no
+  request until followed, and uses the same wiki search as the header.
 
 Preserve the rendered markers in the following table. Changing a template's
 class can silently stop its skin module from loading:

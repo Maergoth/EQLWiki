@@ -14,7 +14,7 @@ Vector services/modules; keep Vector loaded. See the root [README](../../README.
 | [includes/SkinEQLImmersive.php](includes/SkinEQLImmersive.php) | SkinVector22 subclass; finalizes source-first navigation after extension hooks |
 | [includes/Hooks.php](includes/Hooks.php) | Sidebar/navigation hooks and conditional module loading |
 | [includes/templates/skin.mustache](includes/templates/skin.mustache) | Active outer layout, native search, menus, article/sticky-header slots and footer |
-| [includes/SearchMySQL.php](includes/SearchMySQL.php) | Case-insensitive whole-title-prefix completion; normal full-text behavior remains upstream |
+| [includes/SearchMySQL.php](includes/SearchMySQL.php) | Case-insensitive title-prefix completion/submitted title matches; normal full-text behavior remains upstream |
 | [resources/](resources/) | Custom layout, game-page styles and browser behavior |
 
 The historical `EQLImmersiveOLD` copy registers the same name/namespace and should
@@ -92,6 +92,27 @@ for backup/recovery. API:Options has no atomic compare-and-swap, so truly
 simultaneous writes across devices can still race. Account lists are private
 preferences subject to normal wiki administration and database backup access.
 Staging account lists can reset during the staging database refresh.
+
+## Selected-text search
+
+Selecting up to 120 characters of rendered article text offers a small
+`Search wiki` link beside the selection. The label is plain text, and following
+the link opens the native `Special:Search` results for that text. No request is
+sent merely by selecting text. Escape, scrolling or resizing dismisses it;
+forms, editable notes, hover content and active VisualEditor sessions are excluded.
+It uses the current wiki's URLs, including on staging, and needs no extension
+permissions or external search service. The following header remains the primary
+search control; there is no separate quick-search panel.
+
+Submitted simple title searches of at least three characters also return
+case-insensitive whole-title-prefix matches. For example, entering `Raku` and
+submitting now lists `Rakusha Cloak`, whether or not a suggestion was chosen.
+The same result family is used on every page of results. Quoted/boolean/wildcard
+queries, short queries, unmatched prefixes and non-ASCII-leading submitted
+searches retain native title search; normal body/full-text search stays upstream.
+Native MediaWiki may still show its create-page link alongside matching results.
+ASCII prefixes use at most sixteen B-tree ranges over their first four characters,
+then validate the entire escaped folded prefix, including later words.
 
 ## Responsive header search
 
