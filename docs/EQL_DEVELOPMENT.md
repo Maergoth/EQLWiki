@@ -146,6 +146,12 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Check | Command from repository root | Prerequisites / coverage |
 | --- | --- | --- |
 | JS syntax | `node --check path/to/changed.js` | Node; syntax only |
+| Header editing policy | `php ops/test-header-editing.php` | Synthetic navigation fixtures; source Edit, extension ordering, permissions and Verify2Edit |
+| Locked header inheritance | `php ops/test-locked-header.php` | Source-only stub parent; omits inherited duplicate markup and enabled class while preserving original header data |
+| Locked header | `node ops/test-locked-header.cjs` | Synthetic DOM plus bundled Vector observer; prevents duplicate takeover, measured offsets, menu bounds, VisualEditor toolbar and source-action handling |
+| Todo persistence | `node ops/test-todo-store.cjs` | Synthetic API/storage; lazy load, account isolation, failures, limits, concurrent baselines, progress and navigation warnings |
+| Todo UI | `node ops/test-todo-ui.cjs` | jsdom; confirmation, page/section identities, deduplication, sanitized notes, progress, collapse, reload and editor retention |
+| Selected-text search | `node ops/test-selection-search.cjs` | jsdom; article-only selection, URL/label safety, bounds, dismissal and frame scheduling |
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
 | Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
@@ -163,7 +169,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Exact-artwork catalog | `php ops/test-icon-catalog.php` | GD and private `eql_icons/500.png`, `3470.png`, `3471.png` |
 | Full icon coverage | `php ops/verify-icon-coverage.php <library> <index-json> <audit-manifest>` | GD and the private source library/current index/audit |
 | Header search layout | `node ops/test-header-search.cjs` | jsdom 27 via `NODE_PATH`; synthetic header measurements, resize, and input fixtures, not real browser layout or native suggestion integration |
-| Search integration | `python ops/check-search.py http://127.0.0.1:8080` | A running populated wiki with the expected item/title fixtures; use `--help` for staging options |
+| Search integration | `python ops/check-search.py http://127.0.0.1:8080` | A running populated wiki with item/title fixtures; autocomplete, submitted `Raku`, case, namespaces, pagination, native syntax and full-text; use `--help` for staging options |
 | Release archive | `python ops/build-release.py --output .local/release-review.tar.gz` | Python; create `.local/` first. Tracked files only, so stage new files before checking inclusion |
 
 To run jsdom tests, install the pinned dependency in an ignored directory using
@@ -279,6 +285,23 @@ extension; see the extension guide for safe rollback ordering.
 - Host-script changes are installed separately. A receiver rollback restores
   managed application files, not arbitrary DB changes; [`rollback.sh`](../ops/rollback.sh)
   currently targets production. Keep separate recovery copies for data edits.
+
+## Header and todo browser checks
+
+Check a scrolled article and fragment navigation, floating menus, keyboard
+access/Escape and narrow layouts. For signed-in readers, scroll below the title
+and confirm the original search and menu controls remain accessible; no duplicate
+Vector header should be rendered. Check plus/pencil visibility on modern heading
+wrappers and legacy headings: hover and keyboard focus reveal both controls,
+moving onto the pencil keeps them visible, and touch devices retain direct access.
+Confirm one Edit opens source while native
+editor switching still works. Add a page and a section, cancel confirmation,
+edit rich notes/nested checkboxes, move progress to/from 100 and reload. Check
+anonymous/account separation and a failed save without discarding its draft.
+Synthetic API/DOM tests do not establish a live account save or browser layout.
+Normal application deployment loads these registered skin modules; no database
+interface-page sync or schema update is needed. Staging database refreshes can
+replace account preference lists.
 
 ## Maintenance scripts are not routine tests
 

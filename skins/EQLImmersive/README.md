@@ -11,10 +11,10 @@ Vector services/modules; keep Vector loaded. See the root [README](../../README.
 | File | Role |
 | --- | --- |
 | [skin.json](skin.json) | Skin registration, SearchMappings, ResourceLoader scripts/styles and their ordering |
-| [includes/SkinEQLImmersive.php](includes/SkinEQLImmersive.php) | Minimal subclass of SkinVector22 |
+| [includes/SkinEQLImmersive.php](includes/SkinEQLImmersive.php) | SkinVector22 subclass; finalizes source-first navigation after extension hooks |
 | [includes/Hooks.php](includes/Hooks.php) | Sidebar/navigation hooks and conditional module loading |
 | [includes/templates/skin.mustache](includes/templates/skin.mustache) | Active outer layout, native search, menus, article/sticky-header slots and footer |
-| [includes/SearchMySQL.php](includes/SearchMySQL.php) | Case-insensitive whole-title-prefix completion; normal full-text behavior remains upstream |
+| [includes/SearchMySQL.php](includes/SearchMySQL.php) | Case-insensitive title-prefix completion/submitted title matches; normal full-text behavior remains upstream |
 | [resources/](resources/) | Custom layout, game-page styles and browser behavior |
 
 The historical `EQLImmersiveOLD` copy registers the same name/namespace and should
@@ -41,6 +41,7 @@ or update both producer and consumer when changing database templates.
 | Area | Resources / dependencies |
 | --- | --- |
 | Header, menu, TOC and cards | `main.js`, `main.css`, header/sidebar/layout/responsive styles; native Vector TOC is disabled |
+| Personal todo list | `todo.js/css`, `todo-store.js`; global page/section references and private rich-text notes, loaded on first interaction |
 | Search | `header-search.js/css`, native Vector/MediaWiki suggestion UI and SearchMySQL.php |
 | Talk activity | `talk-unread.js/css`, `skins.EQLImmersive.talkUnread`, server-provided subject/Talk pairing and read-only revision metadata |
 | Era/verification | `era-filter.js/css`, `verified-pages.js`, EQLClientData and database PageEra/VerifiedPages configuration |
@@ -53,6 +54,71 @@ or update both producer and consumer when changing database templates.
 
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
+
+## Header and personal todo list
+
+The actual site header stays at the top while scrolling, including on narrow
+screens. Body height follows document content and horizontal overflow uses
+`clip` so it does not become a false scroll container for the sticky header.
+`main.js` measures the header for anchor offsets and floating menu containment.
+`SkinEQLImmersive.php` omits the inherited duplicate Vector sticky header before
+rendering and removes its enabled class so native header takeover cannot initialize.
+Navigation is finalized
+after extension hooks so one `Edit` action opens source editing, including when
+VisualEditor loads later. Native editor switching and Verify2Edit remain.
+
+The todo icon replaces the direct header Watchlist shortcut; Watchlist remains
+in the personal menu, and page Watch/Unwatch actions are unchanged. Clicking an
+article title or heading (or its keyboard-accessible plus button) asks for
+confirmation, then adds only the page name or `page > heading`, with its actual
+section anchor. Links and section-edit controls retain their normal action.
+The add button uses the header's checklist icon with a small green plus.
+It and the section-edit pencil appear on heading hover or keyboard focus;
+devices without hover keep these controls visible for touch access.
+Entries deduplicate by page/anchor, collapse independently, and support rich-text
+notes with nested checklist items. An optional 0–100 progress slider checks the
+entry at 100 and unchecks it below 100; the main checkbox also updates progress.
+Notes are rebuilt through a strict HTML allowlist on paste and rendering; media,
+styles, scripts and event handlers are excluded. No article bodies are fetched.
+
+`todo-store.js` owns a cross-page `userjs-eql-todo-v1` account option through
+[API:Options](https://www.mediawiki.org/wiki/API:Options). It does not reuse the
+per-page Common.js state buckets. Anonymous storage uses the wiki-scoped
+`eql-todo-v1:<wiki identity>:anon` key and never imports into an account. Account
+reads/writes assert the signed-in state and expected username. Lists load on
+demand; autosaves wait two seconds after the last change and serialize requests,
+including edits made while a previous save is still running. Failures keep drafts
+visible with retry and a navigation warning. The backup button downloads the current draft
+as JSON, including oversized notes; it does not publish notes as wiki pages.
+
+Limits are 100 entries, 16,000 note characters per entry and 60,000 UTF-8 bytes
+per list. Exceeding them reports an error without truncating existing saved data.
+A fresh baseline check blocks known concurrent changes and preserves the draft
+for backup/recovery. API:Options has no atomic compare-and-swap, so truly
+simultaneous writes across devices can still race. Account lists are private
+preferences subject to normal wiki administration and database backup access.
+Staging account lists can reset during the staging database refresh.
+
+## Selected-text search
+
+Selecting up to 120 characters of rendered article text offers a small
+`Search wiki` link beside the selection. The label is plain text, and following
+the link opens the native `Special:Search` results for that text. No request is
+sent merely by selecting text. Escape, scrolling or resizing dismisses it;
+forms, editable notes, hover content and active VisualEditor sessions are excluded.
+It uses the current wiki's URLs, including on staging, and needs no extension
+permissions or external search service. The following header remains the primary
+search control; there is no separate quick-search panel.
+
+Submitted simple title searches of at least three characters also return
+case-insensitive whole-title-prefix matches. For example, entering `Raku` and
+submitting now lists `Rakusha Cloak`, whether or not a suggestion was chosen.
+The same result family is used on every page of results. Quoted/boolean/wildcard
+queries, short queries, unmatched prefixes and non-ASCII-leading submitted
+searches retain native title search; normal body/full-text search stays upstream.
+Native MediaWiki may still show its create-page link alongside matching results.
+ASCII prefixes use at most sixteen B-tree ranges over their first four characters,
+then validate the entire escaped folded prefix, including later words.
 
 ## Responsive header search
 

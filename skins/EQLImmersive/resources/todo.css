@@ -1,0 +1,79 @@
+body.skin-eqlimmersive .eql-todo-toggle {
+	flex: 0 0 2.25rem;
+	border: 0; background: transparent; color: var(--eql-gold, #d8b75c);
+	font-size: 1.5rem; cursor: pointer; min-height: 2.25rem; padding: .2rem;
+	width: 2.25rem; min-width: 2.25rem; max-width: 2.25rem;
+}
+.eql-todo-toggle[hidden], .eql-todo-replaced-watchlist { display: none !important; }
+.eql-todo-heading { cursor: pointer; }
+.eql-todo-add {
+	position: relative; display: inline-flex; align-items: center; justify-content: center;
+	vertical-align: middle; margin-inline-start: .4rem;
+	width: 1.5rem; height: 1.5rem; padding: 0; border: 1px solid transparent;
+	background: transparent; color: var(--eql-gold, #d8b75c); cursor: pointer;
+	opacity: 0; pointer-events: none;
+}
+.eql-todo-add::before { content: '\2611'; font: 1.1rem/1 system-ui, sans-serif; }
+.eql-todo-add::after {
+	content: '+'; position: absolute; inset-inline-end: -.1rem; bottom: -.05rem;
+	display: flex; align-items: center; justify-content: center;
+	width: .8rem; height: .8rem; border-radius: 50%;
+	background: #0a1425; color: #66db89; font: 800 .8rem/1 system-ui, sans-serif;
+}
+.eql-todo-heading:hover .eql-todo-add,
+.eql-todo-heading:focus-within .eql-todo-add,
+.mw-heading:hover .eql-todo-add,
+.mw-heading:focus-within .eql-todo-add,
+.eql-todo-add:focus-visible { opacity: 1; pointer-events: auto; border-color: currentColor; }
+/* Touch devices have no mouseover; keep their controls discoverable. */
+@media (hover: none) {
+	.eql-todo-add { opacity: 1; pointer-events: auto; }
+}
+.ve-activated .eql-todo-add { display: none; }
+.eql-todo-panel {
+	box-sizing: border-box; width: min(46rem, calc(100vw - 1.5rem));
+	max-height: calc(100dvh - 2rem); padding: 1.25rem;
+	background: #101c30; color: #e6edf3; border: 1px solid #867341; border-radius: .5rem;
+	box-shadow: 0 1rem 4rem #0009; overflow-y: auto; overscroll-behavior: contain;
+	font: 14px/1.5 system-ui, sans-serif; color-scheme: dark;
+}
+.eql-todo-panel::backdrop { background: #0009; }
+.eql-todo-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.eql-todo-panel .eql-todo-panel-header h2 { margin: 0; padding: 0; color: #e8d08b; border: 0; font-size: 1.4rem; }
+.eql-todo-panel button { color: #e6edf3; border: 1px solid #657087; border-radius: .25rem; background: #1c2c45; padding: .3rem .55rem; cursor: pointer; font: inherit; }
+.eql-todo-panel button:hover { background: #304562; }
+.eql-todo-panel :focus-visible, .eql-todo-toggle:focus-visible, .eql-todo-add:focus-visible { outline: 2px solid #e8d08b; outline-offset: 2px; }
+.eql-todo-help, .eql-todo-status { color: #bbc9da; }
+.eql-todo-status { min-height: 1.5em; }
+.eql-todo-error { color: #ffb6ae; }
+.eql-todo-items { list-style: none; padding: 0; margin: 1rem 0 0; }
+.eql-todo-entry { border-top: 1px solid #42516a; padding: .8rem 0; }
+.eql-todo-row { display: flex; gap: .6rem; align-items: flex-start; }
+.eql-todo-row > input { margin-top: .4rem; flex: 0 0 auto; }
+.eql-todo-row > details { min-width: 0; flex: 1; }
+.eql-todo-entry summary { cursor: pointer; overflow-wrap: anywhere; }
+.eql-todo-entry .eql-todo-source { color: #e8d08b; font-weight: 600; }
+.eql-todo-done summary .eql-todo-source { text-decoration: line-through; color: #a7b8a9; }
+.eql-todo-entry-content { margin-top: .7rem; }
+.eql-todo-entry-options { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.eql-todo-progress { display: flex; align-items: center; gap: .5rem; margin: .7rem 0; }
+.eql-todo-progress[hidden] { display: none; }
+.eql-todo-progress input { flex: 1; min-width: 4rem; }
+.eql-todo-progress output { min-width: 3rem; }
+.eql-todo-format { display: flex; flex-wrap: wrap; gap: .3rem; margin: .75rem 0 .4rem; }
+.eql-todo-format button { font-size: .8rem; }
+.eql-todo-notes { min-height: 6rem; max-height: 24rem; overflow-y: auto; padding: .6rem; border: 1px solid #657087; border-radius: .25rem; background: #0a1425; overflow-wrap: anywhere; }
+.eql-todo-notes:empty::before { content: 'Add notes…'; color: #91a1b9; pointer-events: none; }
+.eql-todo-notes .eql-todo-note-checklist { list-style: none; padding-inline-start: .5rem; }
+.eql-todo-notes input[type=checkbox] { vertical-align: middle; }
+.eql-todo-empty { color: #bbc9da; }
+.eql-todo-unavailable .eql-todo-items { opacity: .65; }
+@media (max-width: 480px) {
+	.eql-todo-panel { padding: .75rem; }
+	.eql-todo-row { gap: .35rem; }
+}
+@media (max-width: 640px) {
+	body.skin-eqlimmersive .vector-header .vector-header-end { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+	body.skin-eqlimmersive .vector-header-end > #eql-todo-toggle { grid-column: 3; grid-row: 1; }
+	body.skin-eqlimmersive .vector-header-end > .vector-user-links { grid-column: 4; grid-row: 1; }
+}

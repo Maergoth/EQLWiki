@@ -12,6 +12,26 @@ body.skin-eqlimmersive .mw-editsection {
 	font-size: 0 !important;
 	white-space: nowrap;
 	vertical-align: middle;
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Modern MediaWiki places the pencil beside the h2 inside .mw-heading;
+   legacy markup places it inside the heading. Preserve both and tab focus. */
+body.skin-eqlimmersive .mw-heading:hover > .mw-editsection,
+body.skin-eqlimmersive .mw-heading:focus-within > .mw-editsection,
+body.skin-eqlimmersive :is( h1, h2, h3, h4, h5, h6 ):hover .mw-editsection,
+body.skin-eqlimmersive :is( h1, h2, h3, h4, h5, h6 ):focus-within .mw-editsection,
+body.skin-eqlimmersive .mw-editsection:focus-within {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+@media (hover: none) {
+	body.skin-eqlimmersive .mw-editsection {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }
 
 /* Hide brackets and separators. */

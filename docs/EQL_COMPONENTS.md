@@ -58,6 +58,23 @@ Major custom skin behavior:
   cards, the custom TOC built from article headings, `toclimit-N` markup, removal
   of empty build-ability panels, and `File:Connections.png` map magnification.
   Native Vector TOC is disabled. Preserve menu storage migrations and layout slots.
+- The site header remains locked while scrolling; measured height controls
+  fragment and menu offsets. `SkinEQLImmersive.php` omits Vector's duplicate
+  header and enabled class before rendering, preventing native scroll behavior
+  from taking over the original header. Final navigation processing after extension hooks
+  exposes one source-first Edit action while retaining editor switching and
+  Verify2Edit. `todo.js/css` supplies the header todo icon and confirmed title/
+  heading capture, source links, collapsible entries, sanitized rich-text notes,
+  nested note checklists and optional progress. `todo-store.js` owns the global
+  `userjs-eql-todo-v1` account option and separate wiki-scoped anonymous storage;
+  autosaves wait two seconds after the last change, including changes made
+  during an in-flight save. It never imports anonymous lists into an account
+  or touches Common.js buckets.
+  See the [skin guide](../skins/EQLImmersive/README.md#header-and-personal-todo-list)
+  for limits, draft recovery and concurrent-write limitations. Watchlist remains
+  in the user menu; only its direct header shortcut is replaced.
+  The heading plus and section-edit pencil appear on hover or keyboard focus;
+  devices without hover keep both controls visible for touch access.
 - `main.css`, `header-actions.css`, `sidebar-redlinks.css`, `responsive-mobile.css`,
   and related modules: game-themed shell, article/table layouts, mobile handling,
   fixed footer, and menus. Database Common.css adds further overrides.
@@ -78,8 +95,11 @@ Major custom skin behavior:
   `perf-widget.js`: registered-user diagnostics and page statistics.
 - [`SearchMySQL.php`](../skins/EQLImmersive/includes/SearchMySQL.php): registered
   through `SearchMappings`; title completion uses a case-insensitive whole-title
-  prefix, including later words, escaped LIKE input, and a Latin first-letter
-  index bound. Full-text search still uses the parent MediaWiki backend.
+  prefix, including later words, escaped LIKE input, and first-four-character
+  ASCII index bounds. Submitted plain title queries of at least three characters
+  use matching prefix candidates consistently across result pages (`Raku` finds
+  `Rakusha Cloak`). Advanced/short/unmatched queries retain native title search;
+  body/full-text search still uses the parent MediaWiki backend.
   `header-search.js` uses native Vector/MediaWiki suggestions and measures the
   space left by header navigation/account controls. The inline field shrinks to
   76px; below 180px it hides the submit button and reduces icon padding, with
@@ -91,6 +111,9 @@ Major custom skin behavior:
   it initializes. Actual throttle constants are three characters and one second
   idle, despite stale comments. Check `guard a`,
   `Cat F`, mixed-case later words, namespace searches, and Enter/keyboard selection.
+- `selection-search.js/css` offers a native `Special:Search` link for a short
+  selection of article text. It excludes editable/control/hover regions, sends no
+  request until followed, and uses the same wiki search as the header.
 
 Preserve the rendered markers in the following table. Changing a template's
 class can silently stop its skin module from loading:
