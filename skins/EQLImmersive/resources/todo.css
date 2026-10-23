@@ -7,12 +7,28 @@ body.skin-eqlimmersive .eql-todo-toggle {
 .eql-todo-toggle[hidden], .eql-todo-replaced-watchlist { display: none !important; }
 .eql-todo-heading { cursor: pointer; }
 .eql-todo-add {
-	display: inline-block; vertical-align: middle; margin-inline-start: .4rem;
+	position: relative; display: inline-flex; align-items: center; justify-content: center;
+	vertical-align: middle; margin-inline-start: .4rem;
 	width: 1.5rem; height: 1.5rem; padding: 0; border: 1px solid transparent;
-	background: transparent; color: var(--eql-gold, #d8b75c); cursor: pointer; opacity: .55;
+	background: transparent; color: var(--eql-gold, #d8b75c); cursor: pointer;
+	opacity: 0; pointer-events: none;
 }
-.eql-todo-add::before { content: '+'; font: 700 1rem system-ui, sans-serif; }
-.eql-todo-heading:hover .eql-todo-add, .eql-todo-add:focus-visible { opacity: 1; border-color: currentColor; }
+.eql-todo-add::before { content: '\2611'; font: 1.1rem/1 system-ui, sans-serif; }
+.eql-todo-add::after {
+	content: '+'; position: absolute; inset-inline-end: -.1rem; bottom: -.05rem;
+	display: flex; align-items: center; justify-content: center;
+	width: .8rem; height: .8rem; border-radius: 50%;
+	background: #0a1425; color: #66db89; font: 800 .8rem/1 system-ui, sans-serif;
+}
+.eql-todo-heading:hover .eql-todo-add,
+.eql-todo-heading:focus-within .eql-todo-add,
+.mw-heading:hover .eql-todo-add,
+.mw-heading:focus-within .eql-todo-add,
+.eql-todo-add:focus-visible { opacity: 1; pointer-events: auto; border-color: currentColor; }
+/* Touch devices have no mouseover; keep their controls discoverable. */
+@media (hover: none) {
+	.eql-todo-add { opacity: 1; pointer-events: auto; }
+}
 .ve-activated .eql-todo-add { display: none; }
 .eql-todo-panel {
 	box-sizing: border-box; width: min(46rem, calc(100vw - 1.5rem));
