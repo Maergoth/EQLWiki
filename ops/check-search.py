@@ -58,3 +58,40 @@ assert not {page['pageid'] for page in pages} & {page['pageid'] for page in next
 print('PASS API prefix-search pagination')
 assert api(action='query', list='search', srsearch='cloak')['query']['search'], 'Full-text search failed'
 print('PASS native full-text search')
+
+
+def title_results(query, **options):
+    return api(action='query', list='search', srsearch=query, srwhat='title', **options)['query']
+
+
+assert suggestions('Raku') == ['Rakusha Cloak'], 'Expected Rakusha Cloak prefix fixture'
+for query in ['Raku', 'raku', 'RAKU']:
+    results = title_results(query)
+    assert results['searchinfo']['totalhits'] == 1, 'Submitted prefix total changed by case'
+    assert [row['title'] for row in results['search']] == ['Rakusha Cloak'], 'Submitted partial title failed'
+print('PASS submitted partial title and autocomplete agree for Raku')
+
+# An existing exact-token title must not hide other names starting with it.
+guards = title_results('Guard', srlimit=3)
+guard_next = title_results('Guard', srlimit=3, sroffset=3)
+assert guards['searchinfo']['totalhits'] > 3, 'Exact-token title hid prefix candidates'
+assert len(guards['search']) == len(guard_next['search']) == 3, 'Submitted prefix pagination failed'
+assert not {row['pageid'] for row in guards['search']} & {row['pageid'] for row in guard_next['search']}, 'Repeated submitted prefix results'
+assert all(row['title'].lower().startswith('guard') for row in guards['search'] + guard_next['search']), 'Offset switched result families'
+past_end = title_results('Guard', srlimit=3, sroffset=guards['searchinfo']['totalhits'])
+assert past_end['search'] == [], 'Past-end prefix offset fell back to a different result family'
+print('PASS exact-token prefix reachability and stable submitted pagination')
+
+templates = title_results('Template:ite')['search']
+assert templates and all(row['ns'] == 10 for row in templates), 'Submitted prefix namespace filtering failed'
+assert title_results('"Rakusha Cloak"')['search'], 'Native quoted title query changed'
+assert title_results('Rakusha*')['search'], 'Native wildcard title query changed'
+# Text searches keep their upstream full-text token semantics.
+assert api(action='query', list='search', srsearch='Raku', srwhat='text')['query']['search'] == [], 'Native text query gained title-prefix semantics'
+print('PASS submitted namespaces, native phrase/wildcard and full-text behavior')
+
+request = urllib.request.Request(args.url.rstrip('/') + '/Special:Search?search=Raku&fulltext=1', headers=headers)
+with urllib.request.urlopen(request, timeout=30) as response:
+    html = response.read().decode('utf-8')
+assert 'Rakusha Cloak' in html and 'class="mw-search-nonefound"' not in html, 'Special:Search did not render partial title result'
+print('PASS Special:Search renders the partial-title link')

@@ -1,0 +1,11 @@
+.eql-selection-search {
+	position: fixed; z-index: 6000; max-width: min(28rem, calc(100vw - 16px));
+	box-sizing: border-box; padding: .5rem .75rem; border: 1px solid #bda45e;
+	border-radius: .35rem; background: #16243b; color: #f2dc9b !important;
+	box-shadow: 0 .2rem 1rem #0008; font: 600 14px/1.4 system-ui, sans-serif;
+	overflow-wrap: anywhere; text-decoration: none;
+}
+.eql-selection-search[hidden] { display: none !important; }
+.eql-selection-search:hover { background: #263b5b; }
+.eql-selection-search:focus-visible { outline: 2px solid #fff0b2; outline-offset: 2px; }
+@media print { .eql-selection-search { display: none !important; } }
