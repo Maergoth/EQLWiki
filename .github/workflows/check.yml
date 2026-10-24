@@ -22,7 +22,10 @@ jobs:
             esac
           done
       - name: Check release packaging
-        run: python3 ops/build-release.py --output "$RUNNER_TEMP/release.tar.gz"
+        run: |
+          python3 ops/test-release-assets.py
+          php ops/test-deployment-assets.php
+          python3 ops/build-release.py --output "$RUNNER_TEMP/release.tar.gz"
       - name: Check Eye of Zomm source export contracts
         run: |
           php ops/test-eoz-exporter.php

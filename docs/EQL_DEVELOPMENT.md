@@ -136,6 +136,10 @@ entire Common.js page with `sky-rewards.js`.
 
 For browser changes, inspect ResourceLoader registration, conditional hooks, and
 rendered template markers. A source file existing in Git does not mean it executes.
+Normal releases stamp local loader paths automatically; see
+[deployment asset caching](DEPLOYMENT_ASSETS.md) before changing loader URLs or
+release packaging. A normal page reload should pick up a new release without a
+hard refresh, while already open documents retain their current resources.
 Use [`skin.json`](../skins/EQLImmersive/skin.json), extension registration, the
 network/module inspector, and the actual database script to verify ownership.
 
