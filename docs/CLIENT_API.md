@@ -111,6 +111,12 @@ for retry semantics. Multiple accounts can report the same real encounter.
 5. Separately activate the reviewed collection flag/quotas in ignored environment
    configuration. Confirm authenticated status. Real observation writes require
    explicit activation acceptance, not a routine smoke test under the owner.
+   The owner-approved `test-eoz-observations-staging.php` is hard-bound to
+   `https://test.eqlwiki.com` plus an exact database and existing operator. Its
+   explicit `--transaction-test` runs real repository accept/replay/conflict checks
+   inside a cancelable outer transaction, always rolls back, then verifies all
+   three table counts/counters and absence of its temporary ID. This is separate
+   from a real authenticated HTTP login test and must never run on production.
 6. Publish the reviewed public page with `sync-api-documentation.php`, current
    `--expected-page REV` (0=create only), dry-run, then explicit `--apply` plus a
    fresh verified private backup. PageUpdater uses compare-and-swap and preserves
