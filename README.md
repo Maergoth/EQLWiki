@@ -72,6 +72,59 @@ site on October 7, 2026; recheck configuration when changing environments.
 - Never commit real settings, bridge secrets, database dumps, user data, uploads,
   generated icon indexes, game-file packs, or deployment credentials.
 
+## Developer workflow and client integration
+
+Start in the [component map](docs/EQL_COMPONENTS.md), then check the component's
+`extension.json` or `skin.json`, loaded settings, hooks and relevant database
+pages. For example, EQLImmersive's `includes/Hooks.php` selects ResourceLoader
+modules, `EQLClientData/includes/` owns the custom API, and AjaxHoverHelper owns
+the item-hover adapter. Historical copies and unregistered directories do not
+establish what runs. Read-only `siteinfo`/`paraminfo` requests help verify the
+actual environment; they do not replace checking its private registration.
+
+Plan changes around their installation boundary:
+
+| Change | Development and release boundary |
+| --- | --- |
+| Extension/skin PHP, JavaScript or CSS | Scoped Git PR to `staging`; verify active registration, API/template/DOM contracts and actual deployed files |
+| Templates, Lua or `MediaWiki:` scripts | Database revisions; tracked sources need a separate guarded publisher, fresh expected revisions and private recovery backup |
+| Observation schema or private settings | Explicit reviewed installation/configuration; file deployment does not create tables or enable collection |
+| Host jobs, icons and public game datasets | Separate reviewed operator workflow; see [PROJECT.md](PROJECT.md), preserve canonical assets and verify the published artifact |
+
+Use checks appropriate to that boundary. The client API's source-only contracts
+can be checked without an account or production database:
+
+```sh
+php ops/test-eoz-observations.php
+php ops/test-eoz-installers.php
+php ops/test-hover-item-metadata.php
+```
+
+These use synthetic doubles; they do not prove a live login, database activation
+or page publication. The [development guide](docs/EQL_DEVELOPMENT.md) maps other
+PHP/JavaScript, parser and UI checks. Report the actual environment and remaining
+limits in the PR. Promote only reviewed feature commits to `main`, with owner
+authorization and any separate content/configuration steps; never merge the
+whole staging branch as a production shortcut.
+
+[Eye of Zomm](https://github.com/Maergoth/EQL-EOZ) is a separate desktop repository.
+Production wiki articles remain authoritative: the producer
+[`maintenance/BuildEyeOfZommPack.php`](maintenance/BuildEyeOfZommPack.php) publishes
+a filtered public manifest/pack to that repository's `dataset` branch. The app
+checks the manifest at startup and hourly; it does not pull a wiki database.
+The [unified refresh policy](PROJECT.md#unified-data-refresh-policy) describes
+publication eligibility and cache replacement.
+
+In the other direction, clients use normal attributed MediaWiki edit/upload APIs
+for reviewed contributions and User-page Character sheets. The separate
+`eozobservations` API stores authenticated kill/loot evidence and batch receipts;
+it does not edit articles or turn observations into drop rates. Start with the
+[client API contract](docs/CLIENT_API.md), the live
+[API Documentation](https://eqlwiki.com/API_Documentation), and the
+[Character sheet contract](docs/CHARACTER_SHEETS.md). Use bounded public metadata
+and synthetic fixtures; raw private logs, player/account data, settings and
+credentials do not belong in source, dataset packs or public issue attachments.
+
 ## Standard MediaWiki documentation
 
 Use the official documentation for standard platform behavior:
