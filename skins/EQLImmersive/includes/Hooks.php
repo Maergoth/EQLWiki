@@ -3,6 +3,7 @@
 namespace EQLImmersive;
 
 use MediaWiki\Hook\BeforePageDisplayHook;
+use MediaWiki\Hook\ParserAfterParseHook;
 use MediaWiki\Hook\SkinBuildSidebarHook;
 use MediaWiki\Hook\SkinTemplateNavigation__UniversalHook;
 use MediaWiki\MediaWikiServices;
@@ -12,9 +13,17 @@ use SkinTemplate;
 
 class Hooks implements
 	BeforePageDisplayHook,
+	ParserAfterParseHook,
 	SkinTemplateNavigation__UniversalHook,
 	SkinBuildSidebarHook
 {
+	/** Keep unsaved API previews and cached pages on the same component contract. */
+	public function onParserAfterParse( $parser, &$text, $stripState ): void {
+		if ( preg_match( '/<div\b[^>]*\bclass="[^"\n]*\beql-character-sheet-v1\b/', $text ) ) {
+			$parser->getOutput()->addModules( [ 'skins.EQLImmersive.characterSheet' ] );
+			$parser->getOutput()->addModuleStyles( [ 'skins.EQLImmersive.characterSheet' ] );
+		}
+	}
 
 	private function isEQLImmersiveSkinName( string $skinName ): bool {
 		return strtolower( $skinName ) === 'eqlimmersive';
