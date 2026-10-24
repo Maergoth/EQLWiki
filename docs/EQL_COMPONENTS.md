@@ -38,6 +38,12 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- [`DeploymentAssets.php`](../skins/EQLImmersive/includes/DeploymentAssets.php):
+  reads the archive-managed release marker at skin registration, selects a
+  query-free versioned local loader path and updates HTML Last-Modified validation.
+  `.htaccess`/the local router forward these paths to native ResourceLoader;
+  [deployment asset caching](DEPLOYMENT_ASSETS.md) describes packaging and checks.
+
 - The registered navigation hook uses **Talk** and **History** across wiki skins.
   EQL page-tool/sidebar links and overflow menus share those labels. In EQL
   Immersive, the subject tab stays first and Talk immediately precedes Read,

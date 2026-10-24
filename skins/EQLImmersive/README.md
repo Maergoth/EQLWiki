@@ -11,6 +11,7 @@ Vector services/modules; keep Vector loaded. See the root [README](../../README.
 | File | Role |
 | --- | --- |
 | [skin.json](skin.json) | Skin registration, SearchMappings, ResourceLoader scripts/styles and their ordering |
+| [includes/DeploymentAssets.php](includes/DeploymentAssets.php) | Registration callback and HTML cache validation for release-specific local asset URLs; [deployment contract](../../docs/DEPLOYMENT_ASSETS.md) |
 | [includes/SkinEQLImmersive.php](includes/SkinEQLImmersive.php) | SkinVector22 subclass; finalizes source-first navigation after extension hooks |
 | [includes/Hooks.php](includes/Hooks.php) | Sidebar/navigation hooks and conditional module loading |
 | [includes/templates/skin.mustache](includes/templates/skin.mustache) | Active outer layout, native search, menus, article/sticky-header slots and footer |
