@@ -6,7 +6,7 @@ use MediaWiki\Parser\ParserOutputLinkTypes;
 /** Read-only reciprocal loot on NPC/item article views; never changes page source. */
 class EqlNpcLootRenderer {
     public const MARKER = 'eql-npc-source-loot';
-    public const GUARD = 'eql-npc-source-loot-scanned-v4';
+    public const GUARD = 'eql-npc-source-loot-scanned-v5';
     public const CACHE_SECONDS = 300;
 
     /** @var callable|null Source-only fixtures may inject a lookup without writing wiki pages. */
@@ -70,23 +70,9 @@ class EqlNpcLootRenderer {
             if ( !$title ) {
                 continue;
             }
-            $contexts = [];
-            foreach ( $item['contexts'] ?? [] as $context ) {
-                $zone = self::mainTitle( $context['zone'] ?? '' );
-                $instance = ( $context['instance'] ?? 'normal' ) === 'raid' ? 'Raid Zone' : 'Normal Zone';
-                $label = self::escape( $instance );
-                if ( $zone ) {
-                    // Raw HTML anchors are escaped by the wikitext sanitizer.
-                    $label .= ' · [[' . $zone->getPrefixedDBkey() . '|' .
-                        self::escape( $zone->getText() ) . ']]';
-                } else {
-                    $label .= ' · zone unspecified';
-                }
-                $contexts[$label] = $label;
-            }
             $entries[] = [
                 'markup' => '<li class="eql-recorded-loot-item" title="From current published item drop sources">{{:' . $title->getPrefixedDBkey() .
-                    '}} <small class="eql-recorded-loot-context">' . implode( '; ', $contexts ) . '</small></li>',
+                    '}}</li>',
                 'contexts' => $item['contexts'] ?? [],
                 'field' => ( $item['lootKind'] ?? '' ) === 'common' ? 'common_loot' : 'known_loot'
             ];
@@ -101,10 +87,6 @@ class EqlNpcLootRenderer {
         }
         $title = Title::newFromText( $text );
         return $title && $title->getNamespace() === NS_MAIN && !$title->isExternal() ? $title : null;
-    }
-
-    private static function escape( string $text ): string {
-        return htmlspecialchars( $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
     }
 
     public static function onOutputPageParserOutput( $out, $parserOutput ): void {

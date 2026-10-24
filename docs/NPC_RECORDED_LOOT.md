@@ -28,7 +28,13 @@ There is no separate Additional recorded drops panel.
 Normal/raid and zone contexts are preserved. A sole unheaded card is shared;
 explicitly partitioned or multiple cards require an unambiguous matching context.
 Ambiguous relationships are reported instead of being assigned to an arbitrary
-card. Normal item transclusions retain the original wiki hover cards.
+card. Generated NPC loot rows display only the item name through normal item
+transclusions, retaining the original wiki hover cards. Zone and instance remain
+internal placement metadata rather than extra labels beside every item.
+Automatic additions default to Common Loot when the item's authored Drops From
+field lists more than five distinct monsters. Canonical redirects and repeated
+zone/instance rows do not increase that count. An existing manual loot entry on
+the NPC remains authoritative and suppresses the automatic addition.
 
 Duplicates are excluded using current canonical public page identities and
 redirect resolution. First-letter normalization and safe case-variant redlinks
