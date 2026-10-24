@@ -121,7 +121,7 @@ class can silently stop its skin module from loading:
 | Rendered marker | Skin behavior |
 | --- | --- |
 | `class-guides-dropdown` | Loads database ClassGuideDropdown.js |
-| `eql-mobpage`, `eql-factionpage` | NPC/faction layouts |
+| `eql-mobpage`, `eql-factionpage` | NPC/faction layouts; NPC Known/Unique/Common loot uses stable grid cells so embedded item hovers cannot rebalance columns |
 | `eql-spellpage`, `eql-spell-lazy`, `eql-spellpage-items` | Spell layouts and tools |
 | `itemeff`, `merchant-page-items-sold`, `spell-hbdiv` | Effect/merchant/spell hover tools |
 | `eql-lucy-images-grid` | Icon-reference layout |

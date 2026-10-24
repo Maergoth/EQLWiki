@@ -33,7 +33,7 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$sources = [
 			'Template:Namedmobpage' => '<div class="synthetic-npc">{{{name|}}}</div>' .
 				"\n<div class=\"eql-mobpage-loot\"><h2>{{#if:{{{common_loot|}}}|Unique Loot|Known Loot}}</h2>\n{{{known_loot|<ul><li>None</li></ul>}}}\n</div>\n" .
-				"{{#if:{{{common_loot|}}}|<div class=\"eql-mobpage-commonloot\"><h2>Common Loot</h2>\n{{{common_loot}}}\n</div>}}",
+				"{{#if:{{{common_loot|}}}|<div class=\"eql-mobpage-common-loot\"><h2>Common Loot</h2>\n{{{common_loot}}}\n</div>}}",
 			'Template:Itempage' => '{{#ifeq:{{FULLPAGENAME}}|{{{itemname}}}|<div class="synthetic-item-page"><h2>Drops From</h2>{{{dropsfrom|}}}</div>|<span class="ih">[[{{{itemname}}}]]</span>}}',
 			'EQL synthetic reverse relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic reverse relic}}</onlyinclude>',
 			'EQL synthetic authored relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic authored relic}}</onlyinclude>',
@@ -91,7 +91,7 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$this->check( $xpath->query( './/span[' . $class( 'ih' ) . ']/a[normalize-space(text())="EQL synthetic reverse relic"]', $panel )->length === 1, 'Generated item must be a descendant of the native loot card and retain the span.ih hover link.' );
 		$this->check( $xpath->query( './/span[' . $class( 'ih' ) . ']/a[normalize-space(text())="EQL synthetic authored relic"]', $panel )->length === 1, 'Native loot must retain its original item once.' );
 		$this->check( $xpath->query( './/h2[normalize-space(text())="Unique Loot"]', $panel )->length === 1, 'An existing common_loot field must retain the template\'s Unique Loot heading.' );
-		$common = $xpath->query( '//*[' . $class( 'eql-mobpage-commonloot' ) . ']' );
+		$common = $xpath->query( '//*[' . $class( 'eql-mobpage-common-loot' ) . ']' );
 		$this->check( $common->length === 1 && str_contains( $common[0]->textContent, 'Common Loot' ) && str_contains( $common[0]->textContent, 'EQL synthetic common relic' ), 'Authored Common Loot must remain in its native separate card.' );
 		$this->check( !str_contains( $html, 'Additional recorded drops' ), 'Do not add a separate recorded-loot heading.' );
 		$this->check( $xpath->query( './/*[' . $class( 'mw-editsection' ) . ']', $panel )->length === 0, 'Generated content must not advertise nonexistent source-section edits.' );
@@ -134,7 +134,7 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		libxml_use_internal_errors( $previous );
 		$sharedXpath = new DOMXPath( $sharedDocument );
 		$sharedKnown = $sharedXpath->query( '//*[' . $class( 'eql-mobpage-loot' ) . ']' )[0];
-		$sharedCommon = $sharedXpath->query( '//*[' . $class( 'eql-mobpage-commonloot' ) . ']' )[0];
+		$sharedCommon = $sharedXpath->query( '//*[' . $class( 'eql-mobpage-common-loot' ) . ']' )[0];
 		$this->check( !str_contains( $sharedKnown->textContent, 'EQL synthetic shared relic' ) && str_contains( $sharedCommon->textContent, 'EQL synthetic shared relic' ) && str_contains( $sharedCommon->textContent, 'Common Loot' ), 'A generated common item must appear inside the native Common Loot card rather than Unique Loot.' );
 		$sharedRow = $sharedXpath->query( './/li[' . $class( 'eql-recorded-loot-item' ) . ']', $sharedCommon )[0];
 		$this->check( trim( $sharedRow->textContent ) === 'EQL synthetic shared relic' && $sharedXpath->query( './/span[' . $class( 'ih' ) . ']/a', $sharedRow )->length === 1 && $sharedXpath->query( './/small', $sharedRow )->length === 0, 'Generated Common Loot must keep its normal wiki hover and item-name-only display.' );
