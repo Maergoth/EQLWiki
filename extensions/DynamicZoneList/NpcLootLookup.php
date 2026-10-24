@@ -6,7 +6,7 @@ use MediaWiki\Title\Title;
 
 class EqlNpcLootLookup {
 
-	private const VERSION = 2;
+	private const VERSION = 3;
 	private const CANDIDATE_TTL = 60;
 	private const MAX_ALIASES = 20;
 	private const MAX_ZONES = 8;
@@ -46,6 +46,10 @@ class EqlNpcLootLookup {
 				$names = array_slice( $names, 0, self::MAX_ALIASES );
 			}
 			$zones = $this->strings( $analysis['zones'] ?? [], self::MAX_ZONES );
+			if ( count( $analysis['authoredItems'] ?? [] ) > self::MAX_AUTHORED ) {
+				$this->incomplete( 'Authored loot exceeds the exclusion limit; additional drops were not added to avoid duplicates.' );
+				return $this->result();
+			}
 			$authored = $this->strings( $analysis['authoredItems'] ?? [], self::MAX_AUTHORED );
 			$cache = $this->services->getMainWANObjectCache();
 			$key = $cache->makeKey( 'eql-npc-source-loot', self::VERSION,
@@ -60,7 +64,7 @@ class EqlNpcLootLookup {
 						$ttl = 10;
 					}
 					return $value;
-				} );
+				}, [ 'checkKeys' => [ EqlNpcLootInvalidation::checkKey( $cache, $npcTitle ) ] ] );
 			if ( !is_array( $discovery ) || !isset( $discovery['titles'], $discovery['complete'], $discovery['aliases'] ) ||
 				!is_array( $discovery['titles'] ) || count( $discovery['titles'] ) > self::MAX_CANDIDATES ||
 				!is_array( $discovery['aliases'] ) || count( $discovery['aliases'] ) > self::MAX_ALIASES ) {
@@ -202,7 +206,8 @@ class EqlNpcLootLookup {
 				$variants[function_exists( 'mb_strtolower' ) ? mb_strtolower( $variant, 'UTF-8' ) : strtolower( $variant )] = true;
 			}
 		}
-		$caseCondition = 'LOWER(' . $db->buildStringCast( $titleField ) . ') IN (' .
+		// Link titles are binary on MySQL; LOWER(BINARY) does not fold case.
+		$caseCondition = 'LOWER(CAST(' . $titleField . ' AS CHAR CHARACTER SET utf8mb4)) IN (' .
 			implode( ',', array_map( [ $db, 'addQuotes' ], array_keys( $variants ) ) ) . ')';
 		foreach ( $zones as $zone ) {
 			$category = $this->services->getTitleFactory()->makeTitleSafe( NS_CATEGORY, str_replace( ' ', '_', $zone ) );
