@@ -1,94 +1,108 @@
-# Automatic NPC drop-source links
+# Reciprocal NPC and item drop links
 
-## Goal and source of truth
+## Contract and source of truth
 
-An item that names a monster in `Itempage.dropsfrom` should also appear on that
-monster's page, including when either page is created or edited manually and
-regardless of creation order. Ordinary prose links do not establish a drop.
-Existing `Namedmobpage.known_loot` and `common_loot` lists remain authoritative
-for authored rarity and are never rewritten.
+An authored relationship on either page is enough once both pages exist:
 
-## Implementation ledger
+- `Itempage.dropsfrom` supplies missing entries in the NPC's native loot card.
+- `Namedmobpage.known_loot` / `common_loot` supplies missing entries in the item's
+  native Drops From section.
+- Either page may be created first, through the wiki editor or an attributed API
+  edit. Missing pages remain redlinks; later creation makes the relationship usable.
 
-- [x] Locate active registration: `extensions/DynamicZoneList/DynamicZoneList.php`,
-  loaded from site settings; existing mob/item cards are database templates.
-- [x] Choose a read-only article hook rather than modifying database templates.
-- [x] Extract active balanced NPC/item templates, excluding comments and examples.
-- [x] Resolve public source items through bounded backlinks, redirects and a
-  bounded same-zone item-category fallback for case-variant redlinks.
-- [x] Match real source rows, preserve normal/raid zone labels and deduplicate
-  items already present in the NPC's authored Common/Unique lists.
-- [x] Append a separate Additional recorded drops panel using ordinary item
-  transclusions, preserving existing item cards, links and hover behavior.
-- [x] Bound lookup, parser and CDN caching; disclose incomplete lookups.
-- [x] Run focused parser/lookup/render fixtures, unsaved MediaWiki integration,
-  PHP syntax and release packaging checks. No production test-page writes.
-- [ ] Open and merge a scoped feature PR into `staging`; inspect deployment.
-- [ ] Promote only reviewed feature commits to `main`, inspect deployment and
-  verify real public page output. No database pull/schema/template edit required.
+The extension changes the parser's in-memory input. It never saves generated
+wikicode, creates placeholder pages, invents an edit author or adds fake revisions.
+Only public authored fields establish relationships; generic prose, comments,
+protected examples and unused wrapper arguments do not establish drops.
+
+## Layout and duplicate handling
+
+NPC additions go inside the existing `Namedmobpage` loot fields. The existing
+single HTML list is extended where safe; otherwise a list is added within the
+same field. Exact None placeholders disappear when the first drop is added.
+The template keeps its native headings: Known Loot, or Unique Loot when Common
+Loot is populated. Explicit contributor Common/Unique fields stay intact.
+Item additions go inside the existing `Itempage.dropsfrom` / `drops_from` field.
+There is no separate Additional recorded drops panel.
+
+Normal/raid and zone contexts are preserved. A sole unheaded card is shared;
+explicitly partitioned or multiple cards require an unambiguous matching context.
+Ambiguous relationships are reported instead of being assigned to an arbitrary
+card. Normal item transclusions retain the original wiki hover cards.
+
+Duplicates are excluded using current canonical public page identities and
+redirect resolution. First-letter normalization and safe case-variant redlinks
+are supported without merging two real case-distinct pages. NPC loot exclusions
+cover direct transclusions and links inside spans, bold markup, inline groups,
+leading-colon links and fragments. If the authored exclusion set exceeds its
+bound, additions are withheld rather than risking duplicates. Existing authored
+lists and their rarity notes remain unchanged.
+
+## Targeted cache invalidation
+
+Item source changes purge old and new affected NPCs. NPC loot changes purge old
+and new affected items. Saves run this both immediately and after committed
+MediaWiki link/category updates, so an early render cannot retain an old empty
+candidate result. Moves and deletions use the same public relationship checks.
+
+Each affected page receives a candidate-discovery WAN check-key invalidation and
+core `WikiPage::doPurge()`, refreshing page/parser/file/CDN caches without creating
+a revision. Unrelated pages are not globally purged. A per-output guard prevents
+recursive parses; pre-feature item/NPC-containing parser caches refresh once.
+
+The fallback remains a 60-second discovery cache (ten seconds when incomplete)
+and at most 300 seconds for parser/CDN output. Deferred link processing, replica
+lag or exhausted safety bounds can still delay updates. Independent fallback
+intervals can add together, up to roughly 11 minutes plus processing lag if the
+normal targeted update cannot complete. Old CDN responses may retain their old
+expiry until a purge reaches them. Public current revisions and anonymous read
+permissions are rechecked when lookups execute.
 
 ## Code and maintenance map
 
 | File | Responsibility |
 | --- | --- |
-| `extensions/DynamicZoneList/NpcLootWikitext.php` | Pure balanced-template/source-row parsing and normalized identities |
-| `extensions/DynamicZoneList/NpcLootLookup.php` | Public revision reads, canonical identities, bounded discovery, deduplication and short shared cache |
-| `extensions/DynamicZoneList/NpcLootRenderer.php` | Root legacy parser hook, item transclusions, current-data labels, parser/CDN expiry |
-| `ops/test-npc-loot-source.php` | Synthetic source-contract regressions |
-| `ops/test-npc-loot-lookup.php` | Synthetic repository/discovery regressions |
-| `ops/test-npc-loot-renderer.php` | Hook, markup and cache regressions |
-| `ops/test-npc-loot-mediawiki.php` | Unsaved actual MediaWiki parsing, hover markup and dependency integration |
+| `extensions/DynamicZoneList/DynamicZoneList.php` | Active legacy registration, autoload and hooks |
+| `NpcLootWikitext.php` | Balanced public field contracts, scoped relationship extraction and in-memory native-field merging |
+| `NpcLootLookup.php` | Item-to-NPC public lookup and authored-loot exclusions |
+| `ItemDropLookup.php` | NPC-to-item public lookup, including pagelinks and item transclusion backlinks |
+| `NpcLootInvalidation.php` | Old/new relationship invalidation on save, post-links, move and delete |
+| `NpcLootRenderer.php` | Root read-view routing, normal item cards and cache markers |
+| `ops/test-npc-loot-source.php` | Synthetic source and placement regressions |
+| `ops/test-npc-loot-lookup.php`, `ops/test-item-drop-lookup.php` | Synthetic public repository/cache/identity regressions |
+| `ops/test-npc-loot-invalidation.php` | Save, post-links, move/delete and both-direction purge contracts |
+| `ops/test-npc-loot-renderer.php` | Root parser, markup and cache migration contracts |
+| `ops/test-npc-loot-mediawiki.php` | Unsaved actual MediaWiki rendering, native sections, hover dependencies and unchanged pre-save source |
 
-The parser scans only the original article input, before transclusion expansion.
-A per-output guard prevents recursive parser calls from adding more panels.
-Old cached output containing the NPC template is rejected once; new output
-records the guard even when no additional drops exist. Unrelated page caches
-are not flushed.
-The generated heading uses HTML, avoiding an edit-section link to source text
-that does not exist. It is not stored in article revisions.
+Lookups use category intersections and bounded literal-name predicates; neither
+performs a full source-content scan. MySQL/MariaDB binary title fields are cast
+to UTF-8 text before case folding. Redirects stop after eight hops; candidates,
+outputs, authored references, public content bytes and invalidation targets have
+explicit code bounds. Incomplete work produces a notice. The legacy-parser read
+view is supported; Parsoid/VisualEditor and section previews are excluded.
+Historical renders can reflect current published relationship data, rather than
+reconstructing historical drop tables.
 
-## Public behavior and limits
+## Release and checks
 
-The panel supplements the entire NPC article, including multi-zone/instance
-articles. Each added item appears once, with the source zones and Normal Zone /
-Raid Zone labels beside it. It does not invent Common/Unique rarity. Suppressed
-or unreadable revisions must never enter the public lookup or shared cache.
+1. Run the focused source, both repository, invalidation and renderer fixtures;
+   lint changed PHP. With a configured private local wiki, run the unsaved parser
+   test through `php maintenance/run.php ./ops/test-npc-loot-mediawiki.php`.
+2. Open a scoped PR to staging and inspect CI/deployment. Promote only reviewed
+   commits to main with owner authorization, then inspect production deployment.
+3. Verify ordinary public NPC and item pages, native sections, duplicate handling
+   and the active extension version. A forced link refresh of an existing test
+   page can exercise post-links invalidation without editing its content.
 
-This uses the legacy parser used by ordinary read views. VisualEditor/Parsoid and
-section previews are excluded; editing still changes only the author's source.
-An old NPC revision may show a clearly labeled panel from **current published
-item data**, not a reconstruction of historical drops.
+No schema, private setting, template publication, database pull or host-script
+installation is required. Roll back the scoped application commit to remove the
+rendering/invalidation behavior; stored authored content is unaffected.
 
-Discovery intersects `Category:Items`, with direct and redirect backlinks taking
-priority over zone fallback. Limits per lookup are 20 aliases, eight zones,
-160 candidate item pages, 100 authored references and 50 additional items.
-Public content reads are capped at 320 pages / 8 MiB total, with 512 KiB per
-source page. Redirect resolution stops after eight hops. Unsupported or malformed
-source structures are skipped conservatively, rather than treating prose as loot.
-The zone fallback also requires a page link whose title case-folds to a bounded
-NPC/alias spelling, avoiding a scan of unrelated item content in busy zones.
+## Eye of Zomm
 
-An incomplete lookup shows a notice instead of claiming there are no drops.
-Item transclusion dependencies handle changes to rendered items. A 60-second
-candidate-discovery cache plus a 300-second parser and CDN expiry allows newly
-linked items to appear without editing the mob page. These independent intervals
-can add together (up to roughly 11 minutes, plus normal MediaWiki link-table/job
-or replica lag). Candidate caching never replaces fresh public revision/permission
-checks when the lookup runs. Incomplete discovery is cached for ten seconds.
-
-No pages, accounts, observations, schemas or private host scripts are changed.
-Deployment uses the normal tracked application release. Roll back the scoped
-application commit to remove the generated panel; authored loot is untouched.
-
-## Validation record (2026-10-24)
-
-- PHP 8.3: 38 source-parser checks, 253 synthetic lookup assertions and renderer /
-  cache-migration contracts passed.
-- Actual local MediaWiki 1.45: 20 unsaved parser checks passed, including normal
-  item hover markup, transclusion dependencies and one-time old-cache migration.
-- Read-only local snapshot lookup: Lord of Loathing (3 candidates), Vicar M`Kari
-  (0), A Loathling Lich (35; 23 additional drops), Drelzna (10; Soft Leather Shoes)
-  all completed without warnings, in roughly 0.02–0.08 seconds per lookup.
-- Public pre-deploy source check confirms Soft Leather Shoes names Drelzna in
-  its drop sources while Drelzna's authored loot omits it. Local fixtures and
-  snapshot results alone do not establish production deployment.
+The desktop dataset producer independently reconciles authored NPC loot with item
+Drops From records. It does not scrape this extension's generated HTML. The app
+joins those item source records into its NPC browser, Live Map and Intel views.
+New relationships reach the app after successful dataset publication and download;
+wiki cache invalidation does not publish a dataset. See the shared refresh policy
+in PROJECT.md and the client integration guide.

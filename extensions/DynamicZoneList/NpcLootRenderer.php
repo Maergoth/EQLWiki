@@ -3,14 +3,15 @@
 use MediaWiki\Title\Title;
 use MediaWiki\Parser\ParserOutputLinkTypes;
 
-/** Read-only reverse loot on ordinary NPC article views; never changes page source. */
+/** Read-only reciprocal loot on NPC/item article views; never changes page source. */
 class EqlNpcLootRenderer {
     public const MARKER = 'eql-npc-source-loot';
-    public const GUARD = 'eql-npc-source-loot-scanned-v2';
+    public const GUARD = 'eql-npc-source-loot-scanned-v4';
     public const CACHE_SECONDS = 300;
 
     /** @var callable|null Source-only fixtures may inject a lookup without writing wiki pages. */
     public static $lookupFactory = null;
+    public static $itemLookupFactory = null;
 
     public static function onParserBeforeInternalParse( $parser, &$text, $stripState ): void {
         $output = $parser->getOutput();
@@ -27,6 +28,8 @@ class EqlNpcLootRenderer {
             return;
         }
         $analysis = EqlNpcLootWikitext::analyseNpcPage( $text );
+        $isNpc = $analysis !== null;
+        $analysis ??= EqlNpcLootWikitext::analyseItemPage( $text );
         if ( $analysis === null ) {
             return;
         }
@@ -34,7 +37,9 @@ class EqlNpcLootRenderer {
         $output->setExtensionData( self::MARKER, true );
         $output->updateCacheExpiry( self::CACHE_SECONDS );
         try {
-            $lookup = self::$lookupFactory ? ( self::$lookupFactory )() : new EqlNpcLootLookup();
+            $lookup = $isNpc ?
+                ( self::$lookupFactory ? ( self::$lookupFactory )() : new EqlNpcLootLookup() ) :
+                ( self::$itemLookupFactory ? ( self::$itemLookupFactory )() : new EqlItemDropLookup() );
             $result = $lookup->find( $title, $analysis );
         } catch ( Throwable $error ) {
             if ( function_exists( 'wfDebugLog' ) ) {
@@ -42,12 +47,24 @@ class EqlNpcLootRenderer {
             }
             $result = [ 'items' => [], 'complete' => false, 'warnings' => [] ];
         }
-        $text .= self::render( $result );
+        $merged = $isNpc ? EqlNpcLootWikitext::mergeNpcLoot( $text, self::entries( $result ) ) :
+            EqlNpcLootWikitext::mergeItemSources( $text, $result['sources'] ?? [] );
+        $text = $merged['text'];
+        if ( empty( $result['complete'] ) || $merged['unplaced'] ) {
+            $text .= "\n<p class=\"eql-recorded-loot-notice\">Some recorded drops could not be placed or checked. Try again shortly.</p>\n";
+        }
     }
 
     /** Normal item transclusion preserves Itembox/AjaxHoverHelper and parser dependencies. */
     public static function render( array $result ): string {
-        $rows = [];
+        $rows = array_column( self::entries( $result ), 'markup' );
+        return $rows ? '<ul class="eql-recorded-loot" title="From current published item drop sources">' .
+            "\n" . implode( "\n", $rows ) . "\n</ul>" : '';
+    }
+
+    /** Validated entries are merged into native loot fields only while parsing. */
+    public static function entries( array $result ): array {
+        $entries = [];
         foreach ( $result['items'] ?? [] as $item ) {
             $title = self::mainTitle( $item['title'] ?? '' );
             if ( !$title ) {
@@ -67,21 +84,14 @@ class EqlNpcLootRenderer {
                 }
                 $contexts[$label] = $label;
             }
-            $rows[] = '<li><span class="eql-recorded-loot-item">{{:' . $title->getPrefixedDBkey() .
-                '}}</span> <small class="eql-recorded-loot-context">' .
-                implode( '; ', $contexts ) . '</small></li>';
+            $entries[] = [
+                'markup' => '<li class="eql-recorded-loot-item" title="From current published item drop sources">{{:' . $title->getPrefixedDBkey() .
+                    '}} <small class="eql-recorded-loot-context">' . implode( '; ', $contexts ) . '</small></li>',
+                'contexts' => $item['contexts'] ?? [],
+                'field' => ( $item['lootKind'] ?? '' ) === 'common' ? 'common_loot' : 'known_loot'
+            ];
         }
-        $incomplete = empty( $result['complete'] );
-        if ( !$rows && !$incomplete ) {
-            return '';
-        }
-        // HTML headings have no misleading source-section edit link for this generated content.
-        return "\n\n<div class=\"eql-recorded-loot\">\n<h2>Additional recorded drops</h2>\n" .
-            '<p><small>From current published item drop sources. Existing loot lists are unchanged; ' .
-            'rarity is not inferred.</small></p>' . "\n" .
-            ( $rows ? "<ul>\n" . implode( "\n", $rows ) . "\n</ul>\n" : '' ) .
-            ( $incomplete ? '<p class="eql-recorded-loot-notice">Some recorded drops could not be checked. ' .
-                'Try again shortly.</p>' . "\n" : '' ) . "</div>\n";
+        return $entries;
     }
 
     private static function mainTitle( string $text ): ?Title {
@@ -120,7 +130,7 @@ class EqlNpcLootRenderer {
         foreach ( $output->getLinkList( ParserOutputLinkTypes::TEMPLATE ) as $dependency ) {
             $link = $dependency['link'];
             if ( $link->getNamespace() === NS_TEMPLATE &&
-                strcasecmp( str_replace( '_', ' ', $link->getDBkey() ), 'Namedmobpage' ) === 0
+                in_array( strtolower( str_replace( '_', ' ', $link->getDBkey() ) ), [ 'namedmobpage', 'itempage' ], true )
             ) {
                 return false;
             }
