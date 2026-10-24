@@ -7,6 +7,16 @@ if (preg_match('#(?:^|/)[.]local(?:/|$)#i', str_replace('\\', '/', $path))) {
     http_response_code(404);
     return;
 }
+if (preg_match('#^/eql-assets/[a-f0-9]{40}/load[.]php$#D', $path)) {
+    $_SERVER['SCRIPT_NAME'] = '/load.php';
+    $_SERVER['SCRIPT_FILENAME'] = $root . '/load.php';
+    require $root . '/load.php';
+    return;
+}
+if (str_starts_with($path, '/eql-assets/')) {
+    http_response_code(404);
+    return;
+}
 $candidate = realpath($root . $path);
 if ($candidate !== false && str_starts_with($candidate, $root . DIRECTORY_SEPARATOR) && is_file($candidate)) {
     return false;

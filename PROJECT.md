@@ -57,7 +57,8 @@ The built-in local PHP server uses `ops/local-router.php` instead.
 
 ## Deployment implementation
 
-GitHub Actions creates an archive containing only tracked application files and
+GitHub Actions creates an archive containing tracked application files plus a
+generated, manifest-managed deployment asset marker and
 streams it to the cPanel hosting account. It uses a dedicated restricted SSH key;
 the key can invoke only `/home/eqlwikdq/deploy/EQLWiki/deploy-receive.sh` with a
 full commit SHA. It cannot start an interactive shell or use SFTP.
@@ -67,6 +68,14 @@ managed files, updates each file by rename, removes previously managed files tha
 were deleted from Git, and checks the public MediaWiki API. On failure it restores
 the backup. A multi-file release is not globally atomic; use a maintenance window
 for changes that require all files to switch simultaneously.
+
+The packager installs the asset marker last. The skin registration callback uses
+its commit SHA in a query-free `/eql-assets/<commit>/load.php` path; the tracked
+rewrite rule preserves native ResourceLoader behavior. Normal reloads obtain new
+stylesheet URLs without a hard refresh. The marker also participates in HTML
+Last-Modified validation and existing application backups. See
+[deployment asset caching](docs/DEPLOYMENT_ASSETS.md) for the route, rollback,
+custom-endpoint limitations and verification contract.
 
 Interactive Character sheets also require two separately published database
 templates. Deploy the reviewed skin module first; review current template IDs,
