@@ -222,23 +222,29 @@ body.skin-eqlimmersive .eql-mobpage-hero-loot {
 	align-self: stretch;
 }
 
-body.skin-eqlimmersive .eql-mobpage-hero-loot ul {
-	columns: 2 14rem;
+/* Balanced columns can move entries between columns when a hover card opens.
+   Grid keeps authored and generated entries in stable cells. Only lay out the
+   loot list itself; nested lists inside an item hover retain their own layout. */
+body.skin-eqlimmersive .eql-mobpage-hero-loot > ul,
+body.skin-eqlimmersive .eql-mobpage-loot > ul,
+body.skin-eqlimmersive .eql-mobpage-common-loot > ul {
+	columns: auto;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	column-gap: 1.5rem;
+	align-items: start;
 }
 
-body.skin-eqlimmersive .eql-mobpage-hero-loot li {
-	break-inside: avoid;
+body.skin-eqlimmersive .eql-mobpage-hero-loot > ul > li,
+body.skin-eqlimmersive .eql-mobpage-loot > ul > li,
+body.skin-eqlimmersive .eql-mobpage-common-loot > ul > li {
+	min-width: 0;
+	max-width: 100%;
 }
 
 /* Common Loot, if present, remains below. */
-body.skin-eqlimmersive .eql-mobpage-common-loot ul {
-	columns: 2 18rem;
+body.skin-eqlimmersive .eql-mobpage-common-loot > ul {
 	column-gap: 2rem;
-}
-
-body.skin-eqlimmersive .eql-mobpage-common-loot li {
-	break-inside: avoid;
 }
 
 /* Factions / quests grid */
@@ -280,10 +286,6 @@ body.skin-eqlimmersive .eql-mobpage-stats table {
 		max-height: none;
 		overflow: visible;
 	}
-
-	body.skin-eqlimmersive .eql-mobpage-hero-loot ul {
-		columns: 2 14rem;
-	}
 }
 
 /* Small width: single column */
@@ -302,9 +304,10 @@ body.skin-eqlimmersive .eql-mobpage-stats table {
 		overflow: visible;
 	}
 
-	body.skin-eqlimmersive .eql-mobpage-hero-loot ul,
-	body.skin-eqlimmersive .eql-mobpage-common-loot ul {
-		columns: 1;
+	body.skin-eqlimmersive .eql-mobpage-hero-loot > ul,
+	body.skin-eqlimmersive .eql-mobpage-loot > ul,
+	body.skin-eqlimmersive .eql-mobpage-common-loot > ul {
+		grid-template-columns: minmax(0, 1fr);
 	}
 }
 

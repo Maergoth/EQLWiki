@@ -35,6 +35,11 @@ Automatic additions default to Common Loot when the item's authored Drops From
 field lists more than five distinct monsters. Canonical redirects and repeated
 zone/instance rows do not increase that count. An existing manual loot entry on
 the NPC remains authoritative and suppresses the automatic addition.
+Unreadable or broken NPC redirects encountered only while choosing that default
+are skipped; they do not mark already verified loot as incomplete. Actual source
+lookup failures and shared read/byte-budget exhaustion still report incomplete
+results. Native loot lists use the skin's stable grid layout so opening an item
+hover cannot move entries between balanced columns.
 
 Duplicates are excluded using current canonical public page identities and
 redirect resolution. First-letter normalization and safe case-variant redlinks

@@ -183,5 +183,34 @@ namespace {
 		$explicit = EqlNpcLootWikitext::analyseNpcPage( '{{Namedmobpage|name=Policy Guardian|' . $field . '={{:Policy Relic}}}}' );
 		checkNpcLookup( $policySix->lookup()->find( $policySix->title( 'Policy Guardian' ), $explicit )['items'] === [], 'Explicit authored ' . $field . ' remains the per-NPC override instead of being moved by the default policy' );
 	}
+	[ $probeFixture, $unusedFindProbe ] = $policy( array_merge( $five, [ 'Keeper Five' ] ), [ 'Broken Keeper Alias' => 'Missing Keeper Target', 'Loop Keeper' => 'Loop Keeper' ] );
+	$probeFixture->page( 'Hidden Keeper', '{{Namedmobpage}}', [ 'hidden' => true ] );
+	$probeFixture->page( 'Private Keeper', '{{Namedmobpage}}', [ 'private' => true ] );
+	$probeFixture->page( 'Oversized Keeper', str_repeat( 'x', 524289 ) );
+	$probeNames = [ 'Broken Keeper Alias', 'Hidden Keeper', 'Private Keeper', 'Loop Keeper', 'Oversized Keeper' ];
+	$probeFixture->pages['Policy_Relic']['text'] = str_replace( "|dropsfrom=\n[[Synthetic Vale]]\n", "|dropsfrom=\n[[Synthetic Vale]]\n" . implode( "\n", array_map( static fn ( $name ) => '* [[' . $name . ']]', $probeNames ) ) . "\n", $probeFixture->pages['Policy_Relic']['text'] );
+	$probeLookup = $probeFixture->lookup();
+	$probeResult = $probeLookup->find( $probeFixture->title( 'Policy Guardian' ), [ 'names' => [], 'zones' => [], 'authoredItems' => [] ] );
+	checkNpcLookup( $probeResult['complete'] && $probeResult['warnings'] === [] && $probeResult['items'][0]['lootKind'] === 'common', 'Optional classification skips broken, hidden, private, cyclic and oversized NPC probes without claiming verified item loot is incomplete' );
+	$canonicalMethod = new \ReflectionMethod( $probeLookup, 'canonical' );
+	$completeProperty = new \ReflectionProperty( $probeLookup, 'complete' );
+	checkNpcLookup( $canonicalMethod->invoke( $probeLookup, $probeFixture->title( 'Broken Keeper Alias' ) ) === null && !$completeProperty->getValue( $probeLookup ), 'An actual loot lookup re-reports a negative canonical result cached by optional classification' );
+	$probeLookup = $probeFixture->lookup();
+	$probeLookup->find( $probeFixture->title( 'Policy Guardian' ), [ 'names' => [], 'zones' => [], 'authoredItems' => [] ] );
+	$publicTextMethod = new \ReflectionMethod( $probeLookup, 'publicText' );
+	checkNpcLookup( $publicTextMethod->invoke( $probeLookup, $probeFixture->title( 'Missing Keeper Target' ) ) === null && !$completeProperty->getValue( $probeLookup ), 'An actual public-content lookup re-reports a cached classification-only missing target' );
+	$classificationMethod = new \ReflectionMethod( $probeLookup, 'defaultLootKind' );
+	$budgetSources = array_map( static fn ( $name ) => [ 'npc' => $name, 'zone' => 'Synthetic Vale', 'instance' => 'normal' ], array_merge( $five, [ 'Keeper Five' ] ) );
+	$policySix->page( 'Budget Alias', '#REDIRECT [[Policy Guardian]]', [ 'redirect' => 'Policy Guardian' ] );
+	$budgetSources[0]['npc'] = 'Budget Alias';
+	$readBudgetLookup = $policySix->lookup();
+	( new \ReflectionProperty( $readBudgetLookup, 'publicMemo' ) )->setValue( $readBudgetLookup, array_fill_keys( range( 1, 319 ), [ 'text' => '', 'revision' => 1 ] ) );
+	$classificationMethod->invoke( $readBudgetLookup, $budgetSources );
+	$warningsProperty = new \ReflectionProperty( $readBudgetLookup, 'warnings' );
+	checkNpcLookup( !$completeProperty->getValue( $readBudgetLookup ) && str_contains( implode( ' ', $warningsProperty->getValue( $readBudgetLookup ) ), 'public-read limit' ), 'Classification still reports exhaustion of the shared public-read budget inside redirect resolution' );
+	$byteBudgetLookup = $policySix->lookup();
+	( new \ReflectionProperty( $byteBudgetLookup, 'bytesRead' ) )->setValue( $byteBudgetLookup, 8388607 );
+	$classificationMethod->invoke( $byteBudgetLookup, $budgetSources );
+	checkNpcLookup( !$completeProperty->getValue( $byteBudgetLookup ) && str_contains( implode( ' ', $warningsProperty->getValue( $byteBudgetLookup ) ), 'content limit' ), 'Classification still reports exhaustion of the shared aggregate content-byte budget' );
 	echo "NPC reverse loot lookup: $checks synthetic checks passed (public visibility, item/category intersections, late creation, aliases/case collisions, authored loot, common-drop policy, contexts, bounded cache/reads and failures).\n";
 }
