@@ -31,12 +31,17 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$hooks = $this->getServiceContainer()->getHookContainer();
 		$hooks->register( 'ParserBeforeInternalParse', [ EqlNpcLootRenderer::class, 'onParserBeforeInternalParse' ] );
 		$sources = [
-			'Template:Namedmobpage' => '<div class="synthetic-npc">{{{name|}}}</div>' . "\n== Unique Loot ==\n{{{known_loot|}}}\n== Common Loot ==\n{{{common_loot|}}}",
-			'Template:Itempage' => '<span class="ih">[[{{{itemname}}}]]</span>',
+			'Template:Namedmobpage' => '<div class="synthetic-npc">{{{name|}}}</div>' .
+				"\n<div class=\"eql-mobpage-loot\"><h2>{{#if:{{{common_loot|}}}|Unique Loot|Known Loot}}</h2>\n{{{known_loot|<ul><li>None</li></ul>}}}\n</div>\n" .
+				"{{#if:{{{common_loot|}}}|<div class=\"eql-mobpage-commonloot\"><h2>Common Loot</h2>\n{{{common_loot}}}\n</div>}}",
+			'Template:Itempage' => '{{#ifeq:{{FULLPAGENAME}}|{{{itemname}}}|<div class="synthetic-item-page"><h2>Drops From</h2>{{{dropsfrom|}}}</div>|<span class="ih">[[{{{itemname}}}]]</span>}}',
 			'EQL synthetic reverse relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic reverse relic}}</onlyinclude>',
-			'EQL synthetic authored relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic authored relic}}</onlyinclude>'
+			'EQL synthetic authored relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic authored relic}}</onlyinclude>',
+			'EQL synthetic common relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic common relic}}</onlyinclude>',
+			'EQL synthetic normal relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic normal relic}}</onlyinclude>',
+			'EQL synthetic raid relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic raid relic}}</onlyinclude>'
 		];
-		$npcSource = "Lead text\n{{Namedmobpage|name=EQL synthetic Drolvarg|zone=[[EQL synthetic cavern]]|known_loot={{:EQL synthetic authored relic}}}}\n== Notes ==\nAuthored notes remain unchanged.";
+		$npcSource = "Lead text\n{{Namedmobpage|name=EQL synthetic Drolvarg|zone=[[EQL synthetic cavern]]|known_loot=<ul><li>{{:EQL synthetic authored relic}}</li></ul>|common_loot=<ul><li>{{:EQL synthetic common relic}}</li></ul>}}\n== Notes ==\nAuthored notes remain unchanged.";
 		$sources['EQL synthetic Drolvarg'] = $npcSource;
 		$hooks->register( 'BeforeParserFetchTemplateRevisionRecord', static function (
 			?LinkTarget $context, LinkTarget $title, bool &$skip, ?RevisionRecord &$revision
@@ -50,14 +55,15 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$lookup = new class {
 			public array $calls = [];
 			public bool $empty = false;
+			public ?array $items = null;
 			public function find( Title $title, array $analysis ): array {
 				$this->calls[] = [ $title->getPrefixedText(), $analysis ];
-				return [ 'items' => $this->empty ? [] : [ [
+				return [ 'items' => $this->empty ? [] : ( $this->items ?? [ [
 					'title' => 'EQL synthetic reverse relic', 'contexts' => [
 						[ 'zone' => 'EQL synthetic cavern', 'instance' => 'normal' ],
 						[ 'zone' => 'EQL synthetic cavern', 'instance' => 'raid' ]
 					]
-				] ], 'complete' => true, 'warnings' => [] ];
+				] ] ), 'complete' => true, 'warnings' => [] ];
 			}
 		};
 		EqlNpcLootRenderer::$lookupFactory = static fn () => $lookup;
@@ -77,17 +83,27 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		libxml_use_internal_errors( $previous );
 		$xpath = new DOMXPath( $document );
 		$class = static fn ( string $name ): string => 'contains(concat(" ",normalize-space(@class)," ")," ' . $name . ' ")';
-		$panels = $xpath->query( '//*[' . $class( 'eql-recorded-loot' ) . ']' );
-		$this->check( $panels->length === 1, 'Exactly one generated loot panel must be present.' );
+		$panels = $xpath->query( '//*[' . $class( 'eql-mobpage-loot' ) . ']' );
+		$this->check( $panels->length === 1, 'Generated loot must use the single native NPC loot card.' );
 		$panel = $panels[0];
-		$this->check( $xpath->query( './/span[' . $class( 'ih' ) . ']/a', $panel )->length === 1, 'Normal item expansion must retain the span.ih link consumed by the existing hover component.' );
+		$this->check( $xpath->query( './/li[' . $class( 'eql-recorded-loot-item' ) . ']', $panel )->length === 1, 'The generated row marker must live inside the existing native card, including when its authored outer list is reused.' );
+		$this->check( $xpath->query( './/span[' . $class( 'ih' ) . ']/a[normalize-space(text())="EQL synthetic reverse relic"]', $panel )->length === 1, 'Generated item must be a descendant of the native loot card and retain the span.ih hover link.' );
+		$this->check( $xpath->query( './/span[' . $class( 'ih' ) . ']/a[normalize-space(text())="EQL synthetic authored relic"]', $panel )->length === 1, 'Native loot must retain its original item once.' );
+		$this->check( $xpath->query( './/h2[normalize-space(text())="Unique Loot"]', $panel )->length === 1, 'An existing common_loot field must retain the template\'s Unique Loot heading.' );
+		$common = $xpath->query( '//*[' . $class( 'eql-mobpage-commonloot' ) . ']' );
+		$this->check( $common->length === 1 && str_contains( $common[0]->textContent, 'Common Loot' ) && str_contains( $common[0]->textContent, 'EQL synthetic common relic' ), 'Authored Common Loot must remain in its native separate card.' );
+		$this->check( !str_contains( $html, 'Additional recorded drops' ), 'Do not add a separate recorded-loot heading.' );
 		$this->check( $xpath->query( './/*[' . $class( 'mw-editsection' ) . ']', $panel )->length === 0, 'Generated content must not advertise nonexistent source-section edits.' );
 		$this->check( str_contains( $panel->textContent, 'Normal Zone' ) && str_contains( $panel->textContent, 'Raid Zone' ), 'Actual parsing must preserve normal and raid source context.' );
 		$this->check( $xpath->query( './/small//a[normalize-space(text())="EQL synthetic cavern"]', $panel )->length === 2 && !str_contains( $panel->textContent, '<a href=' ), 'Source zones must be working wiki links, not escaped HTML anchors.' );
-		$this->check( !str_contains( $panel->textContent, 'EQL synthetic authored relic' ), 'The additional panel must not repeat already authored loot.' );
+		$this->check( substr_count( $panel->textContent, 'EQL synthetic authored relic' ) === 1, 'The native card must not repeat its authored loot.' );
 		$dependencies = array_map( static fn ( array $link ) => str_replace( '_', ' ', Title::newFromLinkTarget( $link['link'] )->getPrefixedText() ), $output->getLinkList( ParserOutputLinkTypes::TEMPLATE ) );
 		$this->check( in_array( 'EQL synthetic reverse relic', $dependencies, true ), 'Generated normal item transclusions must register item dependencies with core.' );
 		$this->check( in_array( 'Template:Itempage', $dependencies, true ), 'Generated item transclusions must retain their template dependencies.' );
+		$beforePst = count( $lookup->calls );
+		$anonymous = $this->getServiceContainer()->getUserFactory()->newAnonymous();
+		$pst = $factory->create()->preSaveTransform( $npcSource, Title::newFromText( 'EQL synthetic Drolvarg' ), $anonymous, ParserOptions::newFromAnon() );
+		$this->check( $pst === $npcSource && count( $lookup->calls ) === $beforePst, 'Saving an NPC must preserve its original stored wikicode and never persist generated loot.' );
 		$ordinary = $factory->create()->parse( 'Synthetic zone article: {{:EQL synthetic Drolvarg}}', Title::newFromText( 'EQL synthetic ordinary zone' ), ParserOptions::newFromAnon() );
 		$this->check( !str_contains( $ordinary->getRawText(), 'eql-recorded-loot' ) && count( $lookup->calls ) === 1, 'Transcluding an NPC on an ordinary root article must not append a reverse-loot panel.' );
 		$pageFactory = $this->getServiceContainer()->getWikiPageFactory();
@@ -103,9 +119,51 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$oldZoneOutput->setExtensionData( EqlNpcLootRenderer::GUARD, null );
 		$this->check( EqlNpcLootRenderer::onRejectParserCacheValue( $oldZoneOutput, $zonePage, $cacheOptions ) === false, 'Old pages transcluding an NPC may refresh once through their real template dependency.' );
 		$this->check( EqlNpcLootRenderer::onRejectParserCacheValue( $ordinary, $zonePage, $cacheOptions ) !== false, 'A scanned ordinary root article must not be repeatedly invalidated by nested NPC dependencies.' );
+		$noneSource = '{{Namedmobpage|name=EQL synthetic empty Drolvarg|zone=[[EQL synthetic cavern]]|known_loot=<ul><li>None</li></ul>}}';
+		$none = $factory->create()->parse( $noneSource, Title::newFromText( 'EQL synthetic empty Drolvarg' ), ParserOptions::newFromAnon() );
+		$this->check( str_contains( $none->getRawText(), 'Known Loot' ) && str_contains( $none->getRawText(), 'EQL synthetic reverse relic' ) && !preg_match( '/>\s*None\s*</', $none->getRawText() ), 'A native Known Loot card must replace an exact None placeholder when adding its first drop.' );
+		$lookup->items = [
+			[ 'title' => 'EQL synthetic normal relic', 'contexts' => [ [ 'zone' => 'EQL synthetic cavern', 'instance' => 'normal' ] ] ],
+			[ 'title' => 'EQL synthetic raid relic', 'contexts' => [ [ 'zone' => 'EQL synthetic cavern', 'instance' => 'raid' ] ] ]
+		];
+		$splitSource = '{{Namedmobpage|name=EQL synthetic Drolvarg|zone=[[EQL synthetic cavern]]|known_loot=<ul><li>None</li></ul>}}' .
+			"\n== Raid Instance ==\n" . '{{Namedmobpage|name=EQL synthetic Drolvarg|zone=[[EQL synthetic cavern]]|known_loot=<ul><li>None</li></ul>}}';
+		$split = $factory->create()->parse( $splitSource, Title::newFromText( 'EQL synthetic split Drolvarg' ), ParserOptions::newFromAnon() );
+		$splitDocument = new DOMDocument();
+		$previous = libxml_use_internal_errors( true );
+		$splitDocument->loadHTML( '<?xml encoding="UTF-8">' . $split->getRawText() );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous );
+		$splitXpath = new DOMXPath( $splitDocument );
+		$splitCards = $splitXpath->query( '//*[' . $class( 'eql-mobpage-loot' ) . ']' );
+		$this->check( $splitCards->length === 2 && str_contains( $splitCards[0]->textContent, 'EQL synthetic normal relic' ) && !str_contains( $splitCards[0]->textContent, 'EQL synthetic raid relic' ) && str_contains( $splitCards[1]->textContent, 'EQL synthetic raid relic' ) && !str_contains( $splitCards[1]->textContent, 'EQL synthetic normal relic' ), 'Normal and raid generated drops must stay inside their respective native loot cards.' );
 		$lookup->empty = true;
 		$empty = $factory->create()->parse( $npcSource, Title::newFromText( 'EQL synthetic empty Drolvarg' ), ParserOptions::newFromAnon() );
 		$this->check( !str_contains( $empty->getRawText(), 'eql-recorded-loot' ) && $empty->getCacheExpiry() <= 300, 'An empty reverse result must hide the panel while retaining a short cache lifetime for newly linked items.' );
+		$itemLookup = new class {
+			public int $calls = 0;
+			public function find( Title $title, array $analysis ): array {
+				$this->calls++;
+				return [ 'sources' => [
+					[ 'npc' => 'EQL synthetic normal guardian', 'zone' => 'EQL synthetic cavern', 'instance' => 'normal', 'lootKind' => 'known' ],
+					[ 'npc' => 'EQL synthetic raid guardian', 'zone' => 'EQL synthetic cavern', 'instance' => 'raid', 'lootKind' => 'common' ]
+				], 'complete' => true, 'warnings' => [] ];
+			}
+		};
+		EqlNpcLootRenderer::$itemLookupFactory = static fn () => $itemLookup;
+		$itemTitle = Title::newFromText( 'EQL synthetic later relic' );
+		$itemSource = '<onlyinclude>{{Itempage|itemname=EQL synthetic later relic|statsblock=HP: 1|dropsfrom=}}</onlyinclude>';
+		$itemOutput = $factory->create()->parse( $itemSource, $itemTitle, ParserOptions::newFromAnon() );
+		$itemHtml = $itemOutput->getRawText();
+		$this->check( $itemLookup->calls === 1 && str_contains( $itemHtml, 'Drops From' ) && str_contains( $itemHtml, 'EQL synthetic normal guardian' ) && str_contains( $itemHtml, 'EQL synthetic raid guardian' ), 'A later-created item must display existing NPC loot relationships inside native Drops From.' );
+		$this->check( str_contains( $itemHtml, 'Raid Instance' ) && $itemOutput->getCacheExpiry() <= 300, 'Reciprocal item sources must retain normal/raid scope and a bounded fallback cache.' );
+		$itemPst = $factory->create()->preSaveTransform( $itemSource, $itemTitle, $anonymous, ParserOptions::newFromAnon() );
+		$this->check( $itemPst === $itemSource && $itemLookup->calls === 1, 'Reciprocal item sources must never be persisted by the pre-save transform.' );
+		$oldItemOutput = clone $itemOutput;
+		$oldItemOutput->setExtensionData( EqlNpcLootRenderer::GUARD, null );
+		$this->check( EqlNpcLootRenderer::onRejectParserCacheValue( $oldItemOutput, $pageFactory->newFromTitle( $itemTitle ), $cacheOptions ) === false, 'Old item-containing parser cache entries must refresh once for reciprocal sources.' );
+		$this->check( EqlNpcLootRenderer::onRejectParserCacheValue( $itemOutput, $pageFactory->newFromTitle( $itemTitle ), $cacheOptions ) !== false, 'Fresh reciprocal item output must remain cacheable.' );
+		EqlNpcLootRenderer::$itemLookupFactory = null;
 		if ( $this->hasOption( 'output' ) ) {
 			$this->check( file_put_contents( $this->getOption( 'output' ), $html ) === strlen( $html ), 'Could not write the optional private synthetic HTML.' );
 		}

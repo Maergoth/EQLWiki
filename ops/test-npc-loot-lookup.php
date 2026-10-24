@@ -56,10 +56,14 @@ namespace {
 		public array $entries = [];
 		public int $now = 0;
 		public int $hits = 0;
+		public array $checkKeys = [];
 		public function makeKey( ...$parts ) { return implode( ':', $parts ); }
-		public function getWithSetCallback( $key, $ttl, $callback ) {
-			if ( isset( $this->entries[$key] ) && $this->entries[$key]['until'] > $this->now ) { $this->hits++; return $this->entries[$key]['value']; }
-			$value = $callback( false, $ttl ); $this->entries[$key] = [ 'until' => $this->now + $ttl, 'value' => $value ]; return $value;
+		public function touchCheckKey( $key ) { $this->checkKeys[$key] = ( $this->checkKeys[$key] ?? 0 ) + 1; }
+		public function getWithSetCallback( $key, $ttl, $callback, $options = [] ) {
+			checkNpcLookup( count( $options['checkKeys'] ?? [] ) === 1, 'Discovery cache registers the affected NPC check key' );
+			$epoch = array_map( fn ( $key ) => $this->checkKeys[$key] ?? 0, $options['checkKeys'] );
+			if ( isset( $this->entries[$key] ) && $this->entries[$key]['until'] > $this->now && $this->entries[$key]['epoch'] === $epoch ) { $this->hits++; return $this->entries[$key]['value']; }
+			$value = $callback( false, $ttl ); $this->entries[$key] = [ 'until' => $this->now + $ttl, 'value' => $value, 'epoch' => $epoch ]; return $value;
 		}
 	}
 	class NpcLookupFixture {
@@ -81,7 +85,7 @@ namespace {
 	class NpcLookupDatabase {
 		public function __construct( private NpcLookupFixture $fixture ) {}
 		public function newSelectQueryBuilder() { return new NpcLookupQuery( $this->fixture ); }
-		public function buildStringCast( $field ) { return 'CAST(' . $field . ' AS CHAR)'; }
+		public function buildStringCast( $field ) { return 'CAST(' . $field . ' AS BINARY)'; }
 		public function addQuotes( $value ) { return "'" . str_replace( "'", "''", $value ) . "'"; }
 	}
 	class NpcLookupQuery {
@@ -105,6 +109,10 @@ namespace {
 			if ( $this->table !== 'redirect' ) { checkNpcLookup( isset( $this->joins['item_category'] ) && ( $this->conditions['item_category.cl_target_id'] ?? null ) === '14:Items', 'Only the Items category enters backlink and zone candidate limits' ); }
 			if ( $this->table === 'categorylinks' ) { checkNpcLookup( isset( $this->conditions['categorylinks.cl_target_id'] ) && !isset( $this->conditions['cl_target_id'] ) && str_contains( $this->joins['page'][1], 'categorylinks.cl_from' ), 'Multiple category joins qualify both their conditions and source-column join' ); }
 			$caseNames = null; if ( $this->table === 'categorylinks' ) { checkNpcLookup( isset( $this->joins['pagelinks'], $this->joins['linktarget'] ) && isset( $this->conditions['linktarget.lt_namespace'] ), 'Zone fallback only scans item links to bounded NPC names' ); foreach ( $this->conditions as $condition ) { if ( is_string( $condition ) && str_starts_with( $condition, 'LOWER(' ) ) { preg_match_all( "/'((?:[^']|'')*)'/", $condition, $values ); $caseNames = array_map( static fn ( $value ) => str_replace( "''", "'", $value ), $values[1] ); } } checkNpcLookup( is_array( $caseNames ) && count( $caseNames ) > 0 && count( $caseNames ) <= 60, 'Case fallback has a bounded quoted name set' ); }
+			if ( $this->table === 'categorylinks' ) {
+				$folding = array_values( array_filter( $this->conditions, static fn ( $value ) => is_string( $value ) && str_starts_with( $value, 'LOWER(' ) ) );
+				checkNpcLookup( str_contains( $folding[0], 'AS CHAR CHARACTER SET utf8mb4' ), 'Binary link-title storage must be converted to Unicode text before folding case' );
+			}
 			$rows = [];
 			foreach ( $this->fixture->pages as $name => $page ) {
 				if ( $this->table === 'redirect' ) { $accept = isset( $page['redirect'] ) && str_replace( ' ', '_', $page['redirect'] ) === $this->conditions['rd_title']; }
@@ -120,6 +128,7 @@ namespace {
 	}
 	require __DIR__ . '/../extensions/DynamicZoneList/NpcLootWikitext.php';
 	require __DIR__ . '/../extensions/DynamicZoneList/NpcLootLookup.php';
+	require __DIR__ . '/../extensions/DynamicZoneList/NpcLootInvalidation.php';
 	$analysis = [ 'names' => [ 'Later Guardian' ], 'zones' => [ 'Synthetic Vale' ], 'authoredItems' => [] ];
 	$f = new NpcLookupFixture(); $f->item( 'Early Relic', 'Later Guardian' ); $f->page( 'Later Guardian', '{{Namedmobpage|name=Later Guardian}}' );
 	$result = $f->lookup()->find( $f->title( 'Later Guardian' ), $analysis ); checkNpcLookup( array_column( $result['items'], 'title' ) === [ 'Early Relic' ] && $result['complete'], 'A manually created later NPC finds the already-published item' );
@@ -138,5 +147,7 @@ namespace {
 	$i = new NpcLookupFixture(); $i->page( 'Fallback Guardian', '{{Namedmobpage|name=Fallback Guardian}}' ); $i->item( 'Old Item Relic', 'FALLBACK GUARDIAN' ); for ( $n = 0; $n < 200; $n++ ) { $i->page( 'Recent Nonitem ' . $n, 'Prose', [ 'categories' => [ 'Synthetic Vale' ] ] ); $i->item( 'Unrelated Recent Relic ' . $n, 'Some Other Mob' ); } $result = $i->lookup()->find( $i->title( 'Fallback Guardian' ), $emptyAnalysis ); checkNpcLookup( array_column( $result['items'], 'title' ) === [ 'Old Item Relic' ] && $result['complete'], 'Neither non-item pages nor unrelated items can crowd an older matching item out of the fallback limit' );
 	$j = new NpcLookupFixture(); $j->page( 'Many Guardian', '{{Namedmobpage|name=Many Guardian}}' ); for ( $n = 0; $n < 170; $n++ ) { $j->item( 'Many Relic ' . $n, 'Many Guardian' ); } $result = $j->lookup()->find( $j->title( 'Many Guardian' ), $emptyAnalysis ); checkNpcLookup( count( $result['items'] ) === 50 && !$result['complete'] && $result['warnings'], 'Candidate/output caps explicitly report incomplete results' ); checkNpcLookup( $j->revisionReads <= 320, 'Public revision reads remain bounded' );
 	$k = new NpcLookupFixture(); $k->page( 'Failure Guardian', '{{Namedmobpage|name=Failure Guardian}}' ); $k->fail = true; $result = $k->lookup()->find( $k->title( 'Failure Guardian' ), $emptyAnalysis ); checkNpcLookup( $result['items'] === [] && !$result['complete'] && $result['warnings'], 'Replica failures never silently assert that no drops exist' );
+	$l = new NpcLookupFixture(); $l->page( 'Purge Guardian', '{{Namedmobpage|name=Purge Guardian}}' ); $l->lookup()->find( $l->title( 'Purge Guardian' ), $emptyAnalysis ); $l->item( 'New Cross Link', 'Purge Guardian' ); $l->cache->touchCheckKey( EqlNpcLootInvalidation::checkKey( $l->cache, $l->title( 'Purge Guardian' ) ) ); $result = $l->lookup()->find( $l->title( 'Purge Guardian' ), $emptyAnalysis ); checkNpcLookup( array_column( $result['items'], 'title' ) === [ 'New Cross Link' ], 'Touching the NPC check key discovers a new cross-link without waiting for TTL' );
+	$tooMany = $emptyAnalysis; $tooMany['authoredItems'] = array_merge( array_map( static fn ( $n ) => 'Authored Relic ' . $n, range( 1, 100 ) ), [ 'New Cross Link' ] ); $result = $l->lookup()->find( $l->title( 'Purge Guardian' ), $tooMany ); checkNpcLookup( $result['items'] === [] && !$result['complete'], 'An incomplete authored exclusion set never adds potentially duplicated items' );
 	echo "NPC reverse loot lookup: $checks synthetic checks passed (public visibility, item/category intersections, late creation, aliases/case collisions, authored loot, contexts, bounded cache/reads and failures).\n";
 }

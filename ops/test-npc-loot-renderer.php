@@ -94,18 +94,20 @@ $lookup->result = [ 'items' => [ [ 'title' => 'Synthetic Reverse Relic', 'contex
 $parser = new SyntheticNpcLootParser( new SyntheticNpcLootTitle( 'A Synthetic Drolvarg' ) );
 $text = $npcSource;
 EqlNpcLootRenderer::onParserBeforeInternalParse( $parser, $text, null );
-npcLootExpect( str_starts_with( $text, $npcSource ), 'Rendering must only append to the original source.' );
+npcLootExpect( str_starts_with( $text, "Lead text\n{{Namedmobpage|name=A Synthetic Drolvarg|known_loot=* [[Synthetic Authored Relic]]" ) && str_ends_with( $text, "\n== Notes ==\nKeep this source intact." ), 'Only the native loot field may change in parse input; surrounding source must remain intact.' );
+npcLootExpect( in_array( 'Synthetic Reverse Relic', EqlNpcLootWikitext::analyseNpcPage( $text )['authoredItems'], true ), 'Generated item transclusions must be inside the native loot field.' );
+npcLootExpect( !str_contains( strtolower( $text ), 'additional recorded drops' ), 'Do not create a separate loot section outside the native card.' );
 npcLootExpect( substr_count( $text, '{{:Synthetic_Reverse_Relic}}' ) === 1, 'Use one normal item transclusion, retaining template dependencies and hovers.' );
 npcLootExpect( str_contains( $text, 'Normal Zone' ) && str_contains( $text, 'Raid Zone' ), 'Retain both source instance labels.' );
 npcLootExpect( str_contains( $text, 'Synthetic Cavern' ), 'Retain the source zone.' );
-npcLootExpect( str_contains( strtolower( $text ), 'current published' ), 'Explain that reverse drops reflect current item data, including old mob revisions.' );
+npcLootExpect( str_contains( $text, 'title="From current published item drop sources"' ), 'Label generated rows as current published item data, including when viewing older NPC revisions.' );
 npcLootExpect( count( $lookup->calls ) === 1, 'Exactly one lookup should run per root parse.' );
 npcLootExpect( in_array( 'Synthetic Authored Relic', $lookup->calls[0][1]['authoredItems'], true ), 'Pass authored loot to the lookup for deduplication.' );
 npcLootExpect( $parser->output->ttl <= 300, 'NPC output must have bounded parser cache expiry.' );
 npcLootExpect( $parser->output->getExtensionData( EqlNpcLootRenderer::MARKER ) === true, 'Mark eligible NPC output for downstream cache handling.' );
 $once = $text;
 EqlNpcLootRenderer::onParserBeforeInternalParse( $parser, $text, null );
-npcLootExpect( $text === $once && count( $lookup->calls ) === 1, 'Repeated or recursive hooks must not add duplicate panels or queries.' );
+npcLootExpect( $text === $once && count( $lookup->calls ) === 1, 'Repeated or recursive hooks must not add duplicate loot rows or queries.' );
 
 // The guard must be set before an early return on an ordinary page. Otherwise a
 // nested tag parse containing a mob template can pollute unrelated root output.
@@ -176,7 +178,7 @@ foreach ( [ new SyntheticNpcLootOptions( true ), new SyntheticNpcLootOptions( fa
 $userPage = new SyntheticNpcLootWikiPage( new SyntheticNpcLootTitle( 'Synthetic user page', 2 ) );
 npcLootExpect( EqlNpcLootRenderer::onRejectParserCacheValue( $oldNpcOutput, $userPage, $options ) !== false, 'Non-main cache entries must not be invalidated by the feature rollout.' );
 $oldOrdinaryOutput = new SyntheticNpcLootOutput();
-$oldOrdinaryOutput->links = [ [ 'link' => new SyntheticNpcLootTitle( 'Itempage', NS_TEMPLATE ) ] ];
+$oldOrdinaryOutput->links = [ [ 'link' => new SyntheticNpcLootTitle( 'Spellpage', NS_TEMPLATE ) ] ];
 npcLootExpect( EqlNpcLootRenderer::onRejectParserCacheValue( $oldOrdinaryOutput, $npcPage, $options ) !== false, 'An old unrelated page cache remains valid.' );
 $oldOrdinaryOutput->links = [ [ 'link' => new SyntheticNpcLootTitle( 'Namedmobpage', NS_MAIN ) ] ];
 npcLootExpect( EqlNpcLootRenderer::onRejectParserCacheValue( $oldOrdinaryOutput, $npcPage, $options ) !== false, 'A same-named article dependency is not the NPC template.' );

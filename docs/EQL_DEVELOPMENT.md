@@ -292,15 +292,18 @@ extension; see the extension guide for safe rollback ordering.
 
 ## Automatic NPC recorded loot
 
-[`DynamicZoneList`'s NPC lookup](NPC_RECORDED_LOOT.md) supplements ordinary NPC
-read views from public item drop-source fields, including manually created pages.
-It does not edit either page or assign Common/Unique rarity. Run these bounded,
+[`DynamicZoneList`'s reciprocal lookup](NPC_RECORDED_LOOT.md) fills native NPC loot
+and item Drops From fields while rendering public authored relationships, including
+manual pages created in either order. Targeted old/new cache purges repeat after
+link updates. Stored wikicode and native Common/Unique fields remain intact. Run these bounded,
 synthetic checks without a database:
 
 ```sh
 php ops/test-npc-loot-source.php
 php ops/test-npc-loot-lookup.php
 php ops/test-npc-loot-renderer.php
+php ops/test-item-drop-lookup.php
+php ops/test-npc-loot-invalidation.php
 ```
 
 With a configured private local wiki, also run
