@@ -86,12 +86,44 @@ Totals use `total_` plus a canonical lowercase key:
 | Legacy fallbacks | `ac`, `atk` — suppressed when their explicit component fields are present |
 | Attributes | `str`, `sta`, `agi`, `dex`, `wis`, `int`, `cha` |
 | Resists | `sv_magic`, `sv_fire`, `sv_cold`, `sv_poison`, `sv_disease`, `sv_corruption` |
-| Optional observed/computed values | `hp_regen`, `mana_regen`, `end_regen`, `haste`, `velocity`, `primary_dps`, `secondary_dps`, `ranged_dps` |
+| Optional observed values | `hp_regen`, `mana_regen`, `end_regen`, `attack_speed`, `haste`, `velocity`, `primary_dps`, `secondary_dps`, `ranged_dps` |
+| Additional modifiers | `accuracy`, `avoidance`, `combat_effects`, `strikethrough`, `stun_resist`, `damage_shield`, `damage_shield_mitigation`, `dot_shielding`, `melee_shielding`, `spell_shielding` |
 
 A value is a finite decimal number, `?` for unknown, or a supplied estimate with
 trailing ` *`. The template performs no item scaling or game-stat calculations.
 It never infers DPS, velocity, caps, buffs or missing numbers. The single totals
-panel has Character and Stats/resists groups, with no base/gear/current columns.
+panel has Character and Stats/resists groups, with an optional Additional
+modifiers group and no base/gear/current columns. Starting with Eye of Zomm
+0.9.7, exported totals come only from the reviewed fully equipped, unbuffed
+stat reading. Equipment/catalog values and old unequipped evidence are never
+added to those totals. HP, Mana and Endurance retain only the observed maximum
+values. Earlier hand-edited snapshots can still carry an explicit ` *` marker.
+
+The app serializes the following observed keys to fixed parameters. They are
+displayed verbatim: `0` remains zero, an explicit `?` stays unknown, and an
+omitted modifier produces no row. Older sheets without these fields do not gain
+an empty group. `total_accuracy` is the Additional Modifiers accuracy bonus;
+`total_atk_accuracy` remains the separate ATK Accuracy component. An observed
+`total_attack_speed` takes precedence over the older `total_haste` display.
+
+| App stat key | Template parameter | Display label |
+| --- | --- | --- |
+| `ACCURACY` | `total_accuracy` | Accuracy bonus |
+| `AVOIDANCE` | `total_avoidance` | Avoidance |
+| `COMBAT_EFFECTS` | `total_combat_effects` | Combat effects |
+| `STRIKETHROUGH` | `total_strikethrough` | Strikethrough |
+| `STUN_RESIST` | `total_stun_resist` | Stun resist |
+| `DAMAGE_SHIELD` | `total_damage_shield` | Damage shield |
+| `DAMAGE_SHIELD_MITIGATION` | `total_damage_shield_mitigation` | Damage shield mitigation |
+| `DOT_SHIELDING` | `total_dot_shielding` | DoT shielding |
+| `MELEE_SHIELDING` | `total_melee_shielding` | Melee shielding |
+| `SPELL_SHIELDING` | `total_spell_shielding` | Spell shielding |
+
+This extends only optional display parameters within schema 1. The template
+markers, skin module and app capability probe are unchanged; no extension or
+database schema change is needed. Publishing the reviewed main template is a
+separate guarded content operation after release coordination, not a result of
+pushing its generator to Git.
 
 The 24 slot prefixes are `ear1`, `neck`, `face`, `head`, `ear2`, `finger1`,
 `wrist1`, `arms`, `hands`, `wrist2`, `finger2`, `shoulders`, `chest`, `back`,
@@ -103,11 +135,16 @@ title), `_tier` (0–10), `_icon` (existing numeric icon ID), `_stats`, and
 maps its zero-based indexes to them. Known empty sockets display Empty. Unknown
 capacity emits no coverage warning. Any known item may be an augment; no
 equipment-slot restriction is imposed on socket contents.
+The app exports only known canonical wiki gear/augment identities. Unresolved
+inventory-export names or IDs do not establish a page: leave those slots empty
+in the public sheet and resolve them in the app before sharing.
 
 `_stats` contains reviewed actual-tier `Label: number` / `Label: ?` lines,
 optionally marked ` *`, separated by generated `<br>`. App serialization must
 validate numeric values/icon IDs and canonical link titles and entity-escape
 ampersands, angle brackets, quotes, braces, pipes, brackets and tildes in text.
+Underscores in user text must also be escaped so behavior switches such as
+`__NOINDEX__` and `__TOC__` remain literal text.
 This prevents parameter/template injection and accidental signature expansion.
 Hand editing remains ordinary sanitized MediaWiki wikitext, not trusted raw HTML.
 
@@ -149,7 +186,9 @@ NODE_PATH=/private/jsdom/node_modules node ops/test-character-sheet.cjs
 The PHP check requires an existing private MediaWiki runtime/database. It injects
 both template revisions in memory and runs actual MediaWiki parsing, checks 24
 slots per sheet, same-name/different-server sheets, captured item/augment links,
-known empty sockets, unknown/estimate preservation, AC/ATK separation, module
+known empty sockets, unknown/estimate preservation, distinct ATK Accuracy and
+accuracy bonus, all ten observed modifiers, legacy omissions, Attack speed
+precedence, AC/ATK separation, module
 registration and absence of duplicate TOC headings. It saves no wiki pages.
 `--output=/private/synthetic.html` can retain only the synthetic parse for visual
 checks. The DOM test accepts that output via `--html`, checks independent
