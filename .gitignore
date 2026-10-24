@@ -54,3 +54,4 @@ node_modules/
 /.local/
 /eql_icons/
 /static/eql-icon-index/
+/skins/EQLImmersive/deployment-version.txt

@@ -5,6 +5,7 @@
     "description": "Immersive dark-fantasy theme for EverQuest Legends Wiki (optimized fork).",
     "type": "skin",
     "license-name": "GPL-2.0-or-later",
+    "callback": "EQLImmersive\\DeploymentAssets::onRegistration",
     "requires": {
         "MediaWiki": ">= 1.45"
     },
@@ -95,11 +96,15 @@
         }
     },
     "HookHandlers": {
+        "EQLDeploymentAssets": {
+            "class": "EQLImmersive\\DeploymentAssets"
+        },
         "EQLImmersiveHooks": {
             "class": "EQLImmersive\\Hooks"
         }
     },
     "Hooks": {
+        "OutputPageCheckLastModified": "EQLDeploymentAssets",
         "SkinTemplateNavigation::Universal": "EQLImmersiveHooks",
         "SkinBuildSidebar": "EQLImmersiveHooks",
         "BeforePageDisplay": "EQLImmersiveHooks",

@@ -7,6 +7,11 @@ RewriteCond %{HTTP_HOST} ^www\.eqlwiki\.com$ [NC]
 RewriteRule ^(.*)$ https://eqlwiki.com/$1 [R=301,L]
 RewriteRule ^/(/.*)?$ %{DOCUMENT_ROOT}/index.php [L]
 
+# Release-specific URLs share MediaWiki's native loader. Keep old release paths
+# working for cached documents and rollbacks; the original query is preserved.
+RewriteRule ^eql-assets/[a-f0-9]{40}/load\.php$ load.php [L]
+RewriteRule ^eql-assets/ - [R=404,L]
+
 
 # ============================================================
 # EQL_STATIC_ASSET_404_GUARD_V1
