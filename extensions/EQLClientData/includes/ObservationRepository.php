@@ -33,7 +33,7 @@ final class ObservationRepository {
         if ( !$this->enabled() ) { throw new RuntimeException( 'eoz-disabled' ); }
         if ( !$this->available() ) { throw new RuntimeException( 'eoz-schema-unavailable' ); }
         $db = $this->dbProvider->getPrimaryDatabase();
-        $db->startAtomic( __METHOD__ );
+        $db->startAtomic( __METHOD__, $db::ATOMIC_CANCELABLE );
         try {
             // One tiny global state row serializes quota checks and dedup races.
             $state = $db->newSelectQueryBuilder()->select( [ 'eos_events', 'eos_batches' ] )

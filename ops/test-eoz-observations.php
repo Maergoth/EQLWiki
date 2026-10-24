@@ -37,10 +37,11 @@ class FixtureConfig extends \MediaWiki\Config\Config {
     public function get( $key ) { return $this->values[$key]; }
 }
 class FixtureDB {
+    public const ATOMIC_CANCELABLE='cancelable';
     public array $tables = [ 'eql_eoz_state' => [ [ 'eos_id' => 1, 'eos_events' => 0, 'eos_batches' => 0 ] ], 'eql_eoz_batches' => [], 'eql_eoz_observations' => [] ];
     public array $saved = [];public int $writes = 0;public bool $locked = false;public bool $fail = false;
     public function tableExists( $table, $caller ) { return isset( $this->tables[$table] ); }
-    public function startAtomic( $caller ) { $this->saved = $this->tables; }
+    public function startAtomic( $caller,$cancelable=null ) { check( $cancelable===self::ATOMIC_CANCELABLE,'Expected API refusals must use a cancelable atomic section.' );$this->saved = $this->tables; }
     public function endAtomic( $caller ) { check( $this->locked, 'Quota and duplicate processing must lock the common state row.' );$this->locked = false; }
     public function cancelAtomic( $caller ) { $this->tables = $this->saved;$this->locked = false; }
     public function newSelectQueryBuilder() { return new class( $this ) {

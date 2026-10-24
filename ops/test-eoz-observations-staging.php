@@ -16,6 +16,7 @@ class EQLTestStagingObservations extends Maintenance {
         if ( $config->get('Server')!=='https://test.eqlwiki.com'||$db->getType()!=='mysql'||$db->getDBname()!==$this->getOption('expected-db')||!$this->hasOption('transaction-test') ) { $this->fatalError('Only the exact reviewed staging database may run this explicit rollback test.'); }
         $user=$services->getUserFactory()->newFromName((string)$this->getOption('user'));
         if ( !$user||!$user->isNamed()||!$user->getId() ) { $this->fatalError('The reviewed operator account must already exist.'); }
+        if ( !$services->getActorStore()->findActorId($user,$db) ) { $this->fatalError('The existing operator must already have an actor row; this test creates no account/actor.'); }
         $repository=$services->getService('EQLClientData.ObservationRepository');
         if ( !$repository->enabled()||!$repository->available() ) { $this->fatalError('Reviewed schema and collection must already be activated on staging.'); }
         $check=static function($condition,$message) { if(!$condition)throw new RuntimeException($message); };
