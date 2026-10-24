@@ -6,7 +6,7 @@ use MediaWiki\Parser\ParserOutputLinkTypes;
 /** Read-only reciprocal loot on NPC/item article views; never changes page source. */
 class EqlNpcLootRenderer {
     public const MARKER = 'eql-npc-source-loot';
-    public const GUARD = 'eql-npc-source-loot-scanned-v5';
+    public const GUARD = 'eql-npc-source-loot-scanned-v6';
     public const CACHE_SECONDS = 300;
 
     /** @var callable|null Source-only fixtures may inject a lookup without writing wiki pages. */

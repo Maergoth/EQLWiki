@@ -56,6 +56,14 @@ or update both producer and consumer when changing database templates.
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
 
+NPC Known/Unique and Common Loot lists use stable CSS grid cells in `mobpage.css`,
+with a single column below 900px. Do not restore balanced CSS columns: opening an
+embedded item hover can rebalance them and move the item under the pointer.
+Only direct loot lists are grids, preserving nested item tooltip content. The
+shared `.hbdiv` wrapper stays positioned before and during hover so both authored
+and generated item cards retain the same anchor. No database template publication
+is required for these layout rules.
+
 ## Header and personal todo list
 
 The actual site header stays at the top while scrolling, including on narrow

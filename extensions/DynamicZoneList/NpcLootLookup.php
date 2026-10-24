@@ -307,7 +307,7 @@ class EqlNpcLootLookup {
 			$key = $title->getDBkey();
 			if ( !array_key_exists( $key, $this->classificationMemo ) ) {
 				if ( count( $this->classificationMemo ) >= self::MAX_CLASSIFICATION_NAMES || count( $this->publicMemo ) >= self::MAX_PUBLIC_READS ) { return 'known'; }
-				$this->classificationMemo[$key] = $title->exists() ? $this->canonical( $title ) : false;
+				$this->classificationMemo[$key] = $title->exists() ? $this->canonical( $title, true ) : false;
 			}
 			$canonical = $this->classificationMemo[$key];
 			if ( $canonical === false ) {
@@ -326,14 +326,19 @@ class EqlNpcLootLookup {
 		return count( $canonicalIds ) > 5 ? 'common' : 'known';
 	}
 
-	private function canonical( Title $title ): ?Title {
+	// Optional rarity probes must not claim that verified loot is missing.
+	// Negative memo entries still report a failure if reused for actual loot.
+	private function canonical( Title $title, bool $classificationOnly = false ): ?Title {
 		$key = $title->getDBkey();
 		if ( array_key_exists( $key, $this->resolveMemo ) ) {
+			if ( $this->resolveMemo[$key] === null && !$classificationOnly ) {
+				$this->incomplete( 'Some source redirects could not be resolved; additional drops may exist.' );
+			}
 			return $this->resolveMemo[$key];
 		}
 		$seen = [];
 		for ( $depth = 0; $depth < 8; $depth++ ) {
-			if ( !$this->validTitle( $title ) || isset( $seen[$title->getDBkey()] ) || !$this->publicText( $title ) ) {
+			if ( !$this->validTitle( $title ) || isset( $seen[$title->getDBkey()] ) || !$this->publicText( $title, $classificationOnly ) ) {
 				return $this->resolveMemo[$key] = null;
 			}
 			$seen[$title->getDBkey()] = true;
@@ -343,13 +348,16 @@ class EqlNpcLootLookup {
 			}
 			$title = $this->services->getTitleFactory()->newFromLinkTarget( $target );
 		}
-		$this->incomplete( 'Some source redirects could not be resolved; additional drops may exist.' );
+		if ( !$classificationOnly ) { $this->incomplete( 'Some source redirects could not be resolved; additional drops may exist.' ); }
 		return $this->resolveMemo[$key] = null;
 	}
 
-	private function publicText( Title $title ): ?array {
+	private function publicText( Title $title, bool $classificationOnly = false ): ?array {
 		$key = $title->getDBkey();
 		if ( array_key_exists( $key, $this->publicMemo ) ) {
+			if ( $this->publicMemo[$key] === null && !$classificationOnly ) {
+				$this->incomplete( 'Some source content was not publicly readable; additional drops may exist.' );
+			}
 			return $this->publicMemo[$key];
 		}
 		if ( count( $this->publicMemo ) >= self::MAX_PUBLIC_READS ) {
@@ -357,18 +365,18 @@ class EqlNpcLootLookup {
 			return null;
 		}
 		if ( !$this->validTitle( $title ) || !$title->exists() || !$this->canRead( $title ) ) {
-			$this->incomplete( 'Some source pages were not publicly readable; additional drops may exist.' );
+			if ( !$classificationOnly ) { $this->incomplete( 'Some source pages were not publicly readable; additional drops may exist.' ); }
 			return $this->publicMemo[$key] = null;
 		}
 		$revision = $this->services->getRevisionLookup()->getRevisionByTitle( $title );
 		$content = $revision ? $revision->getContent( 'main', RevisionRecord::FOR_PUBLIC ) : null;
 		if ( !$content || $content->getModel() !== 'wikitext' || !method_exists( $content, 'getText' ) ) {
-			$this->incomplete( 'Some source content was not publicly readable; additional drops may exist.' );
+			if ( !$classificationOnly ) { $this->incomplete( 'Some source content was not publicly readable; additional drops may exist.' ); }
 			return $this->publicMemo[$key] = null;
 		}
 		$text = $content->getText();
 		if ( strlen( $text ) > self::MAX_BYTES ) {
-			$this->incomplete( 'Some source pages exceeded the lookup limit; additional drops may exist.' );
+			if ( !$classificationOnly ) { $this->incomplete( 'Some source pages exceeded the lookup limit; additional drops may exist.' ); }
 			return $this->publicMemo[$key] = null;
 		}
 		$this->bytesRead += strlen( $text );
