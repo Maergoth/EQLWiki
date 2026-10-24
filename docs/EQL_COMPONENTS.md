@@ -207,7 +207,10 @@ skin's `skins.EQLImmersive.characterSheet` module. A ParserAfterParse hook adds
 the module only for rendered schema-1 markup, including unsaved API previews.
 Each character expands independently; supplied tier-specific gear/augment stats
 and links remain distinct from the base-item AjaxHoverHelper. No historical
-Magelo extension is enabled. See [the contract, separate guarded publication and
+Magelo extension is enabled. Optional totals include ten observed Additional
+Modifiers; accuracy bonus is distinct from ATK Accuracy. The template only
+displays the supplied equipped-stat reading and never adds item/catalog stats.
+See [the contract, separate guarded publication and
 checks](CHARACTER_SHEETS.md); Git deployment does not publish the templates.
 
 ## Item and spell levels

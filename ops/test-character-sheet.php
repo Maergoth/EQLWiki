@@ -52,7 +52,11 @@ class EQLTestCharacterSheet extends Maintenance {
                     $links = $xpath->query( './/*[' . $class( 'eql-character-augments' ) . ']//a', $inspect );
                     $targets = [];foreach ( $links as $link ) { $targets[] = $linkTitle( $link ); }
                     $this->check( in_array( $augment['title'], $targets, true ), 'A canonical weapon augment in boots must preserve its exact apostrophe/ampersand/Unicode destination.' );
-                    $this->check( str_contains( $inspect->textContent, 'Socket 1: Empty' ) && str_contains( $inspect->textContent, 'Socket 3: Empty' ) && !str_contains( $inspect->textContent, 'Socket 2: Empty' ), 'Zero-based augment index 1 must occupy human socket 2.' );
+                }
+                $occupied = array_column( $item['augments'], 'index' );
+                for ( $socket = 0; $socket < 8; $socket++ ) {
+                    $empty = $item['augmentSlots'] !== null && $socket < $item['augmentSlots'] && !in_array( $socket, $occupied, true );
+                    $this->check( str_contains( $inspect->textContent, 'Socket ' . ( $socket + 1 ) . ': Empty' ) === $empty, 'Known dense/sparse socket indexes and empty capacity must be preserved exactly.' );
                 }
             }
             $this->check( $xpath->query( './/*[' . $class( 'eql-character-slot-label' ) . ' and text()="Any 1"]', $sheet )->length === 1 && $xpath->query( './/*[' . $class( 'eql-character-slot-label' ) . ' and text()="Any 2"]', $sheet )->length === 1, 'Both Any slots must render once.' );
@@ -60,6 +64,17 @@ class EQLTestCharacterSheet extends Maintenance {
             foreach ( [ 'HP' => 'HP', 'MP' => 'Mana', 'END' => 'Endurance' ] as $key => $label ) {
                 $value = $expected['totals'][$key]['value'];
                 $this->check( $xpath->query( './/*[' . $class( 'eql-character-totals' ) . ']//dt[text()="' . $label . '"]/following-sibling::dd', $sheet )[0]->textContent === (string)$value, 'Actual exporter must show one selected maximum resource, excluding Current duplicates.' );
+            }
+            $valuesByLabel = [];
+            foreach ( $xpath->query( './/*[' . $class( 'eql-character-totals' ) . ']//dt', $sheet ) as $label ) {
+                $key = str_replace( "\u{00a0}", ' ', $label->textContent );
+                $valuesByLabel[$key][] = $xpath->query( './dd', $label->parentNode )[0]->textContent;
+            }
+            foreach ( [ 'ATK_ACCURACY' => 'Accuracy', 'ACCURACY' => 'Accuracy bonus', 'AVOIDANCE' => 'Avoidance', 'COMBAT_EFFECTS' => 'Combat effects', 'STRIKETHROUGH' => 'Strikethrough', 'STUN_RESIST' => 'Stun resist', 'DAMAGE_SHIELD' => 'Damage shield', 'DAMAGE_SHIELD_MITIGATION' => 'Damage shield mitigation', 'DOT_SHIELDING' => 'DoT shielding', 'MELEE_SHIELDING' => 'Melee shielding', 'SPELL_SHIELDING' => 'Spell shielding', 'ATTACK_SPEED' => 'Attack speed %' ] as $key => $label ) {
+                if ( !array_key_exists( $key, $expected['totals'] ) ) { continue; }
+                $record = $expected['totals'][$key];
+                $value = $record['value'] === null ? '?' : (string)$record['value'] . ( $record['complete'] ? '' : ' *' );
+                $this->check( ( $valuesByLabel[$label] ?? [] ) === [ $value ], 'Actual serializer modifier must retain its observed value within the correct server: ' . $key );
             }
             $caption = $xpath->query( './/*[' . $class( 'eql-character-caption' ) . ']', $sheet )[0];
             foreach ( explode( "\n", $expected['caption'] ) as $line ) { $this->check( str_contains( $caption->textContent, $line ), 'Caption text must roundtrip literally without template, signature or HTML interpretation.' ); }
@@ -85,10 +100,12 @@ class EQLTestCharacterSheet extends Maintenance {
         $source = '{{Character_sheet|name=Synthetic &amp; Reader|server=Fixture One|level=60|classes=WAR / CLR|aa=123'
             . '|total_hp=1234|total_mp=?|total_end=456 *|total_ac_mitigation=71|total_ac_mitigation_softcap=43'
             . '|total_ac_evasion=127|total_atk_offense=46|total_atk_accuracy=107|total_str=99|total_haste=12'
+            . '|total_attack_speed=23|total_accuracy=37|total_avoidance=24|total_combat_effects=0|total_strikethrough=7'
+            . '|total_stun_resist=8|total_damage_shield=19|total_damage_shield_mitigation=?|total_dot_shielding=4.5|total_melee_shielding=11|total_spell_shielding=12'
             . '|feet_item=Synthetic Boots|feet_tier=3|feet_stats=HP: 133<br>STR: 7'
             . '|feet_augment_slots=2|feet_augment_1_item=Synthetic Sword|feet_augment_1_tier=2|feet_augment_1_stats=HP: 5'
             . '}}'
-            . "\n{{Character_sheet|name=Synthetic &amp; Reader|server=Fixture Two|level=42|total_hp=800|total_ac=55|head_item=Synthetic Cap|head_tier=0|head_stats=HP: ?}}";
+            . "\n{{Character_sheet|name=Synthetic &amp; Reader|server=Fixture Two|level=42|total_hp=800|total_ac=55|total_haste=0|head_item=Synthetic Cap|head_tier=0|head_stats=HP: ?}}";
         $input = null;
         if ( $this->hasOption( 'input' ) ) {
             $json = file_get_contents( $this->getOption( 'input' ) );
@@ -135,6 +152,18 @@ class EQLTestCharacterSheet extends Maintenance {
         foreach ( [ '1234', '456 *', 'Mitigation AC', 'AC softcap', 'Evasion AC', 'Offense', 'Accuracy' ] as $expected ) {
             $this->check( str_contains( $totals, $expected ), 'Totals must preserve distinct values and uncertainty: ' . $expected );
         }
+        $valuesByLabel = [];
+        foreach ( $xpath->query( './/*[' . $class( 'eql-character-totals' ) . ']//dt', $sheets[0] ) as $label ) {
+            $key = str_replace( "\u{00a0}", ' ', $label->textContent );
+            $valuesByLabel[$key][] = $xpath->query( './dd', $label->parentNode )[0]->textContent;
+        }
+        foreach ( [ 'Accuracy' => '107', 'Accuracy bonus' => '37', 'Avoidance' => '24', 'Combat effects' => '0', 'Strikethrough' => '7', 'Stun resist' => '8', 'Damage shield' => '19', 'Damage shield mitigation' => '?', 'DoT shielding' => '4.5', 'Melee shielding' => '11', 'Spell shielding' => '12', 'Attack speed %' => '23' ] as $label => $expected ) {
+            $this->check( ( $valuesByLabel[$label] ?? [] ) === [ $expected ], 'Observed modifier must retain its own value, zero or unknown without calculation: ' . $label );
+        }
+        $this->check( !isset( $valuesByLabel['Haste %'] ), 'Observed Attack speed takes precedence over legacy Haste without showing a duplicate.' );
+        $legacyHaste = $xpath->query( './/dt[starts-with(text(),"Haste")]/following-sibling::dd', $sheets[1] );
+        $this->check( $legacyHaste->length === 1 && $legacyHaste[0]->textContent === '0', 'Legacy Haste remains available and preserves a known zero when Attack speed is omitted.' );
+        $this->check( $xpath->query( './/*[' . $class( 'eql-character-group-heading' ) . ' and text()="Additional modifiers"]', $sheets[0] )->length === 1 && $xpath->query( './/*[' . $class( 'eql-character-group-heading' ) . ' and text()="Additional modifiers"]', $sheets[1] )->length === 0, 'Additional modifiers appear only when supplied; old sheets keep their existing layout.' );
         $this->check( !str_contains( $totals, 'Current' ) && !str_contains( $totals, 'Maximum' ) && !str_contains( $totals, 'Fraction' ), 'Public resources display only their selected maximum values.' );
         $this->check( str_contains( $html, 'Socket 2: Empty' ) && !str_contains( $html, 'Socket 3: Empty' ), 'Known capacity renders exactly its unfilled sockets.' );
         $this->check( $xpath->query( '//a[starts-with(@title,"Synthetic Sword")]' )->length > 0, 'A socket can link any known item, including a weapon in boots.' );
