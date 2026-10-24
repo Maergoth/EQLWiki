@@ -27,15 +27,18 @@ assert.notEqual( toggles[ 0 ].getAttribute( 'aria-controls' ), toggles[ 1 ].getA
 toggles[ 0 ].click();
 assert.equal( toggles[ 0 ].getAttribute( 'aria-expanded' ), 'true' );
 assert.equal( toggles[ 1 ].getAttribute( 'aria-expanded' ), 'false', 'Each disclosure is independent.' );
-const item = document.querySelector( '.eql-character-item' );
+const item = htmlIndex<0?document.querySelector('.eql-character-item'):[...document.querySelectorAll('.eql-character-item')].find(node=>node.querySelector('.eql-character-augments a'));
+assert(item,'The fixture must include an equipment item with a known Exaltation link.');
+const originalInspect=item.querySelector('.eql-character-inspect-v1').textContent;
 item.getBoundingClientRect = () => ( { left: 970, right: 1020, top: 700 } );
 item.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true } ) );
 const popup = document.querySelector( '.eql-character-inspect-flyout' );
 assert( popup && !popup.hidden );
 assert.equal( popup.getAttribute( 'role' ), 'dialog' );assert.equal( popup.getAttribute( 'aria-label' ), 'Item details' );
-assert.match( popup.textContent, /HP:\s*133/ );
-assert( [ ...popup.querySelectorAll( 'a' ) ].some( a => a.href.includes( 'Synthetic_Sword' ) ), 'Known socket items retain clickable wiki destinations.' );
-assert.match( popup.textContent, /Socket 2: Empty/ );
+assert.equal(popup.textContent,originalInspect,'The complete scoped tier-specific stats/metadata/Exaltations are cloned without truncation.');
+if(htmlIndex<0){assert.match(popup.textContent,/HP:\s*133/);assert.match(popup.textContent,/Socket 2: Empty/);}
+const socketTarget=item.querySelector('.eql-character-augments a')?.getAttribute('href')||'/wiki/Synthetic_Sword';
+assert([...popup.querySelectorAll('a')].some(a=>a.getAttribute('href')===socketTarget),'Known socket items retain clickable wiki destinations.');
 document.body.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true } ) );assert.equal( popup.hidden, false, 'Crossing the gap must not immediately hide clickable item/augment links.' );assert.equal( timers.size, 1 );
 popup.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true } ) );assert.equal( timers.size, 0, 'Entering the inspect cancels deferred hiding.' );assert.equal( popup.hidden, false );
 document.body.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true } ) );const pendingHide = [ ...timers.values() ][ 0 ];timers.clear();pendingHide();assert.equal( popup.hidden, true, 'Leaving both trigger and inspect eventually dismisses it.' );

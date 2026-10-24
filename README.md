@@ -41,6 +41,7 @@ belong on the wiki unless they expose a code defect. Follow the
 | --- | --- | --- |
 | Skin and search | [`skins/EQLImmersive/`](skins/EQLImmersive/) | Vector-based layout, custom sidebar/TOC, title-prefix completion, era overlays, game-page styles, hovers, uploads, and page-specific modules |
 | Game metadata | [`extensions/EQLClientData/`](extensions/EQLClientData/) | Batched `eqlmetadata` API, era status, verification metadata, and spell override configuration |
+| Client/API contributions | [Client API guide](docs/CLIENT_API.md), [public page source](ops/api-documentation.wiki) | Standard attributed page creation/edit/upload plus optional separately activated private observation ingestion; no EoZ secret or bot proxy |
 | Item and spell calculations | [`ItemLevelSlider`](extensions/ItemLevelSlider/), [`SpellLevelSlider`](extensions/SpellLevelSlider/) | Browser controls that depend on the wiki's template markup |
 | Dynamic lists and item hovers | [`ClassSlotEquip`](extensions/ClassSlotEquip/), [`AjaxHoverHelper`](extensions/AjaxHoverHelper/), [`DynamicZoneList`](extensions/DynamicZoneList/), [`DynamicQuestItemList`](extensions/DynamicQuestItemList/) | Equipment lookup, special-page tooltip HTML, zone/category lists, and quest item lists |
 | Icon Finder and Icon List | [`extensions/EQL-Editor-Tools-Icon-Finder/`](extensions/EQL-Editor-Tools-Icon-Finder/), [`ops/host-bin/`](ops/host-bin/), [`icon-list.js`](skins/EQLImmersive/resources/icon-list.js) | Full uploaded-icon catalog, exact-artwork aliases, cached matching, and bounded browsing |
