@@ -149,5 +149,39 @@ namespace {
 	$k = new NpcLookupFixture(); $k->page( 'Failure Guardian', '{{Namedmobpage|name=Failure Guardian}}' ); $k->fail = true; $result = $k->lookup()->find( $k->title( 'Failure Guardian' ), $emptyAnalysis ); checkNpcLookup( $result['items'] === [] && !$result['complete'] && $result['warnings'], 'Replica failures never silently assert that no drops exist' );
 	$l = new NpcLookupFixture(); $l->page( 'Purge Guardian', '{{Namedmobpage|name=Purge Guardian}}' ); $l->lookup()->find( $l->title( 'Purge Guardian' ), $emptyAnalysis ); $l->item( 'New Cross Link', 'Purge Guardian' ); $l->cache->touchCheckKey( EqlNpcLootInvalidation::checkKey( $l->cache, $l->title( 'Purge Guardian' ) ) ); $result = $l->lookup()->find( $l->title( 'Purge Guardian' ), $emptyAnalysis ); checkNpcLookup( array_column( $result['items'], 'title' ) === [ 'New Cross Link' ], 'Touching the NPC check key discovers a new cross-link without waiting for TTL' );
 	$tooMany = $emptyAnalysis; $tooMany['authoredItems'] = array_merge( array_map( static fn ( $n ) => 'Authored Relic ' . $n, range( 1, 100 ) ), [ 'New Cross Link' ] ); $result = $l->lookup()->find( $l->title( 'Purge Guardian' ), $tooMany ); checkNpcLookup( $result['items'] === [] && !$result['complete'], 'An incomplete authored exclusion set never adds potentially duplicated items' );
-	echo "NPC reverse loot lookup: $checks synthetic checks passed (public visibility, item/category intersections, late creation, aliases/case collisions, authored loot, contexts, bounded cache/reads and failures).\n";
+	$policy = static function ( array $names, array $redirects = [], array $extraSources = [] ): array {
+		$fixture = new NpcLookupFixture();
+		foreach ( $names as $name ) { $fixture->page( $name, '{{Namedmobpage|name=' . $name . '}}' ); }
+		foreach ( $redirects as $alias => $target ) { $fixture->page( $alias, '#REDIRECT [[' . $target . ']]', [ 'redirect' => $target ] ); }
+		$fixture->item( 'Policy Relic', $names[0] );
+		$dropNames = array_merge( $names, array_keys( $redirects ), $extraSources );
+		$fixture->pages['Policy_Relic']['text'] = '{{Itempage|itemname=Policy Relic' . "\n|dropsfrom=\n[[Synthetic Vale]]\n" . implode( "\n", array_map( static fn ( $name ) => '* [[' . $name . ']]', $dropNames ) ) . "\n}}";
+		return [ $fixture, static fn ( array $authored = [] ) => $fixture->lookup()->find( $fixture->title( $names[0] ), [ 'names' => [], 'zones' => [], 'authoredItems' => $authored ] ) ];
+	};
+	$five = [ 'Policy Guardian', 'Keeper One', 'Keeper Two', 'Keeper Three', 'Keeper Four' ];
+	[ $policyFive, $findFive ] = $policy( $five );
+	$policyResult = $findFive();
+	checkNpcLookup( $policyResult['items'][0]['lootKind'] === 'known', 'Exactly five distinct monsters retain the existing Known/Unique default' );
+	[ $policySix, $findSix ] = $policy( array_merge( $five, [ 'Keeper Five' ] ) );
+	$policyResult = $findSix();
+	checkNpcLookup( $policyResult['items'][0]['lootKind'] === 'common', 'More than five distinct canonical item-source monsters default to Common Loot' );
+	$policyFive->pages['Policy_Relic']['text'] = substr( $policyFive->pages['Policy_Relic']['text'], 0, -2 ) . "\n=== Raid Instance ===\n[[Other Vale]]\n" . implode( "\n", array_map( static fn ( $name ) => '* [[' . $name . ']]', $five ) ) . "\n}}";
+	$policyResult = $findFive();
+	checkNpcLookup( $policyResult['items'][0]['lootKind'] === 'known' && count( $policyResult['items'][0]['contexts'] ) === 2, 'Repeated zone and instance rows do not inflate distinct monster counts' );
+	[ $policyAlias, $findAlias ] = $policy( $five, [ 'Keeper Alias' => 'Keeper One' ] );
+	checkNpcLookup( $findAlias()['items'][0]['lootKind'] === 'known', 'Public source redirects count as the same canonical monster rather than a sixth source' );
+	$apostropheNames = array_merge( array_slice( $five, 0, 4 ), [ "Keeper O'Neal" ] );
+	[ $policySpelling, $findSpelling ] = $policy( $apostropheNames, [], [ 'policy guardian', 'KEEPER O`NEAL' ] );
+	checkNpcLookup( $findSpelling()['items'][0]['lootKind'] === 'known', 'First-letter normalization and uncreated backtick/case spellings do not manufacture extra monsters' );
+	[ $policyCase, $findCase ] = $policy( array_merge( array_slice( $five, 0, 4 ), [ 'Case Keeper', 'Case keeper' ] ) );
+	checkNpcLookup( $findCase()['items'][0]['lootKind'] === 'common', 'Two real case-distinct NPC pages remain two canonical monsters for the threshold' );
+	[ $policyMissing, $findMissing ] = $policy( [ 'Policy Guardian' ], [], [ 'Missing One', 'Missing Two', 'Missing Three', 'Missing Four', 'Missing Five' ] );
+	checkNpcLookup( $findMissing()['items'][0]['lootKind'] === 'common', 'Distinct declared redlink monsters count before their NPC pages are created' );
+	$policyFive->pages['Policy_Relic']['text'] = str_replace( "\n}}", "\n|notes=See [[Prose One]], [[Prose Two]] and {{Loc|Synthetic Vale|1,2,3|Prose location}}\n}}", $policyFive->pages['Policy_Relic']['text'] );
+	checkNpcLookup( $findFive()['items'][0]['lootKind'] === 'known', 'Arbitrary item prose and location references cannot turn five actual source monsters into a common drop' );
+	foreach ( [ 'known_loot', 'common_loot' ] as $field ) {
+		$explicit = EqlNpcLootWikitext::analyseNpcPage( '{{Namedmobpage|name=Policy Guardian|' . $field . '={{:Policy Relic}}}}' );
+		checkNpcLookup( $policySix->lookup()->find( $policySix->title( 'Policy Guardian' ), $explicit )['items'] === [], 'Explicit authored ' . $field . ' remains the per-NPC override instead of being moved by the default policy' );
+	}
+	echo "NPC reverse loot lookup: $checks synthetic checks passed (public visibility, item/category intersections, late creation, aliases/case collisions, authored loot, common-drop policy, contexts, bounded cache/reads and failures).\n";
 }

@@ -38,6 +38,7 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 			'EQL synthetic reverse relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic reverse relic}}</onlyinclude>',
 			'EQL synthetic authored relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic authored relic}}</onlyinclude>',
 			'EQL synthetic common relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic common relic}}</onlyinclude>',
+			'EQL synthetic shared relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic shared relic}}</onlyinclude>',
 			'EQL synthetic normal relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic normal relic}}</onlyinclude>',
 			'EQL synthetic raid relic' => '<onlyinclude>{{Itempage|itemname=EQL synthetic raid relic}}</onlyinclude>'
 		];
@@ -94,8 +95,9 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$this->check( $common->length === 1 && str_contains( $common[0]->textContent, 'Common Loot' ) && str_contains( $common[0]->textContent, 'EQL synthetic common relic' ), 'Authored Common Loot must remain in its native separate card.' );
 		$this->check( !str_contains( $html, 'Additional recorded drops' ), 'Do not add a separate recorded-loot heading.' );
 		$this->check( $xpath->query( './/*[' . $class( 'mw-editsection' ) . ']', $panel )->length === 0, 'Generated content must not advertise nonexistent source-section edits.' );
-		$this->check( str_contains( $panel->textContent, 'Normal Zone' ) && str_contains( $panel->textContent, 'Raid Zone' ), 'Actual parsing must preserve normal and raid source context.' );
-		$this->check( $xpath->query( './/small//a[normalize-space(text())="EQL synthetic cavern"]', $panel )->length === 2 && !str_contains( $panel->textContent, '<a href=' ), 'Source zones must be working wiki links, not escaped HTML anchors.' );
+		$generatedRow = $xpath->query( './/li[' . $class( 'eql-recorded-loot-item' ) . ']', $panel )[0];
+		$this->check( trim( $generatedRow->textContent ) === 'EQL synthetic reverse relic' && $xpath->query( './/a', $generatedRow )->length === 1, 'Generated native loot rows must display only the item name with its normal wiki hover link.' );
+		$this->check( $xpath->query( './/small', $generatedRow )->length === 0 && !str_contains( $generatedRow->textContent, 'Normal Zone' ) && !str_contains( $generatedRow->textContent, 'Raid Zone' ) && !str_contains( $generatedRow->textContent, 'EQL synthetic cavern' ), 'Zone and instance context must not add visible clutter to the generated item row.' );
 		$this->check( substr_count( $panel->textContent, 'EQL synthetic authored relic' ) === 1, 'The native card must not repeat its authored loot.' );
 		$dependencies = array_map( static fn ( array $link ) => str_replace( '_', ' ', Title::newFromLinkTarget( $link['link'] )->getPrefixedText() ), $output->getLinkList( ParserOutputLinkTypes::TEMPLATE ) );
 		$this->check( in_array( 'EQL synthetic reverse relic', $dependencies, true ), 'Generated normal item transclusions must register item dependencies with core.' );
@@ -122,6 +124,21 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$noneSource = '{{Namedmobpage|name=EQL synthetic empty Drolvarg|zone=[[EQL synthetic cavern]]|known_loot=<ul><li>None</li></ul>}}';
 		$none = $factory->create()->parse( $noneSource, Title::newFromText( 'EQL synthetic empty Drolvarg' ), ParserOptions::newFromAnon() );
 		$this->check( str_contains( $none->getRawText(), 'Known Loot' ) && str_contains( $none->getRawText(), 'EQL synthetic reverse relic' ) && !preg_match( '/>\s*None\s*</', $none->getRawText() ), 'A native Known Loot card must replace an exact None placeholder when adding its first drop.' );
+		$lookup->items = [ [ 'title' => 'EQL synthetic shared relic', 'lootKind' => 'common',
+			'contexts' => [ [ 'zone' => 'EQL synthetic cavern', 'instance' => 'normal' ] ] ] ];
+		$sharedOutput = $factory->create()->parse( $npcSource, Title::newFromText( 'EQL synthetic common Drolvarg' ), ParserOptions::newFromAnon() );
+		$sharedDocument = new DOMDocument();
+		$previous = libxml_use_internal_errors( true );
+		$sharedDocument->loadHTML( '<?xml encoding="UTF-8">' . $sharedOutput->getRawText() );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous );
+		$sharedXpath = new DOMXPath( $sharedDocument );
+		$sharedKnown = $sharedXpath->query( '//*[' . $class( 'eql-mobpage-loot' ) . ']' )[0];
+		$sharedCommon = $sharedXpath->query( '//*[' . $class( 'eql-mobpage-commonloot' ) . ']' )[0];
+		$this->check( !str_contains( $sharedKnown->textContent, 'EQL synthetic shared relic' ) && str_contains( $sharedCommon->textContent, 'EQL synthetic shared relic' ) && str_contains( $sharedCommon->textContent, 'Common Loot' ), 'A generated common item must appear inside the native Common Loot card rather than Unique Loot.' );
+		$sharedRow = $sharedXpath->query( './/li[' . $class( 'eql-recorded-loot-item' ) . ']', $sharedCommon )[0];
+		$this->check( trim( $sharedRow->textContent ) === 'EQL synthetic shared relic' && $sharedXpath->query( './/span[' . $class( 'ih' ) . ']/a', $sharedRow )->length === 1 && $sharedXpath->query( './/small', $sharedRow )->length === 0, 'Generated Common Loot must keep its normal wiki hover and item-name-only display.' );
+		$this->check( str_contains( $sharedKnown->textContent, 'EQL synthetic authored relic' ) && str_contains( $sharedKnown->textContent, 'Unique Loot' ) && str_contains( $sharedCommon->textContent, 'EQL synthetic common relic' ) && str_contains( $sharedOutput->getRawText(), 'Authored notes remain unchanged.' ), 'Classifying generated common loot must preserve authored unique/common rows, headings and notes.' );
 		$lookup->items = [
 			[ 'title' => 'EQL synthetic normal relic', 'contexts' => [ [ 'zone' => 'EQL synthetic cavern', 'instance' => 'normal' ] ] ],
 			[ 'title' => 'EQL synthetic raid relic', 'contexts' => [ [ 'zone' => 'EQL synthetic cavern', 'instance' => 'raid' ] ] ]

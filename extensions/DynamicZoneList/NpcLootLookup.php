@@ -6,7 +6,7 @@ use MediaWiki\Title\Title;
 
 class EqlNpcLootLookup {
 
-	private const VERSION = 3;
+	private const VERSION = 4;
 	private const CANDIDATE_TTL = 60;
 	private const MAX_ALIASES = 20;
 	private const MAX_ZONES = 8;
@@ -16,9 +16,11 @@ class EqlNpcLootLookup {
 	private const MAX_BYTES = 524288;
 	private const MAX_PUBLIC_READS = 320;
 	private const MAX_TOTAL_BYTES = 8388608;
+	private const MAX_CLASSIFICATION_NAMES = 64;
 	private MediaWikiServices $services;
 	private array $publicMemo = [];
 	private array $resolveMemo = [];
+	private array $classificationMemo = [];
 	private bool $complete = true;
 	private array $warnings = [];
 	private int $bytesRead = 0;
@@ -29,7 +31,7 @@ class EqlNpcLootLookup {
 
 	/** @return array{items:array,complete:bool,warnings:array} */
 	public function find( Title $npcTitle, array $analysis ): array {
-		$this->publicMemo = $this->resolveMemo = [];
+		$this->publicMemo = $this->resolveMemo = $this->classificationMemo = [];
 		$this->complete = true;
 		$this->warnings = [];
 		$this->bytesRead = 0;
@@ -101,7 +103,8 @@ class EqlNpcLootLookup {
 				if ( !$record ) {
 					continue;
 				}
-				foreach ( EqlNpcLootWikitext::itemSources( $record['text'] ) as $source ) {
+				$sources = EqlNpcLootWikitext::itemSources( $record['text'] );
+				foreach ( $sources as $source ) {
 					if ( !$this->matchesNpc( $source['npc'], $npcTitle, $allowed ) ) {
 						continue;
 					}
@@ -110,7 +113,8 @@ class EqlNpcLootLookup {
 						$this->incomplete( 'Recorded-drop lookup reached its item limit; additional drops may exist.' );
 						break 2;
 					}
-					$items[$key] ??= [ 'title' => $canonical->getPrefixedText(), 'contexts' => [] ];
+					$items[$key] ??= [ 'title' => $canonical->getPrefixedText(), 'contexts' => [],
+						'lootKind' => $this->defaultLootKind( $sources ) ];
 					$context = [ 'zone' => $source['zone'], 'instance' => $source['instance'] ];
 					if ( !in_array( $context, $items[$key]['contexts'], true ) ) {
 						$items[$key]['contexts'][] = $context;
@@ -279,6 +283,47 @@ class EqlNpcLootLookup {
 		}
 		$canonical = $this->canonical( $title );
 		return $canonical && $canonical->getDBkey() === $npcTitle->getDBkey();
+	}
+
+	/**
+	 * Broadly shared items default to Common Loot. Authored NPC loot has already
+	 * been excluded, so this policy cannot move an explicitly classified row.
+	 * Only direct, parsed item drop sources count; no reverse graph is scanned.
+	 */
+	private function defaultLootKind( array $sources ): string {
+		$titles = [];
+		foreach ( $sources as $source ) {
+			$title = $this->title( $source['npc'] );
+			if ( $title ) { $titles[$title->getDBkey()] = $title; }
+		}
+		if ( count( $titles ) <= 5 ) { return 'known'; }
+		$canonicalIds = $spellings = $missing = [];
+		$processed = 0;
+		foreach ( $titles as $title ) {
+			if ( ++$processed > self::MAX_CLASSIFICATION_NAMES ) {
+				// Do not infer a rarity change when alias resolution is incomplete.
+				return 'known';
+			}
+			$key = $title->getDBkey();
+			if ( !array_key_exists( $key, $this->classificationMemo ) ) {
+				if ( count( $this->classificationMemo ) >= self::MAX_CLASSIFICATION_NAMES || count( $this->publicMemo ) >= self::MAX_PUBLIC_READS ) { return 'known'; }
+				$this->classificationMemo[$key] = $title->exists() ? $this->canonical( $title ) : false;
+			}
+			$canonical = $this->classificationMemo[$key];
+			if ( $canonical === false ) {
+				$missing[EqlNpcLootWikitext::identity( $title->getPrefixedText() )] = true;
+				continue;
+			}
+			if ( !$canonical ) { continue; }
+			$canonicalIds[$canonical->getDBkey()] = true;
+			$spellings[EqlNpcLootWikitext::identity( $title->getPrefixedText() )] = true;
+			$spellings[EqlNpcLootWikitext::identity( $canonical->getPrefixedText() )] = true;
+			if ( count( $canonicalIds ) > 5 ) { return 'common'; }
+		}
+		foreach ( $missing as $identity => $_ ) {
+			if ( !isset( $spellings[$identity] ) ) { $canonicalIds['missing:' . $identity] = true; }
+		}
+		return count( $canonicalIds ) > 5 ? 'common' : 'known';
 	}
 
 	private function canonical( Title $title ): ?Title {

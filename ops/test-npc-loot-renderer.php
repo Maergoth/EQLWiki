@@ -98,8 +98,9 @@ npcLootExpect( str_starts_with( $text, "Lead text\n{{Namedmobpage|name=A Synthet
 npcLootExpect( in_array( 'Synthetic Reverse Relic', EqlNpcLootWikitext::analyseNpcPage( $text )['authoredItems'], true ), 'Generated item transclusions must be inside the native loot field.' );
 npcLootExpect( !str_contains( strtolower( $text ), 'additional recorded drops' ), 'Do not create a separate loot section outside the native card.' );
 npcLootExpect( substr_count( $text, '{{:Synthetic_Reverse_Relic}}' ) === 1, 'Use one normal item transclusion, retaining template dependencies and hovers.' );
-npcLootExpect( str_contains( $text, 'Normal Zone' ) && str_contains( $text, 'Raid Zone' ), 'Retain both source instance labels.' );
-npcLootExpect( str_contains( $text, 'Synthetic Cavern' ), 'Retain the source zone.' );
+$entries = EqlNpcLootRenderer::entries( $lookup->result );
+npcLootExpect( $entries[0]['contexts'] === $lookup->result['items'][0]['contexts'], 'Keep normal/raid and zone context internally for native card placement.' );
+npcLootExpect( !str_contains( $text, 'Normal Zone' ) && !str_contains( $text, 'Raid Zone' ) && !str_contains( $text, 'Synthetic Cavern' ) && !str_contains( $entries[0]['markup'], '<small' ), 'Generated loot rows must display only the item, without visible zone or instance labels.' );
 npcLootExpect( str_contains( $text, 'title="From current published item drop sources"' ), 'Label generated rows as current published item data, including when viewing older NPC revisions.' );
 npcLootExpect( count( $lookup->calls ) === 1, 'Exactly one lookup should run per root parse.' );
 npcLootExpect( in_array( 'Synthetic Authored Relic', $lookup->calls[0][1]['authoredItems'], true ), 'Pass authored loot to the lookup for deduplication.' );
@@ -140,11 +141,21 @@ npcLootExpect( $text === $npcSource, 'Do not append an empty reverse loot panel.
 npcLootExpect( $emptyParser->output->ttl <= 300 && $emptyParser->output->getExtensionData( EqlNpcLootRenderer::MARKER ), 'Zero-result mob pages must still refresh for new source items.' );
 npcLootExpect( count( $lookup->calls ) === 2, 'The guard must be scoped to each ParserOutput rather than global parser state.' );
 
+$lookup->result = [ 'items' => [ [ 'title' => 'Synthetic Shared Relic', 'lootKind' => 'common',
+	'contexts' => [ [ 'zone' => 'Synthetic Cavern', 'instance' => 'normal' ] ]
+] ], 'complete' => true, 'warnings' => [] ];
+$commonSource = '{{Namedmobpage|name=A Synthetic Drolvarg|known_loot=* [[Synthetic Authored Relic]]|common_loot=<ul><li>[[Synthetic Authored Common Relic]]</li></ul>}}';
+$commonText = $commonSource;
+EqlNpcLootRenderer::onParserBeforeInternalParse( new SyntheticNpcLootParser( new SyntheticNpcLootTitle( 'Synthetic Common Drolvarg' ) ), $commonText, null );
+$commonParts = explode( '|common_loot=', $commonText, 2 );
+npcLootExpect( EqlNpcLootRenderer::entries( $lookup->result )[0]['field'] === 'common_loot' && !str_contains( $commonParts[0], '{{:Synthetic_Shared_Relic}}' ) && str_contains( $commonParts[1], '{{:Synthetic_Shared_Relic}}' ), 'A lookup-classified common item must enter common_loot rather than the native known/unique field.' );
+npcLootExpect( str_contains( $commonParts[0], '* [[Synthetic Authored Relic]]' ) && str_contains( $commonParts[1], '[[Synthetic Authored Common Relic]]' ) && !str_contains( $commonText, '<small' ) && !str_contains( $commonText, 'Synthetic Cavern' ), 'Generated common loot keeps authored rows intact and displays only the normal item transclusion.' );
+
 $rendered = EqlNpcLootRenderer::render( [ 'items' => [ [ 'title' => 'Synthetic & Relic', 'contexts' => [
 	[ 'zone' => 'Synthetic & Cavern', 'instance' => 'raid' ]
 ] ] ], 'complete' => true, 'warnings' => [] ] );
 npcLootExpect( str_contains( $rendered, '{{:Synthetic_&_Relic}}' ), 'Keep item identity in a normal transclusion.' );
-npcLootExpect( str_contains( $rendered, 'Synthetic &amp; Cavern' ), 'Source labels must be HTML escaped.' );
+npcLootExpect( !str_contains( $rendered, 'Cavern' ) && !str_contains( $rendered, '<small' ) && substr_count( $rendered, '{{:' ) === 1, 'Diagnostic rendering must retain one normal item transclusion without visible source metadata.' );
 npcLootExpect( !preg_match( '/^\s*==/m', $rendered ), 'Generated panel headings must not create nonexistent editable source sections.' );
 $rejected = EqlNpcLootRenderer::render( [ 'items' => [ [ 'title' => 'Synthetic {{Unsafe}} Relic', 'contexts' => [] ] ], 'complete' => true ] );
 npcLootExpect( $rejected === '', 'Unsafe item delimiters must not produce executable transclusion markup.' );
