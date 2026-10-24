@@ -1,8 +1,8 @@
 {
   "name": "EQLClientData",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "author": "EverQuest Legends Wiki",
-  "description": "Provides staged, revision-aware cached client metadata and batched era status for EQLImmersive.",
+  "description": "Provides revision-aware client metadata and optional authenticated, idempotent gameplay observations.",
   "type": "other",
   "license-name": "GPL-2.0-or-later",
   "requires": {
@@ -14,7 +14,15 @@
   "ServiceWiringFiles": [
     "includes/ServiceWiring.php"
   ],
+  "MessagesDirs": { "EQLClientData": [ "i18n" ] },
+  "AvailableRights": [ "eoz-submit-observations" ],
+  "GroupPermissions": { "user": { "eoz-submit-observations": true } },
+  "GrantPermissions": { "eozobservations": { "eoz-submit-observations": true } },
   "APIModules": {
+    "eozobservations": {
+      "class": "EQLClientData\\ApiObservations",
+      "services": [ "EQLClientData.ObservationRepository", "MainConfig" ]
+    },
     "eqlmetadata": {
       "class": "EQLClientData\\ApiMetadata",
       "services": [
@@ -34,12 +42,20 @@
     }
   },
   "Hooks": {
+    "LoadExtensionSchemaUpdates": "EQLClientData\\SchemaHooks::onLoadExtensionSchemaUpdates",
     "BeforePageDisplay": "main",
     "PageSaveComplete": "main",
     "PageDeleteComplete": "main",
     "PageMoveComplete": "main"
   },
   "config": {
+    "EQLClientDataEnableObservations": { "value": false },
+    "EQLClientDataObservationRequireConfirmedEmail": { "value": true },
+    "EQLClientDataObservationHourlyBatches": { "value": 12 },
+    "EQLClientDataObservationMaxEvents": { "value": 100000 },
+    "EQLClientDataObservationActorMaxEvents": { "value": 10000 },
+    "EQLClientDataObservationMaxBatches": { "value": 20000 },
+    "EQLClientDataObservationActorMaxBatches": { "value": 2000 },
     "EQLClientDataEnableEra": {
       "value": false
     },

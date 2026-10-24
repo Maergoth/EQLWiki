@@ -74,6 +74,7 @@ final class ApiMetadata extends ApiBase {
 			null,
 			$this->getModuleName(),
 			[
+				'documentation' => 'https://eqlwiki.com/API_Documentation',
 				'eraRevision' => (int)$eraConfig['revision'],
 				'pages' => array_values( $statuses )
 			]
@@ -94,6 +95,7 @@ final class ApiMetadata extends ApiBase {
 	}
 
 	public function isInternal(): bool {
-		return true;
+		return false;
 	}
+	public function getHelpUrls(): array { return [ 'https://eqlwiki.com/API_Documentation' ]; }
 }

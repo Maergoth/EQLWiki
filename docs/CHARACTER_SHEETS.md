@@ -5,7 +5,8 @@ hand-editable inventory snapshot. Each Character (Server) starts collapsed after
 JavaScript initializes; its disclosure is keyboard accessible and independent of
 other characters on the page. Without JavaScript the full static sheet remains
 readable. Item icons link to their existing wiki pages. Hovering or focusing gear
-shows its supplied tier-specific stat card and clickable known augments.
+shows its supplied tier-specific stat card, reviewed rich metadata/effect links
+and clickable known Exaltations.
 The interactive inspect is a labeled nonmodal dialog. A short 200 ms pointer
 grace period allows crossing the gap from gear to its links; entering the card
 cancels dismissal. Keyboard users can press ArrowDown from gear to enter those
@@ -16,9 +17,11 @@ statistics and socket links stay visible in the static sheet.
 This uses the already loaded EQLImmersive skin, not the historical Magelo PHP
 extension. No new extension, namespace, database schema or authentication policy
 is enabled. The browser module has no network, account-state or storage writes.
-The desktop app owns reviewed, revision-guarded User_talk upserts; templates never
+The desktop app owns reviewed, revision-guarded own User-page upserts; templates never
 write pages. A new snapshot updates that character's managed block and preserves
-other characters and the owner's unrelated talk-page text.
+other characters and the owner's unrelated User-page text. Old User_talk blocks
+stay unchanged; saved attempts are destination-bound and require a fresh review
+when moving to the User page.
 
 ## Sources and deployment boundaries
 
@@ -62,6 +65,7 @@ normal MediaWiki equivalence. A minimal sheet is:
 |feet_tier=3
 |feet_icon=500
 |feet_stats=HP: 133<br>STR: 7
+|feet_details=Class: ROG<br>Effect: [[Rampage|Rampage (Combat, Casting Time: Instant) at Level 45]]
 |feet_augment_slots=2
 |feet_augment_1_item=Example Sword
 |feet_augment_1_tier=2
@@ -195,3 +199,19 @@ checks. The DOM test accepts that output via `--html`, checks independent
 collapsed sheets, pointer/keyboard inspect, dynamic hook idempotence and no-JS
 content, including the pointer gap and keyboard entry into socket links. These
 checks do not establish live deployment or authenticated editing.
+
+## Rich item metadata (schema 1 additive fields)
+
+Each fixed equipment prefix accepts `_details`; indexed Exaltations accept
+`_augment_1_details` through `_augment_8_details`. The app emits at most32 reviewed
+`{label,value,linkTitle?}` lines/item, labels<=60/value<=400 and8000 UTF-8 bytes.
+Its serializer escapes all untrusted text including underscores/signatures,
+then generates only `<br>` and canonical main-namespace effect links. Numeric
+`_stats` remains a separate supplied tier-specific block. The wiki computes no
+item/Character totals and does not add Exaltations to recorded current stats.
+Hand-edited wiki source uses ordinary wiki permissions/sanitization.
+
+The Itempage-to-Itembox AjaxHoverHelper adapter also forwards the existing
+`focus_effect` parameter; this preserves real focus metadata rather than
+inventing or reparsing it. Snapshot cards retain their supplied tier values and
+metadata instead of fetching a different base-tier card on every hover.
