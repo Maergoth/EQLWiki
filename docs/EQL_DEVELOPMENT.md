@@ -290,6 +290,31 @@ extension; see the extension guide for safe rollback ordering.
   managed application files, not arbitrary DB changes; [`rollback.sh`](../ops/rollback.sh)
   currently targets production. Keep separate recovery copies for data edits.
 
+## Automatic NPC recorded loot
+
+[`DynamicZoneList`'s NPC lookup](NPC_RECORDED_LOOT.md) supplements ordinary NPC
+read views from public item drop-source fields, including manually created pages.
+It does not edit either page or assign Common/Unique rarity. Run these bounded,
+synthetic checks without a database:
+
+```sh
+php ops/test-npc-loot-source.php
+php ops/test-npc-loot-lookup.php
+php ops/test-npc-loot-renderer.php
+```
+
+With a configured private local wiki, also run
+`php maintenance/run.php ./ops/test-npc-loot-mediawiki.php` for unsaved parser
+integration. An optional `--output` writes synthetic HTML to a private path.
+
+Check both page-creation orders, real versus prose links, redirect/case collisions,
+normal/raid contexts, authored-list deduplication, public revision visibility,
+discovery limits and cache expiry. An unsaved real MediaWiki parse should also
+verify original item hover markup, transclusion dependencies and the generated
+heading's lack of a source-section edit link. Fixtures alone do not establish
+live coverage. No template publication, schema installation or database refresh
+is part of this feature's deployment.
+
 ## Header and todo browser checks
 
 Check a scrolled article and fragment navigation, floating menus, keyboard
