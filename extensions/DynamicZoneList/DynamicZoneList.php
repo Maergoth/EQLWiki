@@ -11,7 +11,7 @@ EOT;
 $wgExtensionCredits['specialpage'][] = array(
 	'path' => __FILE__,
 	'name' => 'DynamicZoneList',
-	'version' => '0.2',
+	'version' => '0.3',
 	'author' => 'Ravhin',
 	'url' => 'http://www.destinati.com/',
 	'descriptionmsg' => 'dynamiczonelist-desc',
@@ -19,6 +19,13 @@ $wgExtensionCredits['specialpage'][] = array(
 
 $dir = dirname( __FILE__ ) . '/';
 $wgAutoloadClasses['DynamicZoneList'] = $dir . 'DynamicZoneList_body.php';
+$wgAutoloadClasses['EqlNpcLootWikitext'] = $dir . 'NpcLootWikitext.php';
+$wgAutoloadClasses['EqlNpcLootLookup'] = $dir . 'NpcLootLookup.php';
+$wgAutoloadClasses['EqlNpcLootRenderer'] = $dir . 'NpcLootRenderer.php';
+$wgHooks['ParserBeforeInternalParse'][] = 'EqlNpcLootRenderer::onParserBeforeInternalParse';
+$wgHooks['OutputPageParserOutput'][] = 'EqlNpcLootRenderer::onOutputPageParserOutput';
+$wgHooks['BeforePageDisplay'][] = 'EqlNpcLootRenderer::onBeforePageDisplay';
+$wgHooks['RejectParserCacheValue'][] = 'EqlNpcLootRenderer::onRejectParserCacheValue';
 $wgSpecialPages['DynamicZoneList'] = 'DynamicZoneList';
 $wgExtensionMessagesFiles['DynamicZoneList'] = $dir . 'DynamicZoneList.i18n.php';
 $wgExtensionAliasesFiles['DynamicZoneList'] = $dir . 'DynamicZoneList.alias.php';
