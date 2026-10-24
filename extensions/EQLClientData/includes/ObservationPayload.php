@@ -68,9 +68,9 @@ final class ObservationPayload {
         if ( !is_string( $at ) || !preg_match( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/D', $at ) ) {
             throw new InvalidArgumentException( 'invalid-time' );
         }
-        try { $time = new DateTimeImmutable( $at, new DateTimeZone( 'UTC' ) ); }
-        catch ( \Exception $error ) { throw new InvalidArgumentException( 'invalid-time', 0, $error ); }
-        if ( $time->format( 'Y-m-d\TH:i:s' ) !== substr( $at, 0, 19 ) ||
+        $format = str_contains( $at, '.' ) ? '!Y-m-d\TH:i:s.v\Z' : '!Y-m-d\TH:i:s\Z';
+        $time = DateTimeImmutable::createFromFormat( $format, $at, new DateTimeZone( 'UTC' ) );
+        if ( !$time || $time->format( 'Y-m-d\TH:i:s' ) !== substr( $at, 0, 19 ) ||
             $time->getTimestamp() < 0 || $time->getTimestamp() > ( $now ?? time() ) + 300 ) {
             throw new InvalidArgumentException( 'invalid-time' );
         }
