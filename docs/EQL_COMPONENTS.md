@@ -201,6 +201,15 @@ merchant and spell markers. `spell-effect-hover.js` parses SpellHoverLink lazily
 `merchant-spell-hover.js` hydrates merchant spells together. Keep tooltip markup
 and API output aligned when changing a template or a parser.
 
+Interactive player snapshots use the reviewed `Template:Character_sheet` and
+`Template:Character_sheet_item` database sources under `ops/`, plus the existing
+skin's `skins.EQLImmersive.characterSheet` module. A ParserAfterParse hook adds
+the module only for rendered schema-1 markup, including unsaved API previews.
+Each character expands independently; supplied tier-specific gear/augment stats
+and links remain distinct from the base-item AjaxHoverHelper. No historical
+Magelo extension is enabled. See [the contract, separate guarded publication and
+checks](CHARACTER_SHEETS.md); Git deployment does not publish the templates.
+
 ## Item and spell levels
 
 `Template:Itempage` delegates article and tooltip stat blocks to the database

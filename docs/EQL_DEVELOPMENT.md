@@ -120,6 +120,7 @@ and remove it from public routes after verification.
 | Plane of Sky reward fields | A section of database `MediaWiki:Common.js` | [`sync-sky-rewards.php`](../ops/sync-sky-rewards.php), replacing only that section |
 | Icon List container | Database `Icon List` | [`sync-icon-list.php`](../ops/sync-icon-list.php) plus the skin listing module |
 | Itembox stat defaults | Database `Template:Itembox` | Reviewed [`ops/itembox.wiki`](../ops/itembox.wiki), separately published with [`sync-itembox.php`](../ops/sync-itembox.php) |
+| Interactive Character sheets | Two database templates plus conditional EQLImmersive module | Deploy skin files, then separately review/publish both templates with [`sync-character-sheets.php`](../ops/sync-character-sheets.php); [contract and checks](CHARACTER_SHEETS.md) |
 | Optional talk contribution policy | Registered `EQLTalkContributions` PHP hooks plus ignored environment settings | Deploy files, then separately activate the reviewed settings block; source deployment alone does not enable it |
 | Other Common.js/CSS or ClassGuideDropdown behavior | Database interface pages | Review and publish the affected page; no complete canonical Git mirror currently exists |
 | Template/Lua/category/verification/era data | Wiki database | An explicit content change/export/import, separate from file deployment |
@@ -165,6 +166,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Spell rank caps | `node ops/test-spell-level-slider.cjs` | jsdom; categories, cap shorthand, split markup, base restoration, pets, and dynamic cards |
 | Item range ranks and bonus layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; bows, throwing weapons, ammo, fractional ranks, base restoration, dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
 | Itembox damage bonus | `php maintenance/run.php ./ops/test-itembox.php` | Configured local wiki with ParserFunctions string functions and Variables; supplies the reviewed template in memory, parses synthetic cards, and saves no pages. Covers handedness, level-50 rounding, delay cap, explicit/zero overrides, Backstab, excluded items, and per-card isolation |
+| Interactive Character sheets | `php maintenance/run.php ./ops/test-character-sheet.php`, `node ops/test-character-sheet.cjs` and `node ops/build-character-sheet-templates.cjs --check` | Configured local wiki for unsaved two-template parser checks; jsdom for collapsed/keyboard/dynamic behavior. No page/account/upload writes; [separate publication contract](CHARACTER_SHEETS.md) |
 | Sky/account state | `node ops/test-sky-rewards.cjs .local/Common.js` | jsdom and a reviewed Common.js snapshot containing the real state service |
 | Exact-artwork catalog | `php ops/test-icon-catalog.php` | GD and private `eql_icons/500.png`, `3470.png`, `3471.png` |
 | Full icon coverage | `php ops/verify-icon-coverage.php <library> <index-json> <audit-manifest>` | GD and the private source library/current index/audit |
