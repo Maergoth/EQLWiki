@@ -102,9 +102,14 @@
     "Hooks": {
         "SkinTemplateNavigation::Universal": "EQLImmersiveHooks",
         "SkinBuildSidebar": "EQLImmersiveHooks",
-        "BeforePageDisplay": "EQLImmersiveHooks"
+        "BeforePageDisplay": "EQLImmersiveHooks",
+        "ParserAfterParse": "EQLImmersiveHooks"
     },
     "ResourceModules": {
+        "skins.EQLImmersive.characterSheet": {
+            "scripts": [ "resources/character-sheet.js" ],
+            "styles": [ "resources/character-sheet.css" ]
+        },
         "skins.EQLImmersive.talkUnread": {
             "scripts": [ "resources/talk-unread.js" ],
             "styles": [ "resources/talk-unread.css" ],

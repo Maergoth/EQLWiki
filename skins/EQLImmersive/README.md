@@ -46,6 +46,7 @@ or update both producer and consumer when changing database templates.
 | Talk activity | `talk-unread.js/css`, `skins.EQLImmersive.talkUnread`, server-provided subject/Talk pairing and read-only revision metadata |
 | Era/verification | `era-filter.js/css`, `verified-pages.js`, EQLClientData and database PageEra/VerifiedPages configuration |
 | Item/spell hovers | `item-hover.js`, `spell-effect-hover.js`, `merchant-spell-hover.js`, AjaxHoverHelper and compatible template HTML |
+| Interactive Character sheets | `character-sheet.js/css`, ParserAfterParse and the separately published schema-1 templates; [contract and tests](../../docs/CHARACTER_SHEETS.md) |
 | Spell sections | `checkbox-lists.js` currently performs Category:Spells lazy loading; `spell-lazy-loader.js` stabilizes item hovers |
 | Game-page layouts | `mobpage.css`, `factionpage.css`, `spellpage.css`, `magelo.css`, item/spell/table styles |
 | Icon List | `icon-list.js/css`, database Icon List container, lightweight generated catalog |

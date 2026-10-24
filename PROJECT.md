@@ -68,6 +68,13 @@ were deleted from Git, and checks the public MediaWiki API. On failure it restor
 the backup. A multi-file release is not globally atomic; use a maintenance window
 for changes that require all files to switch simultaneously.
 
+Interactive Character sheets also require two separately published database
+templates. Deploy the reviewed skin module first; review current template IDs,
+make a fresh private backup and use the fixed-target publisher only with owner
+approval. `ops/` is not deployed. See [the publication/recovery procedure and
+unsaved capability checks](docs/CHARACTER_SHEETS.md). Skin deployment alone does
+not activate the new talk-page template contract.
+
 Deployments never run database schema migrations. Plan those separately with a
 database backup and a compatible MediaWiki/extension upgrade procedure.
 
