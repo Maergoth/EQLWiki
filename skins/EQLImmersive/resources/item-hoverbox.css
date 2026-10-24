@@ -65,15 +65,13 @@ div.hbdiv span.hb .itembg * {
 
 .hbdiv {
 	display: inline-block;
+	/* Keep the tooltip's containing block stable before and during hover. */
+	position: relative;
 }
 
 .hbdiv span.hb {
 	display: none;
 	z-index: 99;
-}
-
-.hbdiv:hover {
-	position: relative;
 }
 
 .hbdiv:hover span.hb {
