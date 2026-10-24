@@ -5,7 +5,7 @@ const path = require( 'node:path' );
 const { JSDOM } = require( 'jsdom' );
 const source = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/resources/character-sheet.js' ), 'utf8' );
 const css = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/resources/character-sheet.css' ), 'utf8' );
-const fixture = name => `<div class="eql-character-sheet eql-character-sheet-v1"><div class="eql-character-heading"><strong>${name}</strong><span class="eql-character-metadata">Level 60 · WAR / CLR · 123 AAs</span></div><div class="eql-character-body"><div class="eql-character-item"><a href="/wiki/Synthetic_Boots" title="Synthetic Boots">Boots</a><div class="eql-character-inspect-v1"><strong>Synthetic Boots</strong><div>HP: 133</div><a href="/wiki/Synthetic_Sword">Synthetic Sword</a><div>Socket 2: Empty</div></div></div></div></div>`;
+const fixture = name => `<div class="eql-character-sheet eql-character-sheet-v1"><div class="eql-character-heading"><strong>${name}</strong><span class="eql-character-metadata">Level 60 · WAR / CLR · 123 AAs</span></div><div class="eql-character-body"><div class="eql-character-item"><a href="/wiki/Synthetic_Boots" title="Synthetic Boots">Boots</a><div class="eql-character-inspect-v1"><strong>Synthetic Boots</strong><div>HP: 133</div><div class="eql-character-augments"><strong>Exaltations</strong><ul><li data-eql-socket="1"><span class="eql-character-augment-icon">◇</span><span><strong><a href="/wiki/Synthetic_Sword">Synthetic Sword</a></strong><span class="eql-character-tier">+0</span><span class="eql-character-augment-stats">WT: 2</span><span class="eql-character-item-details">Details: Old card<BR>Effect: <a href="/wiki/Synthetic_Proc">Synthetic Proc (Combat)</a><br>Size: SMALL<br>Class: WAR<br>Race: ALL</span></span></li><li data-eql-socket="2" class="eql-character-empty-socket">Socket 2: Empty</li><li data-eql-socket="4"><span><strong><a href="/wiki/Synthetic_Stone">Synthetic Stone</a></strong><span class="eql-character-item-details">Notes: Effect: incidental prose<br>Focus effect: <a href="/wiki/Synthetic_Focus">Synthetic Focus</a><br>Race: ALL</span></span></li></ul></div></div></div></div></div>`;
 const htmlIndex = process.argv.indexOf( '--html' );
 const markup = htmlIndex < 0 ? fixture( 'Synthetic Reader (Fixture One)' ) + fixture( 'Synthetic Reader (Fixture Two)' ) : fs.readFileSync( process.argv[ htmlIndex + 1 ], 'utf8' );
 const dom = new JSDOM( '<head><style>' + css + '</style></head><body><main>' + markup + '</main><button id="outside">Outside</button></body>', { url: 'https://wiki.example/wiki/User_talk:Synthetic', runScripts: 'outside-only' } );
@@ -20,6 +20,16 @@ window.setTimeout = ( fn, delay ) => { assert.equal( delay, 200 ); timers.set( +
 window.clearTimeout = id => timers.delete( id );
 window.eval( source );
 document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
+if ( htmlIndex < 0 ) {
+    const sockets = document.querySelectorAll( '.eql-character-augments' );
+    sockets.forEach( socket => {
+        assert.equal( socket.querySelectorAll( '.eql-character-augment-icon,.eql-character-tier,.eql-character-augment-stats,.eql-character-item-details' ).length, 0, 'Cached Exaltations omit icons, tiers, numeric stats and unrelated metadata.' );
+        assert.equal( socket.querySelector( '[data-eql-socket="1"]' ).textContent, 'Synthetic SwordEffect: Synthetic Proc (Combat)' );
+        assert.equal( socket.querySelector( '[data-eql-socket="4"]' ).textContent, 'Synthetic StoneFocus effect: Synthetic Focus' );
+        assert.equal( socket.querySelector( '[data-eql-socket="1"] .eql-character-augment-effect a' ).getAttribute( 'href' ), '/wiki/Synthetic_Proc', 'Existing sanitized effect links remain clickable.' );
+        assert.equal( socket.querySelector( '[data-eql-socket="2"]' ).textContent, 'Socket 2: Empty', 'Sparse socket positions and empty capacity are unchanged.' );
+    } );
+}
 let toggles = document.querySelectorAll( '.eql-character-disclosure' );
 assert.equal( toggles.length, 2 );
 assert.equal( document.querySelectorAll( '.eql-character-body[hidden]' ).length, 2, 'Every character starts collapsed.' );
@@ -60,4 +70,4 @@ toggles = document.querySelectorAll( '.eql-character-disclosure' );assert.equal(
 toggles[ 0 ].click();assert.equal( document.querySelector( '.eql-character-body' ).hidden, true );assert.equal( popup.hidden, true );
 assert.equal( document.querySelectorAll( 'script,img[src^="data:"]' ).length, 0 );
 dom.window.close();
-console.log( 'Character sheet DOM passed: independent collapsed sheets, keyboard/pointer inspect, existing augment links, dynamic idempotence and static fallback.' );
+console.log( 'Character sheet DOM passed: collapsed sheets, accessible inspect, compact linked Exaltation effects, sparse sockets, dynamic idempotence and static fallback.' );

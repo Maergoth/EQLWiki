@@ -30,10 +30,18 @@ function icon( prefix = '' ) {
 function tier( prefix = '' ) {
     return `{{#if:${parameter( `${prefix}tier` )}|<span class="eql-character-tier">+${parameter( `${prefix}tier` )}</span>}}`;
 }
+// Read only complete, canonical effect fields from the existing details block.
+// The leading separator anchors the label to a row, not incidental prose.
+function augmentEffects( prefix ) {
+    return [ 'Effect', 'Combat effect', 'Proc effect', 'Click effect', 'Worn effect', 'Focus effect', 'Focus Exaltation', 'Proc Exaltation', 'Rune Exaltation' ].map( label => {
+        const value = `{{#explode:{{#explode:<br>${parameter( `${prefix}details` )}|<br>${label}:|1|2}}|<br>|0|2}}`;
+        return `{{#if:${value}|<span class="eql-character-augment-effect">${label}: ${value}</span>}}`;
+    } ).join( '' );
+}
 function augment( number ) {
     const prefix = `augment_${number}_`;
-    const present = `<li><span class="eql-character-augment-icon">${icon( prefix )}</span><span><strong>[[${parameter( `${prefix}item` )}]]</strong>${tier( prefix )}<span class="eql-character-augment-stats">${parameter( `${prefix}stats` )}</span><span class="eql-character-item-details">${parameter( `${prefix}details` )}</span></span></li>`;
-    const empty = `{{#if:${parameter( 'augment_slots' )}|{{#ifexpr:${parameter( 'augment_slots', '0' )} >= ${number}|<li class="eql-character-empty-socket">Socket ${number}: Empty</li>}}}}`;
+    const present = `<li data-eql-socket="${number}"><span><strong>[[${parameter( `${prefix}item` )}]]</strong>${augmentEffects( prefix )}</span></li>`;
+    const empty = `{{#if:${parameter( 'augment_slots' )}|{{#ifexpr:${parameter( 'augment_slots', '0' )} >= ${number}|<li class="eql-character-empty-socket" data-eql-socket="${number}">Socket ${number}: Empty</li>}}}}`;
     return `{{#if:${parameter( `${prefix}item` )}|${present}|${empty}}}`;
 }
 const main = '<includeonly><!-- EQL_CHARACTER_SHEET_V1 -->\n<div class="eql-character-sheet eql-character-sheet-v1">\n' +
@@ -56,7 +64,7 @@ const item = '<includeonly><!-- EQL_CHARACTER_SHEET_ITEM_V1 --><div class="eql-c
     '<div class="eql-character-item-stats">' + parameter( 'stats' ) + '</div><div class="eql-character-item-details">' + parameter( 'details' ) + '</div>' +
     '{{#if:' + parameter( 'augment_slots' ) + Array.from( { length: 8 }, ( _, i ) => parameter( `augment_${i + 1}_item` ) ).join( '' ) + '|<div class="eql-character-augments"><strong>Exaltations{{#if:' + parameter( 'augment_slots' ) + '|&#32;(' + parameter( 'augment_slots' ) + ' sockets)}}</strong><ul>' + Array.from( { length: 8 }, ( _, i ) => augment( i + 1 ) ).join( '' ) + '</ul></div>}}' +
     '</div></div>|<span class="eql-character-empty" aria-label="Empty slot">—</span>}}</div></includeonly>\n' +
-    '<noinclude>Character sheet schema 1 item helper. EQL_CHARACTER_SHEET_ITEM_V1. Supply a canonical item page title, optional tier 0–10, existing numeric item icon ID, reviewed stat lines, optional socket capacity 0–8 and up to eight indexed Exaltations. Optional details contain reviewed descriptive metadata and effect links. This helper computes no game statistics.</noinclude>\n';
+    '<noinclude>Character sheet schema 1 item helper. EQL_CHARACTER_SHEET_ITEM_V1. Supply a canonical item page title, optional tier 0–10, existing numeric item icon ID, reviewed stat lines, optional socket capacity 0–8 and up to eight indexed Exaltations. Optional details contain reviewed descriptive metadata and effect links. Exaltations display only their linked name and effect fields; supplied tiers, icons, stats and other details remain in the page source. This helper computes no game statistics.</noinclude>\n';
 for ( const [ file, source ] of [ [ 'character-sheet.wiki', main ], [ 'character-sheet-item.wiki', item ] ] ) {
     const target = path.join( __dirname, file );
     if ( process.argv.includes( '--check' ) ) {

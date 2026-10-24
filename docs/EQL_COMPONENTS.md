@@ -211,8 +211,12 @@ Interactive player snapshots use the reviewed `Template:Character_sheet` and
 `Template:Character_sheet_item` database sources under `ops/`, plus the existing
 skin's `skins.EQLImmersive.characterSheet` module. A ParserAfterParse hook adds
 the module only for rendered schema-1 markup, including unsaved API previews.
-Each character expands independently; supplied tier-specific gear/augment stats
-and links remain distinct from the base-item AjaxHoverHelper. No historical
+Each character expands independently; supplied tier-specific gear stats and
+links remain distinct from the base-item AjaxHoverHelper. Exaltation summaries
+show only linked names and supplied effect fields, preserving socket positions
+and leaving full tier/stat/metadata parameters in page source. The skin reduces
+older cached socket cards without editing source; the generated helper supplies
+the compact static result after its separate content publication. No historical
 Magelo extension is enabled. Optional totals include ten observed Additional
 Modifiers; accuracy bonus is distinct from ATK Accuracy. The template only
 displays the supplied equipped-stat reading and never adds item/catalog stats.
