@@ -1,0 +1,151 @@
+<!-- EQL_API_DOCUMENTATION_V1 -->
+The EQLWiki API is available at '''https://eqlwiki.com/api.php'''. Tools may read, create and edit pages, preview wikicode and upload reviewed screenshots using normal MediaWiki accounts and permissions. No Eye of Zomm secret, special User-Agent identity, shared bot account or privileged proxy is required. Use an informative User-Agent and respect rate limits.
+
+'''Page writes and observation uploads are separate.''' The standard <code>action=edit</code> creates or edits wiki pages with contributor attribution. <code>action=eozobservations</code> stores private attributed gameplay observations; it does not create pages, change drop lists or publish probabilities.
+
+== Discover the current API ==
+* [https://eqlwiki.com/api.php?action=help API help] and [https://eqlwiki.com/api.php?action=paraminfo&modules=edit%7Cupload%7Clogin%7Cclientlogin%7Ceqlmetadata%7Ceozobservations&format=json module parameters]. An unavailable optional module returns an API error; do not assume source deployment activated its storage.
+* Read <code>action=query&amp;meta=siteinfo&amp;siprop=general|extensions</code> for the actual installed version/modules.
+* All examples use <code>format=json&amp;formatversion=2</code>. Check JSON <code>error</code>/<code>errors</code> even when HTTP status is 200.
+* Follow [[Help:Contents]] and its '''current''' item, monster, zone and spell blueprints. Fetch revisions rather than embedding a stale blueprint forever. Resolve potential matches/redirects before creating another spelling. Monster spawn locations use the wiki/log order Y, X, Z; do not copy internal viewer world X,Y,Z values into that field.
+
+== Authentication ==
+Interactive tools should use a dedicated cookie session and the normal [[Special:UserLogin|login page]]. Credentials, cookies and CSRF tokens belong in the client’s private account/session store. Keep account, wiki origin and reviewed operation bound together. Log out/clear pending account authorization when the account changes.
+
+For an interactive API login, first query <code>meta=authmanagerinfo&amp;amirequestsfor=login</code> and <code>meta=tokens&amp;type=login</code>, then use <code>action=clientlogin</code> and handle PASS, UI, REDIRECT and FAIL responses. Challenges and two-factor requirements must be presented to the human; do not bypass them. The live site exposes clientlogin and the username/password authentication request. Normal anti-abuse, confirmed-email, blocked-account and page-protection policies still apply.
+
+For a user-operated command-line tool, [[Special:BotPasswords|Bot passwords]] provides MediaWiki’s scoped credentials when enabled for the account. Create one explicitly with only the rights needed; use <code>action=login</code> with that generated bot-password username/password, not a hard-coded owner password. The route and login API are present; this documentation does not claim a particular account has granted a bot password. [https://www.mediawiki.org/wiki/API:Login Official login/clientlogin documentation]. OAuth is not a required dependency and is not promised by this contract.
+
+After login query <code>action=query&amp;meta=userinfo&amp;uiprop=rights|blockinfo</code>. Use the returned canonical account name in every write’s <code>assert=user&amp;assertuser=Name</code>. Acquire a CSRF token using <code>action=query&amp;meta=tokens&amp;type=csrf</code> in the same session. Tokens are not substitutes for permissions. Handle <code>badtoken</code> by refreshing the token and rechecking the account/review; handle assertions/challenges by stopping the pending operation.
+
+== Query and preview ==
+<pre>
+curl --get 'https://eqlwiki.com/api.php' \
+  --data-urlencode 'action=query' --data-urlencode 'prop=info|revisions' \
+  --data-urlencode 'titles=Thornstinger' --data-urlencode 'rvprop=ids|timestamp|content' \
+  --data-urlencode 'rvslots=main' --data-urlencode 'curtimestamp=1' \
+  --data-urlencode 'format=json' --data-urlencode 'formatversion=2'
+
+# Preview only: does not save a page.
+curl 'https://eqlwiki.com/api.php' \
+  --data-urlencode 'action=parse' --data-urlencode 'title=Example item' \
+  --data-urlencode 'text@reviewed-page.wiki' --data-urlencode 'contentmodel=wikitext' \
+  --data-urlencode 'prop=text|modules' --data-urlencode 'format=json' \
+  --data-urlencode 'formatversion=2'
+</pre>
+Missing pages have <code>missing: true</code>; invalid titles are different from missing titles. Follow redirects deliberately. Search with <code>list=prefixsearch</code> / <code>list=search</code>, namespace 0 for game articles. A fuzzy match is a suggestion, not permission to merge two entities. Read the whole current source before constructing a focused patch and preview every affected page.
+
+== Create and update pages ==
+[https://www.mediawiki.org/wiki/API:Edit action=edit] is the supported, attributed write API for EQLWiki and other clients. POST the exact reviewed text. Never send both createonly and nocreate.
+
+* '''Create:''' <code>createonly=1</code> after verifying the intended canonical title is missing. If it appears meanwhile, stop and review it.
+* '''Update:''' <code>nocreate=1&amp;baserevid=REVIEWED_REVISION</code>, plus the query’s <code>starttimestamp</code>. Preserve unrelated prose and choose the correct normal/raid template. Do not treat an edit conflict as permission to overwrite the latest page.
+* Include <code>assert=user</code>, <code>assertuser</code>, <code>token</code> and a useful <code>summary</code>. Respect errors such as editconflict, articleexists, missingtitle, protectedpage, permissiondenied, assertuserfailed, badtoken, ratelimited and captcha/challenge responses. Do not request a bot flag to avoid ordinary review.
+* A successful response has <code>edit.result=Success</code>; nochange can be legitimate. Record returned revisions. A network timeout after POST has an '''unknown''' result. Read the page and reconcile the exact reviewed change before retrying.
+* Multi-page changes are not atomic. Persist per-page status and the reviewed before/after source. Retry only unfinished pages with their original guards; reconcile successful/unknown pages first. An item source, monster loot list, zone references and missing spell page may require distinct reviewed edits.
+
+This curl update assumes a cookie file from a completed login, an account name, a newly acquired CSRF token and the revision/timestamp from the query above. Protect the cookie file and environment; do not log them.
+<pre>
+curl --cookie private-cookies.txt 'https://eqlwiki.com/api.php' \
+  --data-urlencode 'action=edit' --data-urlencode 'title=Reviewed page title' \
+  --data-urlencode 'text@reviewed-page.wiki' --data-urlencode 'nocreate=1' \
+  --data-urlencode "baserevid=$REVIEWED_REVISION" \
+  --data-urlencode "starttimestamp=$REVIEW_STARTED_AT" \
+  --data-urlencode 'assert=user' --data-urlencode "assertuser=$WIKI_USER" \
+  --data-urlencode "token=$CSRF_TOKEN" --data-urlencode 'summary=Add reviewed source evidence' \
+  --data-urlencode 'format=json' --data-urlencode 'formatversion=2'
+# For creation, replace nocreate/baserevid with createonly=1.
+</pre>
+
+Python example (requires requests): credentials are prompted, cookie session stays in memory. Both create/update methods deliberately use reviewed local files; running either performs a real edit under your account.
+<pre>
+import getpass
+from pathlib import Path
+import requests
+
+API = "https://eqlwiki.com/api.php"
+s = requests.Session()
+s.headers["User-Agent"] = "MyEQLWikiTool/1.0 (operator contact)"
+
+def api(post=False, **params):
+    params.update(format="json", formatversion=2)
+    response = (s.post(API, data=params, timeout=30) if post
+                else s.get(API, params=params, timeout=30))
+    response.raise_for_status()
+    value = response.json()
+    if "error" in value or "errors" in value:
+        raise RuntimeError(value.get("error", value.get("errors")))
+    return value
+
+login_token = api(action="query", meta="tokens", type="login")["query"]["tokens"]["logintoken"]
+result = api(True, action="login", lgname=input("Bot-password username: "),
+             lgpassword=getpass.getpass("Scoped bot password: "), lgtoken=login_token)
+if result.get("login", {}).get("result") != "Success":
+    raise RuntimeError("Login not completed; use the normal interactive login/challenge flow")
+user = api(action="query", meta="userinfo", uiprop="rights|blockinfo")["query"]["userinfo"]
+if user.get("anon") or user.get("temp") or user.get("blockid"):
+    raise RuntimeError("A named, unblocked account is required")
+
+def reviewed_write(title, source_file, expected_revision):
+    state = api(action="query", prop="info|revisions", titles=title,
+                rvprop="ids|timestamp|content", rvslots="main", curtimestamp=1)
+    page = state["query"]["pages"][0]
+    if page.get("invalid") or page.get("redirect"):
+        raise RuntimeError("Resolve this title before review")
+    revision = page.get("revisions", [{}])[0].get("revid", 0)
+    if revision != expected_revision:
+        raise RuntimeError("Page changed since review")
+    token = api(action="query", meta="tokens", type="csrf",
+                assertuser=user["name"], **{"assert": "user"})["query"]["tokens"]["csrftoken"]
+    guards = {"createonly": 1} if expected_revision == 0 else {"nocreate": 1, "baserevid": revision}
+    return api(True, action="edit", title=page["title"],
+               text=Path(source_file).read_text(encoding="utf-8"),
+               token=token, assertuser=user["name"], starttimestamp=state["curtimestamp"],
+               summary="Reviewed contribution from MyEQLWikiTool", **{"assert": "user"}, **guards)
+
+# Explicit calls after human review; uncomment only the intended operation:
+# reviewed_write("New canonical title", "new-page.wiki", 0)
+# reviewed_write("Existing canonical title", "updated-page.wiki", 123456)
+</pre>
+
+== Screenshots and icons ==
+Use [https://www.mediawiki.org/wiki/API:Upload action=upload] with multipart file, CSRF token and the same account assertions. Choose a new unique filename; do not ignore overwrite/duplicate/license warnings automatically. Review the image, attribution, caption and applicable license before upload. Describe game screenshots accurately; do not claim ownership of game artwork. On an unknown response, query <code>prop=imageinfo&amp;iiprop=sha1|user</code> and reconcile the expected file before retrying. Only after confirmation should a page edit add the reviewed <code>File:</code> link. A failed later page edit must not cause another upload.
+
+Existing wiki icon filenames/IDs are canonical. Use the existing [[Help:Contents|blueprint/icon finder]] and known <code>item_ID.png</code> files; icon matching suggestions still require review. Do not upload a screenshot crop over an existing icon. Do not upload continuous screen recordings, logs, account information or unrelated desktop pixels.
+
+== EQL metadata and blueprints ==
+<code>action=eqlmetadata</code> is a read-only '''POST''' with <code>titles=Title One|Title Two</code>, capped at the configured limit (normally 500). It returns <code>eraRevision</code>, revision-aware <code>pages</code> and this documentation link. It does not create/edit pages or establish an item’s base statistics.
+
+Read [[Help:Contents]] through revisions, parse and normal article source APIs. Item hover consumers must preserve Itempage/Itembox, onlyinclude and canonical title contracts. A tiered item screenshot is not verified tier 0 data. Character sheet exports use [[Template:Character sheet]] and [[Template:Character sheet item]] plus the supported skin module; preview and check those capabilities before sharing. New Character shares belong on the authenticated user’s own User page, preserving other content and characters.
+
+== Private kill/loot observations: schema 1 ==
+This optional EQLClientData module is disabled until its own schema/configuration is installed. It uses named, unblocked, confirmed-email accounts with <code>eoz-submit-observations</code>. A scoped bot password can request the separate <code>eozobservations</code> grant; this does not grant page editing or elevated permissions. Call authenticated CSRF-protected POST <code>action=eozobservations&amp;operation=status</code> first. Its inner response contains <code>schemaVersion:1</code>, <code>enabled</code>, <code>available</code>, <code>account:{id,name}</code> and limits. Unavailable storage is a reason to retain the local outbox, not discard it.
+
+Submit form fields <code>action=eozobservations</code>, <code>operation=submit</code>, <code>batch=JSON</code>, <code>token</code>, <code>assert=user</code>, <code>assertuser</code>. Batch JSON is:
+<pre>
+{"schemaVersion":1,"batchId":"batch_20261024_001","clientVersion":"MyTool/1.0","events":[
+ {"id":"event_20261024_001","kind":"loot","observedAt":"2026-10-24T10:00:00.000Z",
+  "server":"Example server","zone":"Example zone","npc":"","item":"Example item",
+  "quantity":1,"tier":0,"instance":"unknown","sourceKind":"unknown"}
+]}
+</pre>
+Limits: 100 events / 262144 UTF-8 batch bytes / 4096 normalized event bytes; default 12 new batches per account/hour. IDs are 8–120 ASCII letters, digits, underscore or hyphen. Each event permits '''only''' id, kind, observedAt, server, zone, zoneTitle, npc, npcTitle, item, itemTitle, quantity, tier, instance, sourceKind, sourceToken, sessionToken, sequence and catalogVersion. Optional canonical titles are main-namespace titles, without markup. Names/titles are at most 230 characters, server 80, catalogVersion 120; optional opaque source/session tokens are 1–120 ASCII ID characters. No player names, raw chat/log lines, file paths, screenshots or coordinates are accepted.
+
+Kind is kill or loot. A kill requires npc, no item, quantity 1 and sourceKind kill-line. Loot requires item, quantity 1–1000, tier unknown/null or 0–10. SourceKind is explicit-corpse, explicit-source, recent-kill, encounter-target or unknown; attributed sources require npc. Instance is normal, raid or unknown. Sequence is an optional nonnegative safe integer. UTC observedAt accepts seconds or exactly three fractional digits, may be old for offline delivery, and cannot be more than five minutes in the server’s future. Observed and received times are stored separately.
+
+The response is wrapped in <code>eozobservations</code>:
+<pre>
+{"schemaVersion":1,"batchId":"batch_20261024_001","account":{"id":123,"name":"Example"},
+ "accepted":["event_20261024_001"],"duplicates":[],"conflicts":[],"rejected":[],
+ "receivedAt":"2026-10-24T10:01:00Z",
+ "limits":{"events":100,"bytes":262144,"eventBytes":4096,"hourlyBatches":12}}
+</pre>
+Each valid input ID must appear exactly once across accepted, duplicates, conflicts or rejected; rejected entries are objects <code>{id,code}</code>. Verify the batch and account before acknowledging anything. Delete local pending events only for accepted/duplicates. Reusing an actor/event ID with the same normalized payload yields duplicate; changed payload yields conflict and never overwrites the stored event. Exact batch retries are safe; do not generate new IDs after an uncertain response. Same ID from another account remains a separate attributed report, not an additional proven world kill.
+
+Errors include eoz-login, eoz-email, eoz-blocked, permissiondenied, eoz-disabled, eoz-schema-unavailable, eoz-invalid-batch, eoz-rate-limit, eoz-capacity and eoz-batch-conflict. Invalid envelope, duplicate IDs within a batch or oversize batch reject the batch; valid peers may survive an individual event rejection. Capacity is bounded and does not silently evict stored observations. Keep failed/conflicting data locally for review and back off after rate/capacity errors.
+
+Coverage and denominators are unknown: logging can begin/end mid-session, sources can be inferred or unknown, kills/loot can be missed, groups/accounts can overlap, and instances differ. These are observations with provenance, not official drop rates. This endpoint does not publish a page, aggregate a probability or assert complete kill coverage.
+
+== Further references ==
+* [https://www.mediawiki.org/wiki/API:Main_page MediaWiki Action API], [https://www.mediawiki.org/wiki/API:Tokens tokens], [https://www.mediawiki.org/wiki/API:Assert assert], [https://www.mediawiki.org/wiki/API:Edit edits], [https://www.mediawiki.org/wiki/API:Upload uploads].
+* [[Help:Contents]] for EQLWiki contribution rules, blueprints and existing content conventions.
