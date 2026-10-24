@@ -11,7 +11,7 @@ EOT;
 $wgExtensionCredits['specialpage'][] = array(
 	'path' => __FILE__,
 	'name' => 'DynamicZoneList',
-	'version' => '0.3',
+	'version' => '0.3.1',
 	'author' => 'Ravhin',
 	'url' => 'http://www.destinati.com/',
 	'descriptionmsg' => 'dynamiczonelist-desc',

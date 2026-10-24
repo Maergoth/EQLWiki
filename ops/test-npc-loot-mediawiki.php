@@ -83,6 +83,7 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$this->check( $xpath->query( './/span[' . $class( 'ih' ) . ']/a', $panel )->length === 1, 'Normal item expansion must retain the span.ih link consumed by the existing hover component.' );
 		$this->check( $xpath->query( './/*[' . $class( 'mw-editsection' ) . ']', $panel )->length === 0, 'Generated content must not advertise nonexistent source-section edits.' );
 		$this->check( str_contains( $panel->textContent, 'Normal Zone' ) && str_contains( $panel->textContent, 'Raid Zone' ), 'Actual parsing must preserve normal and raid source context.' );
+		$this->check( $xpath->query( './/small//a[normalize-space(text())="EQL synthetic cavern"]', $panel )->length === 2 && !str_contains( $panel->textContent, '<a href=' ), 'Source zones must be working wiki links, not escaped HTML anchors.' );
 		$this->check( !str_contains( $panel->textContent, 'EQL synthetic authored relic' ), 'The additional panel must not repeat already authored loot.' );
 		$dependencies = array_map( static fn ( array $link ) => str_replace( '_', ' ', Title::newFromLinkTarget( $link['link'] )->getPrefixedText() ), $output->getLinkList( ParserOutputLinkTypes::TEMPLATE ) );
 		$this->check( in_array( 'EQL synthetic reverse relic', $dependencies, true ), 'Generated normal item transclusions must register item dependencies with core.' );
