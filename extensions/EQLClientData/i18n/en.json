@@ -1,0 +1,20 @@
+{
+  "@metadata": { "authors": [ "EQLWiki" ] },
+  "right-eoz-submit-observations": "Submit attributed gameplay observations",
+  "grant-eozobservations": "Submit attributed gameplay observations (does not edit pages)",
+  "apihelp-eozobservations-summary": "Store attributed, data-only kill and loot observations. Article creation and editing use the standard edit API. See API Documentation.",
+  "apihelp-eozobservations-param-operation": "Check authenticated capability or submit an idempotent observation batch.",
+  "apihelp-eozobservations-param-batch": "JSON schemaVersion 1 batch; at most 100 events and 262144 UTF-8 bytes. See API_Documentation.",
+  "apihelp-eqlmetadata-summary": "Read batched revision-aware EQL era metadata. See API Documentation for page, image and contribution workflows.",
+  "apihelp-eqlmetadata-param-titles": "Pipe-separated wiki titles; at most the configured title limit (normally 500).",
+  "apierror-eoz-login": "Log in with a named wiki account before sending observations.",
+  "apierror-eoz-blocked": "This wiki account cannot send observations while blocked.",
+  "apierror-eoz-email": "Confirm your wiki email before sending observations.",
+  "apierror-eoz-disabled": "This wiki is not accepting Eye of Zomm observations.",
+  "apierror-eoz-schema": "Eye of Zomm observation storage has not been activated.",
+  "apierror-eoz-schema-unavailable": "Eye of Zomm observation storage has not been activated.",
+  "apierror-eoz-invalid": "The observation batch contains unsupported or invalid data.",
+  "apierror-eoz-rate-limit": "The observation upload limit was reached. Keep the local batch and retry later.",
+  "apierror-eoz-capacity": "Observation storage is full. Keep pending data locally until the wiki operator resolves capacity.",
+  "apierror-eoz-batch-conflict": "This observation batch ID already belongs to different content. Review the pending batch."
+}

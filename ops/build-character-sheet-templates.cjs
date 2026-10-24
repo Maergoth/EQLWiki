@@ -20,7 +20,7 @@ const stat = ( key, label, optional = false ) => {
     const row = `<div><dt>${label}</dt><dd>${value}</dd></div>`;
     return optional ? `{{#if:${parameter( `total_${key}` )}|${row}}}` : row;
 };
-const itemFields = [ 'item', 'tier', 'icon', 'stats', 'augment_slots', ...Array.from( { length: 8 }, ( _, i ) => [ 'item', 'tier', 'icon', 'stats' ].map( field => `augment_${i + 1}_${field}` ) ).flat() ];
+const itemFields = [ 'item', 'tier', 'icon', 'stats', 'details', 'augment_slots', ...Array.from( { length: 8 }, ( _, i ) => [ 'item', 'tier', 'icon', 'stats', 'details' ].map( field => `augment_${i + 1}_${field}` ) ).flat() ];
 function slot( [ id, label ] ) {
     return '{{Character_sheet_item\n|slot=' + label + '\n' + itemFields.map( field => `|${field}=${parameter( `${id}_${field}` )}` ).join( '\n' ) + '\n}}';
 }
@@ -32,7 +32,7 @@ function tier( prefix = '' ) {
 }
 function augment( number ) {
     const prefix = `augment_${number}_`;
-    const present = `<li><span class="eql-character-augment-icon">${icon( prefix )}</span><span><strong>[[${parameter( `${prefix}item` )}]]</strong>${tier( prefix )}<span class="eql-character-augment-stats">${parameter( `${prefix}stats` )}</span></span></li>`;
+    const present = `<li><span class="eql-character-augment-icon">${icon( prefix )}</span><span><strong>[[${parameter( `${prefix}item` )}]]</strong>${tier( prefix )}<span class="eql-character-augment-stats">${parameter( `${prefix}stats` )}</span><span class="eql-character-item-details">${parameter( `${prefix}details` )}</span></span></li>`;
     const empty = `{{#if:${parameter( 'augment_slots' )}|{{#ifexpr:${parameter( 'augment_slots', '0' )} >= ${number}|<li class="eql-character-empty-socket">Socket ${number}: Empty</li>}}}}`;
     return `{{#if:${parameter( `${prefix}item` )}|${present}|${empty}}}`;
 }
@@ -53,10 +53,10 @@ const main = '<includeonly><!-- EQL_CHARACTER_SHEET_V1 -->\n<div class="eql-char
 const item = '<includeonly><!-- EQL_CHARACTER_SHEET_ITEM_V1 --><div class="eql-character-slot"><span class="eql-character-slot-label">' + parameter( 'slot', 'Equipment' ) + '</span>' +
     '{{#if:' + parameter( 'item' ) + '|<div class="eql-character-item"><span class="eql-character-item-icon">' + icon() + '</span>' + tier() +
     '<span class="eql-character-item-name">[[' + parameter( 'item' ) + ']]</span><div class="eql-character-inspect-v1"><strong>[[' + parameter( 'item' ) + ']]</strong>' + tier() +
-    '<div class="eql-character-item-stats">' + parameter( 'stats' ) + '</div>' +
-    '{{#if:' + parameter( 'augment_slots' ) + Array.from( { length: 8 }, ( _, i ) => parameter( `augment_${i + 1}_item` ) ).join( '' ) + '|<div class="eql-character-augments"><strong>Augments{{#if:' + parameter( 'augment_slots' ) + '|&#32;(' + parameter( 'augment_slots' ) + ' sockets)}}</strong><ul>' + Array.from( { length: 8 }, ( _, i ) => augment( i + 1 ) ).join( '' ) + '</ul></div>}}' +
+    '<div class="eql-character-item-stats">' + parameter( 'stats' ) + '</div><div class="eql-character-item-details">' + parameter( 'details' ) + '</div>' +
+    '{{#if:' + parameter( 'augment_slots' ) + Array.from( { length: 8 }, ( _, i ) => parameter( `augment_${i + 1}_item` ) ).join( '' ) + '|<div class="eql-character-augments"><strong>Exaltations{{#if:' + parameter( 'augment_slots' ) + '|&#32;(' + parameter( 'augment_slots' ) + ' sockets)}}</strong><ul>' + Array.from( { length: 8 }, ( _, i ) => augment( i + 1 ) ).join( '' ) + '</ul></div>}}' +
     '</div></div>|<span class="eql-character-empty" aria-label="Empty slot">—</span>}}</div></includeonly>\n' +
-    '<noinclude>Character sheet schema 1 item helper. EQL_CHARACTER_SHEET_ITEM_V1. Supply a canonical item page title, optional tier 0–10, existing numeric item icon ID, reviewed stat lines, optional socket capacity 0–8 and up to eight indexed augments. This helper computes no game statistics.</noinclude>\n';
+    '<noinclude>Character sheet schema 1 item helper. EQL_CHARACTER_SHEET_ITEM_V1. Supply a canonical item page title, optional tier 0–10, existing numeric item icon ID, reviewed stat lines, optional socket capacity 0–8 and up to eight indexed Exaltations. Optional details contain reviewed descriptive metadata and effect links. This helper computes no game statistics.</noinclude>\n';
 for ( const [ file, source ] of [ [ 'character-sheet.wiki', main ], [ 'character-sheet-item.wiki', item ] ] ) {
     const target = path.join( __dirname, file );
     if ( process.argv.includes( '--check' ) ) {

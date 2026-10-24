@@ -218,6 +218,7 @@ class AjaxHoverHelper extends SpecialPage {
 			'|itemname    = ' . $this->getParam( $params, 'itemname' ) . "\n" .
 			'|lucy_img_ID = ' . $this->getParam( $params, 'lucy_img_ID' ) . "\n" .
 			'|statsblock  = ' . "\n" . $this->getParam( $params, 'statsblock' ) . "\n" .
+			'|focus_effect = ' . $this->getParam( $params, 'focus_effect' ) . "\n" .
 			'}}';
 	}
 

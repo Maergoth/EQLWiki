@@ -48,10 +48,16 @@ class EQLTestCharacterSheet extends Maintenance {
                 $this->check( trim( $xpath->query( './*[' . $class( 'eql-character-tier' ) . ']', $card )[0]->textContent ) === '+' . $item['tier'], 'Tier metadata must stay with its physical equipment card.' );
                 $stats = $xpath->query( './*[' . $class( 'eql-character-item-stats' ) . ']', $inspect )[0]->textContent;
                 $this->check( str_contains( $stats, 'HP: ' . $item['stats']['HP'] ) && str_contains( $stats, 'STR: ' . $item['stats']['STR'] ), 'Actual serialized stats must stay within the correct item/server card.' );
+                foreach ( $item['details'] ?? [] as $detail ) {
+                    $detailNode=$xpath->query( './*[' . $class( 'eql-character-item-details' ) . ']', $inspect )[0];
+                    $this->check( $detailNode && str_contains( $detailNode->textContent, $detail['label'] . ': ' . $detail['value'] ), 'Actual rich metadata stays in the scoped item inspect.' );
+                    if ( !empty( $detail['linkTitle'] ) ) { $targets=[];foreach ( $xpath->query( './/a', $detailNode ) as $link ) { $targets[]=$linkTitle( $link ); }$this->check( in_array( str_replace( '_', ' ', $detail['linkTitle'] ), $targets, true ), 'Effect links decode to the canonical page title.' ); }
+                }
                 foreach ( $item['augments'] as $augment ) {
                     $links = $xpath->query( './/*[' . $class( 'eql-character-augments' ) . ']//a', $inspect );
                     $targets = [];foreach ( $links as $link ) { $targets[] = $linkTitle( $link ); }
                     $this->check( in_array( $augment['title'], $targets, true ), 'A canonical weapon augment in boots must preserve its exact apostrophe/ampersand/Unicode destination.' );
+                    foreach ( $augment['details'] ?? [] as $detail ) { $this->check( str_contains( $inspect->textContent, $detail['label'] . ': ' . $detail['value'] ), 'Indexed Exaltation metadata must survive actual serialization and parsing.' ); }
                 }
                 $occupied = array_column( $item['augments'], 'index' );
                 for ( $socket = 0; $socket < 8; $socket++ ) {

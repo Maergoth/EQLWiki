@@ -157,12 +157,18 @@ testing. Standard permissions are described in the [MediaWiki user rights manual
 ## Metadata, era filtering, and verification
 
 [`extensions/EQLClientData/`](../extensions/EQLClientData/) is enabled (extension
-version 1.1.2). Start with `extension.json`, `includes/Hooks.php`,
+version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations). Start with `extension.json`, `includes/Hooks.php`,
 `includes/ApiMetadata.php`, and `includes/ConfigRepository.php`.
 
 - The read-only `action=eqlmetadata` API requires **POST**. Pipe-delimited titles
   are capped by `EQLClientDataApiMaxTitles` (configured 500). Skin requests batch
   450 titles; retain the response/normalization contract.
+- Optional `action=eozobservations` stores named-session/CSRF-protected, attributed
+  kill/loot data with actor/event idempotency and hard quotas. It is disabled by
+  default and requires three separately installed own tables. It does not edit
+  articles or publish drop rates. Standard MediaWiki `action=edit` handles page
+  creation/updates. [API, schema and activation contract](CLIENT_API.md); the
+  reviewed public `API_Documentation` database page has its own guarded publisher.
 - Metadata comes from database `VerifiedPages`, `Template:PageEra`, and
   `SpellLevelSliderOverrides`. Revision-aware WANObjectCache entries and
   save/move/delete invalidation keep data fresh. Era results also depend on page
