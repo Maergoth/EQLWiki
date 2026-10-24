@@ -6,7 +6,7 @@ use MediaWiki\Parser\ParserOutputLinkTypes;
 /** Read-only reverse loot on ordinary NPC article views; never changes page source. */
 class EqlNpcLootRenderer {
     public const MARKER = 'eql-npc-source-loot';
-    public const GUARD = 'eql-npc-source-loot-scanned';
+    public const GUARD = 'eql-npc-source-loot-scanned-v2';
     public const CACHE_SECONDS = 300;
 
     /** @var callable|null Source-only fixtures may inject a lookup without writing wiki pages. */
@@ -59,8 +59,9 @@ class EqlNpcLootRenderer {
                 $instance = ( $context['instance'] ?? 'normal' ) === 'raid' ? 'Raid Zone' : 'Normal Zone';
                 $label = self::escape( $instance );
                 if ( $zone ) {
-                    $label .= ' · <a href="' . self::escape( $zone->getLocalURL() ) . '">' .
-                        self::escape( $zone->getText() ) . '</a>';
+                    // Raw HTML anchors are escaped by the wikitext sanitizer.
+                    $label .= ' · [[' . $zone->getPrefixedDBkey() . '|' .
+                        self::escape( $zone->getText() ) . ']]';
                 } else {
                     $label .= ' · zone unspecified';
                 }
