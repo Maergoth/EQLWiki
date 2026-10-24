@@ -119,7 +119,18 @@ Existing wiki icon filenames/IDs are canonical. Use the existing [[Help:Contents
 Read [[Help:Contents]] through revisions, parse and normal article source APIs. Item hover consumers must preserve Itempage/Itembox, onlyinclude and canonical title contracts. A tiered item screenshot is not verified tier 0 data. Character sheet exports use [[Template:Character sheet]] and [[Template:Character sheet item]] plus the supported skin module; preview and check those capabilities before sharing. New Character shares belong on the authenticated user’s own User page, preserving other content and characters.
 
 == Private kill/loot observations: schema 1 ==
-This optional EQLClientData module is disabled until its own schema/configuration is installed. It uses named, unblocked, confirmed-email accounts with <code>eoz-submit-observations</code>. A scoped bot password can request the separate <code>eozobservations</code> grant; this does not grant page editing or elevated permissions. Call authenticated CSRF-protected POST <code>action=eozobservations&amp;operation=status</code> first. Its inner response contains <code>schemaVersion:1</code>, <code>enabled</code>, <code>available</code>, <code>account:{id,name}</code> and limits. Unavailable storage is a reason to retain the local outbox, not discard it.
+=== Production status and storage (2026-10-24) ===
+As of '''2026-10-24''', production '''eqlwiki.com''' has '''EQLClientData 1.2.0 observation storage installed and enabled'''. The three logical tables are:
+* <code>eql_eoz_observations</code>: accepted kill/loot events, attributed to the authenticated wiki actor, with normalized source provenance and separate observed/received times.
+* <code>eql_eoz_batches</code>: attributed batch receipts and retry/deduplication records.
+* <code>eql_eoz_state</code>: storage counters used to enforce bounded collection.
+
+Eye of Zomm keeps a persistent local outbox and normally attempts hourly pushes while the app is running, collection is enabled and the user is logged in. Login eligibility and failed-upload backoff use the saved retry schedule. '''The server persists accepted batches immediately in a transaction'''; it does not wait for an hourly server job. This stores observations, not a raw log archive, edited drop list or calculated drop rate. There is no public observation-list endpoint.
+
+Current deployment defaults are 12 new batches per account/hour, 100000 stored events globally/10000 per actor and 20000 batch receipts globally/2000 per actor. Capacity errors retain local pending data; stored observations are not silently evicted. This dated status is not an availability guarantee: call the authenticated status operation below for current <code>enabled</code>, <code>available</code> and request limits.
+
+=== Availability and authentication ===
+The module remains '''disabled by default in other environments''' until its own schema and configuration are installed; a source deployment alone does not activate storage. It uses named, unblocked, confirmed-email accounts with <code>eoz-submit-observations</code>. A scoped bot password can request the separate <code>eozobservations</code> grant; this does not grant page editing or elevated permissions. Call authenticated CSRF-protected POST <code>action=eozobservations&amp;operation=status</code> first. Its inner response contains <code>schemaVersion:1</code>, <code>enabled</code>, <code>available</code>, <code>account:{id,name}</code> and limits. Unavailable storage is a reason to retain the local outbox, not discard it.
 
 Submit form fields <code>action=eozobservations</code>, <code>operation=submit</code>, <code>batch=JSON</code>, <code>token</code>, <code>assert=user</code>, <code>assertuser</code>. Batch JSON is:
 <pre>
