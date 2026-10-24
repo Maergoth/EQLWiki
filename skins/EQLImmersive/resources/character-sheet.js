@@ -2,6 +2,32 @@
 ( function () {
     'use strict';
     var initialized = new WeakSet(), nextId = 0, flyout, activeItem = null, hideTimer = null;
+    // Cached template HTML may still contain the previous full Exaltation card.
+    // Retain its existing sanitized links, but show only identity/effect fields.
+    function compactExaltations( root ) {
+        root.querySelectorAll( '.eql-character-augments li:not(.eql-character-empty-socket)' ).forEach( function ( socket ) {
+            var details = socket.querySelector( '.eql-character-item-details' ), effects = [];
+            if ( details ) {
+                var lines = [ [] ];
+                Array.from( details.childNodes ).forEach( function ( node ) {
+                    if ( node.nodeName === 'BR' ) { lines.push( [] ); }
+                    else { lines[ lines.length - 1 ].push( node ); }
+                } );
+                lines.forEach( function ( nodes ) {
+                    var text = nodes.map( function ( node ) { return node.textContent; } ).join( '' ).trim();
+                    if ( /^(?:Effect|Combat effect|Proc effect|Click effect|Worn effect|Focus effect|Focus Exaltation|Proc Exaltation|Rune Exaltation)\s*:/i.test( text ) ) {
+                        var effect = document.createElement( 'span' );
+                        effect.className = 'eql-character-augment-effect';
+                        nodes.forEach( function ( node ) { effect.appendChild( node.cloneNode( true ) ); } );
+                        effects.push( effect );
+                    }
+                } );
+            }
+            socket.querySelectorAll( '.eql-character-augment-icon,.eql-character-tier,.eql-character-augment-stats,.eql-character-item-details' ).forEach( function ( node ) { node.remove(); } );
+            var name = socket.querySelector( 'strong' );
+            if ( name ) { effects.forEach( function ( effect ) { name.parentNode.appendChild( effect ); } ); }
+        } );
+    }
     function cancelHide() {
         if ( hideTimer !== null ) { window.clearTimeout( hideTimer ); hideTimer = null; }
     }
@@ -52,6 +78,7 @@
             var heading = sheet.querySelector( ':scope > .eql-character-heading' ),
                 body = sheet.querySelector( ':scope > .eql-character-body' );
             if ( !heading || !body ) { return; }
+            compactExaltations( body );
             initialized.add( sheet );
             sheet.classList.add( 'is-enhanced' );
             var toggle = document.createElement( 'button' );

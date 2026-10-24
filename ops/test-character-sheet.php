@@ -57,7 +57,13 @@ class EQLTestCharacterSheet extends Maintenance {
                     $links = $xpath->query( './/*[' . $class( 'eql-character-augments' ) . ']//a', $inspect );
                     $targets = [];foreach ( $links as $link ) { $targets[] = $linkTitle( $link ); }
                     $this->check( in_array( $augment['title'], $targets, true ), 'A canonical weapon augment in boots must preserve its exact apostrophe/ampersand/Unicode destination.' );
-                    foreach ( $augment['details'] ?? [] as $detail ) { $this->check( str_contains( $inspect->textContent, $detail['label'] . ': ' . $detail['value'] ), 'Indexed Exaltation metadata must survive actual serialization and parsing.' ); }
+                    $socket = $xpath->query( './/*[' . $class( 'eql-character-augments' ) . ']//li[@data-eql-socket="' . ( $augment['index'] + 1 ) . '"]', $inspect )[0];
+                    $this->check( $socket !== null, 'Indexed Exaltation retains its exact socket number.' );
+                    $this->check( $xpath->query( './/*[' . $class( 'eql-character-augment-stats' ) . ' or ' . $class( 'eql-character-tier' ) . ' or ' . $class( 'eql-character-item-details' ) . ' or ' . $class( 'eql-character-augment-icon' ) . ']', $socket )->length === 0, 'Exaltations display neither tier, icon, item stats nor unrelated details.' );
+                    foreach ( $augment['details'] ?? [] as $detail ) {
+                        $effect = preg_match( '/^(?:Effect|Combat effect|Proc effect|Click effect|Worn effect|Focus effect|Focus Exaltation|Proc Exaltation|Rune Exaltation)$/', $detail['label'] );
+                        $this->check( str_contains( $socket->textContent, $detail['label'] . ': ' . $detail['value'] ) === (bool)$effect, 'Only effect metadata is displayed for indexed Exaltations.' );
+                    }
                 }
                 $occupied = array_column( $item['augments'], 'index' );
                 for ( $socket = 0; $socket < 8; $socket++ ) {
@@ -109,7 +115,9 @@ class EQLTestCharacterSheet extends Maintenance {
             . '|total_attack_speed=23|total_accuracy=37|total_avoidance=24|total_combat_effects=0|total_strikethrough=7'
             . '|total_stun_resist=8|total_damage_shield=19|total_damage_shield_mitigation=?|total_dot_shielding=4.5|total_melee_shielding=11|total_spell_shielding=12'
             . '|feet_item=Synthetic Boots|feet_tier=3|feet_stats=HP: 133<br>STR: 7'
-            . '|feet_augment_slots=2|feet_augment_1_item=Synthetic Sword|feet_augment_1_tier=2|feet_augment_1_stats=HP: 5'
+            . '|feet_augment_slots=4|feet_augment_1_item=Synthetic Sword|feet_augment_1_tier=0|feet_augment_1_stats=WT: 2<br>HP: 5'
+            . '|feet_augment_1_details=Details: Old card<br>Effect: [[Synthetic Proc|Synthetic Proc (Combat)]]<br>Size: SMALL<br>Class: WAR<br>Race: ALL'
+            . '|feet_augment_4_item=Synthetic Stone|feet_augment_4_details=Notes: Effect: incidental prose<br>Focus effect: [[Synthetic Focus]]<br>Race: ALL'
             . '}}'
             . "\n{{Character_sheet|name=Synthetic &amp; Reader|server=Fixture Two|level=42|total_hp=800|total_ac=55|total_haste=0|head_item=Synthetic Cap|head_tier=0|head_stats=HP: ?}}";
         $input = null;
@@ -171,8 +179,13 @@ class EQLTestCharacterSheet extends Maintenance {
         $this->check( $legacyHaste->length === 1 && $legacyHaste[0]->textContent === '0', 'Legacy Haste remains available and preserves a known zero when Attack speed is omitted.' );
         $this->check( $xpath->query( './/*[' . $class( 'eql-character-group-heading' ) . ' and text()="Additional modifiers"]', $sheets[0] )->length === 1 && $xpath->query( './/*[' . $class( 'eql-character-group-heading' ) . ' and text()="Additional modifiers"]', $sheets[1] )->length === 0, 'Additional modifiers appear only when supplied; old sheets keep their existing layout.' );
         $this->check( !str_contains( $totals, 'Current' ) && !str_contains( $totals, 'Maximum' ) && !str_contains( $totals, 'Fraction' ), 'Public resources display only their selected maximum values.' );
-        $this->check( str_contains( $html, 'Socket 2: Empty' ) && !str_contains( $html, 'Socket 3: Empty' ), 'Known capacity renders exactly its unfilled sockets.' );
+        $this->check( str_contains( $html, 'Socket 2: Empty' ) && str_contains( $html, 'Socket 3: Empty' ) && !str_contains( $html, 'Socket 4: Empty' ) && !str_contains( $html, 'Socket 5: Empty' ), 'Known sparse capacity renders exactly its unfilled sockets.' );
         $this->check( $xpath->query( '//a[starts-with(@title,"Synthetic Sword")]' )->length > 0, 'A socket can link any known item, including a weapon in boots.' );
+        $socket = $xpath->query( '//*[' . $class( 'eql-character-augments' ) . ']//li[@data-eql-socket="1"]' )[0];
+        $this->check( trim( $socket->textContent ) === 'Synthetic SwordEffect: Synthetic Proc (Combat)', 'Exaltations contain only their linked name and effect, with no zero tier, stats or unrelated metadata.' );
+        $this->check( $xpath->query( './/a[starts-with(@title,"Synthetic Proc")]', $socket )->length === 1, 'Exaltation effect links survive actual MediaWiki parsing.' );
+        $focus = $xpath->query( '//*[' . $class( 'eql-character-augments' ) . ']//li[@data-eql-socket="4"]' )[0];
+        $this->check( trim( $focus->textContent ) === 'Synthetic StoneFocus effect: Synthetic Focus', 'Typed effect fields are preserved and incidental Effect prose is excluded.' );
         $this->check( !preg_match( '/<script\b|data:image|Augments unknown|partial item stats/i', $html ), 'Sheet output must not include scripts, pixels or noisy coverage warnings.' );
         if ( $this->hasOption( 'output' ) ) {
             $this->check( file_put_contents( $this->getOption( 'output' ), $html ) === strlen( $html ), 'Private synthetic HTML output could not be saved.' );

@@ -6,7 +6,9 @@ JavaScript initializes; its disclosure is keyboard accessible and independent of
 other characters on the page. Without JavaScript the full static sheet remains
 readable. Item icons link to their existing wiki pages. Hovering or focusing gear
 shows its supplied tier-specific stat card, reviewed rich metadata/effect links
-and clickable known Exaltations.
+and clickable known Exaltations. Each occupied Exaltation shows only its linked
+item name and effect fields. Numeric item stats, tier, size, class, race, icon
+and other metadata are omitted from that compact socket summary.
 The interactive inspect is a labeled nonmodal dialog. A short 200 ms pointer
 grace period allows crossing the gap from gear to its links; entering the card
 cancels dismissal. Keyboard users can press ArrowDown from gear to enter those
@@ -215,3 +217,20 @@ The Itempage-to-Itembox AjaxHoverHelper adapter also forwards the existing
 `focus_effect` parameter; this preserves real focus metadata rather than
 inventing or reparsing it. Snapshot cards retain their supplied tier values and
 metadata instead of fetching a different base-tier card on every hover.
+
+Exaltation summaries retain complete canonical effect rows from `_details`:
+`Effect`, `Combat effect`, `Proc effect`, `Click effect`, `Worn effect`,
+`Focus effect`, `Focus Exaltation`, `Proc Exaltation` and `Rune Exaltation`.
+Generated `<br>` separators delimit the rows; `Effect:` inside unrelated prose
+does not create a field. Existing sanitized spell links remain links. An item
+with no recorded effect shows just its linked name. Supplied `_tier`, `_icon`,
+`_stats` and non-effect `_details` remain unchanged in the page source for future
+editing; the helper computes nothing and omits them from its rendered summary.
+The helper records human socket numbers in `data-eql-socket`, including sparse
+positions, and still renders each known empty socket.
+
+The skin also compacts previously cached full socket cards during enhancement;
+it clones existing sanitized effect nodes without HTML injection, remote lookup
+or source edits. Publishing the reviewed generated helper is still required for
+the same compact static/no-JavaScript result. Existing cached parser output may
+require an explicitly coordinated reparse after that content publication.
