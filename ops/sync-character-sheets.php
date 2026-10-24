@@ -8,6 +8,11 @@ use MediaWiki\Title\Title;
 use Wikimedia\Rdbms\IDBAccessObject;
 
 class EQLSyncCharacterSheets extends Maintenance {
+    /** Match only MediaWiki's CRLF and single final-LF normalization. */
+    private static function comparableSource( string $source ): string {
+        $source = str_replace( "\r\n", "\n", $source );
+        return str_ends_with( $source, "\n" ) ? substr( $source, 0, -1 ) : $source;
+    }
     public function __construct() {
         parent::__construct();
         $this->addDescription( 'Review/publish the two fixed Character sheet templates with revision/create guards.' );
@@ -85,9 +90,10 @@ class EQLSyncCharacterSheets extends Maintenance {
                 $this->fatalError( 'Existing target must have readable wikitext: ' . $text );
             }
             $old = $content ? $content->getText() : null;
+            $changed = $old === null || self::comparableSource( $source ) !== self::comparableSource( $old );
             $recovery[] = [ 'title' => $text, 'revision' => $expected, 'text' => $old ];
-            $plans[] = [ 'title' => $title, 'source' => $source, 'expected' => $expected, 'changed' => $source !== $old ];
-            $this->output( $text . ': reviewed revision ' . $expected . ( $source === $old ? ', already current.' : ', update required.' ) . "\n" );
+            $plans[] = [ 'title' => $title, 'source' => $source, 'expected' => $expected, 'changed' => $changed ];
+            $this->output( $text . ': reviewed revision ' . $expected . ( $changed ? ', update required.' : ', already current.' ) . "\n" );
         }
         if ( !$this->hasOption( 'apply' ) ) {
             $this->output( "Read-only review complete. No pages saved. --apply requires a fresh private --backup.\n" );return;

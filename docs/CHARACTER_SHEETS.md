@@ -142,6 +142,7 @@ predates module installation.
 
 ```sh
 node ops/build-character-sheet-templates.cjs --check
+php ops/test-character-sheet-publisher.php
 php maintenance/run.php ./ops/test-character-sheet.php
 NODE_PATH=/private/jsdom/node_modules node ops/test-character-sheet.cjs
 ```
@@ -156,3 +157,7 @@ checks. The DOM test accepts that output via `--html`, checks independent
 collapsed sheets, pointer/keyboard inspect, dynamic hook idempotence and no-JS
 content, including the pointer gap and keyboard entry into socket links. These
 checks do not establish live deployment or authenticated editing.
+
+Publisher equality accepts CRLF normalization and one optional final LF removed
+by MediaWiki's pre-save transform. It preserves all other whitespace/content
+differences and retains the exact original recovery text and revision guards.
