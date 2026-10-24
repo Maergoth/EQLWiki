@@ -45,23 +45,258 @@ final class EqlNpcLootWikitext {
 				}
 			}
 			foreach ( [ 'known_loot', 'common_loot' ] as $field ) {
-				$lootText = self::fieldText( $template['fields'][$field] ?? '', true );
-				foreach ( self::roots( $lootText ) ?? [] as $transclusion ) {
-					if ( str_starts_with( $transclusion['name'], ':' ) ) {
-						$first = self::leadingReference( substr( $lootText, $transclusion['start'] ), true );
-						if ( $first !== null ) { self::unique( $result['authoredItems'], $first['title'] ); }
-					}
-				}
-				foreach ( self::lines( $lootText ) as $line ) {
-					$line = preg_replace( '/^\s*[*#]+\s*/', '', $line );
-					$reference = self::leadingReference( $line, true );
-					if ( $reference !== null ) {
-						self::unique( $result['authoredItems'], $reference['title'] );
+				foreach ( self::lootReferences( $template['fields'][$field] ?? '' ) as $title ) { self::unique( $result['authoredItems'], $title ); }
+			}
+		}
+		return $found ? $result : null;
+	}
+
+	/** @return array{names:array,zones:array,existingSources:array}|null */
+	public static function analyseItemPage( string $source ): ?array {
+		$document = self::document( $source );
+		if ( $document === null ) { return null; }
+		$names = [];
+		$found = false;
+		foreach ( $document['templates'] as $template ) {
+			if ( $template['name'] !== 'itempage' ) { continue; }
+			$found = true;
+			$name = self::title( $template['fields']['itemname'] ?? '' );
+			if ( $name !== null ) { self::unique( $names, $name ); }
+		}
+		if ( !$found ) { return null; }
+		$sources = self::itemSources( $source );
+		$zones = [];
+		foreach ( $sources as $row ) { if ( $row['zone'] !== '' ) { self::unique( $zones, $row['zone'] ); } }
+		return [ 'names' => $names, 'zones' => $zones, 'existingSources' => $sources ];
+	}
+
+	/** @return array<array{item:string,npc:string,zone:string,instance:string,lootKind:string}> */
+	public static function npcLootSources( string $source ): array {
+		$document = self::document( $source );
+		if ( $document === null ) { return []; }
+		$rows = [];
+		foreach ( $document['templates'] as $template ) {
+			if ( $template['name'] !== 'namedmobpage' ) { continue; }
+			$analysis = self::analyseNpcPage( substr( $source, $template['start'], $template['end'] - $template['start'] ) );
+			$npc = self::title( $template['fields']['name'] ?? '' ) ?? '';
+			$instance = self::instanceAt( $document['outline'], $template['start'], 'normal' );
+			foreach ( [ 'known_loot' => 'known', 'common_loot' => 'common' ] as $field => $kind ) {
+				foreach ( self::lootReferences( $template['fields'][$field] ?? '' ) as $item ) {
+					foreach ( ( $analysis['zones'] ?: [ '' ] ) as $zone ) {
+						$row = [ 'item' => $item, 'npc' => $npc, 'zone' => $zone, 'instance' => $instance, 'lootKind' => $kind ];
+						$rows[json_encode( $row )] = $row;
 					}
 				}
 			}
 		}
-		return $found ? $result : null;
+		return array_values( $rows );
+	}
+
+	/** Direct article references in an active native loot field, without expanding templates. */
+	private static function lootReferences( string $field ): array {
+		$items = [];
+		$lootText = self::fieldText( $field, true );
+		$transclusions = self::roots( $lootText ) ?? [];
+		foreach ( $transclusions as $transclusion ) {
+			if ( str_starts_with( $transclusion['name'], ':' ) ) {
+				$first = self::leadingReference( substr( $lootText, $transclusion['start'] ), true );
+				if ( $first !== null ) { self::unique( $items, $first['title'] ); }
+			}
+		}
+		// A reference can be bold, wrapped in hover markup or one of several
+		// inline links. Unused template arguments are not displayed references.
+		foreach ( array_reverse( $transclusions ) as $transclusion ) {
+			$length = $transclusion['end'] - $transclusion['start'];
+			$lootText = substr_replace( $lootText, self::mask( substr( $lootText, $transclusion['start'], $length ) ), $transclusion['start'], $length );
+		}
+		preg_match_all( '/\[\[([^\[\]|\r\n]+)(?:\|[^\[\]\r\n]*)?\]\]/', $lootText, $links );
+		foreach ( $links[1] as $link ) {
+			$link = preg_replace( '/^\s*:\s*/', '', $link );
+			$title = self::title( explode( '#', $link, 2 )[0] );
+			if ( $title !== null ) { self::unique( $items, $title ); }
+		}
+		return $items;
+	}
+
+	/**
+	 * Add renderer-validated loot rows to the native NPC loot fields in memory.
+	 * Entry markup must already be safe HTML/wikitext. This helper never saves it.
+	 * @param array<array{markup:string,contexts:array,field?:string}> $entries
+	 * @return array{text:string,unplaced:int}
+	 */
+	public static function mergeNpcLoot( string $source, array $entries ): array {
+		$document = self::document( $source );
+		if ( $document === null ) { return [ 'text' => $source, 'unplaced' => count( $entries ) ]; }
+		$cards = [];
+		foreach ( $document['templates'] as $template ) {
+			if ( $template['name'] !== 'namedmobpage' ) { continue; }
+			$analysis = self::analyseNpcPage( substr( $source, $template['start'], $template['end'] - $template['start'] ) );
+			$cards[] = [ 'template' => $template, 'zones' => $analysis['zones'] ?? [],
+				'instance' => self::instanceAt( $document['outline'], $template['start'], 'normal' ),
+				'shared' => self::instanceAt( $document['outline'], $template['start'], 'shared' ) === 'shared',
+				'rows' => [ 'known_loot' => [], 'common_loot' => [] ] ];
+		}
+		if ( !$cards ) { return [ 'text' => $source, 'unplaced' => count( $entries ) ]; }
+		$unplaced = 0;
+		foreach ( $entries as $entry ) {
+			$markup = $entry['markup'] ?? '';
+			if ( !is_string( $markup ) || $markup === '' ) { $unplaced++; continue; }
+			$field = ( $entry['field'] ?? 'known_loot' ) === 'common_loot' ? 'common_loot' : 'known_loot';
+			$targets = [];
+			$missing = false;
+			if ( count( $cards ) === 1 && $cards[0]['shared'] ) {
+				// An unpartitioned NPC card is shared by all verified source contexts.
+				$targets[] = 0;
+			} else {
+				$contexts = $entry['contexts'] ?? [];
+				if ( !$contexts ) { $missing = true; }
+				foreach ( $contexts as $context ) {
+					$instance = ( $context['instance'] ?? 'normal' ) === 'raid' ? 'raid' : 'normal';
+					$zone = self::title( $context['zone'] ?? '' ) ?? '';
+					$exact = $folded = $unknown = [];
+					foreach ( $cards as $index => $card ) {
+						if ( $card['instance'] !== $instance ) { continue; }
+						if ( $zone === '' || !$card['zones'] ) { $unknown[] = $index; continue; }
+						if ( in_array( $zone, $card['zones'], true ) ) { $exact[] = $index; continue; }
+						foreach ( $card['zones'] as $cardZone ) {
+							if ( self::identity( $zone ) === self::identity( $cardZone ) ) { $folded[] = $index; break; }
+						}
+					}
+					$matches = $exact ?: ( $folded ?: $unknown );
+					if ( count( $matches ) !== 1 ) { $missing = true; continue; }
+					$targets[] = $matches[0];
+				}
+			}
+			foreach ( array_unique( $targets ) as $index ) { $cards[$index]['rows'][$field][] = $markup; }
+			if ( $missing || !$targets ) { $unplaced++; }
+		}
+		$replacements = [];
+		foreach ( $cards as $card ) {
+			if ( !$card['rows']['known_loot'] && !$card['rows']['common_loot'] ) { continue; }
+			$template = $card['template'];
+			$length = $template['end'] - $template['start'];
+			$original = substr( $source, $template['start'], $length );
+			$parts = self::parts( substr( self::active( $original ), 2, -2 ) );
+			$offset = 2;
+			$edits = [];
+			$found = [];
+			foreach ( $parts as $part ) {
+				if ( preg_match( '/^(\s*(known_loot|common_loot)\s*=)/i', $part, $match ) ) {
+					$field = strtolower( $match[2] );
+					if ( $card['rows'][$field] ) {
+						$start = $offset + strlen( $match[1] );
+						$valueLength = strlen( $part ) - strlen( $match[1] );
+						$edits[] = [ 'start' => $start, 'length' => $valueLength,
+							'value' => self::appendLootRows( substr( $original, $start, $valueLength ), array_values( array_unique( $card['rows'][$field] ) ) ) ];
+						$found[$field] = true;
+					}
+				}
+				$offset += strlen( $part ) + 1;
+			}
+			usort( $edits, static fn ( $a, $b ) => $b['start'] <=> $a['start'] );
+			foreach ( $edits as $edit ) { $original = substr_replace( $original, $edit['value'], $edit['start'], $edit['length'] ); }
+			$missingFields = '';
+			foreach ( $card['rows'] as $field => $rows ) {
+				if ( $rows && !isset( $found[$field] ) ) { $missingFields .= "\n|{$field}=" . self::appendLootRows( '', array_values( array_unique( $rows ) ) ); }
+			}
+			if ( $missingFields !== '' ) { $original = substr( $original, 0, -2 ) . $missingFields . '}}'; }
+			$replacements[] = [ 'start' => $template['start'], 'length' => $length, 'value' => $original ];
+		}
+		usort( $replacements, static fn ( $a, $b ) => $b['start'] <=> $a['start'] );
+		foreach ( $replacements as $replacement ) { $source = substr_replace( $source, $replacement['value'], $replacement['start'], $replacement['length'] ); }
+		return [ 'text' => $source, 'unplaced' => $unplaced ];
+	}
+
+	/** Preserve existing authored lists; replace only an exact empty-list placeholder. */
+	private static function appendLootRows( string $value, array $rows ): string {
+		if ( preg_match( '~^\s*(?:None|[*#]\s*None|<ul\b[^>]*>\s*<li\b[^>]*>\s*None\s*</li>\s*</ul>)\s*$~i', $value ) ) { $value = ''; }
+		$active = self::active( $value );
+		if ( preg_match( '~^\s*<ul\b[^>]*>~i', $active ) && preg_match( '~</ul\s*>\s*$~i', $active ) ) {
+			preg_match_all( '~</?ul\b[^>]*>~i', $active, $tags, PREG_OFFSET_CAPTURE );
+			$depth = 0;
+			$closing = null;
+			foreach ( $tags[0] as $index => $tag ) {
+				$depth += str_starts_with( $tag[0], '</' ) ? -1 : 1;
+				if ( $depth <= 0 && $index !== count( $tags[0] ) - 1 ) { $closing = null; break; }
+				if ( $depth === 0 ) { $closing = $tag[1]; }
+			}
+			if ( $depth === 0 && $closing !== null ) { return substr( $value, 0, $closing ) . "\n" . implode( "\n", $rows ) . "\n" . substr( $value, $closing ); }
+		}
+		return $value . "\n<ul class=\"eql-recorded-loot\">\n" . implode( "\n", $rows ) . "\n</ul>\n";
+	}
+
+	/**
+	 * Add verified reciprocal mob references to native Itempage drop sources.
+	 * @param array<array{npc:string,zone:string,instance:string,lootKind?:string}> $entries
+	 * @return array{text:string,unplaced:int}
+	 */
+	public static function mergeItemSources( string $source, array $entries ): array {
+		$document = self::document( $source );
+		if ( $document === null ) { return [ 'text' => $source, 'unplaced' => count( $entries ) ]; }
+		$cards = [];
+		foreach ( $document['templates'] as $template ) {
+			if ( $template['name'] !== 'itempage' ) { continue; }
+			$cards[] = [ 'template' => $template,
+				'instance' => self::instanceAt( $document['outline'], $template['start'], 'normal' ),
+				'shared' => self::instanceAt( $document['outline'], $template['start'], 'shared' ) === 'shared',
+				'conflict' => isset( $template['fields']['dropsfrom'], $template['fields']['drops_from'] ), 'entries' => [] ];
+		}
+		if ( !$cards ) { return [ 'text' => $source, 'unplaced' => count( $entries ) ]; }
+		$unplaced = 0;
+		foreach ( $entries as $entry ) {
+			$npc = self::title( $entry['npc'] ?? '' );
+			$zone = ( $entry['zone'] ?? '' ) === '' ? '' : self::title( $entry['zone'] );
+			if ( $npc === null || $zone === null ) { $unplaced++; continue; }
+			$instance = ( $entry['instance'] ?? 'normal' ) === 'raid' ? 'raid' : 'normal';
+			$targets = [];
+			if ( count( $cards ) === 1 && $cards[0]['shared'] ) {
+				$targets[] = 0;
+			} else {
+				foreach ( $cards as $index => $card ) { if ( $card['instance'] === $instance ) { $targets[] = $index; } }
+			}
+			if ( count( $targets ) !== 1 || $cards[$targets[0]]['conflict'] ) { $unplaced++; continue; }
+			$row = [ 'npc' => $npc, 'zone' => $zone, 'instance' => $instance ];
+			$cards[$targets[0]]['entries'][json_encode( $row )] = $row;
+		}
+		$replacements = [];
+		foreach ( $cards as $card ) {
+			if ( !$card['entries'] ) { continue; }
+			$groups = [];
+			foreach ( $card['entries'] as $entry ) { $groups[$entry['instance']][$entry['zone']][] = $entry['npc']; }
+			$addition = '';
+			foreach ( [ 'normal' => 'Normal', 'raid' => 'Raid' ] as $instance => $label ) {
+				if ( !isset( $groups[$instance] ) ) { continue; }
+				// Explicit groups cannot inherit an existing final Raid heading.
+				$addition .= "\n=== {$label} Instance ===\n";
+				foreach ( $groups[$instance] as $zone => $npcs ) {
+					if ( $zone !== '' ) { $addition .= '[[' . $zone . "]]\n"; }
+					foreach ( $npcs as $npc ) { $addition .= '* [[' . $npc . "]]\n"; }
+				}
+			}
+			$template = $card['template'];
+			$length = $template['end'] - $template['start'];
+			$original = substr( $source, $template['start'], $length );
+			$parts = self::parts( substr( self::active( $original ), 2, -2 ) );
+			$offset = 2;
+			$updated = false;
+			foreach ( $parts as $part ) {
+				if ( preg_match( '/^(\s*(?:dropsfrom|drops_from)\s*=)/i', $part, $match ) ) {
+					$start = $offset + strlen( $match[1] );
+					$valueLength = strlen( $part ) - strlen( $match[1] );
+					$value = substr( $original, $start, $valueLength );
+					if ( preg_match( '~^\s*(?:\?|None|[*#]\s*None|[*#]?\s*This item is not dropped by mobs\.)\s*$~i', $value ) ) { $value = ''; }
+					$original = substr_replace( $original, $value . $addition, $start, $valueLength );
+					$updated = true;
+					break;
+				}
+				$offset += strlen( $part ) + 1;
+			}
+			if ( !$updated ) { $original = substr( $original, 0, -2 ) . "\n|dropsfrom=" . $addition . '}}'; }
+			$replacements[] = [ 'start' => $template['start'], 'length' => $length, 'value' => $original ];
+		}
+		usort( $replacements, static fn ( $a, $b ) => $b['start'] <=> $a['start'] );
+		foreach ( $replacements as $replacement ) { $source = substr_replace( $source, $replacement['value'], $replacement['start'], $replacement['length'] ); }
+		return [ 'text' => $source, 'unplaced' => $unplaced ];
 	}
 
 	/** @return array<array{npc:string,zone:string,instance:string}> */
@@ -116,8 +351,11 @@ final class EqlNpcLootWikitext {
 			$zone = '';
 			$stack = [];
 			$zoneScopes = [];
+			$unscopedInstance = false;
 			foreach ( $events as $event ) {
 				if ( $event['kind'] === 'section' ) {
+					$unscopedInstance = preg_match( '/\b(?:Normal|Raid)[ _]+(?:Instance|Zone)\b/i', $event['label'] ) === 1;
+					if ( $unscopedInstance ) { $zoneScopes = []; }
 					while ( $stack && end( $stack )['level'] >= $event['level'] ) {
 						array_pop( $stack );
 					}
@@ -128,6 +366,7 @@ final class EqlNpcLootWikitext {
 				$instance = self::stackInstance( $stack, $base );
 				if ( $event['zoneHeading'] ?? false ) {
 					$zone = $event['title'];
+					$unscopedInstance = false;
 					$key = $instance . '|' . $zone;
 					if ( isset( $zoneScopes[$key] ) ) {
 						return [];
@@ -135,7 +374,7 @@ final class EqlNpcLootWikitext {
 					$zoneScopes[$key] = true;
 					continue;
 				}
-				if ( $hasZones && ( $zone === '' || $event['kind'] !== 'mob' ) ) {
+				if ( $hasZones && ( $event['kind'] !== 'mob' || ( $zone === '' && !$unscopedInstance ) ) ) {
 					continue;
 				}
 				$row = [ 'npc' => $event['title'], 'zone' => $zone, 'instance' => $instance ];

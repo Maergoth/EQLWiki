@@ -39,3 +39,5 @@ jobs:
           php ops/test-npc-loot-source.php
           php ops/test-npc-loot-lookup.php
           php ops/test-npc-loot-renderer.php
+          php ops/test-npc-loot-invalidation.php
+          php ops/test-item-drop-lookup.php
