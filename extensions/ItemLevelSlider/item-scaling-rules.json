@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "engineVersion": 1,
+  "revision": 1,
+  "maxTier": 10,
+  "primary": { "smallThreshold": 10, "divisor": 10 },
+  "damage": { "divisor": 10 },
+  "backstab": { "divisor": 20 },
+  "range": { "perTier": 10 },
+  "flat": { "perTier": 1 },
+  "weight": { "perLog2": 0.09, "minimumBase": 0.1, "precision": 1 },
+  "accuracy": { "perLog2": 2.5, "precision": 1 },
+  "void": { "minimumQualifiers": 2, "perTier": 1 }
+}

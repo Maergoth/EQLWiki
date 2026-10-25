@@ -169,7 +169,8 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Icon result UI | `node ops/test-icon-finder-ui.cjs` | jsdom; 12-result batches, 100 reachable candidates, selected-alias copying, flyout formats/dismissal |
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
 | Spell rank caps | `node ops/test-spell-level-slider.cjs` | jsdom; categories, cap shorthand, split markup, base restoration, pets, and dynamic cards |
-| Item ranks and weapon stat layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; Backstab aliases and screenshot values, Accuracy eligibility/formatting, bows, throwing weapons, ammo, fractional ranks, base restoration, multiple/dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
+| Shared item scaling kernel | `node ops/test-item-scaling-core.cjs` | No dependencies; numeric boundaries, contextual fields, unknown values, JSON validation/versioning, immutable engines and identical browser/CommonJS execution |
+| Item ranks and weapon stat layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; loads the shared engine/rules and checks Backstab aliases and screenshot values, Accuracy eligibility/formatting, bows, throwing weapons, ammo, fractional ranks, base restoration, multiple/dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
 | Itembox damage bonus | `php maintenance/run.php ./ops/test-itembox.php` | Configured local wiki with ParserFunctions string functions and Variables; supplies the reviewed template in memory, parses synthetic cards, and saves no pages. Covers handedness, level-50 rounding, delay cap, explicit/zero overrides, Backstab, excluded items, and per-card isolation |
 | Interactive Character sheets | `php maintenance/run.php ./ops/test-character-sheet.php`, `node ops/test-character-sheet.cjs` and `node ops/build-character-sheet-templates.cjs --check` | Configured local wiki for unsaved two-template parser checks, observed modifiers/unknowns and distinct accuracy fields; jsdom for collapsed/keyboard/dynamic behavior. No page/account/upload writes; [separate publication contract](CHARACTER_SHEETS.md) |
 | Client observations | `php ops/test-eoz-observations.php`, PHP/JSON lint | Pure payload and transactional repository/API doubles: attribution, CSRF/POST declaration, dedup/conflicts, quotas/rollback. No schema installation or real account login; [activation is separate](CLIENT_API.md) |
@@ -233,6 +234,14 @@ Check article and item hover output on staging after the separately approved
 template publication. Item rank changes should leave the damage bonus's base-stat
 default unchanged. The parser fixture verifies template output, not live
 ResourceLoader, uploaded icons, or staging hovers.
+
+ItemLevelSlider's pure engine and coefficient JSON are shared with Eye of Zomm
+through release-time source synchronization. The wiki uses its deployed files;
+each app version bundles exact reviewed source and keeps those formulas fixed.
+A formula change needs a normal wiki deployment and a new app version after
+synchronization, without runtime formula polling, API additions, database-page
+publication or schema changes. See the
+[shared engine guide](../extensions/ItemLevelSlider/README.md).
 
 For ItemLevelSlider, check Backstab and Accuracy inside article and hover item
 frames at rank zero, a whole rank, and fractional progress. Backstab uses the

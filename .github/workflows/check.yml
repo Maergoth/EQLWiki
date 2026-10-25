@@ -30,6 +30,8 @@ jobs:
         run: |
           php ops/test-eoz-exporter.php
           php ops/test-eoz-raid-exporter.php
+      - name: Check shared item formula engine
+        run: node ops/test-item-scaling-core.cjs
       - name: Check Eye of Zomm refresh wrapper
         run: bash ops/test-eoz-refresh-wrapper.sh
       - name: Check client API and guarded activation contracts

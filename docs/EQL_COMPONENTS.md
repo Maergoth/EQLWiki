@@ -246,8 +246,15 @@ for read-only parser checks and [operations guide](../PROJECT.md) for publicatio
 
 [`ItemLevelSlider`](../extensions/ItemLevelSlider/) loads `ext.itemLevelSlider`
 broadly through legacy PHP registration and attaches to compatible item markup.
-Source formulas are in `itemlevelslider.js`; do not infer them from a displayed
-slider position. Backstab scaling and weapon accuracy were introduced in the
+The shared pure engine is `item-scaling-core.js`, with all coefficients in
+`item-scaling-rules.json`. `itemlevelslider.js` owns only template parsing and
+presentation. The wiki injects the tracked JSON into page config. Eye of Zomm
+vendors the exact engine and rules from a reviewed wiki commit during release
+preparation; an installed app version keeps those packaged formulas and never
+polls for rules or updates them while running. Math changes require a new app
+version after source synchronization. See the
+[shared engine guide](../extensions/ItemLevelSlider/README.md). Do not infer
+formulas from a displayed slider position. Backstab scaling and weapon accuracy were introduced in the
 official [September 22, 2026 patch notes](https://www.everquestlegends.com/patch-notes/eql-update-notes-9-22-2026).
 The exact rates and fractional-progress curves below are working models inferred
 from item screenshots, not published game formulas. Important contracts:
