@@ -33,6 +33,8 @@ jobs:
           php ops/test-eoz-loot-counts.php
       - name: Check shared item formula engine
         run: node ops/test-item-scaling-core.cjs
+      - name: Check Main Page and News freshness
+        run: php ops/test-homepage-cache.php
       - name: Check Eye of Zomm refresh wrapper
         run: bash ops/test-eoz-refresh-wrapper.sh
       - name: Check client API and guarded activation contracts
