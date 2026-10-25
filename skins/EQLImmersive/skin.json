@@ -48,6 +48,7 @@
                     "scripts": [
                         "skins.vector.js",
                         "skins.EQLImmersive.base",
+                        "skins.EQLImmersive.waypoints",
                         "skins.EQLImmersive.eraFilter"
                     ],
                     "styles": [
@@ -111,6 +112,10 @@
         "ParserAfterParse": "EQLImmersiveHooks"
     },
     "ResourceModules": {
+        "skins.EQLImmersive.waypoints": {
+            "scripts": [ "resources/copy-waypoints.js" ],
+            "styles": [ "resources/copy-waypoints.css" ]
+        },
         "skins.EQLImmersive.characterSheet": {
             "scripts": [ "resources/character-sheet.js" ],
             "styles": [ "resources/character-sheet.css" ]
