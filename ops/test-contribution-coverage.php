@@ -6,6 +6,9 @@ $r=EqlNpcLootWikitext::contributionCoverage($item("[[Synthetic Vale]]\n* [[A kee
 $check($r['state']==='exact'&&count($r['edges'])===1,'Unrelated prose does not create an opt-out');
 $r=EqlNpcLootWikitext::contributionCoverage($item("Various zones\n* Many skeleton types\n[[Synthetic Vale]]\n* [[A keeper]]"),'item');
 $check($r['state']==='broad'&&count($r['edges'])===1&&$r['edges'][0]['npc']==='A keeper','Broad prose is policy, not a fake NPC, and exact positives survive');
+foreach(["Various Zones\n* Common drop from low-level humanoids","Various Zones\n* Drops from low-level humanoids.",'* Drops from low level humanoids']as$family){$r=EqlNpcLootWikitext::contributionCoverage($item($family),'item');$check($r['state']==='broad'&&!$r['edges'],'Authored basic-weapon family phrases establish broad intent without inventing NPC identities');}
+$r=EqlNpcLootWikitext::contributionCoverage($item("Various Zones\n* Common drop from low-level humanoids\n{{Unknown conditional pool}}"),'item');
+$check($r['state']==='unsupported','A broad family phrase cannot override an unknown generating template');
 $r=EqlNpcLootWikitext::contributionCoverage($item("[[Synthetic Vale]]\n* [[A keeper]] (Male only)"),'item');
 $check($r['state']==='unsupported'&&count($r['edges'])===1,'Qualified edge is retained while automatic capability fails closed');
 $r=EqlNpcLootWikitext::contributionCoverage($item('* [[A keeper]]'),'item');

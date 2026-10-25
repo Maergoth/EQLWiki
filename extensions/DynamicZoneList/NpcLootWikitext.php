@@ -213,7 +213,7 @@ final class EqlNpcLootWikitext {
 			$residual = preg_replace( '/\[\[[^\[\]\r\n]*\]\]|\{\{\s*:[^{}]*\}\}/', '', $line );
 			$residual = trim( preg_replace( '/[*#]|<[^>]*>|\x27{2,}/', '', $residual ) );
 			if ( $residual === '' ) { continue; }
-			$broad = preg_match( '/\b(?:various|many|most|all|any|random|newbie|mobs?|monsters?|types|wing)\b/i', str_replace( '_', ' ', $residual ) ) === 1;
+			$broad = preg_match( '/\b(?:various|many|most|all|any|random|newbie|mobs?|monsters?|types|wing)\b|\b(?:common\s+)?drops?\s+from\s+low[ -]level\s+humanoids?\b/i', str_replace( '_', ' ', $residual ) ) === 1;
 			$state = $broad ? 'broad' : 'unsupported';
 			if ( $scopes[$current]['state'] !== 'unsupported' ) { $scopes[$current]['state'] = $state; $scopes[$current]['reason'] = $broad ? 'generic-source-group' : 'unparsed-or-qualified-source'; }
 		}
