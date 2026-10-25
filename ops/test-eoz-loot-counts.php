@@ -124,6 +124,8 @@ namespace {
         public function __construct() { $this->lootCounts=new EqlItemLootSourceCounts(); }
         private function maybePause(): void {}
         public function resolve($name) { return $this->resolveLootTitle($name, $GLOBALS["lootFactory"]); }
+        public function remember($kind, $name) { $title = \MediaWiki\Title\Title::newFromText($name); $this->rememberPublicLootSource($kind, $title, $GLOBALS["lootFactory"]->newFromTitle($title)); }
+        public function catalog() { return $this->lootCounts->catalog(fn($name) => $this->resolve($name)); }
         public function aliases($npcs, $db) { return $this->enrichNpcRedirectAliases($npcs, $db, $GLOBALS["lootFactory"]); }
         ' . $methods . ' }' );
     $GLOBALS['lootPages'] = [
@@ -134,6 +136,7 @@ namespace {
         'Private alias' => [ 'id' => 24, 'text' => '#REDIRECT [[Public guardian]]', 'redirect' => 'Public guardian', 'private' => true ],
         'Loop alias' => [ 'id' => 25, 'text' => '#REDIRECT [[Loop alias]]', 'redirect' => 'Loop alias' ],
         'Section alias' => [ 'id' => 26, 'text' => '#REDIRECT [[Public guardian#Raid Instance]]', 'redirect' => 'Public guardian#Raid Instance' ],
+        'Public material' => [ 'id' => 27, 'text' => "{{Itempage|itemname=Public material|dropsfrom=* [[Public guardian]]\n* [[Public alias]]}}" ],
     ];
     $GLOBALS['lootFactory'] = new class {
         public function newFromTitle( $title ) { return new class( $GLOBALS['lootPages'][$title->getText()] ?? [] ) {
@@ -157,6 +160,17 @@ namespace {
         public function getRedirectLookup() { return new class { public function getRedirectTarget( $title ) { return isset( $GLOBALS['lootPages'][$title->getText()]['redirect'] ) ? Title::newFromText( $GLOBALS['lootPages'][$title->getText()]['redirect'] ) : null; } }; }
         public function getTitleFactory() { return new class { public function newFromLinkTarget( $target ) { return $target; } }; }
     };
+    $candidates = new LootProducerFixture();
+    $candidates->remember( 'npc', 'Public alias' );
+    checkLootCount( $candidates->resolve( 'Public alias' ) === [ 'title' => 'Public guardian', 'pageId' => 20, 'public' => true, 'complete' => true ], 'A categorized redirect candidate cannot preseed its own page ID as canonical' );
+    $candidates->remember( 'npc', 'Public guardian' );
+    $candidates->remember( 'item', 'Public material' );
+    $candidateCount = $candidates->catalog()['Public material'];
+    checkLootCount( $candidateCount === [ 'lootSourceNpcs' => [ 'Public guardian' ], 'lootSourceCount' => 1, 'lootSourceCountComplete' => true ], 'Reading canonical and redirect category candidates still counts one public monster' );
+    $hiddenCandidates = new LootProducerFixture();
+    $hiddenCandidates->remember( 'npc', 'Private guardian' );
+    $hiddenCandidates->remember( 'npc', 'Suppressed guardian' );
+    checkLootCount( !$hiddenCandidates->resolve( 'Private guardian' )['public'] && !$hiddenCandidates->resolve( 'Suppressed guardian' )['public'], 'Unreadable categorized candidates cannot preseed public canonical metadata' );
     $adapter = new LootProducerFixture();
     checkLootCount( $adapter->resolve( 'Public alias' ) === [ 'title' => 'Public guardian', 'pageId' => 20, 'public' => true, 'complete' => true ], 'Current public redirects resolve to one canonical page ID' );
     checkLootCount( $adapter->resolve( 'Section alias' ) === $adapter->resolve( 'Public alias' ), 'Instance-section redirects share the same canonical mob identity' );
