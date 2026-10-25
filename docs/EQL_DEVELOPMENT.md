@@ -402,6 +402,22 @@ aligned. `Class: ALL except` must export the playable-class complement, explicit
 `NONE` must remain distinct from unknown `[]`, and wiki `Y, X, Z` location order
 must not be converted to viewer axes in the producer. Add exact zone aliases
 without renaming the canonical viewer records or guessing unknown zones.
+
+Quiet routine-item decisions require the rich record's versioned
+`contributionCard` proof from `EqlNpcLootWikitext::itemContributionCard`. Keep
+unknown auxiliary metadata, duplicate fields, nested/protected stats and any
+stat line beyond the exported sixteen-line bound incomplete. Supported context
+fields are `itemname`, `statsblock`, `dropsfrom`/`drops_from`, `lucy_img_id`,
+`icon`/`icon_id`, `notes`, `soldby`, `merchant_value`, `recipes`, `relatedquests`
+and `foraged`; only bounded literal ItemWhereTable/ItemWhereRow/Loc/VeliousGray/Era
+wrappers are recognized there. Literal related-quest associations set
+`questContext` and do not establish importance. Test the actual rich exporter as
+well as the pure parser so discarded display lines cannot masquerade as absent
+effects. Mirror the parser, builder, collector and catalog to the desktop repo.
+Required/card field names retain MediaWiki's case-sensitive spelling; the
+actual `lucy_img_ID` icon spelling is also explicitly recognized. Case-distinct
+template names and ignored parameter spellings cannot borrow proof.
+
 The optional catalog `viewerId` selects an explicitly reviewed primary archive
 when multiple supported archive IDs share a display name. Retain a verified
 logged short name before this preference, including an alternate supported ID;

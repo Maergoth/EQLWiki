@@ -508,6 +508,18 @@ resolved items, unresolved titles, enriched items and added source variants.
 This is a filtered dataset change requiring a rebuild/publication after source
 deployment, without article edits or a database migration.
 
+Each rich item also carries `contributionCard: {schemaVersion: 1, complete,
+questContext}`. This is an absence proof for quiet routine decisions, separate
+from source coverage or item importance. Completeness requires one balanced
+literal Itempage, unique static fields, known card/acquisition context, literal
+stats, and every normalized stat line present in the exported sixteen-line
+bound. Unknown auxiliary fields, dynamic/protected stats, unknown context
+templates, variants or truncated lines withhold proof. The producer checks the
+same anonymous current public source and revision used by the rich record.
+Standard merchant, recipe, forage and related-quest fields are context; a
+`relatedquests` field sets `questContext` without declaring an important reward.
+Effects, binding and special modifiers remain consumer importance checks.
+
 `maintenance/ItemLootSourceCounts.php` independently exports global loot
 classification metadata. `meta.lootSourceCountsVersion = 2` identifies the
 additive `lootSourceCounts` catalog, keyed by canonical item title, including
