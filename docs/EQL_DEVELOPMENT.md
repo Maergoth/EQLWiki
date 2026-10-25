@@ -160,6 +160,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Selected-text search | `node ops/test-selection-search.cjs` | jsdom; article-only selection, URL/label safety, bounds, dismissal and frame scheduling |
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
 | Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
+| Global item loot classification | `php ops/test-eoz-loot-counts.php` | Synthetic public-revision/permission/redirect service doubles and actual producer helpers; five/six distinct mobs, all zones/instances, Common/Unique fields, statless materials and redlinked items, aliases/IDs, pets, hidden pages, bounded incomplete results. No wiki/database/pack writes |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
 | Whitespace | `git diff --check` | Git |
 | Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |

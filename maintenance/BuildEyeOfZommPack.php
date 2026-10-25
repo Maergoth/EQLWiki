@@ -2,12 +2,15 @@
 /**
  * BuildEyeOfZommPack.php
  *
- * Copy this file and zone-catalog.json into MediaWiki's maintenance/ directory.
+ * Keep this file, ItemLootSourceCounts.php and zone-catalog.json together in
+ * MediaWiki's maintenance/ directory, with the matching EQLWiki
+ * extensions/DynamicZoneList/NpcLootWikitext.php source.
  * Run through maintenance/run.php. This reads the wiki locally; it does not
  * make HTTP/API requests back to eqlwiki.com.
  */
 
 require_once __DIR__ . '/Maintenance.php';
+require_once __DIR__ . '/ItemLootSourceCounts.php';
 
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
@@ -24,6 +27,8 @@ class BuildEyeOfZommPack extends Maintenance {
     private array $npcVariantIndex = [];
     private array $npcLootSources = [];
     private array $npcLootSourceCounts = [];
+    private ?EqlItemLootSourceCounts $lootCounts = null;
+    private array $lootTitleMemo = [];
     private array $wikiEntityNames = [ 'npcs' => [], 'items' => [], 'titles' => [] ];
     private int $pauseUs = 20000;
 
@@ -65,6 +70,8 @@ class BuildEyeOfZommPack extends Maintenance {
         $pauseMs = max( 0, min( 1000, (int)$this->getOption( 'pause-ms', 20 ) ) );
         $this->pauseUs = $pauseMs * 1000;
         $limit = max( 0, (int)$this->getOption( 'limit', 0 ) );
+        $this->lootCounts = new EqlItemLootSourceCounts();
+        if ( $limit > 0 ) { $this->lootCounts->incomplete(); }
 
         $this->loadZoneCatalog();
 
@@ -145,6 +152,10 @@ class BuildEyeOfZommPack extends Maintenance {
         // the wiki. Preserve either documented direction instead of requiring
         // editors to duplicate every source on both articles.
         $items = $this->mergeNpcLootSources( $items, $wikiPageFactory );
+        $npcs = $this->enrichNpcRedirectAliases( $npcs, $dbr, $wikiPageFactory );
+        $lootSourceCounts = $this->lootCounts->catalog( fn ( string $name ) => $this->resolveLootTitle( $name, $wikiPageFactory ) );
+        foreach ( $items as &$item ) { $item = array_replace( $item, $lootSourceCounts[$item['wikiTitle']] ?? [ 'lootSourceCount' => 0, 'lootSourceCountComplete' => false, 'lootSourceNpcs' => [] ] ); }
+        unset( $item );
         $npcs = $this->sortNpcRecords( $npcs );
         usort( $items, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
 
@@ -162,6 +173,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 'distribution' => 'GitHub dataset branch',
                 'wikiEntitiesComplete' => $limit === 0,
                 'npcLootSourcesIncluded' => true,
+                'lootSourceCountsVersion' => 1,
                 'npcLootSourceCounts' => $this->npcLootSourceCounts,
                 'counts' => [
                     'zones' => count( $this->zoneCatalog ),
@@ -173,6 +185,7 @@ class BuildEyeOfZommPack extends Maintenance {
             'zones' => $this->zoneCatalog,
             'npcs' => $npcs,
             'items' => $items,
+            'lootSourceCounts' => (object)$lootSourceCounts,
             'icons' => (object)$icons,
             'wikiEntities' => $this->wikiEntityIndex(),
         ];
@@ -271,6 +284,7 @@ class BuildEyeOfZommPack extends Maintenance {
     private function buildNpcRecords( $wikiPageFactory, $row, array $categories ): array {
         $title = Title::makeTitle( (int)$row->page_namespace, $row->page_title );
         $page = $wikiPageFactory->newFromTitle( $title );
+        if ( isset( $this->lootCounts ) ) { $this->rememberPublicLootSource( 'npc', $title, $page ); }
         $content = $page->getContent();
         if ( !$content || !method_exists( $content, 'getText' ) ) {
             return [];
@@ -388,6 +402,7 @@ class BuildEyeOfZommPack extends Maintenance {
     private function buildItemRecord( $wikiPageFactory, $row, array $categories ): ?array {
         $title = Title::makeTitle( (int)$row->page_namespace, $row->page_title );
         $page = $wikiPageFactory->newFromTitle( $title );
+        if ( isset( $this->lootCounts ) ) { $this->rememberPublicLootSource( 'item', $title, $page ); }
         $content = $page->getContent();
         if ( !$content || !method_exists( $content, 'getText' ) ) {
             return null;
@@ -585,6 +600,87 @@ class BuildEyeOfZommPack extends Maintenance {
         $this->npcLootSourceCounts['resolvedItems'] = count( $resolvedItems );
         $this->npcLootSourceCounts['itemsEnriched'] = count( $enrichedItems );
         return $items;
+    }
+
+    /** Counts and alias metadata use anonymous, current public revisions only. */
+    private function publicLootText( Title $title, $page ): ?string {
+        $services = MediaWikiServices::getInstance();
+        if ( !$services->getPermissionManager()->userCan( 'read', $services->getUserFactory()->newAnonymous(), $title ) ) { return null; }
+        $revision = $page->getRevisionRecord();
+        $content = $revision ? $revision->getContent( 'main', \MediaWiki\Revision\RevisionRecord::FOR_PUBLIC ) : null;
+        if ( !$content || $content->getModel() !== 'wikitext' || !method_exists( $content, 'getText' ) ) { return null; }
+        $text = $content->getText();
+        return strlen( $text ) <= 524288 ? $text : null;
+    }
+
+    private function rememberPublicLootSource( string $kind, Title $title, $page ): void {
+        try {
+            $text = $this->publicLootText( $title, $page );
+            if ( $text === null ) { $this->lootCounts->incomplete(); return; }
+            $this->lootTitleMemo[$title->getText()] = [ 'title' => $title->getText(),
+                'pageId' => (int)$title->getArticleID() ?: null, 'public' => true, 'complete' => true ];
+            if ( $kind === 'npc' ) { $this->lootCounts->npc( $title->getText(), $text ); }
+            else { $this->lootCounts->item( $title->getText(), $text ); }
+        } catch ( \Throwable $error ) { $this->lootCounts->incomplete(); }
+    }
+
+    private function resolveLootTitle( string $name, $wikiPageFactory ): array {
+        $fallback = [ 'title' => $name, 'pageId' => null, 'public' => false, 'complete' => false ];
+        $title = Title::newFromText( $name, NS_MAIN );
+        if ( !$title || $title->getNamespace() !== NS_MAIN || $title->isExternal() || $title->getFragment() ) { return $fallback; }
+        $key = $title->getText();
+        if ( isset( $this->lootTitleMemo[$key] ) ) { return $this->lootTitleMemo[$key]; }
+        if ( count( $this->lootTitleMemo ) >= 100000 ) { return $fallback; }
+        $visited = [];
+        try {
+            for ( $hop = 0; $hop < 8; $hop++ ) {
+                if ( $title->getNamespace() !== NS_MAIN || $title->isExternal() || $title->getFragment() || isset( $visited[$title->getText()] ) ) { break; }
+                if ( isset( $this->lootTitleMemo[$title->getText()] ) ) { return $this->lootTitleMemo[$key] = $this->lootTitleMemo[$title->getText()]; }
+                $visited[$title->getText()] = true;
+                $services = MediaWikiServices::getInstance();
+                if ( !$services->getPermissionManager()->userCan( 'read', $services->getUserFactory()->newAnonymous(), $title ) ) { break; }
+                if ( !$title->exists() ) {
+                    return $this->lootTitleMemo[$key] = [ 'title' => $title->getText(), 'pageId' => null, 'public' => true, 'complete' => true ];
+                }
+                $page = $wikiPageFactory->newFromTitle( $title );
+                $this->maybePause();
+                if ( $this->publicLootText( $title, $page ) === null ) { break; }
+                $target = $services->getRedirectLookup()->getRedirectTarget( $title );
+                if ( !$target ) {
+                    return $this->lootTitleMemo[$key] = [ 'title' => $title->getText(),
+                        'pageId' => (int)$title->getArticleID() ?: null, 'public' => true, 'complete' => true ];
+                }
+                $title = $services->getTitleFactory()->newFromLinkTarget( $target );
+                if ( !$title ) { break; }
+                // A normal/raid section redirect still names one NPC article.
+                if ( $title->getFragment() && !$title->isExternal() ) { $title = Title::makeTitle( $title->getNamespace(), $title->getDBkey() ); }
+            }
+        } catch ( \Throwable $error ) { /* An unresolved public identity cannot prove Unique loot. */ }
+        return $this->lootTitleMemo[$key] = $fallback;
+    }
+
+    private function enrichNpcRedirectAliases( array $npcs, $dbr, $wikiPageFactory ): array {
+        $aliases = [];
+        $known = array_fill_keys( array_column( $npcs, 'wikiTitle' ), true );
+        try {
+            $rows = $dbr->select( [ 'redirect', 'page' ], [ 'page_title' ],
+                [ 'page_namespace' => NS_MAIN, 'rd_namespace' => NS_MAIN, 'rd_interwiki' => [ '', null ] ],
+                __METHOD__, [ 'LIMIT' => 20001 ], [ 'page' => [ 'JOIN', 'page_id = rd_from' ] ] );
+            $read = 0;
+            foreach ( $rows as $row ) {
+                if ( ++$read > 20000 ) { $this->lootCounts->incomplete(); break; }
+                $name = str_replace( '_', ' ', $row->page_title );
+                $canonical = $this->resolveLootTitle( $name, $wikiPageFactory );
+                if ( $canonical['public'] && $canonical['complete'] && isset( $known[$canonical['title']] ) && $name !== $canonical['title'] ) {
+                    $aliases[$canonical['title']][$name] = $name;
+                }
+            }
+        } catch ( \Throwable $error ) { $this->lootCounts->incomplete(); }
+        foreach ( $npcs as &$npc ) {
+            if ( isset( $aliases[$npc['wikiTitle']] ) ) { $npc['aliases'] = array_values( $aliases[$npc['wikiTitle']] ); sort( $npc['aliases'], SORT_STRING ); }
+        }
+        unset( $npc );
+        return $npcs;
     }
 
     private function parseItemDisplayLines( string $statsBlock ): array {
