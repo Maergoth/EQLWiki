@@ -512,10 +512,20 @@ independently of the builder account. Partial builds, unreadable/suppressed
 sources, malformed or unknown source syntax, unresolved identities and safety
 limits leave an explicit incomplete lower bound. Six verified distinct mobs
 already establish Common; fewer than six establish Unique only when complete.
-The global collector alone accepts duplicate non-loot `Namedmobpage` parameters
-using the final value, so repeated merchant `items_sold` fields do not invalidate
-unrelated loot counts. Duplicate Common/Unique loot parameters and opaque loot
-wrappers remain incomplete; ordinary renderer/helper calls retain strict parsing.
+The global collector alone accepts repeated exact static `Namedmobpage`
+parameters using the final value, including Common/Unique fields. Dynamic keys,
+case collisions and unknown wrappers remain incomplete; ordinary renderer/helper
+calls retain strict parsing. Reviewed metadata-only templates are ignored, while
+zero-argument legacy item templates require a separately verified public current
+revision containing a literal unconditional item hover. Template proof keys
+preserve case after the first letter.
+`meta.lootSetsVersion = 1` identifies an additive `lootSets` map from canonical
+set title to `{items, complete}`. Literal positional members of public top-level
+`Gear Set` cards establish membership. The collector expands NPC set references
+to member items, deduplicating direct and nested paths by canonical mob identity;
+set titles are omitted from item counts. Unknown members, cycles and bounded
+expansion leave lower bounds incomplete. Membership never comes from name guesses
+or arbitrary template expansion.
 This is cached dataset metadata, with no new count API or per-contribution wiki
 queries. Run [`ops/test-eoz-loot-counts.php`](../ops/test-eoz-loot-counts.php),
 deploy the reviewed maintenance/helper sources, then separately rebuild and

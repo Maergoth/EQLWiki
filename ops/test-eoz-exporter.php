@@ -15,6 +15,7 @@ if ( PHP_SAPI !== 'cli' ) {
 }
 
 $root = dirname( __DIR__ );
+require_once $root . '/extensions/DynamicZoneList/NpcLootWikitext.php';
 $source = file_get_contents( $root . '/maintenance/BuildEyeOfZommPack.php' );
 if ( $source === false ) {
     throw new RuntimeException( 'Unable to read the exporter source.' );
@@ -35,6 +36,8 @@ $methods = [
     str_replace( "__DIR__ . '/zone-catalog.json'", $catalogPath, $method( 'loadZoneCatalog', 'listPagesInCategory' ) ),
     $method( 'buildNpcRecords', 'buildItemRecord' ),
     $method( 'rememberNpcLootSources', 'mergeNpcLootSources' ),
+    $method( 'lootItemTemplateTarget', 'resolveLootItemTemplate' ),
+    $method( 'loadLootSets', 'resolveLootTitle' ),
     $method( 'dropSourceMarkup', 'dropSourceNames' ),
     $method( 'detectZonesFromCategories', 'detectZonesFromField' ),
     $method( 'detectZonesFromField', 'detectZonesFromTitle' ),
@@ -54,6 +57,7 @@ $methods = [
 // Only the title/page API surface used by buildNpcRecords is supplied. These
 // stubs contain no real wiki content and cannot load MediaWiki or a database.
 define( 'NS_MAIN', 0 );
+define( 'NS_TEMPLATE', 10 );
 class Title {
     private string $text;
     public function __construct( string $text ) { $this->text = ucfirst( str_replace( '_', ' ', $text ) ); }
@@ -68,9 +72,34 @@ eval( 'class EozExporterFixture {
     private array $zoneAliasMap = [];
     private array $wikiEntityNames = [];
     private array $npcLootSources = [];
+    private array $lootSets = [];
+    private array $setAliases = [];
+    private object $lootCounts;
     ' . $classCodes[0] . implode( "\n", $methods ) . '
     public function fatalError( string $message ) { throw new RuntimeException( $message ); }
     public function classes( string $stats ): array { return $this->parseClasses( $stats ); }
+    public function templateTarget( string $source ): ?string { return $this->lootItemTemplateTarget( $source ); }
+    private function maybePause(): void {}
+    private function publicLootText( $title, $page ): ?string { return $page->text; }
+    private function resolveLootTitle( string $name, $factory ): array {
+        return ["title"=>$this->setAliases[$name] ?? $name,"pageId"=>1,"public"=>!str_starts_with($name,"Hidden"),"complete"=>true];
+    }
+    public function sets( array $texts, array $aliases = [] ): array {
+        $this->lootSets = []; $this->setAliases = $aliases;
+        $this->lootCounts = new class { public function incomplete(): void {} };
+        $rows = array_map( static fn ( $name ) => (object)["page_title"=>$name], array_keys( $texts ) );
+        $db = new class( $rows ) {
+            public function __construct( private array $rows ) {}
+            public function select( ...$args ): array { return $this->rows; }
+        };
+        $factory = new class( $texts ) {
+            public function __construct( private array $texts ) {}
+            public function newFromTitle( $title ): object { return (object)["text"=>$this->texts[$title->getText()]]; }
+        };
+        $this->loadLootSets( $db, $factory );
+        unset( $this->lootCounts );
+        return $this->lootSets;
+    }
     public function location( string $text ): ?array { return $this->parseLocation( $text ); }
     public function zone( string $alias ): array {
         $this->loadZoneCatalog();
@@ -120,6 +149,20 @@ $expect = static function ( $actual, $expected, string $name ) use ( &$checks ):
     }
 };
 $fixture = new EozExporterFixture();
+$legacyCard = '<onlyinclude><includeonly><div class="hbdiv">[[Synthetic Set Sleeve]]<span class="hb">{{Itembox|itemname=Synthetic Set Sleeve|statsblock=AC: 3}}</span></div></includeonly></onlyinclude>{{Itempage|itemname=Synthetic Set Sleeve|dropsfrom=* [[Synthetic Keeper]]}}';
+$expect( $fixture->templateTarget( $legacyCard ), 'Synthetic Set Sleeve', 'Legacy template needs matching unconditional item hover' );
+$expect( $fixture->templateTarget( str_replace( '[[Synthetic Set Sleeve]]', '[[Different Sleeve]]', $legacyCard ) ), null, 'Legacy item template with mismatched leading link is not verified' );
+$expect( $fixture->templateTarget( str_replace( '<div class="hbdiv">', '{{#if:1|<div class="hbdiv">', $legacyCard ) ), null, 'Conditional legacy wrapper stays unverified' );
+$expect( $fixture->templateTarget( $legacyCard . '<onlyinclude>extra</onlyinclude>' ), null, 'Multiple include sections are not guessed' );
+$expect( $fixture->templateTarget( '{{Itempage|itemname=Synthetic Set Sleeve}}' ), null, 'Item metadata alone does not prove rendered template loot' );
+$sets = $fixture->sets( [ 'Synthetic Armor' => '{{Gear Set|Synthetic Bracer|Synthetic Boots|Bracer alias}}', 'Synthetic Collection' => '{{Gear Set|Synthetic Armor|Synthetic Ring}}' ], [ 'Bracer alias'=>'Synthetic Bracer' ] );
+$expect( $sets['Synthetic Armor'], [ 'items'=>[ 'Synthetic Boots', 'Synthetic Bracer' ], 'complete'=>true ], 'Explicit set members are canonical and deduplicated' );
+$expect( $sets['Synthetic Collection'], [ 'items'=>[ 'Synthetic Boots', 'Synthetic Bracer', 'Synthetic Ring' ], 'complete'=>true ], 'Nested explicit sets flatten without name guesses' );
+$sets = $fixture->sets( [ 'Synthetic Cycle' => '{{Gear Set|Synthetic Cycle|Synthetic Ring}}' ] );
+$expect( $sets['Synthetic Cycle']['complete'], false, 'Cyclic sets cannot prove full membership' );
+$sets = $fixture->sets( [ 'Synthetic Hidden' => '{{Gear Set|Hidden Member|Synthetic Ring}}', 'Synthetic Dynamic' => '{{Gear Set|{{Unknown wrapper|Synthetic Boots}}}}' ] );
+$expect( $sets['Synthetic Hidden'], [ 'items'=>[ 'Synthetic Ring' ], 'complete'=>false ], 'Unreadable member identity is omitted and makes a set incomplete' );
+$expect( $sets['Synthetic Dynamic']['complete'], false, 'Opaque set members remain incomplete' );
 
 foreach ( [
     [ 'Class: WAR CLR', [ 'WAR', 'CLR' ] ],
