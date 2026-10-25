@@ -51,29 +51,36 @@ final class EqlNpcLootWikitext {
 		return $found ? $result : null;
 	}
 
-	/** @return array{names:array,zones:array,existingSources:array}|null */
-	public static function analyseItemPage( string $source ): ?array {
+	/**
+	 * The global-export option permits colon punctuation for later namespace
+	 * validation and reports unknown source syntax through $complete. Defaults
+	 * retain the renderer's existing conservative field recognition.
+	 * @return array{names:array,zones:array,existingSources:array}|null
+	 */
+	public static function analyseItemPage( string $source, ?bool &$complete = null, bool $allowMainColon = false ): ?array {
+		$complete = true;
 		$document = self::document( $source );
-		if ( $document === null ) { return null; }
+		if ( $document === null ) { $complete = false; return null; }
 		$names = [];
 		$found = false;
 		foreach ( $document['templates'] as $template ) {
 			if ( $template['name'] !== 'itempage' ) { continue; }
 			$found = true;
-			$name = self::title( $template['fields']['itemname'] ?? '' );
+			$name = self::title( $template['fields']['itemname'] ?? '', $allowMainColon );
 			if ( $name !== null ) { self::unique( $names, $name ); }
 		}
 		if ( !$found ) { return null; }
-		$sources = self::itemSources( $source );
+		$sources = self::itemSources( $source, $complete, $allowMainColon );
 		$zones = [];
 		foreach ( $sources as $row ) { if ( $row['zone'] !== '' ) { self::unique( $zones, $row['zone'] ); } }
 		return [ 'names' => $names, 'zones' => $zones, 'existingSources' => $sources ];
 	}
 
 	/** @return array<array{item:string,npc:string,zone:string,instance:string,lootKind:string}> */
-	public static function npcLootSources( string $source ): array {
+	public static function npcLootSources( string $source, ?bool &$complete = null, bool $allowMainColon = false ): array {
+		$complete = true;
 		$document = self::document( $source );
-		if ( $document === null ) { return []; }
+		if ( $document === null ) { $complete = false; return []; }
 		$rows = [];
 		foreach ( $document['templates'] as $template ) {
 			if ( $template['name'] !== 'namedmobpage' ) { continue; }
@@ -81,7 +88,8 @@ final class EqlNpcLootWikitext {
 			$npc = self::title( $template['fields']['name'] ?? '' ) ?? '';
 			$instance = self::instanceAt( $document['outline'], $template['start'], 'normal' );
 			foreach ( [ 'known_loot' => 'known', 'common_loot' => 'common' ] as $field => $kind ) {
-				foreach ( self::lootReferences( $template['fields'][$field] ?? '' ) as $item ) {
+				if ( $allowMainColon && !self::sourceSyntaxComplete( $template['fields'][$field] ?? '', true ) ) { $complete = false; }
+				foreach ( self::lootReferences( $template['fields'][$field] ?? '', $allowMainColon ) as $item ) {
 					foreach ( ( $analysis['zones'] ?: [ '' ] ) as $zone ) {
 						$row = [ 'item' => $item, 'npc' => $npc, 'zone' => $zone, 'instance' => $instance, 'lootKind' => $kind ];
 						$rows[json_encode( $row )] = $row;
@@ -93,13 +101,13 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** Direct article references in an active native loot field, without expanding templates. */
-	private static function lootReferences( string $field ): array {
+	private static function lootReferences( string $field, bool $allowMainColon = false ): array {
 		$items = [];
 		$lootText = self::fieldText( $field, true );
 		$transclusions = self::roots( $lootText ) ?? [];
 		foreach ( $transclusions as $transclusion ) {
 			if ( str_starts_with( $transclusion['name'], ':' ) ) {
-				$first = self::leadingReference( substr( $lootText, $transclusion['start'] ), true );
+				$first = self::leadingReference( substr( $lootText, $transclusion['start'] ), true, $allowMainColon );
 				if ( $first !== null ) { self::unique( $items, $first['title'] ); }
 			}
 		}
@@ -112,7 +120,7 @@ final class EqlNpcLootWikitext {
 		preg_match_all( '/\[\[([^\[\]|\r\n]+)(?:\|[^\[\]\r\n]*)?\]\]/', $lootText, $links );
 		foreach ( $links[1] as $link ) {
 			$link = preg_replace( '/^\s*:\s*/', '', $link );
-			$title = self::title( explode( '#', $link, 2 )[0] );
+			$title = self::title( explode( '#', $link, 2 )[0], $allowMainColon );
 			if ( $title !== null ) { self::unique( $items, $title ); }
 		}
 		return $items;
@@ -300,9 +308,11 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** @return array<array{npc:string,zone:string,instance:string}> */
-	public static function itemSources( string $source ): array {
+	public static function itemSources( string $source, ?bool &$complete = null, bool $allowMainColon = false ): array {
+		$complete = true;
 		$document = self::document( $source );
 		if ( $document === null ) {
+			$complete = false;
 			return [];
 		}
 		$results = [];
@@ -313,15 +323,18 @@ final class EqlNpcLootWikitext {
 			}
 			$base = self::instanceAt( $document['outline'], $template['start'], 'normal' );
 			if ( isset( $seenScopes[$base] ) ) {
+				$complete = false;
 				return [];
 			}
 			$seenScopes[$base] = true;
 			$fields = $template['fields'];
 			if ( isset( $fields['dropsfrom'], $fields['drops_from'] ) ) {
+				$complete = false;
 				return [];
 			}
 			$dropText = $fields['dropsfrom'] ?? $fields['drops_from'] ?? '';
-			foreach ( self::structuredSources( $dropText, $base ) as $row ) {
+			if ( $allowMainColon && !self::sourceSyntaxComplete( $dropText, false ) ) { $complete = false; }
+			foreach ( self::structuredSources( $dropText, $base, 0, $allowMainColon ) as $row ) {
 				$results[$row['npc'] . '|' . $row['zone'] . '|' . $row['instance']] ??= $row;
 			}
 			$lines = self::lines( self::fieldText( $dropText, false ) );
@@ -333,9 +346,9 @@ final class EqlNpcLootWikitext {
 					continue;
 				}
 				$bullet = preg_match( '/^\s*[*#]+\s*/', $line, $prefix ) === 1;
-				$reference = self::leadingReference( $bullet ? substr( $line, strlen( $prefix[0] ) ) : $line, false );
+				$reference = self::leadingReference( $bullet ? substr( $line, strlen( $prefix[0] ) ) : $line, false, $allowMainColon );
 				if ( $reference === null || ( !$bullet && trim( $reference['tail'] ) !== '' ) ) {
-					if ( trim( $line ) !== '' ) { $unscopedSafe = false; }
+					if ( trim( $line ) !== '' ) { $unscopedSafe = false; $complete = false; }
 					continue;
 				}
 				$events[] = [ 'kind' => $bullet ? 'mob' : 'link', 'title' => $reference['title'], 'zoneHeading' => false ];
@@ -369,6 +382,7 @@ final class EqlNpcLootWikitext {
 					$unscopedInstance = false;
 					$key = $instance . '|' . $zone;
 					if ( isset( $zoneScopes[$key] ) ) {
+						$complete = false;
 						return [];
 					}
 					$zoneScopes[$key] = true;
@@ -384,11 +398,13 @@ final class EqlNpcLootWikitext {
 		return array_values( $results );
 	}
 
-	private static function title( string $value ): ?string {
+	private static function title( string $value, bool $allowMainColon = false ): ?string {
 		$value = trim( html_entity_decode( $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 		$value = str_replace( '_', ' ', $value );
 		$value = preg_replace( '/[\s\p{Z}]+/u', ' ', $value );
-		if ( !$value || in_array( strtolower( $value ), [ '?', 'none', 'unknown' ], true ) || strlen( $value ) > 240 || preg_match( '/[\x00-\x1f\x7f\[\]{}<>|:#~]/', $value ) || $value[0] === '.' ) {
+		$invalid = $allowMainColon ? '/[\x00-\x1f\x7f\[\]{}<>|#~]/' : '/[\x00-\x1f\x7f\[\]{}<>|:#~]/';
+		if ( !$value || in_array( strtolower( $value ), [ '?', 'none', 'unknown' ], true ) || strlen( $value ) > 240 || preg_match( $invalid, $value ) || $value[0] === '.' ||
+			$allowMainColon && preg_match( '/^(?:File|Image|Category|Template|Special|Talk|User|MediaWiki|Help|Project|EQLWiki|Module|Media)(?:[ _]talk)?\s*:/i', $value ) ) {
 			return null;
 		}
 		return $value;
@@ -514,6 +530,22 @@ final class EqlNpcLootWikitext {
 		return self::stackInstance( $stack, $fallback );
 	}
 
+	/** Global counts cannot prove a small total through an unexpanded unknown wrapper. */
+	private static function sourceSyntaxComplete( string $field, bool $items, int $depth = 0 ): bool {
+		if ( $depth > 8 ) { return false; }
+		$roots = self::roots( self::active( $field ) );
+		if ( $roots === null ) { return false; }
+		foreach ( $roots as $template ) {
+			if ( $items && str_starts_with( $template['name'], ':' ) ) { continue; }
+			if ( in_array( $template['name'], [ 'era', 'loc' ], true ) ) { continue; }
+			if ( !in_array( $template['name'], $items ? [ 'veliousgray' ] : [ 'veliousgray', 'itemwheretable', 'itemwhererow' ], true ) ) { return false; }
+			foreach ( $template['parts'] as $part ) {
+				if ( !self::sourceSyntaxComplete( $part, $items, $depth + 1 ) ) { return false; }
+			}
+		}
+		return true;
+	}
+
 	private static function fieldText( string $field, bool $items, int $depth = 0 ): string {
 		if ( $depth > 8 ) { return ''; }
 		$roots = self::roots( $field );
@@ -538,19 +570,19 @@ final class EqlNpcLootWikitext {
 		return preg_split( '/\r\n|\n|\r/', $text );
 	}
 
-	private static function leadingReference( string $text, bool $items ): ?array {
+	private static function leadingReference( string $text, bool $items, bool $allowMainColon = false ): ?array {
 		$text = ltrim( $text );
 		if ( preg_match( '/^\[\[([^\]|\r\n]+)(?:\|[^\]\r\n]*)?\]\]/', $text, $match ) ||
 			$items && preg_match( '/^\{\{\s*:\s*([^}|\r\n]+)(?:\|[^}\r\n]*)?\}\}/', $text, $match ) ) {
 			$target = explode( '#', $match[1], 2 );
-			$title = self::title( $target[0] );
+			$title = self::title( $target[0], $allowMainColon );
 			if ( $title !== null ) { return [ 'title' => $title, 'anchor' => $target[1] ?? '', 'tail' => substr( $text, strlen( $match[0] ) ) ]; }
 		}
 		return null;
 	}
 
 	/** Explicit structured rows are independent of surrounding bullet-zone scope. */
-	private static function structuredSources( string $source, string $base, int $depth = 0 ): array {
+	private static function structuredSources( string $source, string $base, int $depth = 0, bool $allowMainColon = false ): array {
 		if ( $depth > 8 ) { return []; }
 		$document = self::document( $source );
 		if ( $document === null ) { return []; }
@@ -560,7 +592,7 @@ final class EqlNpcLootWikitext {
 			if ( in_array( $template['name'], [ 'itemwheretable', 'veliousgray' ], true ) ) {
 				if ( count( $template['parts'] ) === 1 ) {
 					$part = preg_replace( '/^\s*1\s*=/', '', $template['parts'][0] );
-					$rows = array_merge( $rows, self::structuredSources( $part, $instance, $depth + 1 ) );
+					$rows = array_merge( $rows, self::structuredSources( $part, $instance, $depth + 1, $allowMainColon ) );
 				}
 				continue;
 			}
@@ -578,8 +610,8 @@ final class EqlNpcLootWikitext {
 				if ( array_key_exists( $key, $arguments ) ) { $arguments = []; break; }
 				$arguments[$key] = $value;
 			}
-			$zone = self::leadingReference( self::fieldText( $arguments[1] ?? '', false ), false );
-			$npc = self::leadingReference( self::fieldText( $arguments[2] ?? '', false ), false );
+			$zone = self::leadingReference( self::fieldText( $arguments[1] ?? '', false ), false, $allowMainColon );
+			$npc = self::leadingReference( self::fieldText( $arguments[2] ?? '', false ), false, $allowMainColon );
 			if ( $zone === null || $npc === null || trim( $zone['tail'] ) !== '' || trim( $npc['tail'] ) !== '' ) { continue; }
 			$anchor = self::identity( $zone['anchor'] );
 			if ( preg_match( '/\braid\s+(?:instance|zone)\b/', $anchor ) ) { $instance = 'raid'; }

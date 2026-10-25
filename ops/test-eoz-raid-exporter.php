@@ -14,6 +14,7 @@ define( 'NS_MAIN', 0 );
 $root = dirname( __DIR__ );
 $source = file_get_contents( $root . '/maintenance/BuildEyeOfZommPack.php' );
 $source = str_replace( "require_once __DIR__ . '/Maintenance.php';", '', $source );
+$source = str_replace( "__DIR__ . '/ItemLootSourceCounts.php'", var_export( $root . '/maintenance/ItemLootSourceCounts.php', true ), $source );
 $source = preg_replace( '/^use [^;]+;\r?$/m', '', $source );
 $source = str_replace( "__DIR__ . '/zone-catalog.json'", var_export( $root . '/maintenance/zone-catalog.json', true ), $source );
 $source = preg_replace( '/\$maintClass = BuildEyeOfZommPack::class;[\s\S]*$/', '', $source );

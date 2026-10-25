@@ -486,6 +486,26 @@ resolved items, unresolved titles, enriched items and added source variants.
 This is a filtered dataset change requiring a rebuild/publication after source
 deployment, without article edits or a database migration.
 
+`maintenance/ItemLootSourceCounts.php` independently exports global loot
+classification metadata. `meta.lootSourceCountsVersion = 1` identifies the
+additive `lootSourceCounts` catalog, keyed by canonical item title, including
+statless categorized items and NPC-authored links to missing item pages. Every
+entry has `lootSourceCount`, `lootSourceCountComplete`, and `lootSourceNpcs`;
+rich `items` records mirror these fields. The count unions direct Itempage
+sources with all public NPC Common/Unique fields across zones and instances.
+Canonical page IDs deduplicate redirects; public redlink NPCs retain normalized
+title identity. Rich NPC records also expose public redirect `aliases` for
+offline pending-source deduplication. Explicit pet labels are excluded.
+Counts use anonymous read permission and current `FOR_PUBLIC` main-slot content,
+independently of the builder account. Partial builds, unreadable/suppressed
+sources, malformed or unknown source syntax, unresolved identities and safety
+limits leave an explicit incomplete lower bound. Six verified distinct mobs
+already establish Common; fewer than six establish Unique only when complete.
+This is cached dataset metadata, with no new count API or per-contribution wiki
+queries. Run [`ops/test-eoz-loot-counts.php`](../ops/test-eoz-loot-counts.php),
+deploy the reviewed maintenance/helper sources, then separately rebuild and
+publish the GitHub dataset before claiming clients have the new counts.
+
 The additive `wikiEntities` presence index contains NPC/item candidate titles,
 recognized template name aliases, and public main-namespace titles including
 redirects. Skipped stat records remain known; private/user namespaces and account
