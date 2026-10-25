@@ -414,6 +414,12 @@ normal/raid templates and a phrase containing Various which must not get this ma
 Retain `categoryZones` separately from explicit spawn zones and test a categorized
 zone omitted by the spawn field. Clients can recognize the existing dynamic list
 membership without replacing authoritative map/stat records or crossing raid scope.
+Automatic contribution-policy regressions must cover Various in NPC, item and
+zone sources, statless pages, comments (including an unclosed comment), literal
+nowiki/pre text, underscore word boundaries and unexpanded templates. Verify
+anonymous permission and current public main-slot revisions before exporting a
+marker. The top-level map survives missing rich stats and each rich mirror uses
+the same public title/revision. No article edits or template expansion are needed.
 
 Raid tests must include an uncatalogued future zone, nested/sibling headings,
 normal and raid variants with the same NPC name, an explicit raid-only boss,

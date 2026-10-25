@@ -31,6 +31,7 @@ class BuildEyeOfZommPack extends Maintenance {
     private array $lootTitleMemo = [];
     private array $lootItemTemplateMemo = [];
     private array $lootSets = [];
+    private array $automaticContributionPolicies = [];
     private array $wikiEntityNames = [ 'npcs' => [], 'items' => [], 'titles' => [] ];
     private int $pauseUs = 20000;
 
@@ -73,6 +74,9 @@ class BuildEyeOfZommPack extends Maintenance {
         $this->pauseUs = $pauseMs * 1000;
         $limit = max( 0, (int)$this->getOption( 'limit', 0 ) );
         $this->lootCounts = new EqlItemLootSourceCounts();
+        if ( !method_exists( EqlNpcLootWikitext::class, 'automaticSourceOptOut' ) ) {
+            throw new RuntimeException( 'The matching NPC parser automatic-contribution policy helper is required.' );
+        }
         if ( $limit > 0 ) { $this->lootCounts->incomplete(); }
 
         $this->loadZoneCatalog();
@@ -166,6 +170,14 @@ class BuildEyeOfZommPack extends Maintenance {
         $icons = $this->buildItemIconMap( $services->getRepoGroup(), $items );
 
         $generated = gmdate( 'c' );
+        // This map is collected before stat parsing. Public categorized pages
+        // without rich records therefore retain their automatic opt-out too.
+        foreach ( $items as &$record ) { if ( isset( $this->automaticContributionPolicies[$record['wikiTitle']] ) ) { $record['automaticContributions'] = $this->automaticContributionPolicies[$record['wikiTitle']]; } }
+        unset( $record );
+        foreach ( $npcs as &$record ) { if ( isset( $this->automaticContributionPolicies[$record['wikiTitle']] ) ) { $record['automaticContributions'] = $this->automaticContributionPolicies[$record['wikiTitle']]; } }
+        unset( $record );
+        foreach ( $this->zoneCatalog as &$record ) { $key = $record['wikiTitle'] ?? $record['name']; if ( isset( $this->automaticContributionPolicies[$key] ) ) { $record['automaticContributions'] = $this->automaticContributionPolicies[$key]; } }
+        unset( $record );
         $pack = [
             'meta' => [
                 'schemaVersion' => 3,
@@ -179,6 +191,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 'npcLootSourcesIncluded' => true,
                 'lootSourceCountsVersion' => 1,
                 'lootSetsVersion' => 1,
+                'wikiContributionPoliciesVersion' => 1,
                 'npcLootSourceCounts' => $this->npcLootSourceCounts,
                 'counts' => [
                     'zones' => count( $this->zoneCatalog ),
@@ -192,6 +205,7 @@ class BuildEyeOfZommPack extends Maintenance {
             'items' => $items,
             'lootSourceCounts' => (object)$lootSourceCounts,
             'lootSets' => (object)$this->lootSets,
+            'wikiContributionPolicies' => (object)$this->automaticContributionPolicies,
             'icons' => (object)$icons,
             'wikiEntities' => $this->wikiEntityIndex(),
         ];
@@ -637,6 +651,7 @@ class BuildEyeOfZommPack extends Maintenance {
         try {
             $text = $this->publicLootText( $title, $page );
             if ( $text === null ) { $this->lootCounts->incomplete(); return; }
+            $this->rememberAutomaticContributionPolicy( $title, $page, $text );
             // Manually categorized redirects are candidates too. Resolve their
             // targets later; their own page IDs never identify another mob.
             if ( MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) { return; }
@@ -656,6 +671,20 @@ class BuildEyeOfZommPack extends Maintenance {
             }
             else { $this->lootCounts->item( $title->getText(), $text ); }
         } catch ( \Throwable $error ) { $this->lootCounts->incomplete(); }
+    }
+
+    /** Store only bounded public provenance, never source text or private policy. */
+    private function rememberAutomaticContributionPolicy( Title $title, $page, ?string $publicText = null ): void {
+        try {
+            $text = $publicText ?? $this->publicLootText( $title, $page );
+            $revision = $page->getRevisionRecord();
+            $id = $revision ? (int)$revision->getId() : 0;
+            if ( $id > 0 && $text !== null && EqlNpcLootWikitext::automaticSourceOptOut( $text ) ) {
+                $this->automaticContributionPolicies[$title->getText()] = [
+                    'schemaVersion' => 1, 'blocked' => true, 'reason' => 'various', 'revisionId' => $id,
+                ];
+            }
+        } catch ( \Throwable $error ) { /* No unavailable source text or private content is exported. */ }
     }
 
     /** Recognize only the public, unconditional item-hover template pattern. */
@@ -1514,6 +1543,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 continue;
             }
             $page = $wikiPageFactory->newFromTitle( $title );
+            if ( isset( $this->lootCounts ) ) { $this->rememberAutomaticContributionPolicy( $title, $page ); }
             $content = $page->getContent();
             if ( !$content || !method_exists( $content, 'getText' ) ) {
                 continue;

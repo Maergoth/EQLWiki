@@ -456,6 +456,17 @@ NPC `categoryZones` separately retains verified concrete zone categories, becaus
 DynamicZoneList's NPC table uses the zone/NPC category intersection even when an
 explicit spawn field names another zone. This is presence evidence for the normal
 dynamic list, not a replacement spawn/stat identity or a raid-membership claim.
+`meta.wikiContributionPoliciesVersion = 1` identifies the additive public
+`wikiContributionPolicies` map. A blocked page maps to `{schemaVersion: 1,
+blocked: true, reason: "various", revisionId}`; rich NPC/item/zone records mirror
+that object as `automaticContributions`. Collection precedes stat parsing, so
+statless categorized pages remain covered. Only anonymous-readable current
+`FOR_PUBLIC` main-slot wikitext contributes a marker; private/unavailable source
+text is never exported. The shared parser helper strips HTML comments (including
+an unclosed remainder), normalizes underscores and tests the case-insensitive
+whole word Various in unexpanded authored source. Literal nowiki/pre words count;
+transcluded output is never consulted. This is an automatic-contribution opt-out,
+not a removal of existing spawn/loot facts or permission to extend a group.
 Unknown zones remain unmapped unless a categorized zone article with a Raid
 Instance section establishes a new canonical zone. NPC locations keep the wiki's
 displayed `Y, X, Z` order. Source-only synthetic coverage lives in

@@ -252,13 +252,15 @@ namespace {
     $methods = str_replace( 'MediaWikiServices::', '\\MediaWiki\\MediaWikiServices::', $methods );
     $methods = preg_replace( '/\bTitle\b/', '\\MediaWiki\\Title\\Title', $methods );
     eval( 'class LootProducerFixture {
-        private $lootCounts; private array $lootTitleMemo=[];
+        private $lootCounts; private array $lootTitleMemo=[]; private array $automaticContributionPolicies=[];
         public function __construct() { $this->lootCounts=new EqlItemLootSourceCounts(); }
         private function maybePause(): void {}
         public function resolve($name) { return $this->resolveLootTitle($name, $GLOBALS["lootFactory"]); }
         public function remember($kind, $name) { $title = \MediaWiki\Title\Title::newFromText($name); $this->rememberPublicLootSource($kind, $title, $GLOBALS["lootFactory"]->newFromTitle($title)); }
         public function catalog() { return $this->lootCounts->catalog(fn($name) => $this->resolve($name)); }
         public function aliases($npcs, $db) { return $this->enrichNpcRedirectAliases($npcs, $db, $GLOBALS["lootFactory"]); }
+        public function policies() { return $this->automaticContributionPolicies; }
+        public function policy($name) { $title=\\MediaWiki\\Title\\Title::newFromText($name); $this->rememberAutomaticContributionPolicy($title,$GLOBALS["lootFactory"]->newFromTitle($title)); }
         ' . $methods . ' }' );
     $GLOBALS['lootPages'] = [
         'Public guardian' => [ 'id' => 20, 'text' => '{{Namedmobpage}}' ],
@@ -275,6 +277,7 @@ namespace {
             public function __construct( private array $page ) {}
             public function getRevisionRecord() { return new class( $this->page ) {
                 public function __construct( private array $page ) {}
+                public function getId() { return $this->page['revision'] ?? 99; }
                 public function getContent( $slot, $audience ) {
                     checkLootCount( $slot === 'main' && $audience === \MediaWiki\Revision\RevisionRecord::FOR_PUBLIC, 'Read only public current main-slot content' );
                     if ( $this->page['hidden'] ?? false ) { return null; }
@@ -293,6 +296,27 @@ namespace {
         public function getTitleFactory() { return new class { public function newFromLinkTarget( $target ) { return $target; } }; }
     };
     $candidates = new LootProducerFixture();
+    foreach ( [
+        'Public various NPC' => '{{Namedmobpage|zone=Various}}',
+        'Public statless various item' => '{{Itempage|itemname=Public statless various item}} Various sources',
+        'Public various zone' => '! Types of Monsters: Various_skeletons',
+        'Public visible literal' => '<nowiki>VARIOUS</nowiki>',
+        'Public pre literal' => '<pre>Various</pre>',
+        'Public invocation title' => '{{Various_navigation}}',
+        'Public partial word' => 'variously',
+        'Public comments only' => 'Ordinary source <!-- Various --> <!-- Various',
+        'Public unexpanded template' => '{{Synthetic ordinary template}}',
+        'Private various page' => 'Various private sources',
+        'Suppressed various page' => 'Various suppressed sources',
+    ] as $policyName => $policyText ) {
+        $GLOBALS['lootPages'][$policyName] = [ 'id' => 900, 'text' => $policyText, 'revision' => 55,
+            'private' => str_starts_with( $policyName, 'Private' ), 'hidden' => str_starts_with( $policyName, 'Suppressed' ) ];
+        $candidates->policy( $policyName );
+    }
+    $policy = [ 'schemaVersion' => 1, 'blocked' => true, 'reason' => 'various', 'revisionId' => 55 ];
+    checkLootCount( $candidates->policies() === [ 'Public various NPC' => $policy, 'Public statless various item' => $policy,
+        'Public various zone' => $policy, 'Public visible literal' => $policy, 'Public pre literal' => $policy,
+        'Public invocation title' => $policy ], 'Automatic policies cover public statless/all entity sources without comments, expansion or private revisions' );
     $candidates->remember( 'npc', 'Public alias' );
     checkLootCount( $candidates->resolve( 'Public alias' ) === [ 'title' => 'Public guardian', 'pageId' => 20, 'public' => true, 'complete' => true ], 'A categorized redirect candidate cannot preseed its own page ID as canonical' );
     $candidates->remember( 'npc', 'Public guardian' );

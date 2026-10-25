@@ -19,6 +19,12 @@ final class EqlNpcLootWikitext {
 		return trim( function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value ) );
 	}
 
+	/** Literal authored ambiguity opts out of automatic enrichment; no expansion. */
+	public static function automaticSourceOptOut( string $source ): bool {
+		$source = preg_replace( '/<!--[\s\S]*?(?:-->|$)/', '', $source );
+		return preg_match( '/(?<![\p{L}\p{N}])various(?![\p{L}\p{N}])/iu', str_replace( '_', ' ', $source ) ) === 1;
+	}
+
 	/** Template titles fold the first letter, not the rest of the page name. */
 	public static function templateInvocationKey( string $name ): string {
 		$name = preg_replace( '/^template\s*:\s*/i', '', trim( $name ) );
