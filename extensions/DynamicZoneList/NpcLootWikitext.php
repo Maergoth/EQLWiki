@@ -19,9 +19,20 @@ final class EqlNpcLootWikitext {
 		return trim( function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value ) );
 	}
 
+	/** Template titles fold the first letter, not the rest of the page name. */
+	public static function templateInvocationKey( string $name ): string {
+		$name = preg_replace( '/^template\s*:\s*/i', '', trim( $name ) );
+		$name = self::title( $name, true );
+		if ( $name === null ) { return ''; }
+		if ( function_exists( 'mb_substr' ) && function_exists( 'mb_strtoupper' ) ) {
+			return mb_strtoupper( mb_substr( $name, 0, 1, 'UTF-8' ), 'UTF-8' ) . mb_substr( $name, 1, null, 'UTF-8' );
+		}
+		return ucfirst( $name );
+	}
+
 	/** @return array{names:array,zones:array,authoredItems:array}|null */
-	public static function analyseNpcPage( string $source ): ?array {
-		$document = self::document( $source );
+	public static function analyseNpcPage( string $source, bool $globalExport = false ): ?array {
+		$document = self::document( $source, $globalExport );
 		if ( $document === null ) {
 			return null;
 		}
@@ -76,20 +87,24 @@ final class EqlNpcLootWikitext {
 		return [ 'names' => $names, 'zones' => $zones, 'existingSources' => $sources ];
 	}
 
-	/** @return array<array{item:string,npc:string,zone:string,instance:string,lootKind:string}> */
-	public static function npcLootSources( string $source, ?bool &$complete = null, bool $allowMainColon = false ): array {
+	/**
+	 * Global exports use the final repeated static Namedmobpage parameter, as
+	 * MediaWiki does. All default renderer/helper calls retain strict parsing.
+	 * @return array<array{item:string,npc:string,zone:string,instance:string,lootKind:string}>
+	 */
+	public static function npcLootSources( string $source, ?bool &$complete = null, bool $allowMainColon = false, bool $globalExport = false, array $verifiedItemTemplates = [] ): array {
 		$complete = true;
-		$document = self::document( $source );
+		$document = self::document( $source, $globalExport );
 		if ( $document === null ) { $complete = false; return []; }
 		$rows = [];
 		foreach ( $document['templates'] as $template ) {
 			if ( $template['name'] !== 'namedmobpage' ) { continue; }
-			$analysis = self::analyseNpcPage( substr( $source, $template['start'], $template['end'] - $template['start'] ) );
+			$analysis = self::analyseNpcPage( substr( $source, $template['start'], $template['end'] - $template['start'] ), $globalExport );
 			$npc = self::title( $template['fields']['name'] ?? '' ) ?? '';
 			$instance = self::instanceAt( $document['outline'], $template['start'], 'normal' );
 			foreach ( [ 'known_loot' => 'known', 'common_loot' => 'common' ] as $field => $kind ) {
-				if ( $allowMainColon && !self::sourceSyntaxComplete( $template['fields'][$field] ?? '', true ) ) { $complete = false; }
-				foreach ( self::lootReferences( $template['fields'][$field] ?? '', $allowMainColon ) as $item ) {
+				if ( $allowMainColon && !self::sourceSyntaxComplete( $template['fields'][$field] ?? '', true, 0, $globalExport, $verifiedItemTemplates ) ) { $complete = false; }
+				foreach ( self::lootReferences( $template['fields'][$field] ?? '', $allowMainColon, $globalExport, $verifiedItemTemplates ) as $item ) {
 					foreach ( ( $analysis['zones'] ?: [ '' ] ) as $zone ) {
 						$row = [ 'item' => $item, 'npc' => $npc, 'zone' => $zone, 'instance' => $instance, 'lootKind' => $kind ];
 						$rows[json_encode( $row )] = $row;
@@ -100,10 +115,94 @@ final class EqlNpcLootWikitext {
 		return array_values( $rows );
 	}
 
-	/** Direct article references in an active native loot field, without expanding templates. */
-	private static function lootReferences( string $field, bool $allowMainColon = false ): array {
+	/** Original-case zero-argument templates requiring public item verification. */
+	public static function globalNpcLootTemplateNames( string $source ): array {
+		$document = self::document( $source, true );
+		if ( $document === null ) { return []; }
+		$names = [];
+		$visit = static function ( string $field, int $depth = 0 ) use ( &$visit, &$names ): void {
+			if ( $depth > 8 ) { return; }
+			$active = self::active( $field );
+			foreach ( self::roots( $active ) ?? [] as $template ) {
+				if ( str_starts_with( $template['name'], ':' ) || in_array( $template['name'], [ 'era', 'loc' ], true ) || self::globalLootMetadata( $template ) ) { continue; }
+				if ( $template['name'] === 'veliousgray' ) { foreach ( $template['parts'] as $part ) { $visit( $part, $depth + 1 ); } continue; }
+				if ( $template['parts'] || count( $names ) >= 20 ) { continue; }
+				preg_match( '/^\{\{\s*([^{}|]+?)\s*\}\}$/', substr( $active, $template['start'], $template['end'] - $template['start'] ), $match );
+				$name = preg_replace( '/^template\s*:/i', '', trim( $match[1] ?? '' ) );
+				$key = self::templateInvocationKey( $name );
+				if ( $key !== '' && strlen( $name ) <= 240 ) { $names[$key] = $name; }
+			}
+		};
+		foreach ( $document['templates'] as $template ) {
+			if ( $template['name'] !== 'namedmobpage' ) { continue; }
+			foreach ( [ 'known_loot', 'common_loot' ] as $field ) { $visit( $template['fields'][$field] ?? '' ); }
+		}
+		return array_values( $names );
+	}
+
+	/** Literal members of public top-level Gear Set cards; never expands templates. */
+	public static function globalGearSetItems( string $source, ?bool &$complete = null ): ?array {
+		$complete = true;
+		if ( strlen( $source ) > self::MAX_BYTES || preg_match( '//u', $source ) !== 1 ) { $complete = false; return null; }
+		// Template links also include indirect transclusions on class/quest pages.
+		// Their unrelated markup cannot turn the page into a literal set card.
+		if ( !preg_match( '/\{\{\s*(?:(?i:template)\s*:\s*)?[Gg]ear[ _]+Set\s*(?=[|}]|$)/', self::active( $source ) ) ) { return null; }
+		$document = self::document( $source, true );
+		if ( $document === null ) { $complete = false; return null; }
+		$found = false;
 		$items = [];
-		$lootText = self::fieldText( $field, true );
+		foreach ( $document['templates'] as $template ) {
+			if ( ( $template['invocationKey'] ?? '' ) !== 'Gear Set' ) { continue; }
+			$found = true;
+			if ( count( $template['parts'] ) > 100 ) { $complete = false; }
+			foreach ( array_slice( $template['parts'], 0, 100 ) as $part ) {
+				$value = trim( self::active( $part ) );
+				// Module:GearSet ignores blank numeric arguments.
+				if ( $value === '' ) { continue; }
+				if ( preg_match( '/\{\{|=/', $value ) ) { $complete = false; continue; }
+				if ( preg_match( '/^\[\[([^\]|\r\n]+)(?:\|[^\[\]{}\r\n]*)?\]\]$/', $value, $link ) ) { $value = trim( $link[1] ); }
+				$item = self::title( $value, true );
+				if ( $item === null || count( $items ) >= 100 ) { $complete = false; continue; }
+				self::unique( $items, $item );
+			}
+		}
+		if ( $found && !$items ) { $complete = false; }
+		return $found ? $items : null;
+	}
+
+	/** One unconditional legacy item hover, verified from public source by the caller. */
+	public static function globalItemTemplateTarget( string $source ): ?string {
+		$document = self::document( $source );
+		if ( $document === null ) { return null; }
+		$pages = array_values( array_filter( $document['templates'], static fn ( $template ) => $template['name'] === 'itempage' ) );
+		if ( count( $pages ) !== 1 ) { return null; }
+		$name = self::title( $pages[0]['fields']['itemname'] ?? '', true );
+		if ( $name === null ) { return null; }
+		$active = self::active( $source );
+		if ( preg_match_all( '~<onlyinclude\s*>~i', $active ) !== 1 || preg_match_all( '~</onlyinclude\s*>~i', $active ) !== 1 ||
+			!preg_match( '~<onlyinclude\s*>([\s\S]*?)</onlyinclude\s*>~i', $active, $include ) ) { return null; }
+		$included = trim( $include[1] );
+		if ( preg_match( '~^<includeonly\s*>([\s\S]*)</includeonly\s*>$~i', $included, $wrapped ) ) { $included = trim( $wrapped[1] ); }
+		if ( preg_match( '~</?(?:includeonly|onlyinclude)\b~i', $included ) ||
+			!preg_match( '~^<div\s+class=(["\'])hbdiv\1>\s*\[\[([^\]|\r\n]+)(?:\|[^\[\]{}\r\n]*)?\]\]\s*<span\s+class=(["\'])hb\3>\s*([\s\S]*?)\s*</span>\s*</div>\s*$~', $included, $hover ) ) { return null; }
+		$link = self::title( $hover[2], true );
+		if ( $link === null || self::templateInvocationKey( $link ) !== self::templateInvocationKey( $name ) ) { return null; }
+		$body = $hover[4];
+		$card = self::document( $body );
+		if ( $card === null || count( $card['templates'] ) !== 1 ) { return null; }
+		$template = $card['templates'][0];
+		if ( $template['name'] !== 'itembox' || trim( substr( $body, 0, $template['start'] ) ) !== '' ||
+			trim( substr( $body, $template['end'] ) ) !== '' ) { return null; }
+		$inner = substr( $body, $template['start'] + 2, $template['end'] - $template['start'] - 4 );
+		if ( preg_match( '/\{\{|\}\}/', $inner ) ) { return null; }
+		$cardName = self::title( $template['fields']['itemname'] ?? '', true );
+		return $cardName !== null && self::templateInvocationKey( $cardName ) === self::templateInvocationKey( $name ) ? $name : null;
+	}
+
+	/** Direct article references in an active native loot field, without expanding templates. */
+	private static function lootReferences( string $field, bool $allowMainColon = false, bool $globalExport = false, array $verifiedItemTemplates = [] ): array {
+		$items = [];
+		$lootText = self::fieldText( $field, true, 0, $globalExport, $verifiedItemTemplates );
 		$transclusions = self::roots( $lootText ) ?? [];
 		foreach ( $transclusions as $transclusion ) {
 			if ( str_starts_with( $transclusion['name'], ':' ) ) {
@@ -431,7 +530,7 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** Top-level balanced templates only; nested examples never become pages. */
-	private static function roots( string $source ): ?array {
+	private static function roots( string $source, bool $globalExport = false ): ?array {
 		$roots = [];
 		$stack = [];
 		$start = 0;
@@ -447,6 +546,7 @@ final class EqlNpcLootWikitext {
 				$i += $width - 1;
 			} elseif ( $pair === '}}' ) {
 				if ( !$stack ) {
+					if ( $globalExport ) { $i++; continue; }
 					return null;
 				}
 				$width = end( $stack );
@@ -460,19 +560,24 @@ final class EqlNpcLootWikitext {
 					if ( $parts === null ) {
 						return null;
 					}
-					$name = strtolower( str_replace( '_', ' ', trim( array_shift( $parts ) ) ) );
+					$rawName = array_shift( $parts );
+					$name = strtolower( str_replace( '_', ' ', trim( $rawName ) ) );
 					$name = preg_replace( '/^template\s*:\s*/', '', $name );
 					$fields = [];
+					$parameterNames = [];
 					foreach ( $parts as $part ) {
 						if ( preg_match( '/^\s*([A-Za-z][A-Za-z0-9_ ]*)\s*=([\s\S]*)$/', $part, $field ) ) {
 							$key = strtolower( trim( $field[1] ) );
-							if ( array_key_exists( $key, $fields ) ) {
+							if ( array_key_exists( $key, $fields ) && !( $globalExport && $name === 'namedmobpage' && $parameterNames[$key] === trim( $field[1] ) ) ) {
 								return null;
 							}
+							$parameterNames[$key] = trim( $field[1] );
 							$fields[$key] = $field[2];
+						} elseif ( $globalExport && $name === 'namedmobpage' && preg_match( '/^\s*[^=]*\{\{[^=]*=/', $part ) ) {
+							return null;
 						}
 					}
-					$roots[] = [ 'start' => $start, 'end' => $i + 1, 'name' => $name, 'parts' => $parts, 'fields' => $fields ];
+					$roots[] = [ 'start' => $start, 'end' => $i + 1, 'name' => $name, 'invocationKey' => self::templateInvocationKey( $rawName ), 'parts' => $parts, 'fields' => $fields ];
 				} elseif ( !$stack ) {
 					$roots[] = [ 'start' => $start, 'end' => $i + 1, 'name' => '', 'parts' => [], 'fields' => [] ];
 				}
@@ -499,10 +604,10 @@ final class EqlNpcLootWikitext {
 		return $parts;
 	}
 
-	private static function document( string $source ): ?array {
+	private static function document( string $source, bool $globalExport = false ): ?array {
 		if ( strlen( $source ) > self::MAX_BYTES || preg_match( '//u', $source ) !== 1 ) { return null; }
 		$active = self::active( $source );
-		$templates = self::roots( $active );
+		$templates = self::roots( $active, $globalExport );
 		if ( $templates === null ) { return null; }
 		$outline = $active;
 		foreach ( array_reverse( $templates ) as $template ) {
@@ -531,35 +636,53 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** Global counts cannot prove a small total through an unexpanded unknown wrapper. */
-	private static function sourceSyntaxComplete( string $field, bool $items, int $depth = 0 ): bool {
+	private static function sourceSyntaxComplete( string $field, bool $items, int $depth = 0, bool $globalExport = false, array $verifiedItemTemplates = [] ): bool {
 		if ( $depth > 8 ) { return false; }
 		$roots = self::roots( self::active( $field ) );
 		if ( $roots === null ) { return false; }
 		foreach ( $roots as $template ) {
 			if ( $items && str_starts_with( $template['name'], ':' ) ) { continue; }
 			if ( in_array( $template['name'], [ 'era', 'loc' ], true ) ) { continue; }
+			if ( $globalExport && $items && ( self::globalLootMetadata( $template ) || self::verifiedItemTemplate( $template, $verifiedItemTemplates ) !== null ) ) { continue; }
 			if ( !in_array( $template['name'], $items ? [ 'veliousgray' ] : [ 'veliousgray', 'itemwheretable', 'itemwhererow' ], true ) ) { return false; }
 			foreach ( $template['parts'] as $part ) {
-				if ( !self::sourceSyntaxComplete( $part, $items, $depth + 1 ) ) { return false; }
+				if ( !self::sourceSyntaxComplete( $part, $items, $depth + 1, $globalExport, $verifiedItemTemplates ) ) { return false; }
 			}
 		}
 		return true;
 	}
 
-	private static function fieldText( string $field, bool $items, int $depth = 0 ): string {
+	private static function fieldText( string $field, bool $items, int $depth = 0, bool $globalExport = false, array $verifiedItemTemplates = [] ): string {
 		if ( $depth > 8 ) { return ''; }
 		$roots = self::roots( $field );
 		if ( $roots === null ) { return ''; }
 		foreach ( array_reverse( $roots ) as $template ) {
 			$replacement = self::mask( substr( $field, $template['start'], $template['end'] - $template['start'] ) );
 			if ( $template['name'] === 'veliousgray' && count( $template['parts'] ) === 1 ) {
-				$replacement = self::fieldText( $template['parts'][0], $items, $depth + 1 );
+				$replacement = self::fieldText( $template['parts'][0], $items, $depth + 1, $globalExport, $verifiedItemTemplates );
+			} elseif ( $globalExport && $items && ( $verified = self::verifiedItemTemplate( $template, $verifiedItemTemplates ) ) !== null ) {
+				$replacement = '{{:' . $verified . '}}';
 			} elseif ( $items && str_starts_with( $template['name'], ':' ) ) {
 				continue;
 			}
 			$field = substr_replace( $field, $replacement, $template['start'], $template['end'] - $template['start'] );
 		}
 		return $field;
+	}
+
+	private static function verifiedItemTemplate( array $template, array $verified ): ?string {
+		if ( $template['parts'] ) { return null; }
+		$title = $verified[$template['invocationKey'] ?? ''] ?? null;
+		return is_string( $title ) ? self::title( $title, true ) : null;
+	}
+
+	/** Reviewed public templates emit badges, lore text or static warnings only. */
+	private static function globalLootMetadata( array $template ): bool {
+		if ( !in_array( $template['invocationKey'] ?? '', [ 'Chardok Revamp Era Inline', 'Item Lore', 'Unconfirmed Itemlist', 'P1999', 'Era Short', 'Lootcheck' ], true ) ) { return false; }
+		foreach ( $template['parts'] as $part ) {
+			if ( preg_match( '/\{\{|\[\[/', self::active( $part ) ) ) { return false; }
+		}
+		return true;
 	}
 
 	private static function lines( string $text ): array {

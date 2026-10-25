@@ -344,7 +344,15 @@ Global classification metadata uses `meta.lootSourceCountsVersion = 1` and the
 top-level `lootSourceCounts` catalog, including statless and missing item titles;
 rich item records mirror its count/completeness/canonical-NPC fields. Verify
 the published gzip contains these fields after rebuilding, along with public
-NPC redirect aliases. No new wiki API, schema or host wrapper is needed. A
+NPC redirect aliases. `meta.lootSetsVersion = 1` identifies the additive
+`lootSets` map: each canonical set title has explicit canonical `items` and a
+`complete` flag. Public top-level `Gear Set` members supply membership; NPC set
+references contribute each member's canonical mob once. Verify that the rebuilt
+Mistress of Scorn set source covers its members without duplicating item rows.
+Reviewed metadata badges and independently verified static legacy item hovers
+cannot make the whole count catalog incomplete, while unknown/dynamic wrappers
+still do. Check both complete small counts and confirmed Common lower bounds.
+No new wiki API, schema or host wrapper is needed. A
 manual invocation of the already installed `eoz-pack-refresh.sh` without
 `--if-stale` forces a build under its existing lock; `--local-only` does not
 publish to GitHub. Source deployment and the later filtered dataset publication

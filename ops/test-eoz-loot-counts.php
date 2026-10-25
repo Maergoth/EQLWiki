@@ -119,6 +119,127 @@ namespace {
     $counts->npc( 'Guardian Two', '{{Namedmobpage|known_loot={{UnknownLootWrapper|{{:Shared Relic}}}}}}' );
     checkLootCount( !$counts->apply( $records, $resolve )[0]['lootSourceCountComplete'], 'Unknown unexpanded loot wrappers cannot prove Unique' );
 
+    $duplicateMerchant = '{{Namedmobpage|name=Merchant display|zone=[[Earlier Zone]]|zone=[[Final Zone]]|items_sold=Earlier stock|items_sold=Final stock|known_loot={{:Shared Relic}}}}';
+    checkLootCount( EqlNpcLootWikitext::analyseNpcPage( $duplicateMerchant ) === null, 'Default renderer analysis still rejects duplicate non-loot parameters' );
+    $parsed = true;
+    checkLootCount( EqlNpcLootWikitext::npcLootSources( $duplicateMerchant, $parsed, true ) === [] && !$parsed, 'Colon-permissive recognition alone does not opt into duplicate compatibility' );
+    $analysis = EqlNpcLootWikitext::analyseNpcPage( $duplicateMerchant, true );
+    checkLootCount( $analysis !== null && $analysis['zones'] === [ 'Final Zone' ], 'Global-only NPC analysis uses the last duplicate non-loot parameter' );
+    $counts = $five();
+    $counts->npc( 'Guardian Five', str_replace( [ 'Namedmobpage', 'known_loot' ], [ 'MerchantPage', 'knownloot' ], $duplicateMerchant ) );
+    $result = $counts->apply( $records, $resolve )[0];
+    checkLootCount( $result['lootSourceCount'] === 5 && $result['lootSourceCountComplete'], 'Duplicate merchant items_sold fields cannot make five global sources incomplete' );
+    $counts->npc( 'Guardian Six', str_replace( 'Namedmobpage', 'NPCpage', $duplicateMerchant ) );
+    $result = $counts->apply( $records, $resolve )[0];
+    checkLootCount( $result['lootSourceCount'] === 6 && $result['lootSourceCountComplete'], 'Duplicate non-loot NPC fields retain complete six-source Common proof' );
+    foreach ( [ 'known_loot', 'common_loot' ] as $field ) {
+        $counts = new EqlItemLootSourceCounts(); $counts->item( 'Shared Relic', $item() );
+        $counts->npc( 'Guardian Five', '{{Namedmobpage|' . $field . '={{:Shared Relic}}|' . $field . '=None}}' );
+        $result = $counts->apply( $records, $resolve )[0];
+        checkLootCount( $result['lootSourceCount'] === 0 && $result['lootSourceCountComplete'], 'Global counts use only the final repeated exact static loot parameter' );
+        $counts = new EqlItemLootSourceCounts(); $counts->item( 'Shared Relic', $item() );
+        $counts->npc( 'Guardian Five', '{{Namedmobpage|' . $field . '= |' . $field . '={{:Shared Relic}}}}' );
+        $result = $counts->apply( $records, $resolve )[0];
+        checkLootCount( $result['lootSourceCount'] === 1 && $result['lootSourceCountComplete'], 'Blank shadowed defaults do not conceal the final rendered loot list' );
+    }
+    $parsed = true;
+    EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{:Shared Relic}}|KNOWN_LOOT=None}}', $parsed, true, true );
+    checkLootCount( !$parsed, 'Case-distinct parameter names are not guessed to be repeated MediaWiki keys' );
+    $parsed = true;
+    EqlNpcLootWikitext::npcLootSources( '{{OtherTemplate|items_sold=First|items_sold=Second}}{{Namedmobpage|known_loot={{:Shared Relic}}}}', $parsed, true, true );
+    checkLootCount( !$parsed, 'Global duplicate compatibility applies only to Namedmobpage, not arbitrary templates' );
+    $literalClose = "((Synthetic Era}}\n{{Namedmobpage|known_loot={{:Shared Relic}}}}";
+    checkLootCount( EqlNpcLootWikitext::analyseNpcPage( $literalClose ) === null, 'Default renderer parsing still rejects stray closing markup' );
+    $parsed = true; $rows = EqlNpcLootWikitext::npcLootSources( $literalClose, $parsed, true, true );
+    checkLootCount( $parsed && count( $rows ) === 1, 'Global parsing treats closing braces outside every card as literal prose' );
+    $parsed = true; EqlNpcLootWikitext::npcLootSources( '{{Unclosed prefix {{Namedmobpage|known_loot={{:Shared Relic}}}}', $parsed, true, true );
+    checkLootCount( !$parsed, 'Unclosed markup can conceal a card and always stays incomplete' );
+    foreach ( [ 'Chardok Revamp Era Inline', 'Item Lore|Synthetic lore text', 'Unconfirmed Itemlist', 'P1999|Synthetic_page', 'Era Short|Classic', 'Lootcheck' ] as $badge ) {
+        $parsed = true; $rows = EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{' . $badge . '}}{{:Shared Relic}}}}', $parsed, true, true );
+        checkLootCount( $parsed && array_column( $rows, 'item' ) === [ 'Shared Relic' ], 'Reviewed literal metadata does not hide or invent a loot item' );
+    }
+    $parsed = true; EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{Item Lore|{{UnknownWrapper}}}}{{:Shared Relic}}}}', $parsed, true, true );
+    checkLootCount( !$parsed, 'Dynamic arguments of metadata templates remain opaque' );
+    $legacy = '{{Namedmobpage|known_loot={{Synthetic Legacy Relic}}{{VeliousGray|{{Template:Other Legacy Relic}}}}{{Unknown With Args|value}}{{P1999}}}}';
+    checkLootCount( EqlNpcLootWikitext::globalNpcLootTemplateNames( $legacy ) === [ 'Synthetic Legacy Relic', 'Other Legacy Relic' ], 'Only active unknown zero-argument templates are exposed for public verification, preserving case' );
+    $parsed = true; $rows = EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{Synthetic Legacy Relic}}}}', $parsed, true, true, [ 'Synthetic Legacy Relic' => 'Shared Relic' ] );
+    checkLootCount( $parsed && array_column( $rows, 'item' ) === [ 'Shared Relic' ], 'An independently verified legacy item template contributes its canonical main article' );
+    $parsed = true; EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{Synthetic Legacy Relic|override}}}}', $parsed, true, true, [ 'Synthetic Legacy Relic' => 'Shared Relic' ] );
+    checkLootCount( !$parsed, 'Verified item templates cannot override their verified zero-argument output' );
+    $parsed = true; EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{Unverified Legacy Relic}}}}', $parsed, true, true );
+    checkLootCount( !$parsed, 'Unverified unknown item templates remain incomplete' );
+    checkLootCount( EqlNpcLootWikitext::templateInvocationKey( ' Template:synthetic_Legacy Relic ' ) === 'Synthetic Legacy Relic', 'Template invocation keys normalize namespace, first letter and underscores without folding suffix case' );
+    checkLootCount( EqlNpcLootWikitext::globalNpcLootTemplateNames( '{{Namedmobpage|known_loot={{Synthetic Legacy Relic}}{{Synthetic legacy Relic}}}}' ) === [ 'Synthetic Legacy Relic', 'Synthetic legacy Relic' ], 'Case-distinct legacy templates both require independent public verification' );
+    $parsed = true; $rows = EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{Synthetic Legacy Relic}}{{Synthetic legacy Relic}}}}', $parsed, true, true, [ 'Synthetic Legacy Relic' => 'Shared Relic' ] );
+    checkLootCount( !$parsed && array_column( $rows, 'item' ) === [ 'Shared Relic' ], 'A verified legacy template never verifies a different case-distinct template' );
+    $parsed = true; EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot={{Item lore}}{{:Shared Relic}}}}', $parsed, true, true );
+    checkLootCount( !$parsed, 'A case-distinct template does not inherit reviewed metadata output' );
+
+    $hoverCard = '<div class="hbdiv">[[Shared Relic]]<span class="hb">{{Itembox|itemname=Shared Relic|statsblock=AC: 2}}</span></div>';
+    $staticTemplate = '<onlyinclude><includeonly>' . $hoverCard . '</includeonly></onlyinclude>{{Itempage|itemname=Shared Relic}}';
+    checkLootCount( EqlNpcLootWikitext::globalItemTemplateTarget( $staticTemplate ) === 'Shared Relic', 'A single static unconditional legacy hover has one matching item target' );
+    checkLootCount( EqlNpcLootWikitext::globalItemTemplateTarget( str_replace( [ '<includeonly>', '</includeonly>' ], '', $staticTemplate ) ) === 'Shared Relic', 'The same literal onlyinclude hover does not require redundant includeonly tags' );
+    foreach ( [
+        str_replace( '<includeonly>', '<includeonly>Prefix', $staticTemplate ),
+        str_replace( '</includeonly>', '{{Unknown}}' . '</includeonly>', $staticTemplate ),
+        str_replace( '</includeonly>', '[[Other Relic]]' . '</includeonly>', $staticTemplate ),
+        str_replace( '</span>', '{{Unknown}}</span>', $staticTemplate ),
+        str_replace( '</includeonly>', $hoverCard . '</includeonly>', $staticTemplate ),
+        $staticTemplate . '{{Itempage|itemname=Shared Relic}}',
+        str_replace( '[[Shared Relic]]', '[[Other Relic]]', $staticTemplate ),
+        str_replace( 'Itembox|itemname=Shared Relic', 'Itembox|itemname=Other Relic', $staticTemplate ),
+        str_replace( 'AC: 2', 'AC: {{{1|2}}}', $staticTemplate ),
+        str_replace( 'AC: 2', '{{#if:1|AC: 2}}', $staticTemplate ),
+        str_replace( '[[Shared Relic]]', '[[Shared Relic|{{Unknown}}]]', $staticTemplate ),
+        $staticTemplate . '<onlyinclude>Another output</onlyinclude>',
+        str_replace( '</includeonly>', '', $staticTemplate ),
+    ] as $unsafeTemplate ) {
+        checkLootCount( EqlNpcLootWikitext::globalItemTemplateTarget( $unsafeTemplate ) === null, 'Extra, mismatched, conditional or malformed legacy hover output cannot prove one item' );
+    }
+
+    $setComplete = true;
+    checkLootCount( EqlNpcLootWikitext::globalGearSetItems( '{{Gear Set|Shared Relic|[[Set-only Relic|Sleeve]]|Shared_Relic}}', $setComplete ) === [ 'Shared Relic', 'Set-only Relic' ] && $setComplete, 'Gear Set literal positional members deduplicate without name guesses' );
+    checkLootCount( EqlNpcLootWikitext::globalGearSetItems( '{{Example|{{Gear Set|Shared Relic}}}}', $setComplete ) === null && $setComplete, 'Nested examples do not establish a gear set' );
+    checkLootCount( EqlNpcLootWikitext::globalGearSetItems( '{{ClassOverview|duplicate=One|duplicate=Two}} {{:Synthetic Armor}}', $setComplete ) === null && $setComplete, 'Indirect set transclusions do not parse unrelated class markup as a set definition' );
+    checkLootCount( EqlNpcLootWikitext::globalGearSetItems( '<!-- {{Gear Set|Shared Relic}} --><nowiki>{{Gear Set|Shared Relic}}</nowiki>{{:Synthetic Armor}}', $setComplete ) === null && $setComplete, 'Inactive set examples do not make an indirectly linked page a set' );
+    checkLootCount( EqlNpcLootWikitext::globalGearSetItems( '{{Template:gear_Set|Shared Relic}}', $setComplete ) === [ 'Shared Relic' ] && $setComplete, 'Literal canonical Gear Set invocation handles namespace, underscore and first-letter normalization' );
+    checkLootCount( EqlNpcLootWikitext::globalGearSetItems( '{{Gear Set|Shared Relic}}{{Gear set|Other Relic}}', $setComplete ) === [ 'Shared Relic' ] && $setComplete, 'A case-distinct template is not another Gear Set definition' );
+    checkLootCount( EqlNpcLootWikitext::globalGearSetItems( '{{Gear Set||Shared Relic| }}', $setComplete ) === [ 'Shared Relic' ] && $setComplete, 'Blank positional slots are ignored exactly as the reviewed GearSet module does' );
+    foreach ( [ '{{Gear Set|item=Shared Relic}}', '{{Gear Set|{{Unknown}}}}', '{{Gear Set|[[File:Example]]}}', '{{Gear Set|}}', '{{Gear Set|Shared Relic' ] as $source ) {
+        EqlNpcLootWikitext::globalGearSetItems( $source, $setComplete );
+        checkLootCount( !$setComplete, 'Named, dynamic, invalid or malformed set members do not prove a complete set' );
+    }
+    $counts = $five();
+    $counts->sets( [ 'Synthetic Gear' => [ 'items' => [ 'Relic Alias', 'Shared Relic', 'Set-only Relic' ], 'complete' => true ] ] );
+    $counts->npc( 'Guardian Six', '{{Namedmobpage|known_loot={{:Synthetic Gear}}{{:Shared Relic}}}}' );
+    $setCatalog = $counts->catalog( $resolve );
+    checkLootCount( $setCatalog['Shared Relic']['lootSourceCount'] === 6 && $setCatalog['Shared Relic']['lootSourceCountComplete'], 'A sixth global NPC dropping an explicit set counts for each member once' );
+    checkLootCount( $setCatalog['Set-only Relic']['lootSourceCount'] === 1 && !isset( $setCatalog['Synthetic Gear'] ), 'Set source references create member counts, never a fictitious item count for the set title' );
+    checkLootCount( $counts->catalog( $resolve ) === $setCatalog, 'Repeated catalog generation does not mutate or multiply set references' );
+    $counts = new EqlItemLootSourceCounts();
+    $counts->sets( [ 'Synthetic Gear' => [ 'items' => [ 'Shared Relic' ], 'complete' => false ] ] );
+    $counts->npc( 'Guardian One', '{{Namedmobpage|known_loot={{:Synthetic Gear}}}}' );
+    checkLootCount( !$counts->catalog( $resolve )['Shared Relic']['lootSourceCountComplete'], 'Referenced incomplete sets cannot establish Unique proof' );
+    $counts = new EqlItemLootSourceCounts(); $counts->item( 'Shared Relic', $item() );
+    $counts->sets( [ 'Synthetic Gear' => [ 'items' => [ 'Synthetic Gear' ], 'complete' => true ] ] );
+    $counts->npc( 'Guardian One', '{{Namedmobpage|known_loot={{:Synthetic Gear}}}}' );
+    checkLootCount( !$counts->catalog( $resolve )['Shared Relic']['lootSourceCountComplete'], 'A set cycle stays bounded and cannot prove a small total' );
+    $counts = new EqlItemLootSourceCounts(); $counts->item( 'Shared Relic', $item() );
+    $counts->sets( [
+        'Synthetic Gear' => [ 'items' => [ 'Nested Gear One', 'Nested Gear Two' ], 'complete' => true ],
+        'Nested Gear One' => [ 'items' => [ 'Nested Gear Shared' ], 'complete' => true ],
+        'Nested Gear Two' => [ 'items' => [ 'Nested Gear Shared' ], 'complete' => true ],
+        'Nested Gear Shared' => [ 'items' => [ 'Shared Relic' ], 'complete' => true ],
+    ] );
+    $counts->npc( 'Guardian One', '{{Namedmobpage|known_loot={{:Synthetic Gear}}{{:Nested Gear Shared}}}}' );
+    $nested = $counts->catalog( $resolve )['Shared Relic'];
+    checkLootCount( $nested['lootSourceCount'] === 1 && $nested['lootSourceCountComplete'], 'Overlapping nested sets and direct member references deduplicate without losing completeness' );
+    $counts = new EqlItemLootSourceCounts( 1 ); $counts->item( 'Shared Relic', $item() );
+    $counts->sets( [ 'Synthetic Gear' => [ 'items' => [ 'Shared Relic', 'Set-only Relic', 'Third Relic' ], 'complete' => true ] ] );
+    $counts->npc( 'Guardian One', '{{Namedmobpage|known_loot={{:Synthetic Gear}}}}' );
+    $boundedSet = $counts->catalog( $resolve )['Shared Relic'];
+    checkLootCount( $boundedSet['lootSourceCount'] === 1 && !$boundedSet['lootSourceCountComplete'], 'A bounded set expansion retains proved lower bounds and cannot prove a small total' );
+
     // Execute the actual producer's public revision/redirect adapter against
     // service doubles, rather than testing only a permissive resolver callback.
     $source = file_get_contents( __DIR__ . '/../maintenance/BuildEyeOfZommPack.php' );
