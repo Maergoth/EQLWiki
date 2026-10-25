@@ -33,7 +33,7 @@ For primary-capable melee weapons without an explicit <code>DMG Bonus:</code>, <
 
 The hand modifier is 0.8 for one-handed weapons (including Piercing and Hand to Hand) and 1.1 for two-handed weapons. The weapon must list PRIMARY, a supported melee skill, positive standalone DMG/DAMAGE, and positive Atk Delay. Ranged-only weapons, ammo, and secondary-only weapons receive no generated field.
 
-The generated value is a primary-hand estimate using the working [[Skill Dual Wield#Working Legends Damage Bonus Model|Dual Wield calculator model]], including its provisional floor rounding. Existing values, including zero, remain unchanged. This default is calculated when the shared template renders; it is never saved into the item article. Like the Backstab default, it uses listed base damage and does not follow item-rank slider changes.
+The generated value is a primary-hand estimate using the working [[Skill Dual Wield#Working Legends Damage Bonus Model|Dual Wield calculator model]], including its provisional floor rounding. Existing values, including zero, remain unchanged. This default is calculated when the shared template renders; it is never saved into the item article. It uses listed base damage and does not follow item-rank slider changes. The client-side ItemLevelSlider separately scales the rendered Backstab value and adds weapon rank Accuracy inside the item frame; those calculations do not change this template's base values.
 
 [[Category:Templates]]
 </noinclude>
