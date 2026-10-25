@@ -4,10 +4,15 @@ The EQLWiki API is available at '''https://eqlwiki.com/api.php'''. Tools may rea
 '''Page writes and observation uploads are separate.''' The standard <code>action=edit</code> creates or edits wiki pages with contributor attribution. <code>action=eozobservations</code> stores private attributed gameplay observations; it does not create pages, change drop lists or publish probabilities.
 
 == Discover the current API ==
-* [https://eqlwiki.com/api.php?action=help API help] and [https://eqlwiki.com/api.php?action=paraminfo&modules=edit%7Cupload%7Clogin%7Cclientlogin%7Ceqlmetadata%7Ceozobservations&format=json module parameters]. An unavailable optional module returns an API error; do not assume source deployment activated its storage.
+* [https://eqlwiki.com/api.php?action=help API help] and [https://eqlwiki.com/api.php?action=paraminfo&modules=edit%7Cupload%7Clogin%7Cclientlogin%7Ceqlmetadata%7Ceqlitemscaling%7Ceozobservations&format=json module parameters]. An unavailable optional module returns an API error; do not assume source deployment activated its storage.
 * Read <code>action=query&amp;meta=siteinfo&amp;siprop=general|extensions</code> for the actual installed version/modules.
 * All examples use <code>format=json&amp;formatversion=2</code>. Check JSON <code>error</code>/<code>errors</code> even when HTTP status is 200.
 * Follow [[Help:Contents]] and its '''current''' item, monster, zone and spell blueprints. Fetch revisions rather than embedding a stale blueprint forever. Resolve potential matches/redirects before creating another spelling. Monster spawn locations use the wiki/log order Y, X, Z; do not copy internal viewer world X,Y,Z values into that field.
+
+== Shared item scaling rules ==
+[https://eqlwiki.com/api.php?action=eqlitemscaling&format=json&formatversion=2 GET action=eqlitemscaling] returns <code>{eqlitemscaling:{schemaVersion:1,engineVersion:1,revision,rules}}</code>. This public read-only endpoint requires no login or token and writes no pages or observations. It is provided by ItemLevelSlider independently of the optional observations module.
+
+The wiki slider and Eye of Zomm share the portable engine and coefficient document tracked under <code>extensions/ItemLevelSlider/</code>. Offline clients bundle the engine and initial rules, then may refresh the complete JSON from this endpoint. Validate all fields, compatible schema/engine versions and nondecreasing revision before replacing last-known-good rules. Keep the last valid rules when offline or on errors. Never download/evaluate executable formula code. Hold one immutable rules revision throughout a reverse calculation or contribution review. Formula models remain subject to game verification; a shared implementation ensures parity, not independent proof of mechanics.
 
 == Authentication ==
 Interactive tools should use a dedicated cookie session and the normal [[Special:UserLogin|login page]]. Credentials, cookies and CSRF tokens belong in the client’s private account/session store. Keep account, wiki origin and reviewed operation bound together. Log out/clear pending account authorization when the account changes.

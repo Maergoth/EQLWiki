@@ -34,15 +34,21 @@ $wgExtensionCredits['other'][] = array(
 	'name'        => 'ItemLevelSlider',
 	'author'      => 'EQLegends',
 	'description' => 'Adds a fractional item level slider to item pages, scaling stats with spreadsheet-derived formulas.',
-	'version'     => '2.4',
+	'version'     => '3.0',
 );
+
+// One versioned rules document feeds both ResourceLoader and API consumers.
+$wgAutoloadClasses['ItemLevelScalingRules'] = __DIR__ . '/ItemLevelScalingRules.php';
+$wgAutoloadClasses['ApiEQLItemScaling'] = __DIR__ . '/ApiEQLItemScaling.php';
+$wgAPIModules['eqlitemscaling'] = 'ApiEQLItemScaling';
+$wgMessagesDirs['ItemLevelSlider'] = __DIR__ . '/i18n';
 
 if ( $wgItemLevelSliderEnabled ) {
 	$wgHooks['BeforePageDisplay'][] = 'ItemLevelSliderHooks::onBeforePageDisplay';
 }
 
 $wgResourceModules['ext.itemLevelSlider'] = array(
-	'scripts'       => array( 'itemlevelslider.js' ),
+	'scripts'       => array( 'item-scaling-core.js', 'itemlevelslider.js' ),
 	'styles'        => array( 'itemlevelslider.css' ),
 	'localBasePath' => __DIR__,
 	'remoteExtPath' => 'ItemLevelSlider',
@@ -56,6 +62,7 @@ class ItemLevelSliderHooks {
 
 		$out->addJsConfigVars( 'wgItemLevelDefault', (int)$wgItemLevelDefault );
 		$out->addJsConfigVars( 'wgItemLevelDefaultFraction', (int)$wgItemLevelDefaultFraction );
+		$out->addJsConfigVars( 'wgEQLItemScalingRules', ItemLevelScalingRules::read() );
 
 		$out->addModules( 'ext.itemLevelSlider' );
 

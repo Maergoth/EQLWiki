@@ -13,6 +13,20 @@ documentation URL without removing existing fields. `action=eozobservations`
 is a distinct, authenticated data-only POST. It does not edit wiki pages, infer
 drop rates or supply an encounter denominator.
 
+## Shared item scaling rules
+
+The separately registered ItemLevelSlider extension exposes public, read-only
+`GET action=eqlitemscaling&format=json&formatversion=2`, returning
+`{eqlitemscaling:{schemaVersion:1,engineVersion:1,revision,rules}}`. It reads the
+tracked JSON coefficient document used by the wiki slider, with no account,
+token, database migration or EQLClientData observation dependency. See the
+[portable engine contract](../extensions/ItemLevelSlider/README.md) for source
+ownership, strict validation, offline fallback and compatible-version rules.
+Clients refresh data only, never execute downloaded formula code, and retain a
+single rules revision throughout any contribution review/reverse calculation.
+The tracked public API_Documentation source also describes this endpoint;
+publishing that database page remains a separate guarded operation.
+
 ## Source and authentication
 
 The active extension is `extensions/EQLClientData/`, registered by the actual
