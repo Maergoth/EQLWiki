@@ -38,6 +38,14 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- [`HomepageCache.php`](../skins/EQLImmersive/includes/HomepageCache.php) bounds
+  Main Page and main-namespace `News` parser output, conditional browser validation
+  and CDN expiry to shared five-minute UTC windows, preserving private responses.
+  Saving News immediately purges Main Page through native MediaWiki cache handling;
+  no revisions, cron job or client polling. Existing announcement collapse/read
+  markers remain local and independent. See the
+  [skin guide](../skins/EQLImmersive/README.md#main-page-and-news-freshness).
+
 - `resources/copy-waypoints.js/css` (`skins.EQLImmersive.waypoints`) enhances
   rendered article coordinate pairs/triples with accessible inline copy buttons.
   Signed/decimal coordinates retain their displayed order and copy with `/way`.

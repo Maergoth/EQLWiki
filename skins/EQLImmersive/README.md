@@ -12,6 +12,7 @@ Vector services/modules; keep Vector loaded. See the root [README](../../README.
 | --- | --- |
 | [skin.json](skin.json) | Skin registration, SearchMappings, ResourceLoader scripts/styles and their ordering |
 | [includes/DeploymentAssets.php](includes/DeploymentAssets.php) | Registration callback and HTML cache validation for release-specific local asset URLs; [deployment contract](../../docs/DEPLOYMENT_ASSETS.md) |
+| [includes/HomepageCache.php](includes/HomepageCache.php) | Shared five-minute Main Page/News freshness and immediate Main Page invalidation after News edits |
 | [includes/SkinEQLImmersive.php](includes/SkinEQLImmersive.php) | SkinVector22 subclass; finalizes source-first navigation after extension hooks |
 | [includes/Hooks.php](includes/Hooks.php) | Sidebar/navigation hooks and conditional module loading |
 | [includes/templates/skin.mustache](includes/templates/skin.mustache) | Active outer layout, native search, menus, article/sticky-header slots and footer |
@@ -187,6 +188,27 @@ for revision IDs/timestamps and read permission, not comment text or authors.
 For the upstream API contracts see [Revisions](https://www.mediawiki.org/wiki/API:Revisions)
 and [Info](https://www.mediawiki.org/wiki/API:Info). Deploying these skin resources
 needs no database-page sync or private host/settings change.
+
+## Main Page and News freshness
+
+`HomepageCache` limits rendered Main Page and main-namespace `News` content to
+shared five-minute UTC windows. Parser entries expire at the next window boundary;
+pre-deployment or older-window entries are rejected only for those two pages.
+Their Last-Modified validation uses the same window, so a browser cannot keep an
+older document through repeated conditional 304 responses. The CDN lifetime is
+only lowered to the remaining window; existing private/no-store policies and
+shorter limits stay in force. Ordinary articles keep their normal cache behavior.
+
+Saving `News` immediately invokes MediaWiki's native Main Page purge, refreshing
+the home page's transcluded announcements without waiting for link-update jobs.
+This does not create a revision or a Recent Changes entry. Announcements' local
+collapse/read markers remain separate and do not store page HTML. Refresh happens
+on navigation/reload; there is no per-visitor polling or forced page reload.
+No private settings, cron job or database-script installation is required.
+
+Run `php ops/test-homepage-cache.php` for focused boundary, cache-cap, conditional
+request and News-save purge fixtures. Use the normal staged deployment and verify
+actual Main Page/News parser expiry comments plus an ordinary reload afterward.
 
 ## Copyable waypoints
 
