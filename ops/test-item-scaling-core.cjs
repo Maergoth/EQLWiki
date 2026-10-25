@@ -11,7 +11,7 @@ const engine = core.createEngine( rules );
 const clone = value => JSON.parse( JSON.stringify( value ) );
 
 assert.equal( core.validateRules( rules ), true );
-assert.equal( engine.revision, 1 );
+assert.equal( engine.revision, 2 );
 assert.equal( engine.statFamily( 'Backstab DMG' ), 'backstab' );
 assert.equal( engine.statFamily( 'Mana' ), 'primary' );
 assert.equal( engine.statFamily( 'Endurance Regen' ), 'flat' );
@@ -24,8 +24,12 @@ assert.deepEqual( engine.normalizeRank( '4.9', '8.9' ), { full: 4, fraction: 8, 
 
 // Expected values are screenshot/model boundaries, not calls back into the engine.
 const cases = [
-	[ 'STR', 0, 5, 0, 0 ], [ 'STR', 10, 5, 16, 15 ], [ 'HP', 11, 5, 0, 17 ],
+	[ 'STR', 0, 5, 0, 0 ], [ 'STR', 10, 5, 16, 15 ], [ 'HP', 11, 5, 0, 16 ],
+	// Independent screenshot observations, using the current wiki stats as bases.
+	[ 'HP', 50, 5, 4, 75 ], [ 'AC', 14, 6, 5, 22 ], [ 'HP', 50, 4, 4, 71 ],
 	[ 'HP', 100, 4, 8, 145 ], [ 'STR', -4, 3, 0, -1 ], [ 'STR', -4, 5, 0, 0 ],
+	// No screenshot establishes negative rounding; retain its existing behavior.
+	[ 'HP', -50, 5, 4, -24 ],
 	[ 'HP', -30, 5, 0, -15 ], [ 'HP', -11, 9, 511, 0 ], [ 'HP', 100, 10, 900, 200 ],
 	[ 'DMG', 20, 4, 8, 29 ], [ 'DMG', -4, 5, 0, -4 ], [ 'DMG', 0, 5, 0, 0 ],
 	[ 'BACKSTAB_DMG', 12, 5, 0, 15 ], [ 'BACKSTAB', 9, 4, 8, 11 ],
@@ -70,7 +74,7 @@ for ( const mutate of [ value => { value.schemaVersion = 2; }, value => { value.
 	assert.equal( core.validateRules( invalid ), false );
 	assert.throws( () => core.createEngine( invalid ), /Unsupported/ );
 }
-const changed = clone( rules ); changed.revision = 2; changed.range.perTier = 20;
+const changed = clone( rules ); changed.revision = 3; changed.range.perTier = 20;
 const changedEngine = core.createEngine( changed ); changed.range.perTier = 99;
 assert.equal( changedEngine.scaleStat( 'RANGE', 100, 2 ), 140, 'validated rules own an immutable copy' );
 assert.equal( engine.scaleStat( 'RANGE', 100, 2 ), 120, 'existing engine remains stable during review' );

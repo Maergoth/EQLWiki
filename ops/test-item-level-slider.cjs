@@ -126,6 +126,26 @@ async function main() {
 		assert.equal( item.innerHTML, instrumentedHtml, `${test.title}: rank zero restoration` );
 	}
 
+	// Independent screenshot regressions reach the DOM through the shared engine.
+	for ( const test of [
+		{ title: 'Fractional HP truncation', key: 'HP', base: 50, full: 5, fraction: 4, expected: 75 },
+		{ title: 'Fractional armor truncation', key: 'AC', base: 14, full: 6, fraction: 5, expected: 22 },
+		{ title: 'Fractional HP progress', key: 'HP', base: 50, full: 4, fraction: 4, expected: 71 }
+	] ) {
+		window.localStorage.setItem( 'ils-default-level-v2', JSON.stringify( { full: test.full, fraction: test.fraction } ) );
+		window.document.body.innerHTML = card( test.title, `${test.key}: ${test.base}` );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const wrapper = window.document.querySelector( '.ils-item-wrapper' );
+		const stat = wrapper.querySelector( `[data-ils-stat="${test.key}"]` );
+		assert.equal( stat.textContent, String( test.expected ), `${test.title}: observed integer value` );
+		assert.equal( wrapper.querySelector( '.ils-level-display' ).textContent,
+			`${test.full} + ${test.fraction}/${2 ** test.full}`, `${test.title}: exact progress retained` );
+		window.eqlItemLevelSliderRefresh( wrapper );
+		assert.equal( stat.textContent, String( test.expected ), `${test.title}: refresh cannot scale twice` );
+		input( window, wrapper.querySelector( '.ils-slider' ), 0 );
+		assert.equal( stat.textContent, String( test.base ), `${test.title}: base restoration` );
+	}
+
 	// Primary/weight and contextual Void also flow through the injected engine.
 	window.localStorage.clear();
 	window.document.body.innerHTML = card( 'Shared numeric boundaries',
