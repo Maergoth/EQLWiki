@@ -298,6 +298,7 @@ class BuildEyeOfZommPack extends Maintenance {
         $text = $content->getText();
         $allRecords = [];
         $lootTemplates = [];
+        $categoryZones = $this->detectZonesFromCategories( $categories );
         foreach ( $this->instanceSections( $text, true ) as $section ) {
             $text = $section['text'];
 
@@ -373,6 +374,12 @@ class BuildEyeOfZommPack extends Maintenance {
                 ];
                 if ( $variousZones ) {
                     $record['zoneScope'] = 'various';
+                }
+                if ( $categoryZones ) {
+                    // DynamicZoneList reads category intersections, independent
+                    // of the spawn field. Preserve this presence proof without
+                    // replacing explicit map/stat zone identity.
+                    $record['categoryZones'] = $categoryZones;
                 }
                 if ( $section['explicit'] ) {
                     $record['instanceSources'] = [ [ 'wikiTitle' => $title->getText(),

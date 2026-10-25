@@ -101,6 +101,7 @@ eval( 'class EozExporterFixture {
         return $this->lootSets;
     }
     public function location( string $text ): ?array { return $this->parseLocation( $text ); }
+    public function catalog(): array { $this->loadZoneCatalog(); return $this->zoneCatalog; }
     public function zone( string $alias ): array {
         $this->loadZoneCatalog();
         return [
@@ -110,6 +111,7 @@ eval( 'class EozExporterFixture {
         ];
     }
     public function zoneField( string $text ): array { return $this->detectZonesFromField( $text ); }
+    public function zoneCategories( array $values ): array { return $this->detectZonesFromCategories( $values ); }
     public function lootSources(): array { return $this->npcLootSources; }
     public function npc( string $title, ?string $zoneField, array $categories, string $templateName ): array {
         $this->loadZoneCatalog();
@@ -149,6 +151,13 @@ $expect = static function ( $actual, $expected, string $name ) use ( &$checks ):
     }
 };
 $fixture = new EozExporterFixture();
+$viewerIds = [];
+foreach ( $fixture->catalog() as $zone ) {
+    if ( !isset( $zone['viewerId'] ) ) { continue; }
+    $expect( in_array( $zone['viewerId'], $zone['aliases'], true ), true, 'Explicit viewer ID is a supported exact zone alias' );
+    $viewerIds[$zone['name']] = $zone['viewerId'];
+}
+$expect( $viewerIds, [ 'Plane of Sky' => 'airplane', 'North Ro' => 'nro', 'West Karana' => 'qey2hh1', 'South Ro' => 'sro' ], 'Catalog load preserves the four reviewed archive preferences' );
 $legacyCard = '<onlyinclude><includeonly><div class="hbdiv">[[Synthetic Set Sleeve]]<span class="hb">{{Itembox|itemname=Synthetic Set Sleeve|statsblock=AC: 3}}</span></div></includeonly></onlyinclude>{{Itempage|itemname=Synthetic Set Sleeve|dropsfrom=* [[Synthetic Keeper]]}}';
 $expect( $fixture->templateTarget( $legacyCard ), 'Synthetic Set Sleeve', 'Legacy template needs matching unconditional item hover' );
 $expect( $fixture->templateTarget( str_replace( '[[Synthetic Set Sleeve]]', '[[Different Sleeve]]', $legacyCard ) ), null, 'Legacy item template with mismatched leading link is not verified' );
@@ -233,6 +242,8 @@ foreach ( [
     foreach ( $records as $record ) {
         $expect( $record['zoneScope'] ?? null, $zoneField === 'Various' ? 'various' : null,
             "Only literal Various establishes unrestricted scope {$title}" );
+        $expect( $record['categoryZones'] ?? [], $fixture->zoneCategories( $categories ),
+            "Category-backed dynamic presence remains separate from explicit zones {$title}" );
         $expect( [
             $record['name'], $record['wikiTitle'], $record['revisionId'],
             $record['levelMin'], $record['levelMax'], $record['avgLevel'],
