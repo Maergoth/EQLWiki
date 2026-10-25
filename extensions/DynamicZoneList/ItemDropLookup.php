@@ -3,14 +3,17 @@
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Title\Title;
+require_once __DIR__ . '/PublicLootCollections.php';
 
 class EqlItemDropLookup {
+	use EqlPublicLootCollections;
 
-	private const VERSION = 1;
+	private const VERSION = 3;
 	private const CANDIDATE_TTL = 60;
 	private const MAX_ALIASES = 20;
 	private const MAX_ZONES = 8;
 	private const MAX_CANDIDATES = 160;
+	private const MAX_COLLECTIONS = 20;
 	private const MAX_SOURCES = 50;
 	private const MAX_EXISTING = 100;
 	private const MAX_PUBLIC_READS = 320;
@@ -22,6 +25,7 @@ class EqlItemDropLookup {
 	private bool $complete = true;
 	private array $warnings = [];
 	private int $bytesRead = 0;
+	private array $zoneAliases = [];
 
 	public function __construct( ?MediaWikiServices $services = null ) {
 		$this->services = $services ?? MediaWikiServices::getInstance();
@@ -37,7 +41,7 @@ class EqlItemDropLookup {
 	 * @return array{sources:array,complete:bool,warnings:array}
 	 */
 	public function find( Title $itemTitle, array $analysis ): array {
-		$this->publicMemo = $this->resolveMemo = [];
+		$this->publicMemo = $this->resolveMemo = $this->zoneAliases = $this->collectionMemo = [];
 		$this->complete = true;
 		$this->warnings = [];
 		$this->bytesRead = 0;
@@ -84,11 +88,18 @@ class EqlItemDropLookup {
 				$canonical = $title ? $this->canonical( $title ) : null;
 				$record = $canonical ? $this->publicText( $canonical ) : null;
 				if ( !$record ) { continue; }
-				foreach ( EqlNpcLootWikitext::npcLootSources( $record['text'] ) as $source ) {
-					if ( !$this->matchesItem( $source['item'], $itemTitle, $allowed ) ||
+				foreach ( EqlNpcLootWikitext::npcLootSources( $record['text'], $sourceComplete, true ) as $source ) {
+					$matches = $this->matchesItem( $source['item'], $itemTitle, $allowed );
+					if ( !$matches ) {
+						$reference = $this->title( $source['item'] );
+						$collection = $reference ? $this->collectionMembers( $reference ) : [ 'items' => [], 'complete' => false ];
+						$matches = $collection['complete'] && in_array( $itemTitle->getDBkey(), array_map( static fn ( $title ) => $title->getDBkey(), $collection['items'] ), true );
+					}
+					if ( !$matches ||
 						$this->alreadyDeclared( $canonical, $source, $existing ) ) { continue; }
+					$source['zone'] = $this->zoneName( $source['zone'] );
 					$instance = ( $source['instance'] ?? 'normal' ) === 'raid' ? 'raid' : 'normal';
-					$key = $canonical->getDBkey() . '|' . EqlNpcLootWikitext::identity( $source['zone'] ) . '|' . $instance;
+					$key = $canonical->getDBkey() . '|' . $source['zone'] . '|' . $instance;
 					if ( !isset( $sources[$key] ) && count( $sources ) >= self::MAX_SOURCES ) {
 						$this->incomplete( 'Recorded-source lookup reached its result limit; additional sources may exist.' );
 						break 2;
@@ -97,6 +108,8 @@ class EqlItemDropLookup {
 						'instance' => $instance, 'lootKind' => ( $source['lootKind'] ?? '' ) === 'common' ? 'common' : 'known' ];
 				}
 			}
+			// Supply only bounded, current public redirect proofs for layout matching.
+			foreach ( $existing as $row ) { if ( is_array( $row ) && is_string( $row['zone'] ?? null ) ) { $this->zoneName( $row['zone'] ); } }
 			ksort( $sources, SORT_NATURAL | SORT_FLAG_CASE );
 			return $this->result( array_values( $sources ) );
 		} catch ( Throwable $error ) {
@@ -140,8 +153,50 @@ class EqlItemDropLookup {
 				$pending[] = $title;
 			}
 		}
+		$npcTargets = $targets;
+		// A finite collection is another authored route to this item. Candidate
+		// discovery stays bounded; current public membership is rechecked in find().
+		$collectionCandidates = [];
+		$pendingCollections = array_map( static fn ( $title ) => [ $title, 0 ], array_values( $targets ) );
+		$checkedCollections = [];
+		$acceptedCollections = 0;
+		while ( $pendingCollections ) {
+			[ $target, $depth ] = array_shift( $pendingCollections );
+			if ( $depth >= 8 ) { $complete = false; continue; }
+			foreach ( [ 'pagelinks' => 'pl', 'templatelinks' => 'tl' ] as $table => $prefix ) {
+				$rows = $db->newSelectQueryBuilder()->select( [ 'page_title' ] )->distinct()
+					->from( $table )->join( 'page', null, "page_id = {$table}.{$prefix}_from" )
+					->where( array_merge( [ 'page_namespace' => NS_MAIN, 'page_is_redirect' => 0 ], $migration->getLinksConditions( $table, $target ) ) )
+					->orderBy( 'page_id', 'DESC' )->limit( self::MAX_CANDIDATES + 1 )->caller( __METHOD__ )->fetchResultSet();
+				$this->collect( $rows, $collectionCandidates, $complete );
+			}
+			foreach ( $collectionCandidates as $key => $name ) {
+				if ( isset( $checkedCollections[$key] ) ) { continue; }
+				$checkedCollections[$key] = true;
+				$title = $this->title( $name );
+				$record = $title ? $this->publicText( $title ) : null;
+				if ( !$record || EqlNpcLootWikitext::authoredPageKind( $record['text'] ) !== 'other' ) { continue; }
+				EqlNpcLootWikitext::finiteCollectionItems( $record['text'], $finite );
+				if ( !$finite ) { continue; }
+				$members = $this->collectionMembers( $title );
+				if ( $members['complete'] && array_intersect( array_keys( $targets ), array_map( static fn ( $member ) => $member->getDBkey(), $members['items'] ) ) ) {
+					if ( ++$acceptedCollections > self::MAX_COLLECTIONS ) { $complete = false; continue; }
+					$npcTargets[$title->getDBkey()] = $title;
+					$pendingCollections[] = [ $title, $depth + 1 ];
+					$aliases = $db->newSelectQueryBuilder()->select( [ 'page_title' ] )->from( 'redirect' )->join( 'page', null, 'page_id = rd_from' )
+						->where( [ 'page_namespace' => NS_MAIN, 'rd_namespace' => NS_MAIN, 'rd_title' => $title->getDBkey(), 'rd_interwiki' => [ '', null ] ] )
+						->orderBy( 'page_id', 'DESC' )->limit( self::MAX_ALIASES + 1 )->caller( __METHOD__ )->fetchResultSet();
+					foreach ( $aliases as $alias ) {
+						if ( count( $npcTargets ) >= count( $targets ) + self::MAX_COLLECTIONS + self::MAX_ALIASES ) { $complete = false; break; }
+						$aliasTitle = $this->title( $alias->page_title );
+						if ( $aliasTitle ) { $npcTargets[$aliasTitle->getDBkey()] = $aliasTitle; }
+					}
+				}
+			}
+		}
+
 		foreach ( [ 'pagelinks' => 'pl', 'templatelinks' => 'tl' ] as $table => $prefix ) {
-			foreach ( $targets as $target ) {
+			foreach ( $npcTargets as $target ) {
 				$rows = $db->newSelectQueryBuilder()->select( [ 'page_title' ] )->distinct()
 					->from( $table )->join( 'page', null, "page_id = {$table}.{$prefix}_from" )
 					->join( 'categorylinks', 'npc_category', 'npc_category.cl_from = page_id' )
@@ -237,7 +292,9 @@ class EqlItemDropLookup {
 	private function alreadyDeclared( Title $npcTitle, array $source, array $existing ): bool {
 		foreach ( $existing as $declared ) {
 			if ( !is_array( $declared ) || !is_string( $declared['npc'] ?? null ) ||
-				EqlNpcLootWikitext::identity( $declared['zone'] ?? '' ) !== EqlNpcLootWikitext::identity( $source['zone'] ) ||
+				!is_string( $declared['zone'] ?? '' ) ||
+				( ( $declared['zone'] ?? '' ) !== '' && $source['zone'] !== '' &&
+					$this->zoneName( $declared['zone'] ) !== $this->zoneName( $source['zone'] ) ) ||
 				( ( $declared['instance'] ?? 'normal' ) === 'raid' ) !== ( ( $source['instance'] ?? 'normal' ) === 'raid' ) ) { continue; }
 			$title = $this->title( $declared['npc'] );
 			if ( !$title ) { continue; }
@@ -249,6 +306,17 @@ class EqlItemDropLookup {
 			if ( $canonical && $canonical->getDBkey() === $npcTitle->getDBkey() ) { return true; }
 		}
 		return false;
+	}
+
+	/** Existing public redirect chains prove zone equivalence; missing names stay literal. */
+	private function zoneName( string $name ): string {
+		if ( $name === '' ) { return ''; }
+		if ( isset( $this->zoneAliases[$name] ) ) { return $this->zoneAliases[$name]; }
+		$title = $this->title( $name );
+		$canonical = $title && $title->exists() ? $this->canonical( $title ) : null;
+		$resolved = $canonical ? $canonical->getPrefixedText() : ( $title ? $title->getPrefixedText() : $name );
+		if ( count( $this->zoneAliases ) < 200 ) { $this->zoneAliases[$name] = $resolved; }
+		return $resolved;
 	}
 
 	private function canonical( Title $title ): ?Title {
@@ -323,6 +391,6 @@ class EqlItemDropLookup {
 	}
 
 	private function result( array $sources = [] ): array {
-		return [ 'sources' => $sources, 'complete' => $this->complete, 'warnings' => array_values( $this->warnings ) ];
+		return [ 'sources' => $sources, 'zoneAliases' => $this->zoneAliases, 'complete' => $this->complete, 'warnings' => array_values( $this->warnings ) ];
 	}
 }

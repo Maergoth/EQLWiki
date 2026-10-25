@@ -31,6 +31,11 @@ class BuildEyeOfZommPack extends Maintenance {
     private array $lootTitleMemo = [];
     private array $lootItemTemplateMemo = [];
     private array $lootSets = [];
+    private array $wikiRelationshipCoverage = [];
+    private array $lootSourceKinds = [];
+    private array $lootCollectionMemo = [];
+    private array $wikiItemCandidates = [];
+    private array $wikiNonItemCandidates = [];
     private array $wikiEntityNames = [ 'npcs' => [], 'items' => [], 'titles' => [] ];
     private int $pauseUs = 20000;
 
@@ -80,6 +85,10 @@ class BuildEyeOfZommPack extends Maintenance {
         $services = MediaWikiServices::getInstance();
         $dbr = $services->getDBLoadBalancer()->getConnection( DB_REPLICA );
         $wikiPageFactory = $services->getWikiPageFactory();
+        $npcRows = $this->listPagesInCategory( $dbr, 'NPCs', $limit );
+        $itemRows = $this->listPagesInCategory( $dbr, 'Items', $limit );
+        foreach ( $itemRows as $row ) { $this->wikiItemCandidates[str_replace( '_', ' ', $row->page_title )] = true; }
+        $this->loadLootSourceCategoryKinds( $dbr );
         $this->loadLootSets( $dbr, $wikiPageFactory );
         $this->lootCounts->sets( $this->lootSets );
         $this->loadRaidInstanceIndex( $wikiPageFactory, $this->listPagesInCategory( $dbr, 'Zones', 0 ) );
@@ -89,8 +98,6 @@ class BuildEyeOfZommPack extends Maintenance {
         $this->output( "Per-page pause: {$pauseMs} ms\n" );
         $this->output( "Current era: {$currentEra}\n\n" );
 
-        $npcRows = $this->listPagesInCategory( $dbr, 'NPCs', $limit );
-        $itemRows = $this->listPagesInCategory( $dbr, 'Items', $limit );
         // Public namespace titles (including redirect aliases) are a fallback
         // for pages without entity templates/categories. No revision, user,
         // account or private namespace data enters this presence-only index.
@@ -155,9 +162,11 @@ class BuildEyeOfZommPack extends Maintenance {
         // NPC known_loot and item dropsfrom are independently maintained on
         // the wiki. Preserve either documented direction instead of requiring
         // editors to duplicate every source on both articles.
+        $this->mergeRelationshipLootSources();
+        $this->lootCounts->sets( $this->lootSets );
         $items = $this->mergeNpcLootSources( $items, $wikiPageFactory );
         $npcs = $this->enrichNpcRedirectAliases( $npcs, $dbr, $wikiPageFactory );
-        $lootSourceCounts = $this->lootCounts->catalog( fn ( string $name ) => $this->resolveLootTitle( $name, $wikiPageFactory ) );
+        $lootSourceCounts = $this->lootCounts->catalog( fn ( string $name ) => $this->resolveLootCountTitle( $name, $wikiPageFactory ) );
         foreach ( $items as &$item ) { $item = array_replace( $item, $lootSourceCounts[$item['wikiTitle']] ?? [ 'lootSourceCount' => 0, 'lootSourceCountComplete' => false, 'lootSourceNpcs' => [] ] ); }
         unset( $item );
         $npcs = $this->sortNpcRecords( $npcs );
@@ -177,8 +186,9 @@ class BuildEyeOfZommPack extends Maintenance {
                 'distribution' => 'GitHub dataset branch',
                 'wikiEntitiesComplete' => $limit === 0,
                 'npcLootSourcesIncluded' => true,
-                'lootSourceCountsVersion' => 1,
+                'lootSourceCountsVersion' => 2,
                 'lootSetsVersion' => 1,
+                'wikiRelationshipCoverageVersion' => 1,
                 'npcLootSourceCounts' => $this->npcLootSourceCounts,
                 'counts' => [
                     'zones' => count( $this->zoneCatalog ),
@@ -192,6 +202,7 @@ class BuildEyeOfZommPack extends Maintenance {
             'items' => $items,
             'lootSourceCounts' => (object)$lootSourceCounts,
             'lootSets' => (object)$this->lootSets,
+            'wikiRelationshipCoverage' => (object)$this->wikiRelationshipCoverage,
             'icons' => (object)$icons,
             'wikiEntities' => $this->wikiEntityIndex(),
         ];
@@ -395,8 +406,10 @@ class BuildEyeOfZommPack extends Maintenance {
                 if ( $description !== '' ) {
                     $record['description'] = $description;
                 }
-                $lootTemplates[] = [ 'text' => $this->extractParamByLine( $body, [ 'known_loot', 'knownloot' ] ),
-                    'npc' => $record, 'explicit' => $section['explicit'] ];
+                foreach ( [ 'known_loot' => 'knownloot', 'common_loot' => 'commonloot' ] as $field => $legacy ) {
+                    $lootTemplates[] = [ 'text' => $this->extractParamByLine( $body, [ $field, $legacy ] ),
+                        'field' => $field, 'npc' => $record, 'explicit' => $section['explicit'] ];
+                }
                 $records[] = $record;
             }
             $allRecords = array_merge( $allRecords, $records );
@@ -414,7 +427,7 @@ class BuildEyeOfZommPack extends Maintenance {
             // must not be cloned across variants. A single shared template
             // still follows the normal/raid zone membership index.
             $oppositeTemplate = isset( $separateTemplateVariants[$this->instanceKey( $npc['zone'], $npc['name'] )][(int)!$npc['raidInstance']] );
-            $this->rememberNpcLootSources( $entry['text'], $npc, $entry['explicit'], $oppositeTemplate );
+            $this->rememberNpcLootSources( $entry['text'], $npc, $entry['explicit'], $oppositeTemplate, $entry['field'] );
         }
         return $allRecords;
     }
@@ -469,6 +482,11 @@ class BuildEyeOfZommPack extends Maintenance {
                 $section['raidInstance'], $section['explicit']
             );
             foreach ( $sources as $source ) {
+                if ( isset( $this->wikiRelationshipCoverage[$title->getText()] ) ) {
+                    $source['lootSources'] = [ [ 'wikiTitle' => $title->getText(), 'revisionId' => $revisionId,
+                        'field' => 'dropsfrom', 'section' => $section['heading'] ?? '',
+                        'instance' => $source['raidInstance'] ? 'raid' : 'normal' ] ];
+                }
                 if ( $source['_instanceExplicit'] ?? false ) {
                     $source['instanceSources'] = [ [ 'wikiTitle' => $title->getText(),
                         'revisionId' => $revisionId, 'section' => $source['raidInstance'] ? 'Raid Instance' : 'Normal Instance' ] ];
@@ -477,6 +495,7 @@ class BuildEyeOfZommPack extends Maintenance {
             }
         }
         $dropSources = $this->expandDropSourceVariants( $dropSources );
+        if ( ( $this->wikiRelationshipCoverage[$title->getText()]['state'] ?? '' ) === 'variant' ) { $dropSources = []; }
 
         $record = [
             'name' => $this->cleanWikiText( $itemName ),
@@ -498,7 +517,7 @@ class BuildEyeOfZommPack extends Maintenance {
         return $record;
     }
 
-    private function rememberNpcLootSources( string $knownLoot, array $npc, bool $explicit, bool $templateScoped = false ): void {
+    private function rememberNpcLootSources( string $knownLoot, array $npc, bool $explicit, bool $templateScoped = false, string $field = 'known_loot' ): void {
         $sections = $this->instanceSections( $knownLoot, false, $npc['raidInstance'], $explicit );
         $hasLootSections = (bool)array_filter( $sections, static fn ( $section ) => $section['explicit'] );
         foreach ( $sections as $section ) {
@@ -525,7 +544,9 @@ class BuildEyeOfZommPack extends Maintenance {
                 }
                 // Exclude namespaces/interwiki targets; an exact exported
                 // Itempage record must still resolve before any source joins.
-                if ( $target === '' || strpos( $target, ':' ) !== false || $npc['zone'] === '' ) {
+                $targetTitle = $target !== '' ? Title::newFromText( $target, NS_MAIN ) : null;
+                if ( !$targetTitle || $targetTitle->getNamespace() !== NS_MAIN ||
+                    $targetTitle->isExternal() || $targetTitle->getFragment() || $npc['zone'] === '' ) {
                     continue;
                 }
                 $source = [ 'zone' => $npc['zone'], 'name' => $npc['name'],
@@ -533,7 +554,7 @@ class BuildEyeOfZommPack extends Maintenance {
                     'instanceType' => $section['raidInstance'] ? 'raid' : 'normal',
                     '_instanceExplicit' => $section['explicit'] || $templateScoped || $hasLootSections,
                     'lootSources' => [ [ 'wikiTitle' => $npc['wikiTitle'], 'revisionId' => $npc['revisionId'],
-                        'field' => 'known_loot', 'section' => $section['explicit'] ? $section['heading'] : '' ] ] ];
+                        'field' => $field, 'section' => $section['explicit'] ? $section['heading'] : '' ] ] ];
                 if ( $npc['instanceSources'] ?? [] ) {
                     $source['instanceSources'] = $npc['instanceSources'];
                 }
@@ -580,7 +601,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 $page = $wikiPageFactory->newFromTitle( $title );
                 $redirect = method_exists( $page, 'getRedirectTarget' ) ? $page->getRedirectTarget() : null;
                 if ( !$redirect || ( method_exists( $redirect, 'getNamespace' ) && $redirect->getNamespace() !== NS_MAIN ) ||
-                    ( method_exists( $redirect, 'isExternal' ) && $redirect->isExternal() ) || strpos( $redirect->getText(), ':' ) !== false ) {
+                    ( method_exists( $redirect, 'isExternal' ) && $redirect->isExternal() ) ) {
                     break;
                 }
                 $target = $redirect->getText();
@@ -597,7 +618,14 @@ class BuildEyeOfZommPack extends Maintenance {
                 $identity = $this->instanceKey( $source['zone'], $source['name'] ) . '|' . (int)$source['raidInstance'];
                 $sources[$identity] = $source;
             }
-            foreach ( $this->expandDropSourceVariants( $reference['sources'] ) as $source ) {
+            $unambiguous = array_values( array_filter( $reference['sources'], function ( $source ) {
+                foreach ( $source['lootSources'] ?? [] as $proof ) {
+                    if ( ( $this->wikiRelationshipCoverage[$proof['wikiTitle']]['kind'] ?? '' ) === 'npc' &&
+                        ( $this->wikiRelationshipCoverage[$proof['wikiTitle']]['state'] ?? '' ) === 'variant' ) { return false; }
+                }
+                return true;
+            } ) );
+            foreach ( $this->expandDropSourceVariants( $unambiguous ) as $source ) {
                 $identity = $this->instanceKey( $source['zone'], $source['name'] ) . '|' . (int)$source['raidInstance'];
                 if ( isset( $sources[$identity] ) ) {
                     foreach ( [ 'instanceSources', 'lootSources' ] as $field ) {
@@ -640,6 +668,7 @@ class BuildEyeOfZommPack extends Maintenance {
             // Manually categorized redirects are candidates too. Resolve their
             // targets later; their own page IDs never identify another mob.
             if ( MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) { return; }
+            $this->lootSourceKinds[$title->getText()] = $this->publicLootSourceKind( $text, $title->getText() );
             $this->lootTitleMemo[$title->getText()] = [ 'title' => $title->getText(),
                 'pageId' => (int)$title->getArticleID() ?: null, 'public' => true, 'complete' => true ];
             if ( $kind === 'npc' ) {
@@ -652,10 +681,188 @@ class BuildEyeOfZommPack extends Maintenance {
                     $target = $this->resolveLootItemTemplate( $name, MediaWikiServices::getInstance()->getWikiPageFactory() );
                     if ( $target !== null ) { $verified[EqlNpcLootWikitext::templateInvocationKey( $name )] = $target; }
                 }
+                foreach ( EqlNpcLootWikitext::possibleNpcLootItems( $text, $boundedPossible ) as $name ) {
+                    $target = $this->resolveLootCountTitle( $name, MediaWikiServices::getInstance()->getWikiPageFactory() );
+                    if ( $target['public'] && $target['complete'] && in_array( $target['kind'], [ 'other', 'unknown', 'collection' ], true ) ) {
+                        $this->resolveLootCollection( $target['title'], MediaWikiServices::getInstance()->getWikiPageFactory() );
+                    }
+                }
                 $this->lootCounts->npc( $title->getText(), $text, $verified );
+                $this->rememberRelationshipCoverage( $kind, $title, $page, $text, $verified );
             }
-            else { $this->lootCounts->item( $title->getText(), $text ); }
+            else {
+                $this->lootCounts->item( $title->getText(), $text );
+                $this->rememberRelationshipCoverage( $kind, $title, $page, $text );
+            }
         } catch ( \Throwable $error ) { $this->lootCounts->incomplete(); }
+    }
+
+    /** A page ID alone does not identify an actual monster or item. */
+    private function publicLootSourceKind( string $text, string $title = '' ): string {
+        if ( method_exists( EqlNpcLootWikitext::class, 'authoredPageKind' ) ) {
+            $kind = EqlNpcLootWikitext::authoredPageKind( $text );
+            // A public categorized item with malformed acquisition markup is
+            // still an item identity, never an unknown collection to expand.
+            if ( in_array( $kind, [ 'unknown', 'other' ], true ) && isset( $this->wikiItemCandidates[$title] ) ) { return 'item'; }
+            if ( in_array( $kind, [ 'unknown', 'other' ], true ) && isset( $this->wikiNonItemCandidates[$title] ) ) { return $this->wikiNonItemCandidates[$title]; }
+            return $kind === 'merchant' ? 'npc' : $kind;
+        }
+        $npc = preg_replace( '/\{\{\s*(?:NPCpage|MerchantPage)\b/i', '{{Namedmobpage', $text );
+        if ( EqlNpcLootWikitext::analyseNpcPage( $npc, true ) !== null ) { return 'npc'; }
+        $parsed = true;
+        if ( EqlNpcLootWikitext::analyseItemPage( $text, $parsed, true ) !== null ) { return 'item'; }
+        if ( EqlNpcLootWikitext::globalGearSetItems( $text, $parsed ) !== null ) { return 'collection'; }
+        return 'other';
+    }
+
+    /** Positive public category type separates non-item pages from loot collections. */
+    private function loadLootSourceCategoryKinds( $dbr ): void {
+        $types = [ 'Spells' => 'spell', 'Zones' => 'zone' ];
+        $rows = $dbr->select( [ 'page', 'cl' => 'categorylinks', 'lt' => 'linktarget' ],
+            [ 'page_title', 'lt_title' ], [ 'page_namespace' => NS_MAIN, 'lt_namespace' => NS_CATEGORY, 'lt_title' => array_keys( $types ) ],
+            __METHOD__, [ 'DISTINCT', 'LIMIT' => 20000 ],
+            [ 'cl' => [ 'INNER JOIN', 'page_id = cl_from' ], 'lt' => [ 'INNER JOIN', 'cl_target_id = lt_id' ] ] );
+        foreach ( $rows as $row ) { $this->wikiNonItemCandidates[str_replace( '_', ' ', $row->page_title )] = $types[$row->lt_title]; }
+    }
+
+    private function resolveLootCountTitle( string $name, $wikiPageFactory ): array {
+        $target = $this->resolveLootTitle( $name, $wikiPageFactory );
+        return $target + [ 'kind' => $target['pageId'] ? ( $this->lootSourceKinds[$target['title']] ?? 'other' ) : 'missing' ];
+    }
+
+    /** Versioned facts and affected-field capabilities, recorded before stat filtering. */
+    private function rememberRelationshipCoverage( string $kind, Title $title, $page, string $text, array $verified = [] ): void {
+        $revision = $page && method_exists( $page, 'getRevisionRecord' ) ? $page->getRevisionRecord() : null;
+        $revisionId = $revision && method_exists( $revision, 'getId' ) ? (int)$revision->getId() : 0;
+        if ( $revisionId <= 0 ) { return; }
+        $coverage = EqlNpcLootWikitext::contributionCoverage( $text, $kind, $verified );
+        $coverage['wikiTitle'] = $title->getText();
+        $coverage['revisionId'] = $revisionId;
+        $factory = MediaWikiServices::getInstance()->getWikiPageFactory();
+        $edges = [];
+        $references = [];
+        foreach ( $coverage['edges'] as $edge ) {
+            if ( count( $edges ) >= 2000 ) { $this->coverageUnresolvedField( $coverage, $edge, 'relationship-limit' ); break; }
+            $edge['section'] = mb_substr( (string)( $edge['section'] ?? '' ), 0, 160 );
+            $field = $edge['field'] ?? ( $kind === 'item' ? 'dropsfrom' : 'known_loot' );
+            $edge['source'] = [ 'wikiTitle' => $title->getText(), 'revisionId' => $revisionId,
+                'field' => $field, 'section' => $edge['section'] ?? '', 'instance' => $edge['instance'] ];
+            if ( $kind === 'npc' && isset( $edge['item'] ) ) {
+                $target = $this->resolveLootCountTitle( $edge['item'], $factory );
+                if ( !$target['public'] || !$target['complete'] ) { $this->coverageUnresolvedField( $coverage, $edge, 'unresolved-public-target' ); continue; }
+                $edge['item'] = $target['title'];
+                if ( in_array( $target['kind'], [ 'npc', 'spell', 'zone', 'quest', 'skill' ], true ) ) { continue; }
+                if ( !in_array( $target['kind'], [ 'item', 'missing' ], true ) ) {
+                    $set = $this->resolveLootCollection( $target['title'], $factory );
+                    $reference = [ 'title' => $target['title'], 'field' => $field, 'zone' => $edge['zone'],
+                        'instance' => $edge['instance'], 'section' => $edge['section'] ?? '',
+                        'complete' => $set['complete'] ?? false, 'source' => $edge['source'] ];
+                    if ( $set !== null ) {
+                        $reference['items'] = $set['items'];
+                        $reference['collectionSource'] = $set['source'];
+                    }
+                    $references[] = $reference;
+                    if ( !( $set['complete'] ?? false ) ) { $this->coverageUnresolvedField( $coverage, $edge, 'unresolved-collection' ); }
+                    if ( $set === null ) { continue; }
+                    foreach ( $set['items'] as $member ) {
+                        if ( count( $edges ) >= 2000 ) { $this->coverageUnresolvedField( $coverage, $edge, 'relationship-limit' ); break; }
+                        $edges[] = array_replace( $edge, [ 'item' => $member, 'collection' => $target['title'], 'collectionSource' => $set['source'] ] );
+                    }
+                    continue;
+                }
+            } elseif ( $kind === 'item' && isset( $edge['npc'] ) ) {
+                $target = $this->resolveLootCountTitle( $edge['npc'], $factory );
+                if ( !$target['public'] || !$target['complete'] || !in_array( $target['kind'], [ 'npc', 'missing' ], true ) ) {
+                    $this->coverageUnresolvedField( $coverage, $edge, 'unverified-monster-target' ); continue;
+                }
+                $edge['npc'] = $target['title'];
+                $edge['verifiedNpc'] = $target['kind'] === 'npc';
+            }
+            $edges[] = $edge;
+        }
+        $coverage['edges'] = array_values( array_unique( $edges, SORT_REGULAR ) );
+        $coverage['collectionRefs'] = array_values( array_unique( $references, SORT_REGULAR ) );
+        foreach ( $coverage['scopes'] as &$scope ) {
+            if ( isset( $scope['section'] ) ) { $scope['section'] = mb_substr( (string)$scope['section'], 0, 160 ); }
+        } unset( $scope );
+        if ( count( $coverage['scopes'] ) > 2000 ) { $coverage['scopes'] = array_slice( $coverage['scopes'], 0, 2000 ); $coverage['complete'] = false; $coverage['state'] = 'unsupported'; }
+        $this->wikiRelationshipCoverage[$title->getText()] = $coverage;
+    }
+
+    private function coverageUnresolvedField( array &$coverage, array $edge, string $reason ): void {
+        $coverage['complete'] = false;
+        $coverage['state'] = 'unsupported';
+        $coverage['scopes'][] = [ 'field' => $edge['field'], 'zone' => $edge['zone'], 'instance' => $edge['instance'],
+            'state' => 'unsupported', 'reason' => $reason ];
+    }
+
+    /** Only explicit finite collections can supply member facts. Unknown tables stay unknown. */
+    private function resolveLootCollection( string $name, $factory, array $visited = [] ): ?array {
+        if ( isset( $this->lootSets[$name] ) && isset( $this->lootSets[$name]['source'] ) ) { return $this->lootSets[$name]; }
+        if ( array_key_exists( $name, $this->lootCollectionMemo ) ) { return $this->lootCollectionMemo[$name]; }
+        if ( isset( $visited[$name] ) || count( $visited ) >= 8 || count( $this->lootCollectionMemo ) >= 5000 ) { return null; }
+        $this->lootCollectionMemo[$name] = null;
+        $visited[$name] = true;
+        $title = Title::newFromText( $name, NS_MAIN );
+        if ( !$title || $title->getNamespace() !== NS_MAIN || !$title->exists() ) { return null; }
+        $page = $factory->newFromTitle( $title );
+        $text = $this->publicLootText( $title, $page );
+        if ( $text === null ) { return null; }
+        $complete = false;
+        $members = EqlNpcLootWikitext::finiteCollectionItems( $text, $complete );
+        $bounded = $complete;
+        $possible = $complete ? $members : EqlNpcLootWikitext::possibleCollectionItems( $text, $bounded );
+        $revision = $page->getRevisionRecord();
+        $revisionId = $revision && method_exists( $revision, 'getId' ) ? (int)$revision->getId() : 0;
+        if ( $revisionId <= 0 ) { return null; }
+        $result = [ 'items' => [], 'complete' => $complete, 'possibleItems' => [], 'possibleItemsComplete' => $bounded,
+            'source' => [ 'wikiTitle' => $name, 'revisionId' => $revisionId ] ];
+        foreach ( array_unique( array_merge( $members, $possible ) ) as $member ) {
+            $target = $this->resolveLootCountTitle( $member, $factory );
+            if ( !$target['public'] || !$target['complete'] ) { $result['complete'] = false; $result['possibleItemsComplete'] = false; continue; }
+            if ( in_array( $target['kind'], [ 'item', 'missing' ], true ) ) {
+                $result['possibleItems'][$target['title']] = $target['title'];
+                if ( $complete && $target['kind'] === 'item' && in_array( $member, $members, true ) ) { $result['items'][$target['title']] = $target['title']; }
+                elseif ( $complete ) { $result['complete'] = false; }
+            }
+            elseif ( in_array( $target['kind'], [ 'npc', 'spell', 'zone', 'quest', 'skill' ], true ) ) { continue; }
+            else {
+                $nested = $this->resolveLootCollection( $target['title'], $factory, $visited );
+                if ( !( $nested['complete'] ?? false ) ) { $result['complete'] = false; }
+                if ( !( $nested['complete'] ?? false ) && !( $nested['possibleItemsComplete'] ?? false ) ) { $result['possibleItemsComplete'] = false; }
+                foreach ( array_unique( array_merge( $nested['items'] ?? [], $nested['possibleItems'] ?? [] ) ) as $item ) { $result['possibleItems'][$item] = $item; }
+                if ( $complete && in_array( $member, $members, true ) ) { foreach ( $nested['items'] ?? [] as $item ) { $result['items'][$item] = $item; } }
+            }
+            if ( count( $result['possibleItems'] ) > 1000 ) {
+                $result['items'] = array_slice( $result['items'], 0, 1000, true );
+                $result['possibleItems'] = array_slice( $result['possibleItems'], 0, 1000, true );
+                $result['complete'] = false; $result['possibleItemsComplete'] = false; break;
+            }
+        }
+        $result['items'] = array_values( $result['items'] );
+        sort( $result['items'], SORT_STRING );
+        $result['possibleItems'] = array_values( $result['possibleItems'] );
+        sort( $result['possibleItems'], SORT_STRING );
+        $this->lootSourceKinds[$name] = 'collection';
+        $this->lootSets[$name] = $result;
+        return $this->lootCollectionMemo[$name] = $result;
+    }
+
+    private function mergeRelationshipLootSources(): void {
+        foreach ( $this->wikiRelationshipCoverage as $coverage ) {
+            if ( $coverage['kind'] !== 'npc' ) { continue; }
+            foreach ( $coverage['edges'] as $edge ) {
+                if ( !isset( $edge['item'] ) || $edge['zone'] === '' || ( $edge['ambiguous'] ?? false ) ) { continue; }
+                $key = $this->itemTitleKey( $edge['item'] );
+                $this->npcLootSources[$key]['title'] = $edge['item'];
+                $source = [ 'zone' => $edge['zone'], 'name' => $coverage['wikiTitle'],
+                    'raidInstance' => $edge['instance'] === 'raid', 'instanceType' => $edge['instance'],
+                    '_instanceExplicit' => ( $edge['section'] ?? '' ) !== '' || ( $edge['explicit'] ?? false ),
+                    'lootSources' => [ $edge['source'] ] ];
+                if ( $edge['collectionSource'] ?? null ) { $source['lootSources'][] = $edge['collectionSource'] + [ 'field' => 'members', 'section' => '' ]; }
+                $this->npcLootSources[$key]['sources'][] = $source;
+            }
+        }
     }
 
     /** Recognize only the public, unconditional item-hover template pattern. */
@@ -678,7 +885,8 @@ class BuildEyeOfZommPack extends Maintenance {
             if ( isset( $visited[$pageKey] ) || !in_array( $title->getNamespace(), [ NS_MAIN, NS_TEMPLATE ], true ) || $title->isExternal() || $title->getFragment() ) { return null; }
             $visited[$pageKey] = true;
             $this->maybePause();
-            $text = $this->publicLootText( $title, $wikiPageFactory->newFromTitle( $title ) );
+            $page = $wikiPageFactory->newFromTitle( $title );
+            $text = $this->publicLootText( $title, $page );
             if ( $text === null ) { return null; }
             $redirect = $services->getRedirectLookup()->getRedirectTarget( $title );
             if ( $redirect ) {
@@ -707,13 +915,19 @@ class BuildEyeOfZommPack extends Maintenance {
             if ( count( $raw ) >= 5000 ) { $this->lootCounts->incomplete(); break; }
             $title = Title::makeTitle( NS_MAIN, $row->page_title );
             $this->maybePause();
-            $text = $this->publicLootText( $title, $wikiPageFactory->newFromTitle( $title ) );
+            $page = $wikiPageFactory->newFromTitle( $title );
+            $text = $this->publicLootText( $title, $page );
             if ( $text === null ) { $this->lootCounts->incomplete(); continue; }
             $complete = true;
             $members = EqlNpcLootWikitext::globalGearSetItems( $text, $complete );
             if ( $members === null && $complete ) { continue; }
             if ( $members === null ) { $complete = false; $members = []; }
             $raw[$title->getText()] = [ 'items' => $members, 'complete' => $complete ];
+            $revision = method_exists( $page, 'getRevisionRecord' ) ? $page->getRevisionRecord() : null;
+            if ( $revision && method_exists( $revision, 'getId' ) && (int)$revision->getId() > 0 ) {
+                $raw[$title->getText()]['source'] = [ 'wikiTitle' => $title->getText(), 'revisionId' => (int)$revision->getId() ];
+            }
+            $this->lootSourceKinds[$title->getText()] = 'collection';
         }
         $expanded = [];
         $visits = 0;
@@ -722,6 +936,7 @@ class BuildEyeOfZommPack extends Maintenance {
             if ( isset( $expanded[$name] ) ) { return $expanded[$name]; }
             $visited[$name] = true;
             $result = [ 'items' => [], 'complete' => $raw[$name]['complete'] ];
+            if ( isset( $raw[$name]['source'] ) ) { $result['source'] = $raw[$name]['source']; }
             foreach ( $raw[$name]['items'] as $member ) {
                 $target = $this->resolveLootTitle( $member, $wikiPageFactory );
                 if ( !$target['public'] || !$target['complete'] ) { $result['complete'] = false; continue; }
@@ -729,7 +944,10 @@ class BuildEyeOfZommPack extends Maintenance {
                     $nested = $expand( $target['title'], $visited );
                     $result['complete'] = $result['complete'] && $nested['complete'];
                     $names = $nested['items'];
-                } else { $names = [ $target['title'] ]; }
+                } else {
+                    if ( isset( $this->lootSourceKinds[$target['title']] ) && $this->lootSourceKinds[$target['title']] !== 'item' ) { $result['complete'] = false; continue; }
+                    $names = [ $target['title'] ];
+                }
                 foreach ( $names as $item ) {
                     if ( count( $result['items'] ) >= 1000 && !isset( $result['items'][$item] ) ) { $result['complete'] = false; break 2; }
                     $result['items'][$item] = $item;
@@ -763,9 +981,11 @@ class BuildEyeOfZommPack extends Maintenance {
                 }
                 $page = $wikiPageFactory->newFromTitle( $title );
                 $this->maybePause();
-                if ( $this->publicLootText( $title, $page ) === null ) { break; }
+                $publicText = $this->publicLootText( $title, $page );
+                if ( $publicText === null ) { break; }
                 $target = $services->getRedirectLookup()->getRedirectTarget( $title );
                 if ( !$target ) {
+                    $this->lootSourceKinds[$title->getText()] = $this->publicLootSourceKind( $publicText, $title->getText() );
                     return $this->lootTitleMemo[$key] = [ 'title' => $title->getText(),
                         'pageId' => (int)$title->getArticleID() ?: null, 'public' => true, 'complete' => true ];
                 }
@@ -1514,6 +1734,13 @@ class BuildEyeOfZommPack extends Maintenance {
                 continue;
             }
             $page = $wikiPageFactory->newFromTitle( $title );
+            if ( isset( $this->lootCounts ) ) {
+                $publicText = $this->publicLootText( $title, $page );
+                if ( $publicText === null ) { continue; }
+                if ( !MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) {
+                    $this->rememberRelationshipCoverage( 'zone', $title, $page, $publicText );
+                }
+            }
             $content = $page->getContent();
             if ( !$content || !method_exists( $content, 'getText' ) ) {
                 continue;

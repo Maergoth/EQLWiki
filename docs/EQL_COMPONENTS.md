@@ -205,7 +205,7 @@ content; historical template fields and rendered structures are contracts.
 | --- | --- | --- |
 | [`ClassSlotEquip`](../extensions/ClassSlotEquip/) | `Special:ClassSlotEquip/Class/Slot`; builder on `Equipment By Class`; AJAX `eqlBuilder=1` or legacy `eqlTrio=1` with class/slot/stat/weapon parameters | Category intersections and Itempage fields supply stats, sources, and effects. Selected classes/virtual weapon slots form unions. Current category joins use `cl_target_id`/`linktarget`, not obsolete `cl_to`. `classslotequip-builder.js` reuses ItemLevelSlider output instead of implementing independent formulas. Browser state: `eql-equipment-builder-v2`. |
 | [`AjaxHoverHelper`](../extensions/AjaxHoverHelper/) | `Special:AjaxHoverHelper/Page?type=item\|spell\|mob` returns bare tooltip HTML | Extracts balanced Itembox/Itempage, Spellpagesmart/Spellpage, or Namedmobpage/mobStatsBox output. The skin's item hover module consumes it; effect/merchant hovers use Action API parsing of SpellHoverLink/Module:SpellHover instead. Its bundled `eqlwiki.js` is not registered by the extension; avoid duplicate binding/container code. |
-| [`DynamicZoneList`](../extensions/DynamicZoneList/) | `{{Special:DynamicZoneList/Zone Name}}` creates zone tables; native NPC loot and item Drops From sections also resolve reciprocal sources | The special-page allowlist is unchanged. Independent public lookups verify actual `Itempage.dropsfrom` and `Namedmobpage.known_loot/common_loot` fields, preserve native layout and instance scopes, exclude duplicates and purge affected caches after saves/link updates/moves/deletes. Generated NPC rows show item names only; items with more than five distinct authored monster sources default to Common Loot unless manually classified on the NPC. See [reciprocal drop links](NPC_RECORDED_LOOT.md) for bounds and parser limits. |
+| [`DynamicZoneList`](../extensions/DynamicZoneList/) | `{{Special:DynamicZoneList/Zone Name}}` creates zone tables; native NPC loot and item Drops From sections also resolve reciprocal sources | The special-page allowlist is unchanged. Independent public lookups verify actual `Itempage.dropsfrom` and `Namedmobpage.known_loot/common_loot` fields, preserve native zone lists and instance scopes, analyze affected-field exact/broad/unsupported coverage, resolve finite public collections and canonical zone/NPC duplicates and purge affected caches after saves/link updates/moves/deletes. Generated NPC rows show item names only; items with more than five distinct authored monster sources default to Common Loot unless manually classified on the NPC. See [reciprocal drop links](NPC_RECORDED_LOOT.md) for bounds and parser limits. |
 | [`DynamicQuestItemList`](../extensions/DynamicQuestItemList/) | `{{Special:DynamicQuestItemList}}`, optional category subpage; `dqil_action=chunk` API-like endpoint | Renders a filter/table shell then sequentially fetches 500 rows per chunk. Completed HTML caches 12 hours in localStorage (sessionStorage fallback). `dqil:v8` key includes category/count/limit, **not item revisions**: unchanged membership can leave edited rows stale. Emits `wikipage.content`; preserves Notes/Lore without adding unwanted categories to the listing page. |
 
 The hover stack uses `span.ih a`, a shared `#itemHoverContainer`, `itemeff`,
@@ -489,7 +489,7 @@ scope. Unknown/multiple zone fields remain unresolved rather than guessed.
 Explicit normal/raid zone anchors on a row take precedence over its section.
 See [`ops/test-eoz-raid-exporter.php`](../ops/test-eoz-raid-exporter.php).
 
-The exporter reconciles NPC-template `known_loot` with item `dropsfrom`, because
+The exporter reconciles NPC-template `known_loot` and `common_loot` with item `dropsfrom`, because
 editors maintain these lists independently. Leading item transclusions or direct
 item links join exact exported item page titles (preserving internal case after
 MediaWiki first-letter/space normalization), with bounded local redirect
@@ -509,14 +509,17 @@ This is a filtered dataset change requiring a rebuild/publication after source
 deployment, without article edits or a database migration.
 
 `maintenance/ItemLootSourceCounts.php` independently exports global loot
-classification metadata. `meta.lootSourceCountsVersion = 1` identifies the
+classification metadata. `meta.lootSourceCountsVersion = 2` identifies the
 additive `lootSourceCounts` catalog, keyed by canonical item title, including
 statless categorized items and NPC-authored links to missing item pages. Every
 entry has `lootSourceCount`, `lootSourceCountComplete`, and `lootSourceNpcs`;
 rich `items` records mirror these fields. The count unions direct Itempage
 sources with all public NPC Common/Unique fields across zones and instances.
-Canonical page IDs deduplicate redirects; public redlink NPCs retain normalized
-title identity. Rich NPC records also expose public redirect `aliases` for
+Canonical page IDs deduplicate redirects. Count names require an actual current
+public NPC/Merchant card; NPC redlinks and unrelated existing pages cannot
+inflate the verified monster lower bound. An authored redlink remains positive
+relationship evidence and makes its affected item count incomplete. Rich NPC
+records also expose public redirect `aliases` for
 offline pending-source deduplication. Explicit pet labels are excluded.
 Counts use anonymous read permission and current `FOR_PUBLIC` main-slot content,
 independently of the builder account. Partial builds, unreadable/suppressed
@@ -531,12 +534,31 @@ zero-argument legacy item templates require a separately verified public current
 revision containing a literal unconditional item hover. Template proof keys
 preserve case after the first letter.
 `meta.lootSetsVersion = 1` identifies an additive `lootSets` map from canonical
-set title to `{items, complete}`. Literal positional members of public top-level
-`Gear Set` cards establish membership. The collector expands NPC set references
+set title to `{items, complete, source}`. Literal positional members of public top-level
+`Gear Set` cards and approved unconditional list pools establish membership.
+The public source page/revision records membership provenance. The collector expands NPC set references
 to member items, deduplicating direct and nested paths by canonical mob identity;
 set titles are omitted from item counts. Unknown members, cycles and bounded
 expansion leave lower bounds incomplete. Membership never comes from name guesses
-or arbitrary template expansion.
+or arbitrary template expansion. Conditional tables remain incomplete and never
+create a positive member cross-product. Bounded possible members use separate
+`possibleItems`/`possibleItemsComplete` uncertainty metadata; only those item
+counts become incomplete. Unknown expansion remains conservatively incomplete.
+An unbounded undefined group can make the entire global scan incomplete;
+a fresh dataset does not manufacture complete Unique counts from that gap.
+Safe positive/finite-set coverage and verified six-monster Common lower bounds
+remain usable independently. Unresolved Unique placement requires review.
+
+`meta.wikiRelationshipCoverageVersion = 1` identifies `wikiRelationshipCoverage`,
+keyed by canonical public page title before rich stat filtering. Records retain
+the current public revision, entity kind, exact positive edges, affected field
+and normal/raid scopes, verified collection references, and independent
+`state`/`complete` capabilities. Broad, unsupported and variant capabilities
+apply to the affected field. Unrelated Various prose does not block an entire
+item, NPC or zone. Zone capabilities describe existing nested summary cells and
+exact DynamicZoneList category consumers; missing optional summaries do not
+block independent NPC/item loot facts. See the
+[source research](AUTOMATIC_CONTRIBUTION_COVERAGE_RESEARCH.md).
 This is cached dataset metadata, with no new count API or per-contribution wiki
 queries. Run [`ops/test-eoz-loot-counts.php`](../ops/test-eoz-loot-counts.php),
 deploy the reviewed maintenance/helper sources, then separately rebuild and

@@ -38,7 +38,7 @@ namespace {
 		public function newFromText( $name, $namespace = 0 ) {
 			if ( !is_string( $name ) || $name === '' || preg_match( '/[\[\]{}|#\r\n]/', $name ) ) { return null; }
 			if ( str_starts_with( $name, 'Category:' ) ) { $namespace = 14; $name = substr( $name, 9 ); }
-			elseif ( str_contains( $name, ':' ) ) { return null; }
+			elseif ( preg_match( '/^(?:File|Image|Template|User|Special|MediaWiki|Help|Talk|Category)\s*:/i', $name ) ) { return null; }
 			return new \MediaWiki\Title\Title( $this->fixture, ucfirst( str_replace( ' ', '_', trim( $name ) ) ), $namespace );
 		}
 		public function makeTitleSafe( $namespace, $name ) { return $this->newFromText( $name, $namespace ); }
@@ -107,7 +107,7 @@ namespace {
 			if ( $this->fixture->fail ) { throw new \RuntimeException( 'Synthetic replica failure' ); }
 			$this->fixture->queries[] = [ $this->table, $this->conditions, $this->maximum ];
 			checkItemLookup( $this->maximum > 0 && $this->maximum <= 161 && $this->conditions['page_namespace'] === 0, 'All discovery queries have a namespace and row bound' );
-			if ( $this->table !== 'redirect' ) { checkItemLookup( isset( $this->joins['npc_category'] ) && ( $this->conditions['npc_category.cl_target_id'] ?? null ) === '14:NPCs', 'Only the NPCs category enters backlink and zone candidate limits' ); }
+			if ( $this->table !== 'redirect' && isset( $this->joins['npc_category'] ) ) { checkItemLookup( ( $this->conditions['npc_category.cl_target_id'] ?? null ) === '14:NPCs', 'NPC source discovery remains category constrained' ); } elseif ( $this->table !== 'redirect' ) { checkItemLookup( in_array( $this->table, [ 'pagelinks', 'templatelinks' ], true ) && isset( $this->joins['page'] ), 'Finite collection candidates are bounded direct item backlinks, not a content scan' ); }
 			if ( $this->table === 'categorylinks' ) { checkItemLookup( isset( $this->conditions['categorylinks.cl_target_id'] ) && !isset( $this->conditions['cl_target_id'] ) && str_contains( $this->joins['page'][1], 'categorylinks.cl_from' ), 'Multiple category joins qualify both their conditions and source-column join' ); }
 			$linkTable = $this->table === 'categorylinks' ? ( isset( $this->joins['templatelinks'] ) ? 'templatelinks' : 'pagelinks' ) : $this->table;
 			$linkField = $linkTable === 'templatelinks' ? 'transclusions' : 'links';
@@ -121,7 +121,7 @@ namespace {
 			foreach ( $this->fixture->pages as $name => $page ) {
 				if ( $this->table === 'redirect' ) { $accept = isset( $page['redirect'] ) && str_replace( ' ', '_', $page['redirect'] ) === $this->conditions['rd_title']; }
 				else {
-					$accept = !isset( $page['redirect'] ) && in_array( 'NPCs', $page['categories'], true );
+					$accept = !isset( $page['redirect'] ) && ( !isset( $this->joins['npc_category'] ) || in_array( 'NPCs', $page['categories'], true ) );
 					if ( !$isCase ) { $condition = $this->conditions[$linkTable === 'templatelinks' ? 'tl_target_id' : 'pl_target_id']; $accept = $accept && in_array( substr( $condition, 2 ), array_map( static fn ( $value ) => str_replace( ' ', '_', $value ), $page[$linkField] ), true ); }
 					else { $accept = $accept && ( $this->table !== 'categorylinks' || in_array( str_replace( '_', ' ', substr( $this->conditions['categorylinks.cl_target_id'], 3 ) ), $page['categories'], true ) ) && count( array_intersect( $caseNames, array_map( static fn ( $value ) => strtolower( str_replace( ' ', '_', $value ) ), $page[$linkField] ) ) ) > 0; }
 				}
@@ -153,6 +153,27 @@ namespace {
 	$declared['existingSources'] = [ [ 'npc' => 'Guardian Alias', 'zone' => 'Synthetic Vale', 'instance' => 'normal' ] ];
 	$result = $f->lookup()->find( $f->title( 'Later Relic' ), $declared );
 	checkItemLookup( !in_array( 'Earlier Guardian', array_column( $result['sources'], 'npc' ), true ) && count( $result['sources'] ) === 2, 'An existing item Drops From row excludes the same canonical NPC, zone and instance through a redirect alias' );
+	$f->page( 'Synthetic Vale', 'Public zone.' );
+	$f->page( 'Vale Alias', '#REDIRECT [[Synthetic Vale]]', [ 'redirect' => 'Synthetic Vale' ] );
+	$declared['existingSources'][0]['zone'] = 'Vale Alias';
+	$result = $f->lookup()->find( $f->title( 'Later Relic' ), $declared );
+	checkItemLookup( !in_array( 'Earlier Guardian', array_column( $result['sources'], 'npc' ), true ) && $result['zoneAliases']['Vale Alias'] === 'Synthetic Vale', 'Public canonical zone aliases exclude the same authored NPC and provide bounded layout proof' );
+	$declared['existingSources'][0]['zone'] = '';
+	$result = $f->lookup()->find( $f->title( 'Later Relic' ), $declared );
+	checkItemLookup( !in_array( 'Earlier Guardian', array_column( $result['sources'], 'npc' ), true ), 'An unscoped authored NPC relationship already covers its recovered zone within the same instance' );
+	$declared['existingSources'][0]['instance'] = 'raid';
+	$result = $f->lookup()->find( $f->title( 'Later Relic' ), $declared );
+	checkItemLookup( in_array( 'Earlier Guardian', array_column( $result['sources'], 'npc' ), true ), 'Unscoped authored raid sources do not exclude normal NPC relationships' );
+	$f->page( 'Synthetic vale', 'A real case-distinct public zone.' );
+	$declared['existingSources'][0]['zone'] = 'Synthetic vale';
+	$declared['existingSources'][0]['instance'] = 'normal';
+	$result = $f->lookup()->find( $f->title( 'Later Relic' ), $declared );
+	checkItemLookup( in_array( 'Earlier Guardian', array_column( $result['sources'], 'npc' ), true ), 'Two real case-distinct zone pages are not collapsed by forgiving title normalization' );
+	$f->pages['Vale_Alias']['private'] = true;
+	$declared['existingSources'][0]['zone'] = 'Vale Alias';
+	$result = $f->lookup()->find( $f->title( 'Later Relic' ), $declared );
+	checkItemLookup( in_array( 'Earlier Guardian', array_column( $result['sources'], 'npc' ), true ) && $result['zoneAliases']['Vale Alias'] !== 'Synthetic Vale', 'Unreadable zone redirects cannot provide canonical alias proofs or silently exclude visible sources' );
+
 	$f->pages['Alias_Guardian']['hidden'] = true;
 	$f->pages['Plain_Link_Guardian']['private'] = true;
 	$result = $f->lookup()->find( $f->title( 'Later Relic' ), $analysis );
@@ -212,5 +233,26 @@ namespace {
 	$tooMany = $analysis; $tooMany['existingSources'] = array_fill( 0, 101, [ 'npc' => 'Guardian', 'zone' => '', 'instance' => 'normal' ] );
 	$result = $h->lookup()->find( $h->title( 'Cache Relic' ), $tooMany );
 	checkItemLookup( !$result['complete'] && $result['sources'] === [], 'An incomplete authored exclusion set fails closed to avoid duplicate sources' );
+	$sets = new ItemLookupFixture();
+	$sets->page( 'Set Relic', '{{Itempage|itemname=Set Relic|statsblock=HP: 1|dropsfrom=}}' );
+	$sets->page( 'Other Set Relic', '{{Itempage|itemname=Other Set Relic|statsblock=AC: 1|dropsfrom=}}' );
+	$sets->page( 'Synthetic Armor', '{{Gear Set|Set Relic|Other Set Relic}}', [ 'links' => [ 'Set Relic', 'Other Set Relic' ] ] );
+	$sets->page( 'Armor Alias', '#REDIRECT [[Synthetic Armor]]', [ 'redirect' => 'Synthetic Armor' ] );
+	$sets->page( 'Set Guardian', '{{Namedmobpage|name=Set Guardian|zone=[[Synthetic Vale]]|known_loot=<ul><li>Always drops two pieces of [[Armor Alias]]</li></ul>}}', [ 'categories' => [ 'NPCs' ], 'links' => [ 'Armor Alias' ] ] );
+	$sets->page( 'Synthetic Pool', '<ul><li>{{:Set Relic}}</li><li>[[Other Set Relic]]</li></ul>', [ 'transclusions' => [ 'Set Relic' ], 'links' => [ 'Other Set Relic' ] ] );
+	$sets->npc( 'Pool Guardian', 'Synthetic Pool' );
+	$sets->page( 'Nested Armor', '{{Gear Set|Synthetic Armor}}', [ 'links' => [ 'Synthetic Armor' ] ] );
+	$sets->npc( 'Nested Guardian', 'Nested Armor' );
+	$result = $sets->lookup()->find( $sets->title( 'Set Relic' ), $analysis );
+	checkItemLookup( array_column( $result['sources'], 'npc' ) === [ 'Nested Guardian', 'Pool Guardian', 'Set Guardian' ], 'Current public finite sets, root-only pools, nested membership and set aliases produce reciprocal item views without saved member mirrors' );
+	$sets->pages['Other_Set_Relic']['private'] = true;
+	$result = $sets->lookup()->find( $sets->title( 'Set Relic' ), $analysis );
+	checkItemLookup( $result['sources'] === [] && !$result['complete'] && !str_contains( json_encode( $result['warnings'] ), 'Other Set Relic' ), 'Cached finite collections recheck every current public member and never disclose inaccessible member names' );
+	$colon = new ItemLookupFixture();
+	$colon->page( 'Staff of Mastery: Water', '{{Itempage|itemname=Staff of Mastery: Water|dropsfrom=}}' );
+	$colon->npc( 'Colon Guardian', 'Staff of Mastery: Water' );
+	$result = $colon->lookup()->find( $colon->title( 'Staff of Mastery: Water' ), $analysis );
+	checkItemLookup( array_column( $result['sources'], 'npc' ) === [ 'Colon Guardian' ], 'Namespace-validated main-namespace colon titles are valid reciprocal loot items' );
+
 	echo "Item reverse drop-source lookup: $checks synthetic checks passed (links/transclusions, both creation orders, public visibility, canonical aliases, case collisions, card provenance, existing rows, bounded cache and failures).\n";
 }

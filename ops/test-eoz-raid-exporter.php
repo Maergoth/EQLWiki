@@ -8,6 +8,9 @@ class Title {
     public static function makeTitle( $namespace, string $text ): self { return new self( $text ); }
     public static function newFromText( string $text, $namespace = 0 ): self { return new self( $text ); }
     public function getText(): string { return $this->text; }
+    public function getNamespace(): int { return preg_match( '/^(?:File|Template|User|Talk|Category):/i', $this->text ) ? 1 : 0; }
+    public function isExternal(): bool { return false; }
+    public function getFragment(): string { return ''; }
     public function exists(): bool { return isset( $GLOBALS['fixtures'][$this->text] ); }
 }
 define( 'NS_MAIN', 0 );
