@@ -156,11 +156,23 @@ async function main() {
 	input( window, boundaryWrapper.querySelector( '.ils-slider' ), 10000 );
 	assert.equal( boundaryItem.querySelector( '[data-ils-stat="STR"]' ).textContent, '0' );
 	assert.equal( boundaryItem.querySelector( '[data-ils-stat="HP"]' ).textContent, '200' );
-	assert.equal( boundaryItem.querySelector( '[data-ils-stat="WT"]' ).textContent, '1.1', 'wiki ceiling boundary is preserved' );
+	assert.equal( boundaryItem.querySelector( '[data-ils-stat="WT"]' ).textContent, '1.0', 'exact decimal weight ceiling does not add an extra tenth' );
 	assert.equal( boundaryItem.querySelector( '.ils-void-resist' ).textContent, 'SV VOID: +10' );
 	input( window, boundaryWrapper.querySelector( '.ils-slider' ), 0 );
 	assert.equal( boundaryItem.querySelector( '[data-ils-stat="STR"]' ).textContent, '-4' );
 	assert.equal( boundaryItem.querySelector( '.ils-void-resist' ).textContent, '' );
+	for ( const test of [
+		{ base: '2.5', full: 8, expected: '0.7' }, { base: '2.5', full: 10, expected: '0.3' },
+		{ base: '1.0', full: 10, expected: '0.1' }, { base: '5.0', full: 2, expected: '4.1' }
+	] ) {
+		window.localStorage.setItem( 'ils-default-level-v2', JSON.stringify( { full: test.full, fraction: 0 } ) );
+		window.document.body.innerHTML = card( 'Decimal weight boundary', `WT: ${test.base}` );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const wrapper = window.document.querySelector( '.ils-item-wrapper' ), stat = wrapper.querySelector( '[data-ils-stat="WT"]' );
+		assert.equal( stat.textContent, test.expected, `weight ${test.base} at rank ${test.full}` );
+		input( window, wrapper.querySelector( '.ils-slider' ), 0 );
+		assert.equal( stat.textContent, test.base, 'rank zero restores the authored weight text' );
+	}
 	for ( const test of [
 		{ title: 'Diamondine primary fields', stats: 'AC: 2<br>HP: 12<br>STR: 3', full: 5, expected: 'SV VOID: +5' },
 		{ title: 'Talisman regen fields', stats: 'HP Regen: 2<br>Mana Regen: 2<br>End Regen: 2', full: 5, expected: 'SV VOID: +5' },

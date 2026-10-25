@@ -44,6 +44,7 @@ $methods = [
     $method( 'detectZonesFromTitle', 'detectEra' ),
     $method( 'detectEra', 'parseClasses' ),
     $method( 'parseClasses', 'parseSlots' ),
+    $method( 'parseItemStats', 'parseDropSources' ),
     $method( 'parseLevelRange', 'parseLocation' ),
     $method( 'parseLocation', 'extractBalancedTemplate' ),
     $method( 'extractBalancedTemplate', 'stripTemplateWrapper' ),
@@ -82,6 +83,7 @@ eval( 'class EozExporterFixture {
     ' . $classCodes[0] . implode( "\n", $methods ) . '
     public function fatalError( string $message ) { throw new RuntimeException( $message ); }
     public function classes( string $stats ): array { return $this->parseClasses( $stats ); }
+    public function stats( string $stats ): array { return $this->parseItemStats( $stats ); }
     public function templateTarget( string $source ): ?string { return $this->lootItemTemplateTarget( $source ); }
     private function maybePause(): void {}
     private function publicLootText( $title, $page ): ?string { return $page->text; }
@@ -155,6 +157,30 @@ $expect = static function ( $actual, $expected, string $name ) use ( &$checks ):
     }
 };
 $fixture = new EozExporterFixture();
+// Literal weapon values must survive as independent base fields. The old
+// exporter kept these lines for display while silently dropping their numbers.
+$weapon = $fixture->stats( 'Slot: PRIMARY SECONDARY<br>Skill: Piercing Atk Delay: 22<br>DMG: 10 BACKSTAB: 15<br>DMG Bonus: 10<br>STR: +10 STA: +5 DEX: +10<br>SV FIRE: +5 SV COLD: +5<br>WT: 2.5 Size: SMALL<br>Class: ROG' );
+foreach ( [ 'DMG'=>10, 'BACKSTAB_DMG'=>15, 'DELAY'=>22, 'DMG_BONUS'=>10,
+    'STR'=>10, 'STA'=>5, 'DEX'=>10, 'SV_FIRE'=>5, 'SV_COLD'=>5, 'WT'=>2.5 ] as $key => $value ) {
+    $expect( $weapon[$key] ?? null, $value, "Authored weapon base {$key}" );
+}
+foreach ( [ 'BACKSTAB', 'Backstab DMG', 'Backstab Damage' ] as $label ) {
+    $expect( $fixture->stats( $label . " \t: 15" )['BACKSTAB_DMG'] ?? null, 15, "Backstab alias {$label} with colon whitespace" );
+}
+foreach ( [ 'Delay', 'Atk Delay', 'Attack Delay' ] as $label ) {
+    $expect( $fixture->stats( $label . ' : 22' )['DELAY'] ?? null, 22, "Literal delay alias {$label}" );
+}
+foreach ( [ 'DMG Bonus', 'Damage Bonus', 'Dmg Bon', 'Damage Bon' ] as $label ) {
+    $expect( $fixture->stats( $label . ' : 10' )['DMG_BONUS'] ?? null, 10, "Literal damage-bonus alias {$label}" );
+}
+$zeros = $fixture->stats( 'DMG: 10 BACKSTAB: 0<br>Atk Delay: 0<br>DMG Bonus: 0' );
+foreach ( [ 'BACKSTAB_DMG', 'DELAY', 'DMG_BONUS' ] as $key ) {
+    $expect( $zeros[$key] ?? null, 0, "Explicit zero {$key} remains authoritative" );
+}
+$expect( $fixture->stats( 'DMG: 10' ), [ 'DMG'=>10 ], 'Missing weapon fields are never guessed from damage' );
+$expect( $fixture->stats( 'Cold DMG: 4<br>Backstab DMG: 15' ), [ 'COLD_DMG'=>4, 'BACKSTAB_DMG'=>15 ], 'Elemental and Backstab labels never become ordinary damage' );
+$expect( $fixture->stats( "backstab\t damage : 15<br>attack\t delay : 22<br>dmg\t bonus : 10<br>DMG : 10" ),
+    [ 'DELAY'=>22, 'DMG_BONUS'=>10, 'BACKSTAB_DMG'=>15, 'DMG'=>10 ], 'Multiword labels retain literal whitespace and case compatibility' );
 $viewerIds = [];
 foreach ( $fixture->catalog() as $zone ) {
     if ( !isset( $zone['viewerId'] ) ) { continue; }
