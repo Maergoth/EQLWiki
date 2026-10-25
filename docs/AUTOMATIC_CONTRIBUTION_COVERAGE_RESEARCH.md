@@ -209,4 +209,3 @@ uncertainty can be bounded to their explicit structural candidates without
 claiming an unconditional member cross-product. A fresh sync alone cannot
 repair a missing group definition. Existing positive coverage and verified
 Common lower bounds remain independently usable.
-
