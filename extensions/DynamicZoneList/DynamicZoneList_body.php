@@ -532,6 +532,40 @@ function parseItemPage($templateText,$zoneName)
 }
 
 
+/** Legacy zones remain supported; new zones need their own public authored identity. */
+public static function resolveZoneName( $requested, array $legacyZones, $services, $db ): ?string {
+  if ( !is_string( $requested ) || strlen( $requested ) > 255 ) { return null; }
+  $name = trim( str_replace( '_', ' ', $requested ) );
+  if ( $name === '' || strlen( $name ) > 255 || preg_match( '/[\x00-\x1f\x7f\[\]{}|#]/', $name ) || preg_match( '//u', $name ) !== 1 ) { return null; }
+  try {
+    $title = Title::newFromText( $name, NS_MAIN );
+    if ( !$title || $title->getNamespace() !== NS_MAIN || $title->isExternal() || $title->getFragment() !== '' ) { return null; }
+    $canonical = $title->getText();
+    if ( in_array( $canonical, $legacyZones, true ) ) { return $canonical; }
+    if ( !$services->getPermissionManager()->userCan( 'read', $services->getUserFactory()->newAnonymous(), $title ) ) { return null; }
+    $row = $db->selectRow( [ 'page', 'zone_cl' => 'categorylinks', 'zone_lt' => 'linktarget' ], [ 'page_id' ], [
+      'page_namespace' => NS_MAIN, 'page_title' => $title->getDBkey(), 'page_is_redirect' => 0,
+      'zone_lt.lt_namespace' => NS_CATEGORY, 'zone_lt.lt_title' => 'Zones'
+    ], __METHOD__, [], [
+      'zone_cl' => [ 'INNER JOIN', 'page_id = zone_cl.cl_from' ],
+      'zone_lt' => [ 'INNER JOIN', 'zone_cl.cl_target_id = zone_lt.lt_id' ]
+    ] );
+    if ( !$row || (int)$row->page_id <= 0 ) { return null; }
+    $page = $services->getWikiPageFactory()->newFromTitle( $title );
+    $revision = $page->getRevisionRecord();
+    $content = $revision ? $revision->getContent( 'main', \MediaWiki\Revision\RevisionRecord::FOR_PUBLIC ) : null;
+    if ( !$revision || $revision->getId() <= 0 || !$content || $content->getModel() !== 'wikitext' || !method_exists( $content, 'getText' ) ) { return null; }
+    $source = $content->getText();
+    if ( strlen( $source ) > 524288 || preg_match( '//u', $source ) !== 1 ) { return null; }
+    $source = preg_replace( '/<!--[\s\S]*?(?:-->|$)/', '', $source );
+    $source = preg_replace( '~<(?:nowiki|pre|source|syntaxhighlight|ref|code)\b[^>]*?/\s*>~i', '', $source );
+    $source = preg_replace( '~<(nowiki|pre|source|syntaxhighlight|ref|code)\b[^>]*>[\s\S]*?(?:</\1\s*>|$)~i', '', $source );
+    // Category links with a leading colon are navigation, not zone identity.
+    if ( !preg_match( '/\[\[\s*(?i:Category)\s*:\s*[Zz]ones\s*(?:\|[^\]\r\n]*)?\]\]/', $source ) ) { return null; }
+    return $canonical;
+  } catch ( \Throwable $error ) { return null; }
+}
+
 function execute( $par )
 {
   global $wgRequest, $wgOut, $wgUser, $wgParser, $wgTitle;
@@ -681,10 +715,7 @@ function execute( $par )
   $db = \MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
 	
   // parse and sanitize zone name
-  $zoneName = trim($par);
-	//$zoneName = mysql_real_escape_string($zoneName);
-	if (strlen($zoneName) > 40) { $zoneName = substr($zoneName,0,40); }
-	$zoneName = str_replace("_"," ",$zoneName);
+  $zoneName = is_string( $par ) ? trim( $par ) : '';
 	
 	// default page
 	// ------------
@@ -696,7 +727,8 @@ function execute( $par )
     return;
   }
 	
-  if (!in_array($zoneName,$zoneNameList)) {
+  $zoneName = self::resolveZoneName( $par, $zoneNameList, \MediaWiki\MediaWikiServices::getInstance(), $db );
+  if ( $zoneName === null ) {
 	  $output = "'''DynamicZoneList: Invalid zone name!'''";
     $wgOut->addWikiTextAsContent($output);
     return;

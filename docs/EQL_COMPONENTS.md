@@ -205,7 +205,7 @@ content; historical template fields and rendered structures are contracts.
 | --- | --- | --- |
 | [`ClassSlotEquip`](../extensions/ClassSlotEquip/) | `Special:ClassSlotEquip/Class/Slot`; builder on `Equipment By Class`; AJAX `eqlBuilder=1` or legacy `eqlTrio=1` with class/slot/stat/weapon parameters | Category intersections and Itempage fields supply stats, sources, and effects. Selected classes/virtual weapon slots form unions. Current category joins use `cl_target_id`/`linktarget`, not obsolete `cl_to`. `classslotequip-builder.js` reuses ItemLevelSlider output instead of implementing independent formulas. Browser state: `eql-equipment-builder-v2`. |
 | [`AjaxHoverHelper`](../extensions/AjaxHoverHelper/) | `Special:AjaxHoverHelper/Page?type=item\|spell\|mob` returns bare tooltip HTML | Extracts balanced Itembox/Itempage, Spellpagesmart/Spellpage, or Namedmobpage/mobStatsBox output. The skin's item hover module consumes it; effect/merchant hovers use Action API parsing of SpellHoverLink/Module:SpellHover instead. Its bundled `eqlwiki.js` is not registered by the extension; avoid duplicate binding/container code. |
-| [`DynamicZoneList`](../extensions/DynamicZoneList/) | `{{Special:DynamicZoneList/Zone Name}}` creates zone tables; native NPC loot and item Drops From sections also resolve reciprocal sources | The special-page allowlist is unchanged. Independent public lookups verify actual `Itempage.dropsfrom` and `Namedmobpage.known_loot/common_loot` fields, preserve native zone lists and instance scopes, analyze affected-field exact/broad/unsupported coverage, resolve finite public collections and canonical zone/NPC duplicates and purge affected caches after saves/link updates/moves/deletes. Generated NPC rows show item names only; items with more than five distinct authored monster sources default to Common Loot unless manually classified on the NPC. See [reciprocal drop links](NPC_RECORDED_LOOT.md) for bounds and parser limits. |
+| [`DynamicZoneList`](../extensions/DynamicZoneList/) | `{{Special:DynamicZoneList/Zone Name}}` creates zone tables; native NPC loot and item Drops From sections also resolve reciprocal sources | Legacy zone names remain supported; a new canonical public main-namespace page with its own active Category:Zones declaration and matching membership is also admitted, without inventing map IDs or raid filtering. Independent public lookups verify actual `Itempage.dropsfrom` and `Namedmobpage.known_loot/common_loot` fields, preserve native zone lists and instance scopes, analyze affected-field exact/broad/unsupported coverage, resolve finite public collections and canonical zone/NPC duplicates and purge affected caches after saves/link updates/moves/deletes. Generated NPC rows show item names only; items with more than five distinct authored monster sources default to Common Loot unless manually classified on the NPC. See [reciprocal drop links](NPC_RECORDED_LOOT.md) for bounds and parser limits. |
 | [`DynamicQuestItemList`](../extensions/DynamicQuestItemList/) | `{{Special:DynamicQuestItemList}}`, optional category subpage; `dqil_action=chunk` API-like endpoint | Renders a filter/table shell then sequentially fetches 500 rows per chunk. Completed HTML caches 12 hours in localStorage (sessionStorage fallback). `dqil:v8` key includes category/count/limit, **not item revisions**: unchanged membership can leave edited rows stale. Emits `wikipage.content`; preserves Notes/Lore without adding unwanted categories to the listing page. |
 
 The hover stack uses `span.ih a`, a shared `#itemHoverContainer`, `itemeff`,
@@ -330,6 +330,16 @@ edit/submit. BlueprintLoader discovers sections/`<pre>` blocks in `Help:Contents
 offers a selector for a new truly empty source page, and inserts the chosen
 blueprint in the source textarea. Existing source pages can use Icon Finder
 without the blueprint selector; VisualEditor is a separate integration.
+
+The versioned [shared zone blueprint](ZONE_PAGE_BLUEPRINTS.md) is reviewed in
+[`ops/zone-page-blueprint.wiki`](../ops/zone-page-blueprint.wiki). It preserves
+the opening `zoneTopTable` and Map, with an independently confirmed optional
+Raid Instance overview and Raid Map. The guarded
+[`sync-zone-page-blueprint.php`](../ops/sync-zone-page-blueprint.php) changes only
+that Help:Contents subsection, defaults to read-only review, and requires a
+fresh private full-page backup plus revision guards for explicit publication.
+It leaves the City and all other blueprints unchanged. The live BlueprintLoader
+needs no script change because it already extracts the section's first pre block.
 
 The active finder is database `MediaWiki:IconFinder.js`, lazy-loaded by
 BlueprintLoader. It does not request/download the icon catalog until an image is
@@ -558,6 +568,14 @@ create a positive member cross-product. Bounded possible members use separate
 counts become incomplete. Unknown expansion remains conservatively incomplete.
 An unbounded undefined group can make the entire global scan incomplete;
 a fresh dataset does not manufacture complete Unique counts from that gap.
+The reviewed legacy Research domain and literal self-title stubs can instead
+bound possible identities, with `possibleRule` and optional `possibleSource`
+public revision proof. They remain incomplete, have no positive members, and
+never expand NPC loot in the renderer. See [the source investigation and
+fail-closed contract](LOOT_SOURCE_GROUP_COUNTS.md). The producer also augments
+the curated map catalog from public canonical Category:Zones pages; new normal
+zones need no map ID or raid heading, and only unambiguous literal normal
+overview `/who` values add aliases.
 Safe positive/finite-set coverage and verified six-monster Common lower bounds
 remain usable independently. Unresolved Unique placement requires review.
 

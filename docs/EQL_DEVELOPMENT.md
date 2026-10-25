@@ -117,6 +117,7 @@ and remove it from public routes after verification.
 | Registered skin/extension PHP, JS, CSS | Git files plus module/hook registration | Normal application deployment; confirm the module is loaded on the target page |
 | Icon Finder | Database `MediaWiki:IconFinder.js` | Deploy reviewed file, then guarded [`sync-icon-finder.php`](../ops/sync-icon-finder.php) |
 | Blueprint tools | Database `MediaWiki:BlueprintLoader.js` | Separately publish the reviewed filesystem source with a revision check and recovery copy |
+| Shared zone blueprint | Zone Page Blueprint subsection of database `Help:Contents` | Review [`ops/zone-page-blueprint.wiki`](../ops/zone-page-blueprint.wiki), then separately use guarded [`sync-zone-page-blueprint.php`](../ops/sync-zone-page-blueprint.php); [normal/raid contract and tests](ZONE_PAGE_BLUEPRINTS.md) |
 | Plane of Sky reward fields | A section of database `MediaWiki:Common.js` | [`sync-sky-rewards.php`](../ops/sync-sky-rewards.php), replacing only that section |
 | Icon List container | Database `Icon List` | [`sync-icon-list.php`](../ops/sync-icon-list.php) plus the skin listing module |
 | Itembox stat defaults | Database `Template:Itembox` | Reviewed [`ops/itembox.wiki`](../ops/itembox.wiki), separately published with [`sync-itembox.php`](../ops/sync-itembox.php) |
@@ -162,6 +163,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
 | Global item loot classification | `php ops/test-eoz-loot-counts.php` | Synthetic public-revision/permission/redirect service doubles and actual producer helpers; five/six distinct mobs, all zones/instances, Common/Unique fields, statless materials and redlinked items, aliases/IDs, pets, hidden pages, bounded incomplete results. No wiki/database/pack writes |
 | Typed contribution coverage | `php ops/test-eoz-relationship-coverage.php` and `php ops/test-contribution-coverage.php` | Affected-field positive facts/capabilities, finite pools and conditional uncertainty, nested/formatted zone summary cells, DynamicZoneList category consumers, instance boundaries and limits. No wiki/database/pack writes |
+| Public zone admission | `php ops/test-dynamic-zone-admission.php` | Actual SpecialPage entry and synthetic anonymous permissions/current revisions, exact Category:Zones joins, legacy names, namespace/redirect/protected-source/size refusal and new titles longer than forty bytes; no wiki writes |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
 | Whitespace | `git diff --check` | Git |
 | Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |
@@ -488,6 +490,13 @@ contract. Conditional slot/class tables supply possible-member uncertainty only,
 never all-items/all-mobs source facts. Tests must distinguish the public source
 revision from the collection revision, retain statless metadata before rich
 filtering, and exclude NPC redlinks/non-monster pages from version 2 count proof.
+The [reviewed source-domain contract](LOOT_SOURCE_GROUP_COUNTS.md) requires
+separate uncertainty-only tests: exact catalog closure/current public revisions,
+identical-reference deduplication, unsupported member roles, unavailable or
+dynamic catalogs, and terminal self-title stubs. Unaffected items can regain
+complete counts without adding a single group-to-member drop. Public categorized
+normal zones must also export without invented map metadata; test normal-only
+literal `/who` aliases, placeholders, conflicting claims and curated metadata.
 The versioned `wikiRelationshipCoverage` map records exact edges independently
 from broad/unsupported/variant field capabilities. Include unrelated prose,
 unknown wrappers, repeated affected fields, formatted nested zone tables and a

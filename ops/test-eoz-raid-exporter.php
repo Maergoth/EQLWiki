@@ -121,7 +121,21 @@ $factory = new class {
 $builder = ( new ReflectionClass( BuildEyeOfZommPack::class ) )->newInstanceWithoutConstructor();
 $call = static fn ( string $method, ...$args ) => ( new ReflectionMethod( $builder, $method ) )->invoke( $builder, ...$args );
 $call( 'loadZoneCatalog' );
-$call( 'loadRaidInstanceIndex', $factory, [ (object)[ 'page_title' => 'Synthetic_future_zone' ] ] );
+$whoTable = static fn ( string $value ) => "{| class=\"zoneTopTable\"\n! ''' Name in /who: '''\n| {$value}\n|}";
+$fixtures['Synthetic normal zone'] = [ 'text' => $whoTable( 'newnormal' ) ];
+$fixtures['Synthetic fresh lake spawn'] = [ 'text' => $npc( 'Synthetic normal zone', 20 ), 'categories' => [ 'Synthetic normal zone' ] ];
+$fixtures['Synthetic placeholder zone'] = [ 'text' => $whoTable( '?' ) ];
+$fixtures['Synthetic raid alias zone'] = [ 'text' => "= Raid Instance =\n" . $whoTable( 'raidonly' ) ];
+$fixtures['Synthetic private zone'] = [ 'text' => $whoTable( 'privatezone' ), 'private' => true ];
+$fixtures['Synthetic suppressed zone'] = [ 'text' => $whoTable( 'hiddenzone' ), 'hidden' => true ];
+$fixtures['Synthetic alias conflict one'] = [ 'text' => $whoTable( 'collidingalias' ) ];
+$fixtures['Synthetic alias conflict two'] = [ 'text' => $whoTable( 'collidingalias' ) ];
+$fixtures['Synthetic curated conflict'] = [ 'text' => $whoTable( "Nagafen's Lair" ) ];
+$zoneRows = array_map( static fn ( $name ) => (object)[ 'page_title' => str_replace( ' ', '_', $name ) ], [
+    'Synthetic future zone', 'Synthetic normal zone', 'Synthetic placeholder zone', 'Synthetic raid alias zone', 'Synthetic private zone',
+    'Synthetic suppressed zone', 'Synthetic alias conflict one', 'Synthetic alias conflict two', 'Synthetic curated conflict' ] );
+$catalogBefore = ( new ReflectionProperty( $builder, 'zoneCatalog' ) )->getValue( $builder );
+$call( 'loadRaidInstanceIndex', $factory, $zoneRows );
 $npcRows = []; $itemRows = []; $titleRows = [];
 foreach ( $fixtures as $name => $fixture ) {
     $row = (object)[ 'page_namespace' => 0, 'page_title' => str_replace( ' ', '_', $name ) ];
@@ -132,7 +146,7 @@ foreach ( $fixtures as $name => $fixture ) {
 $titleRows[] = (object)[ 'page_title' => 'Synthetic_public_redirect' ];
 $call( 'indexWikiEntityCandidates', $npcRows, $itemRows, $titleRows );
 $npcs = [];
-foreach ( $npcRows as $row ) { $npcs = array_merge( $npcs, $call( 'buildNpcRecords', $factory, $row, [] ) ); }
+foreach ( $npcRows as $row ) { $npcs = array_merge( $npcs, $call( 'buildNpcRecords', $factory, $row, $fixtures[str_replace( '_', ' ', $row->page_title )]['categories'] ?? [] ) ); }
 $npcs = $call( 'applyNpcInstanceVariants', $npcs );
 $npcs = $call( 'sortNpcRecords', $npcs );
 $items = [];
@@ -150,6 +164,25 @@ $expect = static function ( $actual, $expected, string $label ) use ( &$checks )
     $checks++;
 };
 $records = static fn ( string $name ) => array_values( array_filter( $npcs, static fn ( $record ) => $record['name'] === $name ) );
+$expect( $records( 'Synthetic fresh lake spawn' )[0]['zone'], 'Synthetic normal zone', 'A literal newly categorized public zone cannot disappear because it was absent from the curated map catalog' );
+$expect( $records( 'Synthetic fresh lake spawn' )[0]['categoryZones'], [ 'Synthetic normal zone' ], 'Independent category population proof survives for all public categorized zones' );
+$zoneCatalog = ( new ReflectionProperty( $builder, 'zoneCatalog' ) )->getValue( $builder );
+$zoneNames = array_column( $zoneCatalog, 'name' );
+$newZone = $zoneCatalog[array_search( 'Synthetic normal zone', $zoneNames, true )];
+$expect( $newZone, [ 'name' => 'Synthetic normal zone', 'wikiTitle' => 'Synthetic normal zone', 'aliases' => [ 'newnormal' ] ], 'A public categorized normal zone exports without invented map/viewer metadata' );
+$expect( in_array( 'Synthetic placeholder zone', $zoneNames, true ), true, 'A public categorized zone is present even with an unknown who name' );
+$expect( in_array( 'Synthetic private zone', $zoneNames, true ) || in_array( 'Synthetic suppressed zone', $zoneNames, true ), false, 'Unreadable and suppressed zone pages cannot expand public zone presence' );
+$zoneMap = ( new ReflectionProperty( $builder, 'zoneAliasMap' ) )->getValue( $builder );
+$expect( isset( $zoneMap['raidonly'] ) || isset( $zoneMap['?'] ) || isset( $zoneMap['collidingalias'] ), false, 'Raid-only, placeholder and conflicting public aliases never become normal identities' );
+$expect( $zoneMap["nagafen's lair"]['name'], "Nagafen's Lair (Sol B)", 'Public who claims cannot replace a curated zone identity' );
+foreach ( $catalogBefore as $curated ) {
+    $after = $zoneCatalog[array_search( $curated['name'], $zoneNames, true )];
+    foreach ( [ 'viewerName', 'viewerId', 'name', 'wikiTitle' ] as $field ) { $expect( $after[$field] ?? null, $curated[$field] ?? null, 'Curated map and identity metadata is preserved: ' . $field ); }
+}
+$expect( EqlNpcLootWikitext::normalZoneWhoAliases( $whoTable( 'newnormal' ) . "\n= Raid Instance =\n" . $whoTable( 'raidonly' ) ), [ 'newnormal' ], 'Only the normal overview proves normal who aliases' );
+foreach ( [ $whoTable( 'ZONE NAME' ), $whoTable( '{{Unknown}}' ), $whoTable( 'One' ) . "\n" . $whoTable( 'Two' ), '<nowiki>' . $whoTable( 'inactive' ) . '</nowiki>', "{{Unknown|\n" . $whoTable( 'nested' ) . "\n}}" ] as $unsupportedWho ) {
+    $expect( EqlNpcLootWikitext::normalZoneWhoAliases( $unsupportedWho ), [], 'Unreviewed, duplicate, inactive and template-contained aliases remain unknown' );
+}
 $variants = static fn ( string $name ) => array_column( $records( $name ), 'raidInstance' );
 $scopes = static function ( string $name ) use ( $records ): array {
     $result = [];

@@ -226,6 +226,17 @@ final class EqlItemLootSourceCounts {
             $title = $target['title'];
             if ( isset( $this->sets[$title] ) ) {
                 $set = $this->sets[$title];
+                // A reviewed public self-labelled leaf has no member graph.
+                // Its own possible identity stays uncertain without poisoning
+                // unrelated items or turning the stub into a positive item.
+                if ( ( $set['possibleRule'] ?? '' ) === 'literal-self-title' &&
+                    ( $set['possibleItemsComplete'] ?? false ) === true &&
+                    ( $set['items'] ?? [] ) === [] && ( $set['possibleItems'] ?? [] ) === [ $title ] &&
+                    ( $set['source']['wikiTitle'] ?? '' ) === $title &&
+                    is_int( $set['source']['revisionId'] ?? null ) && $set['source']['revisionId'] > 0 ) {
+                    $this->uncertainItems[$title] = true;
+                    return;
+                }
                 if ( !( $set['complete'] ?? false ) && !( $set['possibleItemsComplete'] ?? false ) ) { $this->incomplete( 'unbounded-collection-membership' ); }
                 foreach ( array_unique( array_merge( $set['items'] ?? [], $set['possibleItems'] ?? [] ) ) as $member ) { $visit( $member, $depth + 1 ); }
             } elseif ( !isset( $target['kind'] ) || in_array( $target['kind'], [ 'item', 'missing' ], true ) ) {
