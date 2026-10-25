@@ -278,6 +278,11 @@ from item screenshots, not published game formulas. Important contracts:
   The [engine guide](../extensions/ItemLevelSlider/README.md) records the
   screenshot evidence and the unresolved Vambraces AC observation; do not add
   an item-specific exception or infer a new base value from it.
+- Generated SV Void requires two distinct known primary or HP/Mana/End regen
+  fields, including known zero fields. AC, HP, Mana and Endurance qualify
+  alongside attributes and the five ordinary resists. Haste, Attack, weapon
+  DMG, Backstab, delay and weight do not qualify. Eligible cards gain +1 per
+  whole rank, hidden at zero; explicit Void/Corruption suppresses generation.
 - Melee and ranged weapon cards with positive standalone DMG gain an Accuracy
   row inside `.itemdata`, near DMG/Ratio. AMMO-only cards are excluded. The gain
   is `2.5 * log2(2^fullLevel + fraction)` percentage points, displayed with a `+`

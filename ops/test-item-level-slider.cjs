@@ -161,6 +161,25 @@ async function main() {
 	input( window, boundaryWrapper.querySelector( '.ils-slider' ), 0 );
 	assert.equal( boundaryItem.querySelector( '[data-ils-stat="STR"]' ).textContent, '-4' );
 	assert.equal( boundaryItem.querySelector( '.ils-void-resist' ).textContent, '' );
+	for ( const test of [
+		{ title: 'Diamondine primary fields', stats: 'AC: 2<br>HP: 12<br>STR: 3', full: 5, expected: 'SV VOID: +5' },
+		{ title: 'Talisman regen fields', stats: 'HP Regen: 2<br>Mana Regen: 2<br>End Regen: 2', full: 5, expected: 'SV VOID: +5' },
+		{ title: 'Serpent single attribute', stats: 'Slot: PRIMARY<br>DMG: 13<br>BACKSTAB: 13<br>STR: 3', full: 8, expected: '' },
+		{ title: 'Pike weapon fields', stats: 'Slot: PRIMARY<br>Skill: 1H Piercing Atk Delay: 36<br>DMG: 9', full: 4, expected: '' },
+		{ title: 'Single armor field', stats: 'AC: 15', full: 3, expected: '' },
+		{ title: 'Known zero primary fields', stats: 'AC: 0<br>HP: 0', full: 5, expected: 'SV VOID: +5' }
+	] ) {
+		window.localStorage.setItem( 'ils-default-level-v2', JSON.stringify( { full: test.full, fraction: 0 } ) );
+		window.document.body.innerHTML = card( test.title, test.stats );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const wrapper = window.document.querySelector( '.ils-item-wrapper' );
+		const generated = wrapper.querySelector( '.ils-void-resist' );
+		assert.equal( generated.textContent, test.expected, `${test.title}: literal screenshot eligibility` );
+		window.eqlItemLevelSliderRefresh( wrapper );
+		assert.equal( generated.textContent, test.expected, `${test.title}: refresh preserves one generated value` );
+		input( window, wrapper.querySelector( '.ils-slider' ), 0 );
+		assert.equal( generated.textContent, '', `${test.title}: reset hides generated Void` );
+	}
 	for ( const label of [ 'SV VOID', 'SV Corruption' ] ) {
 		window.localStorage.clear();
 		window.document.body.innerHTML = card( 'Explicit Void resist', `STR: 5 DEX: 5<br>${label}: +3` );
@@ -372,7 +391,7 @@ async function main() {
 	}
 
 	window.close();
-	console.log( `Item slider: ${cases.length} range cards, ${backstabCases.length} backstab cards, ${accuracyCases.length} Accuracy ranks, ${accuracyEligibilityCases.length} Accuracy eligibility cases, and ${bonusCases.length} damage-bonus cards pass ranks, reset, ordering, and refresh.` );
+	console.log( `Item slider: ${cases.length} range cards, 3 primary floor cards, 6 Void eligibility cards, ${backstabCases.length} backstab cards, ${accuracyCases.length} Accuracy ranks, ${accuracyEligibilityCases.length} Accuracy eligibility cases, and ${bonusCases.length} damage-bonus cards pass ranks, reset, ordering, and refresh.` );
 }
 
 main().catch( error => { console.error( error ); process.exitCode = 1; } );

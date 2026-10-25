@@ -55,7 +55,24 @@ assert.equal( engine.voidEligible( { STR: 0, DEX: 0 } ), true, 'known zero field
 assert.equal( engine.voidEligible( { STR: 4, DEX: null } ), false, 'unknown fields do not qualify' );
 assert.equal( engine.voidEligible( [ 'STR', 'Strength' ] ), false, 'aliases count once' );
 assert.equal( engine.voidBonus( [ 'STR', 'DEX' ], 5 ), 5 );
-assert.equal( engine.voidBonus( [ 'HP', 'AC' ], 5 ), 0 );
+assert.equal( engine.voidBonus( [ 'HP', 'AC' ], 5 ), 5 );
+assert.equal( engine.voidEligible( { AC: 0, HP: 0 } ), true, 'known zero primary fields still qualify' );
+for ( const test of [
+	{ name: 'Diamondine Earring', stats: { AC: 2, HP: 12, STR: 3 }, rank: 5, expected: 5 },
+	{ name: 'Talisman of Kejaar Kerrath', stats: { HP_REGEN: 2, MANA_REGEN: 2, END_REGEN: 2 }, rank: 5, expected: 5 },
+	{ name: 'Serpent Tooth', stats: { STR: 3, DMG: 13, BACKSTAB: 13 }, rank: 8, expected: 0 },
+	{ name: 'Glowing Iron Pike', stats: { DMG: 9, DELAY: 36 }, rank: 4, expected: 0 },
+	{ name: 'Single armor field', stats: { AC: 15 }, rank: 3, expected: 0 }
+] ) {
+	assert.equal( engine.voidBonus( test.stats, test.rank ), test.expected, `${test.name}: observed Void eligibility` );
+	const scaled = engine.scaleItemStats( test.stats, test.rank );
+	assert.equal( Object.prototype.hasOwnProperty.call( scaled, 'SV_CORRUPTION' ), test.expected > 0,
+		`${test.name}: generated Void presence` );
+	if ( test.expected ) { assert.equal( scaled.SV_CORRUPTION, test.expected ); }
+}
+for ( const excluded of [ 'HASTE', 'ATK', 'DMG', 'BACKSTAB', 'DELAY', 'WT' ] ) {
+	assert.equal( engine.voidEligible( { AC: 2, [ excluded ]: 5 } ), false, `${excluded} cannot be a second Void qualifier` );
+}
 assert.equal( engine.weaponEligible( { DMG: 18 }, [ 'AMMO' ] ), false );
 assert.equal( engine.weaponEligible( { DMG: 18 }, [ 'RANGE', 'AMMO' ] ), true );
 assert.equal( engine.weaponEligible( { COLD_DMG: 18 }, [ 'PRIMARY' ] ), false );
@@ -69,7 +86,7 @@ for ( const mutate of [ value => { value.schemaVersion = 2; }, value => { value.
 	value => { value.primary.divisor = 0; }, value => { value.weight.perLog2 = 10; },
 	value => { value.accuracy.precision = 4; }, value => { value.flat.perTier = NaN; },
 	value => { value.range.perTier = -1; }, value => { value.primary = []; },
-	value => { value.void.minimumQualifiers = 13; } ] ) {
+	value => { value.void.minimumQualifiers = 20; } ] ) {
 	const invalid = clone( rules ); mutate( invalid );
 	assert.equal( core.validateRules( invalid ), false );
 	assert.throws( () => core.createEngine( invalid ), /Unsupported/ );
