@@ -1,63 +1,9 @@
 /**
  * ItemLevelSlider - EQLegends item level scaling
  *
- * Fractional model:
- *   full level = G2
- *   fractional progress = G3 / 2^G2
- *
- * Examples:
- *   1 + 0/2, 1 + 1/2
- *   2 + 0/4, 2 + 1/4, 2 + 2/4, 2 + 3/4
- *   4 + 0/16 through 4 + 15/16
- *   10 is the cap and displays simply as 10.
- *
- * Formula model:
- *   effectiveLevel = fullLevel + fraction / 2^fullLevel
- *
- * Spreadsheet formula groups:
- *   AC / STR / STA / AGI / DEX / HP / MP / END / INT / WIS / CHA / saves:
- *     B = 0: unchanged
- *     0 < B <= 10: B + fullLevel
- *     B > 10: INT( B + ROUND( B * effectiveLevel / 10 ) )
- *     B < 0, |B| <= 10: B + fullLevel, capped at 0
- *     B < 0, |B| > 10: B + ROUND( |B| * effectiveLevel / 10 ), capped at 0
- *     (negative penalties improve by at least 1 full point per whole tier)
- *
- *   DMG:
- *     Only a standalone "DMG:" / "DAMAGE:" field scales.
- *     Elemental/Bane/etc. damage fields remain unchanged.
- *     B > 0: B + INT( B * effectiveLevel / 10 )
- *
- *   Backstab (working screenshot model):
- *     B > 0: B + INT( B * effectiveLevel / 20 )
- *     Fractional growth follows the existing damage model; unconfirmed in-game.
- *
- *   Weapon Accuracy (working screenshot model):
- *     +2.5 * log2( 2^fullLevel + fraction ) percentage points, truncated to 0.1.
- *     Only positive standalone weapon DMG qualifies; ammo-only cards do not.
- *     Existing percentage Accuracy is the baseline; unitless fields are preserved.
- *
- *   Ranged weapon / ammo Range:
- *     Any listed Range field
- *     Range = B + ( 10 * fullLevel )
- *
- *   Delay:
- *     unchanged
- *
-	 *   HP / Mana / Endurance Regen:
-	 *     B > 0: B + fullLevel
- *
- *   WT:
- *     B > 0.1:
- *       totalProgression = 2^fullLevel + fraction
- *       B * ( 1 - 0.09 * log2( totalProgression ) )
- *       rounded up to 0.1
- *
- *   Haste:
- *     B > 0: B + fullLevel
- *
- *   SV Void:
- *     +fullLevel if the item has 2+ qualifying stat/save fields
+ * Formula ownership: item-scaling-core.js + item-scaling-rules.json.
+ * This adapter retains only template parsing, slider positions and presentation.
+ * See README.md for shared consumers, formula assumptions and update procedure.
  *
  * Slider mapping:
  *   The slider uses a compressed exponential visual curve.
@@ -68,7 +14,8 @@
 ( function ( $, mw ) {
 	'use strict';
 
-	var MAX_FULL_LEVEL = 10;
+	var scaling = window.EQLItemScalingCore.createEngine( mw.config.get( 'wgEQLItemScalingRules' ) );
+	var MAX_FULL_LEVEL = scaling.rules.maxTier;
 	var STORAGE_KEY = 'ils-default-level-v2';
 	var LEGACY_STORAGE_KEY = 'ils-default-level';
 
@@ -134,93 +81,8 @@
 		'WT'
 	];
 
-	var spreadsheetPrimaryStats = [
-		'AC',
-		'HP',
-		'MP',
-		'END',
-		'STR',
-		'STA',
-		'AGI',
-		'DEX',
-		'WIS',
-		'INT',
-		'CHA',
-		'SV_MAGIC',
-		'SV_FIRE',
-		'SV_COLD',
-		'SV_POISON',
-		'SV_DISEASE'
-	];
-
-	var flatFullLevelStats = [
-		'HP_REGEN',
-		'MANA_REGEN',
-		'END_REGEN',
-		'HASTE'
-	];
-
-	var svVoidQualifiers = [
-		'STR',
-		'STA',
-		'INT',
-		'AGI',
-		'DEX',
-		'CHA',
-		'WIS',
-		'SV_FIRE',
-		'SV_COLD',
-		'SV_POISON',
-		'SV_MAGIC',
-		'SV_DISEASE'
-	];
-
 	function canonicalStatKey( statName ) {
-		var name = String( statName || '' )
-			.toUpperCase()
-			.replace( /\s+/g, ' ' )
-			.trim();
-
-		var aliases = {
-			'DAMAGE': 'DMG',
-			'BACKSTAB DAMAGE': 'BACKSTAB',
-			'BACKSTAB DMG': 'BACKSTAB',
-
-			'MANA': 'MP',
-			'MP': 'MP',
-
-			'ENDUR': 'END',
-			'END': 'END',
-
-			'SV MAGIC': 'SV_MAGIC',
-			'SV FIRE': 'SV_FIRE',
-			'SV COLD': 'SV_COLD',
-			'SV POISON': 'SV_POISON',
-			'SV DISEASE': 'SV_DISEASE',
-
-			'MAGIC': 'SV_MAGIC',
-			'FIRE': 'SV_FIRE',
-			'COLD': 'SV_COLD',
-			'POISON': 'SV_POISON',
-			'DISEASE': 'SV_DISEASE',
-
-			'HP REGEN': 'HP_REGEN',
-			'HP REGENERATION': 'HP_REGEN',
-			'MANA REGEN': 'MANA_REGEN',
-			'MANA REGENERATION': 'MANA_REGEN',
-			'MP REGEN': 'MANA_REGEN',
-			'END REGEN': 'END_REGEN',
-			'ENDUR REGEN': 'END_REGEN',
-			'ENDURANCE REGEN': 'END_REGEN',
-			'ENDURANCE REGENERATION': 'END_REGEN',
-
-			'RANGE': 'RANGE',
-
-			'WEIGHT': 'WT',
-			'WT': 'WT'
-		};
-
-		return aliases[ name ] || name.replace( /\s+/g, '_' );
+		return scaling.canonicalStatKey( statName );
 	}
 
 	function buildStatRegex() {
@@ -274,36 +136,6 @@
 		 *     Bane DMG: 3
 		 */
 		return getStatLinePrefix( html, offset ) === '';
-	}
-
-	function excelRound( value, digits ) {
-		var factor = Math.pow( 10, digits || 0 );
-		var scaled = value * factor;
-
-		if ( value >= 0 ) {
-			return Math.floor( scaled + 0.5 ) / factor;
-		}
-
-		return Math.ceil( scaled - 0.5 ) / factor;
-	}
-
-	function excelRoundUp( value, digits ) {
-		var factor = Math.pow( 10, digits || 0 );
-		var scaled = value * factor;
-
-		if ( value >= 0 ) {
-			return Math.ceil( scaled ) / factor;
-		}
-
-		return Math.floor( scaled ) / factor;
-	}
-
-	function intFloor( value ) {
-		return Math.floor( value );
-	}
-
-	function log2( value ) {
-		return Math.log( value ) / Math.LN2;
 	}
 
 	function buildLevelStates() {
@@ -462,19 +294,7 @@
 	}
 
 	function getEffectiveLevel( state ) {
-		if ( !state || state.full <= 0 ) {
-			return 0;
-		}
-
-		return state.full + ( state.fraction / state.denom );
-	}
-
-	function getTotalProgression( state ) {
-		if ( !state || state.full <= 0 ) {
-			return 0;
-		}
-
-		return Math.pow( 2, state.full ) + state.fraction;
+		return state ? scaling.effectiveLevel( state.full, state.fraction ) : 0;
 	}
 
 	function clampIndex( index ) {
@@ -612,100 +432,6 @@
 		return text;
 	}
 
-	function scalePrimarySpreadsheetStat( signedBase, state ) {
-		var full = state.full;
-		var effective = getEffectiveLevel( state );
-
-		if ( signedBase === 0 ) {
-			return 0;
-		}
-
-		if ( signedBase > 0 && signedBase <= 10 ) {
-			return signedBase + full;
-		}
-
-		if ( signedBase > 10 ) {
-			return intFloor( signedBase + excelRound( signedBase * effective / 10, 0 ) );
-		}
-
-		/*
-		 * Negative stats mirror positive-stat growth in reverse:
-		 *   - penalties of 10 or less improve by 1 full point per whole tier;
-		 *   - larger penalties improve by 10% per effective tier, rounded
-		 *     with the same spreadsheet rule as positive stats.
-		 * Never cross above zero.
-		 */
-		if ( Math.abs( signedBase ) <= 10 ) {
-			return Math.min( 0, signedBase + full );
-		}
-
-		return Math.min(
-			0,
-			signedBase + excelRound( Math.abs( signedBase ) * effective / 10, 0 )
-		);
-	}
-
-	function scaleDamage( signedBase, state ) {
-		var effective = getEffectiveLevel( state );
-
-		if ( signedBase <= 0 ) {
-			return signedBase;
-		}
-
-		return signedBase + intFloor( signedBase * effective / 10 );
-	}
-
-	function scaleBackstab( signedBase, state ) {
-		if ( signedBase <= 0 ) {
-			return signedBase;
-		}
-
-		return signedBase + intFloor( signedBase * getEffectiveLevel( state ) / 20 );
-	}
-
-	function getAccuracyBonus( state ) {
-		if ( !state || state.full <= 0 ) {
-			return 0;
-		}
-
-		return intFloor( 25 * log2( getTotalProgression( state ) ) ) / 10;
-	}
-
-	function scaleRange( base, state ) {
-		if ( base < 0 ) {
-			return base;
-		}
-
-		return base + ( 10 * state.full );
-	}
-
-	function scaleFlatFullLevelStat( signedBase, state ) {
-		if ( signedBase > 0 ) {
-			return signedBase + state.full;
-		}
-
-		return signedBase;
-	}
-
-	function scaleWeight( base, state ) {
-		var totalProgression;
-		var rawWeight;
-
-		if ( !state || state.full <= 0 || base <= 0.1 ) {
-			return base;
-		}
-
-		totalProgression = getTotalProgression( state );
-
-		if ( totalProgression <= 0 ) {
-			return base;
-		}
-
-		rawWeight = base * ( 1 + ( -0.09 * log2( totalProgression ) ) );
-
-		return Math.max( 0, excelRoundUp( rawWeight, 1 ) );
-	}
-
 	function valuesDiffer( a, b ) {
 		return Math.abs( Number( a ) - Number( b ) ) > 0.0000001;
 	}
@@ -773,6 +499,7 @@
 		var delay = delayMatch ? parseFloat( delayMatch[ 1 ] ) : 0;
 		var foundQualifiers = {};
 		var hasAccuracyField = /\bAccuracy\s*:/i.test( rawText );
+		var hasExplicitVoid = /\bSV[.\s_]+(?:VOID|CORRUPTION)\s*:/i.test( rawText );
 
 		if ( $itemdata.attr( 'data-ils-instrumented' ) === '1' ) {
 			return;
@@ -797,9 +524,7 @@
 				return match;
 			}
 
-			if ( svVoidQualifiers.indexOf( statKey ) !== -1 ) {
-				foundQualifiers[ statKey ] = true;
-			}
+			foundQualifiers[ statKey ] = baseVal;
 
 			var span = statName + colon +
 				'<span class="ils-stat' + ( statKey === 'ACCURACY' ? ' ils-accuracy-value' : '' ) + '" ' +
@@ -825,10 +550,10 @@
 			return span;
 		} );
 
-		var qualifierCount = Object.keys( foundQualifiers ).length;
-		var svVoidEligible = qualifierCount >= 2;
+		var svVoidEligible = !hasExplicitVoid && scaling.voidEligible( foundQualifiers );
 
-		html += '<span class="ils-void-resist" data-ils-svvoid-eligible="' +
+		html += '<span class="ils-void-resist" data-ils-svvoid-keys="' + Object.keys( foundQualifiers ).join( ',' ) +
+			'" data-ils-svvoid-eligible="' +
 			( svVoidEligible ? '1' : '0' ) +
 		'"></span>';
 
@@ -838,8 +563,9 @@
 		var $damage = $itemdata.find( '.ils-stat[data-ils-stat="DMG"]' ).first();
 		var slotMatch = rawText.match( /\bSlot\s*:\s*([^\r\n]*)/i );
 		var slots = slotMatch ? slotMatch[ 1 ] : '';
-		var ammoOnly = /\bAMMO\b/i.test( slots ) && !/\b(?:PRIMARY|SECONDARY|RANGE)\b/i.test( slots );
-		var weapon = $damage.length && parseFloat( $damage.attr( 'data-ils-base' ) ) > 0 && !ammoOnly;
+		var weapon = scaling.weaponEligible( {
+			DMG: $damage.length ? Number( $damage.attr( 'data-ils-base' ) ) : 0
+		}, slots );
 		$itemdata.attr( 'data-ils-weapon', weapon ? '1' : '0' );
 
 		if ( weapon && !hasAccuracyField ) {
@@ -858,7 +584,7 @@
 
 	function applyLevel( $container, state ) {
 		var effective = getEffectiveLevel( state );
-		var accuracyBonus = $container.attr( 'data-ils-weapon' ) === '1' ? getAccuracyBonus( state ) : 0;
+		var weapon = $container.attr( 'data-ils-weapon' ) === '1';
 
 		$container.find( '.ils-stat' ).each( function () {
 			var $span = $( this );
@@ -866,25 +592,9 @@
 			var originalSign = $span.attr( 'data-ils-sign' ) || '';
 			var statKey = $span.attr( 'data-ils-stat' );
 			var signedBase = originalSign === '-' ? -baseAbs : baseAbs;
-			var newVal;
-
-			if ( spreadsheetPrimaryStats.indexOf( statKey ) !== -1 ) {
-				newVal = scalePrimarySpreadsheetStat( signedBase, state );
-			} else if ( statKey === 'DMG' ) {
-				newVal = scaleDamage( signedBase, state );
-			} else if ( statKey === 'BACKSTAB' ) {
-				newVal = scaleBackstab( signedBase, state );
-			} else if ( statKey === 'ACCURACY' ) {
-				newVal = signedBase + accuracyBonus;
-			} else if ( statKey === 'RANGE' ) {
-				newVal = scaleRange( baseAbs, state );
-			} else if ( flatFullLevelStats.indexOf( statKey ) !== -1 ) {
-				newVal = scaleFlatFullLevelStat( signedBase, state );
-			} else if ( statKey === 'WT' ) {
-				newVal = scaleWeight( baseAbs, state );
-			} else {
-				newVal = signedBase;
-			}
+			var newVal = scaling.scaleStat( statKey, signedBase, state.full, {
+				fraction: state.fraction, weapon: weapon, accuracyPercent: statKey === 'ACCURACY'
+			} );
 
 			$span
 				.text( formatSignedValue( newVal, originalSign, statKey ) )
@@ -938,7 +648,7 @@
 
 			if ( state.full > 0 && eligible ) {
 				$vr
-					.text( 'SV VOID: +' + state.full )
+					.text( 'SV VOID: +' + scaling.voidBonus( $vr.attr( 'data-ils-svvoid-keys' ).split( ',' ), state.full ) )
 					.addClass( 'ils-vr-active ils-modified' );
 			} else {
 				$vr
