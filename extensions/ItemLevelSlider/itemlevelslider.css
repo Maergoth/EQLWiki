@@ -163,6 +163,20 @@
 	text-shadow: 0 0 3px rgba(85, 255, 85, 0.3);
 }
 
+/* Rank accuracy belongs to the weapon frame, alongside damage and Backstab. */
+.ils-generated-accuracy {
+	display: block;
+}
+
+.ils-generated-accuracy[hidden] {
+	display: none;
+}
+
+.ils-accuracy-label {
+	color: #e0c080;
+	font-weight: bold;
+}
+
 /* Hover tooltip boxes: slider should also appear */
 #itemHoverContainer .ils-slider-container {
 	--ils-label-w: 58px;
