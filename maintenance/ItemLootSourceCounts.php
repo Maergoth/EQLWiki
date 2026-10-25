@@ -6,11 +6,18 @@ final class EqlItemLootSourceCounts {
     private array $direct = [];
     private array $references = [];
     private array $missingItems = [];
+    private array $sets = [];
     private bool $complete = true;
 
     public function __construct( private int $maxReferences = 200000, private int $maxNpcs = 1000 ) {}
 
     public function incomplete(): void { $this->complete = false; }
+
+    /** Public, canonical set metadata supplied by the bounded producer adapter. */
+    public function sets( array $sets ): void {
+        if ( count( $sets ) > 10000 ) { $this->incomplete(); }
+        $this->sets = array_slice( $sets, 0, 10000, true );
+    }
 
     public function item( string $title, string $text ): void {
         $parsed = true;
@@ -19,13 +26,13 @@ final class EqlItemLootSourceCounts {
             'names' => array_column( $analysis['existingSources'] ?? [], 'npc' ) ];
     }
 
-    public function npc( string $title, string $text ): void {
+    public function npc( string $title, string $text, array $verifiedItemTemplates = [] ): void {
         $parsed = true;
         $text = preg_replace( '/\{\{\s*(?:NPCpage|MerchantPage)\b/i', '{{Namedmobpage', $text );
         $text = preg_replace( '/\|\s*(knownloot|commonloot)\s*=/i', '|$1=', $text );
         $text = preg_replace( '/\|knownloot=/i', '|known_loot=', $text );
         $text = preg_replace( '/\|commonloot=/i', '|common_loot=', $text );
-        $rows = EqlNpcLootWikitext::npcLootSources( $text, $parsed, true );
+        $rows = EqlNpcLootWikitext::npcLootSources( $text, $parsed, true, true, $verifiedItemTemplates );
         if ( !$parsed ) { $this->incomplete(); }
         foreach ( $rows as $row ) {
             $key = $row['item'] . "\0" . $title;
@@ -51,12 +58,12 @@ final class EqlItemLootSourceCounts {
     /** Includes statless categorized items and public NPC references to missing items. */
     public function catalog( callable $resolve ): array {
         $this->missingItems = [];
-        $titles = array_fill_keys( array_keys( $this->direct ), true );
+        $references = $this->expandedReferences( $resolve );
+        $titles = array_diff_key( array_fill_keys( array_keys( $this->direct ), true ), $this->sets );
         $folded = [];
         foreach ( $this->direct as $title => $_ ) { $folded[EqlNpcLootWikitext::identity( $title )][] = $title; }
-        foreach ( $this->references as $reference ) {
-            try { $target = $resolve( $reference['item'] ); }
-            catch ( Throwable $error ) { $this->incomplete(); continue; }
+        foreach ( $references as $reference ) {
+            $target = $reference['target'];
             if ( !( $target['complete'] ?? false ) || !( $target['public'] ?? false ) ) { $this->incomplete(); continue; }
             $title = $target['title'];
             if ( !( $target['pageId'] ?? null ) ) {
@@ -69,12 +76,12 @@ final class EqlItemLootSourceCounts {
         }
         $items = array_map( static fn ( $title ) => [ 'wikiTitle' => $title ], array_keys( $titles ) );
         $catalog = [];
-        foreach ( $this->aggregate( $items, $resolve ) as $item ) { $title = $item['wikiTitle']; unset( $item['wikiTitle'] ); $catalog[$title] = $item; }
+        foreach ( $this->aggregate( $items, $resolve, $references ) as $item ) { $title = $item['wikiTitle']; unset( $item['wikiTitle'] ); $catalog[$title] = $item; }
         ksort( $catalog, SORT_STRING );
         return $catalog;
     }
 
-    private function aggregate( array $items, callable $resolve ): array {
+    private function aggregate( array $items, callable $resolve, array $references ): array {
         $index = [];
         $rows = [];
         $complete = [];
@@ -101,9 +108,8 @@ final class EqlItemLootSourceCounts {
         foreach ( $items as $i => $item ) {
             foreach ( $this->direct[$item['wikiTitle']]['names'] ?? [] as $name ) { $add( $i, $name ); }
         }
-        foreach ( $this->references as $reference ) {
-            try { $target = $resolve( $reference['item'] ); }
-            catch ( Throwable $error ) { $this->incomplete(); continue; }
+        foreach ( $references as $reference ) {
+            $target = $reference['target'];
             if ( !( $target['complete'] ?? false ) || !( $target['public'] ?? false ) ) { $this->incomplete(); continue; }
             $i = $index[$target['title']] ?? null;
             // Missing case variants can refer to one known title; two real
@@ -132,6 +138,44 @@ final class EqlItemLootSourceCounts {
         }
         unset( $item );
         return $items;
+    }
+
+    private function expandedReferences( callable $resolve ): array {
+        $references = [];
+        $memo = [];
+        $expandedSets = [];
+        $expansions = 0;
+        $expand = function ( string $item, string $npc, array $visited = [] ) use ( &$expand, &$references, &$memo, &$expandedSets, &$expansions, $resolve ): void {
+            if ( ++$expansions > $this->maxReferences * 2 ) { $this->incomplete(); return; }
+            try { $target = $memo[$item] ??= $resolve( $item ); }
+            catch ( Throwable $error ) { $this->incomplete(); return; }
+            if ( !( $target['complete'] ?? false ) || !( $target['public'] ?? false ) ) { $this->incomplete(); return; }
+            $title = $target['title'];
+            if ( array_key_exists( $title, $this->sets ) ) {
+                $set = $this->sets[$title];
+                if ( isset( $visited[$title] ) || count( $visited ) >= 8 || !is_array( $set ) || !is_array( $set['items'] ?? null ) ) { $this->incomplete(); return; }
+                // Different paths can reach the same nested set for one mob.
+                // Expand it once; a cyclic path is still rejected above.
+                $setKey = $title . "\0" . $npc;
+                if ( isset( $expandedSets[$setKey] ) ) { return; }
+                $expandedSets[$setKey] = true;
+                if ( ( $set['complete'] ?? false ) !== true || count( $set['items'] ) > 1000 ) { $this->incomplete(); }
+                $visited[$title] = true;
+                foreach ( array_slice( $set['items'], 0, 1000 ) as $member ) {
+                    if ( !is_string( $member ) || $member === '' ) { $this->incomplete(); continue; }
+                    $expand( $member, $npc, $visited );
+                }
+                return;
+            }
+            $key = $title . "\0" . $npc;
+            if ( !isset( $references[$key] ) && count( $references ) >= $this->maxReferences ) { $this->incomplete(); return; }
+            $references[$key] = [ 'item' => $title, 'npc' => $npc, 'target' => $target ];
+        };
+        foreach ( $this->references as $reference ) {
+            $expand( $reference['item'], $reference['npc'] );
+            if ( $expansions > $this->maxReferences * 2 ) { break; }
+        }
+        return $references;
     }
 
     private static function nonMonsterSource( string $name ): bool {

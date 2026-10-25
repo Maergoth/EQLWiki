@@ -29,6 +29,8 @@ class BuildEyeOfZommPack extends Maintenance {
     private array $npcLootSourceCounts = [];
     private ?EqlItemLootSourceCounts $lootCounts = null;
     private array $lootTitleMemo = [];
+    private array $lootItemTemplateMemo = [];
+    private array $lootSets = [];
     private array $wikiEntityNames = [ 'npcs' => [], 'items' => [], 'titles' => [] ];
     private int $pauseUs = 20000;
 
@@ -78,6 +80,8 @@ class BuildEyeOfZommPack extends Maintenance {
         $services = MediaWikiServices::getInstance();
         $dbr = $services->getDBLoadBalancer()->getConnection( DB_REPLICA );
         $wikiPageFactory = $services->getWikiPageFactory();
+        $this->loadLootSets( $dbr, $wikiPageFactory );
+        $this->lootCounts->sets( $this->lootSets );
         $this->loadRaidInstanceIndex( $wikiPageFactory, $this->listPagesInCategory( $dbr, 'Zones', 0 ) );
 
         $this->output( "EQLWiki - Eye of Zomm static dataset build\n" );
@@ -174,6 +178,7 @@ class BuildEyeOfZommPack extends Maintenance {
                 'wikiEntitiesComplete' => $limit === 0,
                 'npcLootSourcesIncluded' => true,
                 'lootSourceCountsVersion' => 1,
+                'lootSetsVersion' => 1,
                 'npcLootSourceCounts' => $this->npcLootSourceCounts,
                 'counts' => [
                     'zones' => count( $this->zoneCatalog ),
@@ -186,6 +191,7 @@ class BuildEyeOfZommPack extends Maintenance {
             'npcs' => $npcs,
             'items' => $items,
             'lootSourceCounts' => (object)$lootSourceCounts,
+            'lootSets' => (object)$this->lootSets,
             'icons' => (object)$icons,
             'wikiEntities' => $this->wikiEntityIndex(),
         ];
@@ -622,9 +628,105 @@ class BuildEyeOfZommPack extends Maintenance {
             if ( MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) { return; }
             $this->lootTitleMemo[$title->getText()] = [ 'title' => $title->getText(),
                 'pageId' => (int)$title->getArticleID() ?: null, 'public' => true, 'complete' => true ];
-            if ( $kind === 'npc' ) { $this->lootCounts->npc( $title->getText(), $text ); }
+            if ( $kind === 'npc' ) {
+                $text = preg_replace( '/\{\{\s*(?:NPCpage|MerchantPage)\b/i', '{{Namedmobpage', $text );
+                $text = preg_replace( '/\|\s*(knownloot|commonloot)\s*=/i', '|$1=', $text );
+                $text = preg_replace( '/\|knownloot=/i', '|known_loot=', $text );
+                $text = preg_replace( '/\|commonloot=/i', '|common_loot=', $text );
+                $verified = [];
+                foreach ( array_slice( EqlNpcLootWikitext::globalNpcLootTemplateNames( $text ), 0, 128 ) as $name ) {
+                    $target = $this->resolveLootItemTemplate( $name, MediaWikiServices::getInstance()->getWikiPageFactory() );
+                    if ( $target !== null ) { $verified[EqlNpcLootWikitext::templateInvocationKey( $name )] = $target; }
+                }
+                $this->lootCounts->npc( $title->getText(), $text, $verified );
+            }
             else { $this->lootCounts->item( $title->getText(), $text ); }
         } catch ( \Throwable $error ) { $this->lootCounts->incomplete(); }
+    }
+
+    /** Recognize only the public, unconditional item-hover template pattern. */
+    private function lootItemTemplateTarget( string $text ): ?string {
+        return EqlNpcLootWikitext::globalItemTemplateTarget( $text );
+    }
+
+    /** Bounded anonymous current-source reads, never template expansion or HTTP. */
+    private function resolveLootItemTemplate( string $name, $wikiPageFactory ): ?string {
+        $title = Title::newFromText( $name, NS_TEMPLATE );
+        if ( !$title || $title->getNamespace() !== NS_TEMPLATE || $title->isExternal() || $title->getFragment() ) { return null; }
+        $key = $title->getPrefixedDBkey();
+        if ( array_key_exists( $key, $this->lootItemTemplateMemo ) ) { return $this->lootItemTemplateMemo[$key]; }
+        if ( count( $this->lootItemTemplateMemo ) >= 256 ) { return null; }
+        $this->lootItemTemplateMemo[$key] = null;
+        $services = MediaWikiServices::getInstance();
+        $visited = [];
+        for ( $hop = 0; $hop < 8; $hop++ ) {
+            $pageKey = $title->getNamespace() . ':' . $title->getDBkey();
+            if ( isset( $visited[$pageKey] ) || !in_array( $title->getNamespace(), [ NS_MAIN, NS_TEMPLATE ], true ) || $title->isExternal() || $title->getFragment() ) { return null; }
+            $visited[$pageKey] = true;
+            $this->maybePause();
+            $text = $this->publicLootText( $title, $wikiPageFactory->newFromTitle( $title ) );
+            if ( $text === null ) { return null; }
+            $redirect = $services->getRedirectLookup()->getRedirectTarget( $title );
+            if ( $redirect ) {
+                $title = $services->getTitleFactory()->newFromLinkTarget( $redirect );
+                if ( !$title ) { return null; }
+                continue;
+            }
+            $itemName = $this->lootItemTemplateTarget( $text );
+            if ( $itemName === null ) { return null; }
+            $target = $this->resolveLootTitle( $itemName, $wikiPageFactory );
+            if ( !$target['public'] || !$target['complete'] ) { return null; }
+            return $this->lootItemTemplateMemo[$key] = $target['title'];
+        }
+        return null;
+    }
+
+    /** Explicit Gear Set members only; prose and name prefixes never imply membership. */
+    private function loadLootSets( $dbr, $wikiPageFactory ): void {
+        $raw = [];
+        $rows = $dbr->select( [ 'page', 'tl' => 'templatelinks', 'lt' => 'linktarget' ],
+            [ 'page_id', 'page_title' ],
+            [ 'page_namespace' => NS_MAIN, 'page_is_redirect' => 0, 'lt.lt_namespace' => NS_TEMPLATE, 'lt.lt_title' => 'Gear_Set' ],
+            __METHOD__, [ 'DISTINCT', 'ORDER BY' => 'page_id ASC', 'LIMIT' => 5001 ],
+            [ 'tl' => [ 'INNER JOIN', 'tl.tl_from = page_id' ], 'lt' => [ 'INNER JOIN', 'tl.tl_target_id = lt.lt_id' ] ] );
+        foreach ( $rows as $row ) {
+            if ( count( $raw ) >= 5000 ) { $this->lootCounts->incomplete(); break; }
+            $title = Title::makeTitle( NS_MAIN, $row->page_title );
+            $this->maybePause();
+            $text = $this->publicLootText( $title, $wikiPageFactory->newFromTitle( $title ) );
+            if ( $text === null ) { $this->lootCounts->incomplete(); continue; }
+            $complete = true;
+            $members = EqlNpcLootWikitext::globalGearSetItems( $text, $complete );
+            if ( $members === null && $complete ) { continue; }
+            if ( $members === null ) { $complete = false; $members = []; }
+            $raw[$title->getText()] = [ 'items' => $members, 'complete' => $complete ];
+        }
+        $expanded = [];
+        $visits = 0;
+        $expand = function ( string $name, array $visited = [] ) use ( &$expand, &$expanded, &$visits, $raw, $wikiPageFactory ): array {
+            if ( ++$visits > 200000 || isset( $visited[$name] ) || count( $visited ) >= 8 ) { return [ 'items' => [], 'complete' => false ]; }
+            if ( isset( $expanded[$name] ) ) { return $expanded[$name]; }
+            $visited[$name] = true;
+            $result = [ 'items' => [], 'complete' => $raw[$name]['complete'] ];
+            foreach ( $raw[$name]['items'] as $member ) {
+                $target = $this->resolveLootTitle( $member, $wikiPageFactory );
+                if ( !$target['public'] || !$target['complete'] ) { $result['complete'] = false; continue; }
+                if ( isset( $raw[$target['title']] ) ) {
+                    $nested = $expand( $target['title'], $visited );
+                    $result['complete'] = $result['complete'] && $nested['complete'];
+                    $names = $nested['items'];
+                } else { $names = [ $target['title'] ]; }
+                foreach ( $names as $item ) {
+                    if ( count( $result['items'] ) >= 1000 && !isset( $result['items'][$item] ) ) { $result['complete'] = false; break 2; }
+                    $result['items'][$item] = $item;
+                }
+            }
+            $result['items'] = array_values( $result['items'] );
+            sort( $result['items'], SORT_STRING );
+            return $expanded[$name] = $result;
+        };
+        foreach ( $raw as $name => $_ ) { $this->lootSets[$name] = $expand( $name ); }
+        ksort( $this->lootSets, SORT_STRING );
     }
 
     private function resolveLootTitle( string $name, $wikiPageFactory ): array {
