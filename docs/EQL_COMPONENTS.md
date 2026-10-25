@@ -287,6 +287,10 @@ from item screenshots, not published game formulas. Important contracts:
   The [engine guide](../extensions/ItemLevelSlider/README.md) records the
   screenshot evidence and the unresolved Vambraces AC observation; do not add
   an item-specific exception or infer a new base value from it.
+- Rules revision 3 retains the weight curve and display ceiling, but calculates
+  whole-rank decimal boundaries with checked integer remainders. This prevents
+  floating-point residue from adding a tenth (base 2.5 at rank 8 is 0.7).
+  Nonzero fractional ranks keep the existing logarithmic calculation.
 - Generated SV Void requires two distinct known primary or HP/Mana/End regen
   fields, including known zero fields. AC, HP, Mana and Endurance qualify
   alongside attributes and the five ordinary resists. Haste, Attack, weapon
@@ -462,7 +466,12 @@ preserves the existing pack; source-only synthetic wrapper coverage lives in
 
 The producer exports explicit usable class codes for Itembox `Class: ALL except`
 restrictions. `ALL` means unrestricted, `NONE` means no playable class, and an
-empty class list means missing/unknown metadata. Its zone catalog resolves exact
+empty class list means missing/unknown metadata. Literal weapon stat fields
+export `BACKSTAB_DMG` for `BACKSTAB`/`Backstab DMG`/`Backstab Damage`, `DELAY`
+for `Delay`/`Atk Delay`/`Attack Delay`, and `DMG_BONUS` for the written damage
+bonus aliases. Explicit zero values survive; missing fields are not inferred
+from damage or tier. A filtered dataset rebuild is required to deliver these
+fields to clients. Its zone catalog resolves exact
 wiki category, field, and title-suffix aliases while retaining existing canonical
 viewer names. Recognized explicit NPC template zones take precedence and retain
 all listed zones; categories are a fallback, then the article-title suffix.

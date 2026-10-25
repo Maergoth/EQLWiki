@@ -57,8 +57,19 @@ Only standalone weapon DMG scales. Elemental/bane DMG, delay and damage bonus
 remain independent. Generated damage bonuses still belong to `Template:Itembox`.
 Backstab and fractional Accuracy remain screenshot-derived working models, not
 published game formulas. Matching the wiki does not turn them into verified
-game mechanics. Preserve the existing ceiling/rounding behavior, including
-floating-point weight boundaries, until a reviewed change updates both clients.
+game mechanics. Preserve the reviewed rates and ceiling/rounding policy when
+updating both clients.
+
+Rules revision 3 corrects arithmetic at exact decimal weight boundaries without
+changing the 9% reduction or ceiling to one decimal place. Whole ranks evaluate
+the decimal base/rate with checked safe-integer numerators and denominators;
+integer remainders determine the ceiling without an epsilon or premature
+rounding. Weight 2.5 becomes 0.7 at rank 8 and 0.3 at rank 10; weight 1 becomes
+0.1 at rank 10, and weight 5 becomes 4.1 at rank 2. A genuinely fractional
+display tenth still rounds upward. Nonzero fractional ranks retain the existing
+logarithmic curve, and values beyond safe integer arithmetic retain the numeric
+fallback. This is an arithmetic correction; engine version 1 and all coefficient
+values remain unchanged.
 
 Rules revision 2 corrects positive primary stats above 10 to
 `floor(B + B * (rank + fraction / 2^rank) / 10)`. Current wiki values are assumed
@@ -94,7 +105,7 @@ Update fixtures only against evidence for an intentional formula change.
 A new engine contract or scaling family needs a new supported `engineVersion`
 plus compatible client code. A reviewed correction within the existing contract
 increments the rules revision and changes the recorded engine hash together;
-revision 2 retains engine version 1. Synchronize the app's vendored engine/rules using its checked source-sync
+revisions 2 and 3 retain engine version 1. Synchronize the app's vendored engine/rules using its checked source-sync
 script, record the wiki commit and source hashes, then ship a new app version.
 Both coefficient and algorithm changes follow this release process. Do not add
 runtime formula checks or a second hand-maintained implementation in a consumer.

@@ -161,7 +161,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Todo UI | `node ops/test-todo-ui.cjs` | jsdom; confirmation, page/section identities, deduplication, sanitized notes, progress, collapse, reload and editor retention |
 | Selected-text search | `node ops/test-selection-search.cjs` | jsdom; article-only selection, URL/label safety, bounds, dismissal and frame scheduling |
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
-| Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
+| Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, literal Backstab/delay/damage-bonus aliases and zero overrides, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
 | Global item loot classification | `php ops/test-eoz-loot-counts.php` | Synthetic public-revision/permission/redirect service doubles and actual producer helpers; five/six distinct mobs, all zones/instances, Common/Unique fields, statless materials and redlinked items, aliases/IDs, pets, hidden pages, bounded incomplete results. No wiki/database/pack writes |
 | Typed contribution coverage | `php ops/test-eoz-relationship-coverage.php` and `php ops/test-contribution-coverage.php` | Affected-field positive facts/capabilities, finite pools and conditional uncertainty, nested/formatted zone summary cells, DynamicZoneList category consumers, instance boundaries and limits. No wiki/database/pack writes |
 | Public zone admission | `php ops/test-dynamic-zone-admission.php` | Actual SpecialPage entry and synthetic anonymous permissions/current revisions, exact Category:Zones joins, legacy names, namespace/redirect/protected-source/size refusal and new titles longer than forty bytes; no wiki writes |
@@ -255,6 +255,12 @@ gives 71. The first two distinguish floor from rounding; the third distinguishes
 fractional from whole-rank progress. The pure engine and DOM fixtures use literal
 observations for these cases, plus negative-penalty preservation. The engine
 guide retains the unresolved Vambraces AC 15/rank 3/displayed 16 discrepancy.
+Revision 3 fixes whole-rank decimal weight ceiling boundaries without changing
+rates: check base 2.5 at ranks 8/10 gives 0.7/0.3, base 1 at rank 10 gives 0.1,
+and base 5 at rank 2 gives 4.1. Genuine fractional tenths still ceil upward;
+nonzero rank fractions retain the existing logarithmic curve. The pure fixture
+uses an independent integer oracle over all base tenths through 100 and ranks
+0–10, plus decimal rate/precision variants and fractional-state preservation.
 The same revision corrects Void eligibility to count all primary fields and
 HP/Mana/End regen. Check base AC 2/HP 12/STR 3 and three regen fields of 2 each
 generate Void 5 at rank 5 and hide it on reset. One STR alongside DMG/Backstab,
