@@ -420,6 +420,10 @@ nowiki/pre text, underscore word boundaries and unexpanded templates. Verify
 anonymous permission and current public main-slot revisions before exporting a
 marker. The top-level map survives missing rich stats and each rich mirror uses
 the same public title/revision. No article edits or template expansion are needed.
+The item exception requires positive proof of a finite nonzero bonus stat in a
+balanced literal Itempage statsblock. Test positive and negative bonuses, Void,
+AC-only and damage-only weapons, zero values, context/unknown fields and protected
+examples. A missing parse is never a bonus-stat proof; NPC/zone rules remain generic.
 
 Raid tests must include an uncatalogued future zone, nested/sibling headings,
 normal and raid variants with the same NPC name, an explicit raid-only boss,

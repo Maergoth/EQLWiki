@@ -74,7 +74,7 @@ class BuildEyeOfZommPack extends Maintenance {
         $this->pauseUs = $pauseMs * 1000;
         $limit = max( 0, (int)$this->getOption( 'limit', 0 ) );
         $this->lootCounts = new EqlItemLootSourceCounts();
-        if ( !method_exists( EqlNpcLootWikitext::class, 'automaticSourceOptOut' ) ) {
+        if ( !method_exists( EqlNpcLootWikitext::class, 'automaticSourceOptOut' ) || !method_exists( EqlNpcLootWikitext::class, 'itemHasNonAcStats' ) ) {
             throw new RuntimeException( 'The matching NPC parser automatic-contribution policy helper is required.' );
         }
         if ( $limit > 0 ) { $this->lootCounts->incomplete(); }
@@ -651,7 +651,7 @@ class BuildEyeOfZommPack extends Maintenance {
         try {
             $text = $this->publicLootText( $title, $page );
             if ( $text === null ) { $this->lootCounts->incomplete(); return; }
-            $this->rememberAutomaticContributionPolicy( $title, $page, $text );
+            $this->rememberAutomaticContributionPolicy( $title, $page, $text, $kind );
             // Manually categorized redirects are candidates too. Resolve their
             // targets later; their own page IDs never identify another mob.
             if ( MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) { return; }
@@ -674,12 +674,13 @@ class BuildEyeOfZommPack extends Maintenance {
     }
 
     /** Store only bounded public provenance, never source text or private policy. */
-    private function rememberAutomaticContributionPolicy( Title $title, $page, ?string $publicText = null ): void {
+    private function rememberAutomaticContributionPolicy( Title $title, $page, ?string $publicText = null, string $kind = '' ): void {
         try {
             $text = $publicText ?? $this->publicLootText( $title, $page );
             $revision = $page->getRevisionRecord();
             $id = $revision ? (int)$revision->getId() : 0;
-            if ( $id > 0 && $text !== null && EqlNpcLootWikitext::automaticSourceOptOut( $text ) ) {
+            if ( $kind === 'item' && $text !== null && EqlNpcLootWikitext::itemHasNonAcStats( $text ) ) { unset( $this->automaticContributionPolicies[$title->getText()] ); }
+            if ( $id > 0 && $text !== null && EqlNpcLootWikitext::automaticSourceOptOut( $text, $kind ) ) {
                 $this->automaticContributionPolicies[$title->getText()] = [
                     'schemaVersion' => 1, 'blocked' => true, 'reason' => 'various', 'revisionId' => $id,
                 ];

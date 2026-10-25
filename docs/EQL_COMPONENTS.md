@@ -467,6 +467,13 @@ an unclosed remainder), normalizes underscores and tests the case-insensitive
 whole word Various in unexpanded authored source. Literal nowiki/pre words count;
 transcluded output is never consulted. This is an automatic-contribution opt-out,
 not a removal of existing spawn/loot facts or permission to extend a group.
+For an item target only, proven nonzero bonus stats bypass that marker:
+attributes, HP/mana/endurance, resists (including Void), regeneration, attack
+and haste. The helper requires exactly one balanced Itempage and a literal
+statsblock. AC, all weapon damage fields, delay, range, weight, context numbers,
+unknown fields and effects alone cannot provide the exception. NPC and zone
+opt-outs are unchanged. The Howling Stones catalog record uses its actual wiki
+destination, `Howling Stones`, while retaining its existing viewer name and alias.
 Unknown zones remain unmapped unless a categorized zone article with a Raid
 Instance section establishes a new canonical zone. NPC locations keep the wiki's
 displayed `Y, X, Z` order. Source-only synthetic coverage lives in

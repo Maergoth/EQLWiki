@@ -260,7 +260,7 @@ namespace {
         public function catalog() { return $this->lootCounts->catalog(fn($name) => $this->resolve($name)); }
         public function aliases($npcs, $db) { return $this->enrichNpcRedirectAliases($npcs, $db, $GLOBALS["lootFactory"]); }
         public function policies() { return $this->automaticContributionPolicies; }
-        public function policy($name) { $title=\\MediaWiki\\Title\\Title::newFromText($name); $this->rememberAutomaticContributionPolicy($title,$GLOBALS["lootFactory"]->newFromTitle($title)); }
+        public function policy($name,$kind="") { $title=\\MediaWiki\\Title\\Title::newFromText($name); $this->rememberAutomaticContributionPolicy($title,$GLOBALS["lootFactory"]->newFromTitle($title),null,$kind); }
         ' . $methods . ' }' );
     $GLOBALS['lootPages'] = [
         'Public guardian' => [ 'id' => 20, 'text' => '{{Namedmobpage}}' ],
@@ -317,6 +317,18 @@ namespace {
     checkLootCount( $candidates->policies() === [ 'Public various NPC' => $policy, 'Public statless various item' => $policy,
         'Public various zone' => $policy, 'Public visible literal' => $policy, 'Public pre literal' => $policy,
         'Public invocation title' => $policy ], 'Automatic policies cover public statless/all entity sources without comments, expansion or private revisions' );
+    foreach ( [
+        [ 'Public HP item', 'HP: 5', false ], [ 'Public penalty item', 'STR: -1', false ],
+        [ 'Public void item', 'SV Void: 1', false ], [ 'Public attack item', 'ATK: 2', false ],
+        [ 'Public armor-only item', 'AC: 5<br>WT: 0.1', true ], [ 'Public weapon-only item', 'DMG: 20<br>Delay: 30', true ],
+        [ 'Public special-damage item', 'Backstab DMG: 15<br>Cold DMG: 3', true ],
+        [ 'Public context-only item', 'Range: 100<br>WT: 0.1', true ], [ 'Public zero item', 'HP: 0<br>AC: 5', true ],
+        [ 'Public unknown-stat item', 'Unknown: 40', true ], [ 'Public protected-stat item', '<nowiki>HP: 5</nowiki>', true ],
+    ] as [ $name, $stats, $blocked ] ) {
+        $GLOBALS['lootPages'][$name] = [ 'id' => 901, 'text' => '{{Itempage|statsblock=' . $stats . '|dropsfrom=Various}}', 'revision' => 56 ];
+        $candidates->policy( $name, 'item' );
+        checkLootCount( isset( $candidates->policies()[$name] ) === $blocked, 'Only proven nonzero item bonus stats bypass Various: ' . $name );
+    }
     $candidates->remember( 'npc', 'Public alias' );
     checkLootCount( $candidates->resolve( 'Public alias' ) === [ 'title' => 'Public guardian', 'pageId' => 20, 'public' => true, 'complete' => true ], 'A categorized redirect candidate cannot preseed its own page ID as canonical' );
     $candidates->remember( 'npc', 'Public guardian' );

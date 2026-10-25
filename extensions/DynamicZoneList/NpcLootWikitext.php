@@ -20,9 +20,31 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** Literal authored ambiguity opts out of automatic enrichment; no expansion. */
-	public static function automaticSourceOptOut( string $source ): bool {
-		$source = preg_replace( '/<!--[\s\S]*?(?:-->|$)/', '', $source );
-		return preg_match( '/(?<![\p{L}\p{N}])various(?![\p{L}\p{N}])/iu', str_replace( '_', ' ', $source ) ) === 1;
+	public static function automaticSourceOptOut( string $source, string $kind = '' ): bool {
+		$literal = preg_replace( '/<!--[\s\S]*?(?:-->|$)/', '', $source );
+		$various = preg_match( '/(?<![\p{L}\p{N}])various(?![\p{L}\p{N}])/iu', str_replace( '_', ' ', $literal ) ) === 1;
+		return $various && !( $kind === 'item' && self::itemHasNonAcStats( $source ) );
+	}
+
+	/** Only proven literal bonus stats exempt an item; base weapon fields do not. */
+	public static function itemHasNonAcStats( string $source ): bool {
+		$document = self::document( $source );
+		if ( $document === null ) { return false; }
+		$items = array_values( array_filter( $document['templates'], static fn ( $template ) => $template['name'] === 'itempage' ) );
+		if ( count( $items ) !== 1 ) { return false; }
+		$stats = self::active( $items[0]['fields']['statsblock'] ?? '' );
+		$templates = self::roots( $stats );
+		if ( $templates === null ) { return false; }
+		foreach ( $templates as $template ) {
+			$stats = substr_replace( $stats, self::mask( substr( $stats, $template['start'], $template['end'] - $template['start'] ) ), $template['start'], $template['end'] - $template['start'] );
+		}
+		$stats = str_replace( [ '_', "'''", "''" ], [ ' ', '', '' ], preg_replace( '/<[^>]*>/', ' ', $stats ) );
+		$labels = 'HP|MANA|MP|END|ENDUR|ENDURANCE|STR|STA|AGI|DEX|WIS|INT|CHA|' .
+			'SV[ .]+(?:MAGIC|FIRE|COLD|POISON|DISEASE|CORRUPTION|VOID)|' .
+			'(?:HP|MANA|MP|END|ENDUR|ENDURANCE)[ ]+REGEN(?:ERATION)?|ATK|ATTACK|HASTE';
+		preg_match_all( '/(?<![A-Za-z0-9])(?:' . $labels . '):\s*([+\-]?[0-9]+(?:\.[0-9]+)?)(?=$|[\s%,;])/i', $stats, $matches );
+		foreach ( $matches[1] as $number ) { if ( is_finite( (float)$number ) && (float)$number != 0.0 ) { return true; } }
+		return false;
 	}
 
 	/** Template titles fold the first letter, not the rest of the page name. */
