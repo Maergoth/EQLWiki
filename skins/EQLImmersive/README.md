@@ -51,7 +51,7 @@ or update both producer and consumer when changing database templates.
 | Spell sections | `checkbox-lists.js` currently performs Category:Spells lazy loading; `spell-lazy-loader.js` stabilizes item hovers |
 | Game-page layouts | `mobpage.css`, `factionpage.css`, `spellpage.css`, `magelo.css`, item/spell/table styles |
 | Icon List | `icon-list.js/css`, database Icon List container, lightweight generated catalog |
-| Waypoint copying | `copy-waypoints.js/css`, inline coordinate buttons in rendered articles; copies `/loc` commands and refreshes with `wikipage.content` |
+| Waypoint copying | `copy-waypoints.js/css`, inline coordinate buttons in rendered articles; copies `/way` commands and refreshes with `wikipage.content` |
 | Upload workflow | `upload-purge.js`, `upload-converter.js`: return/purge tracking; no image re-encoding implementation |
 | Smaller controls | Announcements, Spellblade indicators, missing-image prompts, diagnostics and contribution links |
 
@@ -194,7 +194,7 @@ needs no database-page sync or private host/settings change.
 in article text, including signed decimals. Parenthesized tuples work without a
 label; plain tuples work in location/evacuation fields and standalone coordinate
 paragraphs, list entries and cells.
-Click or activate a coordinate with the keyboard to copy `/loc 107, -438`, in the
+Click or activate a coordinate with the keyboard to copy `/way 107, -438`, in the
 same coordinate order as displayed. Hover/focus is gold, and successful copying
 briefly replaces the coordinate with **Copied** without shifting the surrounding
 layout. Clipboard failures leave the original coordinate visible and announce
