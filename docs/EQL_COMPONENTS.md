@@ -40,7 +40,7 @@ Major custom skin behavior:
 
 - `resources/copy-waypoints.js/css` (`skins.EQLImmersive.waypoints`) enhances
   rendered article coordinate pairs/triples with accessible inline copy buttons.
-  Signed/decimal coordinates retain their displayed order and copy with `/loc`.
+  Signed/decimal coordinates retain their displayed order and copy with `/way`.
   Gold hover/focus and temporary **Copied** feedback are client-only; code,
   editors, diffs and ordinary links remain untouched. Single numeric `Template:Loc`
   links copy on normal clicks while retaining map/modified-click navigation. The `wikipage.content`
