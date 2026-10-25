@@ -2,12 +2,25 @@
 /** Source-only synthetic raid/presence exporter checks. No MediaWiki, DB or writes. */
 if ( PHP_SAPI !== 'cli' ) { exit( "CLI only.\n" ); }
 class Maintenance {}
+class SyntheticPublicRevision { public const FOR_PUBLIC = 1; }
+class_alias( SyntheticPublicRevision::class, 'MediaWiki\Revision\RevisionRecord' );
+class MediaWikiServices {
+    public static function getInstance() { return new class {
+        public function getUserFactory() { return new class { public function newAnonymous() { return 'anonymous'; } }; }
+        public function getPermissionManager() { return new class { public function userCan( $action, $user, $title ) {
+            if ( $action !== 'read' || $user !== 'anonymous' ) { throw new RuntimeException( 'Expected anonymous public proof.' ); }
+            return !( $GLOBALS['fixtures'][$title->getText()]['private'] ?? false );
+        } }; }
+        public function getRedirectLookup() { return new class { public function getRedirectTarget( $title ) { return null; } }; }
+    }; }
+}
 class Title {
     private string $text;
     public function __construct( string $text ) { $this->text = ucfirst( str_replace( '_', ' ', $text ) ); }
     public static function makeTitle( $namespace, string $text ): self { return new self( $text ); }
     public static function newFromText( string $text, $namespace = 0 ): self { return new self( $text ); }
     public function getText(): string { return $this->text; }
+    public function getArticleID(): int { return 123; }
     public function getNamespace(): int { return preg_match( '/^(?:File|Template|User|Talk|Category):/i', $this->text ) ? 1 : 0; }
     public function isExternal(): bool { return false; }
     public function getFragment(): string { return ''; }
@@ -72,6 +85,9 @@ $fixtures['Synthetic loot-only raid looter'] = [ 'text' => $withLoot( $npc( $zon
 $fixtures['Synthetic outer raid looter'] = [ 'text' => "= Raid Instance =\n" . $withLoot( $npc( $zone, 60 ), "* {{:Synthetic raid-only loot}}\n== Normal Instance ==\n* {{:Synthetic normal-only loot}}\n== Other drops ==\n* {{:Synthetic NPC-only wand}}" ) ];
 $fixtures['Synthetic various normal'] = [ 'text' => str_replace( '[[Various]]', 'Various', $npc( 'Various', 10 ) ) . "\n= Raid Instance =\n" . $npc( $zone, 60 ) ];
 $fixtures['Synthetic various raid'] = [ 'text' => $npc( $zone, 10 ) . "\n= Raid Instance =\n" . str_replace( '[[Various]]', 'Various', $npc( 'Various', 60 ) ) ];
+$fixtures['Synthetic contextual card'] = [ 'text' => str_replace( "\n}}", "\n|relatedquests=* [[Synthetic quest]]\n|foraged=* [[Synthetic Vale]]\n}}", $item( 'Synthetic contextual card', '' ) ) ];
+$fixtures['Synthetic omitted modifier'] = [ 'text' => str_replace( "\n}}", "\n|custom_modifier=Powerful\n}}", $item( 'Synthetic omitted modifier', '' ) ) ];
+$fixtures['Synthetic long card'] = [ 'text' => "{{Itempage\n|itemname=Synthetic long card\n|statsblock=" . implode( '<br>', array_fill( 0, 16, 'WT: 0.1' ) ) . "<br>Effect: Hidden at line seventeen\n|dropsfrom=\n}}" ];
 $factory = new class {
     public function newFromTitle( $title ) {
         return new class( $GLOBALS['fixtures'][$title->getText()] ?? null ) {
@@ -85,7 +101,19 @@ $factory = new class {
                     public function getText(): string { return $this->text; }
                 };
             }
-            public function getRevisionRecord() { return new class { public function getId(): int { return 123; } }; }
+            public function getRevisionRecord() { return new class( $this->fixture ) {
+                public function __construct( private ?array $fixture ) {}
+                public function getId(): int { return 123; }
+                public function getContent( $slot, $audience ) {
+                    if ( $slot !== 'main' || $audience !== SyntheticPublicRevision::FOR_PUBLIC ) { throw new RuntimeException( 'Expected public main slot.' ); }
+                    if ( !$this->fixture || ( $this->fixture['hidden'] ?? false ) ) { return null; }
+                    return new class( $this->fixture['publicText'] ?? $this->fixture['text'] ) {
+                        public function __construct( private string $text ) {}
+                        public function getModel(): string { return 'wikitext'; }
+                        public function getText(): string { return $this->text; }
+                    };
+                }
+            }; }
             public function getRedirectTarget() { return empty( $this->fixture['redirect'] ) ? null : Title::newFromText( $this->fixture['redirect'] ); }
         };
     }
@@ -134,6 +162,11 @@ $sourceTuples = static fn ( string $name ) => array_map(
     static fn ( $record ) => [ $record['zone'], $record['name'], $record['raidInstance'] ], $items[$name]['dropSources'] );
 $byTitle = static fn ( string $name ) => array_values( array_filter( $items, static fn ( $record ) => $record['wikiTitle'] === $name ) )[0];
 $npcDrops = static fn ( string $itemName, string $npcName ) => array_values( array_filter( $items[$itemName]['dropSources'], static fn ( $drop ) => $drop['name'] === $npcName ) );
+$expect( $items['Synthetic item']['contributionCard'], [ 'schemaVersion' => 1, 'complete' => true, 'questContext' => false ], 'Actual rich item exports complete bounded card proof' );
+$expect( $items['Synthetic contextual card']['contributionCard'], [ 'schemaVersion' => 1, 'complete' => true, 'questContext' => true ], 'The actual exporter preserves acquisition and quest-link context without declaring importance' );
+$expect( $items['Synthetic omitted modifier']['contributionCard']['complete'], false, 'An unexported custom modifier prevents quiet-card proof' );
+$expect( count( $items['Synthetic long card']['displayLines'] ), 16, 'Existing display-line bound remains sixteen' );
+$expect( $items['Synthetic long card']['contributionCard']['complete'], false, 'The actual exporter cannot hide line seventeen behind complete proof' );
 $expect( $byTitle( 'Synthetic canonical helm' )['dropSources'][0]['name'], 'Synthetic loot priest', 'NPC loot joins canonical item page despite a differing display name' );
 $expect( $byTitle( 'Synthetic display collision' )['dropSources'], [], 'An item display-name collision cannot replace another page identity' );
 $expect( $byTitle( 'Synthetic case charm' )['dropSources'][0]['name'], 'Synthetic case looter', 'First-letter and underscore normalization retains the canonical item' );
@@ -231,4 +264,12 @@ $expect( in_array( 'Synthetic skipped item', $presence['items'], true ), true, '
 $expect( in_array( 'Synthetic alternate item', $presence['items'], true ), true, 'Statless template alias remains present' );
 $expect( in_array( 'Synthetic public redirect', $presence['titles'], true ), true, 'Public redirect fallback' );
 $expect( strpos( $source, "'wikiEntitiesComplete' => \$limit === 0" ) !== false, true, 'Limited exports never authorize absence' );
+( new ReflectionProperty( $builder, 'lootCounts' ) )->setValue( $builder, new EqlItemLootSourceCounts() );
+$publicRow = (object)[ 'page_namespace' => 0, 'page_title' => 'Synthetic_contextual_card' ];
+$expect( $call( 'buildItemRecord', $factory, $publicRow, [] )['contributionCard']['complete'], true, 'Actual producer proof reads the matching anonymous current revision' );
+foreach ( [ 'private' => true, 'hidden' => true, 'publicText' => '{{Itempage|itemname=Different public revision}}' ] as $flag => $value ) {
+    $fixtures['Synthetic contextual card'][$flag] = $value;
+    $expect( $call( 'buildItemRecord', $factory, $publicRow, [] )['contributionCard']['complete'], false, 'Unreadable, suppressed or mismatched public content cannot grant complete card proof: ' . $flag );
+    unset( $fixtures['Synthetic contextual card'][$flag] );
+}
 echo "Raid/presence producer contracts passed: {$checks} synthetic checks.\n";
