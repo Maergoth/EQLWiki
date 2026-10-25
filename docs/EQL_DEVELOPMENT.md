@@ -430,8 +430,21 @@ The fixture evaluates actual exporter methods with synthetic page objects;
 it does not bootstrap MediaWiki or prove live database coverage.
 Global count regressions also cover duplicate merchant `items_sold` parameters
 at the five/six-monster boundary. Only the explicit global-export parser option
-accepts duplicate non-loot NPC parameters with final-value semantics. Duplicate
-loot fields, unknown loot wrappers and default renderer/helper calls stay strict.
+accepts repeated exact static NPC parameters with final-value semantics,
+including an earlier blank loot field shadowed by a later list. Case-colliding
+or dynamic parameter names and unclosed markup stay incomplete; a stray closing
+brace outside every card is literal text. Default renderer/helper calls retain
+their strict behavior.
+Global exports recognize the reviewed static metadata templates `Chardok Revamp
+Era Inline`, `Item Lore`, `Unconfirmed Itemlist`, `P1999`, `Era Short`, and
+`Lootcheck`, without counting their badge/lore output as items. Unknown wrappers
+remain incomplete. A zero-argument legacy item template requires independent
+public current-revision verification of its literal unconditional item hover;
+case-distinct template names never share that proof.
+Explicit top-level `Gear Set` members export as `lootSets` and expand NPC set
+references into member source counts. Regressions cover a sixth source supplied
+by a set, direct/set and nested-set deduplication, aliases, incomplete sets,
+cycles and expansion limits. Set titles do not become fictitious item entries.
 An approved source deployment and subsequent dataset rebuild/publication are
 separate release steps, described in [PROJECT.md](../PROJECT.md#existing-scheduled-jobs).
 Do not use a production export as a routine test or commit database snapshots,
