@@ -61,13 +61,13 @@ function fixture( html, options = {} ) {
         <span class="loc-link" data-zone="Town" data-loc="10, -20"><a id="alias-anchor" href="/Town">Loom</a></span>
     ` );
     const find = id => f.root.querySelector( '#' + id );
-    assert.equal( find( 'example' ).querySelector( 'button' ).dataset.eqlWaypoint, '/loc 107, -438' );
-    assert.equal( find( 'decimal' ).querySelector( 'button' ).dataset.eqlWaypoint, '/loc -10.25, +20, .5' );
+    assert.equal( find( 'example' ).querySelector( 'button' ).dataset.eqlWaypoint, '/way 107, -438' );
+    assert.equal( find( 'decimal' ).querySelector( 'button' ).dataset.eqlWaypoint, '/way -10.25, +20, .5' );
     assert.equal( find( 'multiple' ).querySelectorAll( 'button' ).length, 2, 'Separate tuples stay separate' );
-    assert.equal( find( 'plain' ).querySelector( 'button' ).dataset.eqlWaypoint, '/loc 107, -438' );
-    assert.equal( find( 'sentence' ).querySelector( 'button' ).dataset.eqlWaypoint, '/loc 4, -5' );
-    assert.equal( find( 'evac' ).querySelector( 'button' ).dataset.eqlWaypoint, '/loc -644, 158' );
-    assert.equal( find( 'cell' ).querySelector( 'button' ).dataset.eqlWaypoint, '/loc 1.25, -2.5, 0' );
+    assert.equal( find( 'plain' ).querySelector( 'button' ).dataset.eqlWaypoint, '/way 107, -438' );
+    assert.equal( find( 'sentence' ).querySelector( 'button' ).dataset.eqlWaypoint, '/way 4, -5' );
+    assert.equal( find( 'evac' ).querySelector( 'button' ).dataset.eqlWaypoint, '/way -644, 158' );
+    assert.equal( find( 'cell' ).querySelector( 'button' ).dataset.eqlWaypoint, '/way 1.25, -2.5, 0' );
     assert( find( 'split' ).querySelector( 'button em' ), 'Inline markup survives' );
     for ( const id of [ 'thousands', 'four', 'unknown', 'ordinary-link', 'alias-anchor' ] ) {
         assert.equal( find( id ).querySelectorAll( '.eql-copy-waypoint' ).length, 0, id );
@@ -81,12 +81,12 @@ function fixture( html, options = {} ) {
     f.refresh(); f.refresh( { toArray: () => [ f.root ] } );
     assert.equal( f.buttons().length, count, 'Repeated hooks do not duplicate controls' );
     const added = f.w.document.createElement( 'p' ); added.textContent = 'Location: (8, -9)'; f.root.appendChild( added ); f.refresh( added );
-    assert.equal( added.querySelector( 'button' ).dataset.eqlWaypoint, '/loc 8, -9' );
+    assert.equal( added.querySelector( 'button' ).dataset.eqlWaypoint, '/way 8, -9' );
     const button = find( 'example' ).querySelector( 'button' );
     button.click(); await f.flush();
-    assert.equal( f.copied.at( -1 ), '/loc 107, -438' );
+    assert.equal( f.copied.at( -1 ), '/way 107, -438' );
     assert( button.classList.contains( 'is-copied' ) );
-    assert.equal( button.querySelector( '[role="status"]' ).textContent, 'Copied /loc 107, -438' );
+    assert.equal( button.querySelector( '[role="status"]' ).textContent, 'Copied /way 107, -438' );
     f.expire(); assert.equal( button.classList.contains( 'is-copied' ), false );
     assert.equal( button.querySelector( '.eql-copy-waypoint-value' ).textContent, '(107, -438)' );
     const waypoint = find( 'loc-anchor' );
@@ -94,7 +94,7 @@ function fixture( html, options = {} ) {
     assert.equal( find( 'map-anchor' ).getAttribute( 'href' ), '/Map' );
     const click = new f.w.MouseEvent( 'click', { bubbles: true, cancelable: true } );
     waypoint.dispatchEvent( click ); await f.flush();
-    assert( click.defaultPrevented ); assert.equal( f.copied.at( -1 ), '/loc -3648, 2043' );
+    assert( click.defaultPrevented ); assert.equal( f.copied.at( -1 ), '/way -3648, 2043' );
     const modified = new f.w.MouseEvent( 'click', { bubbles: true, cancelable: true, ctrlKey: true } );
     waypoint.dispatchEvent( modified ); assert.equal( modified.defaultPrevented, false );
     f.close();
@@ -103,7 +103,7 @@ function fixture( html, options = {} ) {
         const c = fixture( '<p>(107, -438)</p>', options );
         c.buttons()[ 0 ].click(); await c.flush();
         assert.equal( c.buttons()[ 0 ].classList.contains( 'is-copied' ), Boolean( options.fallback ) );
-        if ( options.fallback ) { assert.equal( c.copied.at( -1 ), '/loc 107, -438' ); }
+        if ( options.fallback ) { assert.equal( c.copied.at( -1 ), '/way 107, -438' ); }
         else { assert.match( c.buttons()[ 0 ].querySelector( '[role="status"]' ).textContent, /Could not copy/ ); }
         assert.equal( c.w.document.querySelector( 'textarea' ), null, 'Fallback cleans up its field' );
         c.close();
