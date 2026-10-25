@@ -124,8 +124,9 @@ namespace {
 
 	$manifest = json_decode( file_get_contents( __DIR__ . '/../skins/EQLImmersive/skin.json' ), true, 512, JSON_THROW_ON_ERROR );
 	$expect( $manifest['callback'] ?? null, DeploymentAssets::class . '::onRegistration', 'The active skin invokes the deployment asset callback during configuration.' );
-	$handlerName = $manifest['Hooks']['OutputPageCheckLastModified'] ?? null;
-	$expect( $manifest['HookHandlers'][$handlerName]['class'] ?? null, DeploymentAssets::class, 'The active skin wires activation timestamps through the supported page-cache hook.' );
+	$handlerNames = (array)( $manifest['Hooks']['OutputPageCheckLastModified'] ?? [] );
+	$handlerClasses = array_map( static fn ( $name ) => $manifest['HookHandlers'][$name]['class'] ?? null, $handlerNames );
+	$expect( in_array( DeploymentAssets::class, $handlerClasses, true ), true, 'The active skin retains activation timestamps alongside other page-cache hook handlers.' );
 	$expect( $manifest['AutoloadNamespaces']['EQLImmersive\\'] ?? null, 'includes/', 'The callback and hook class use the registered skin namespace.' );
 	echo "Deployment assets: {$checks} source-only URL, activation, configuration and registration checks passed.\n";
 }

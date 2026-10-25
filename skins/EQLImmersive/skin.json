@@ -102,14 +102,19 @@
         },
         "EQLImmersiveHooks": {
             "class": "EQLImmersive\\Hooks"
+        },
+        "EQLHomepageCache": {
+            "class": "EQLImmersive\\HomepageCache"
         }
     },
     "Hooks": {
-        "OutputPageCheckLastModified": "EQLDeploymentAssets",
+        "OutputPageCheckLastModified": [ "EQLDeploymentAssets", "EQLHomepageCache" ],
         "SkinTemplateNavigation::Universal": "EQLImmersiveHooks",
         "SkinBuildSidebar": "EQLImmersiveHooks",
-        "BeforePageDisplay": "EQLImmersiveHooks",
-        "ParserAfterParse": "EQLImmersiveHooks"
+        "BeforePageDisplay": [ "EQLImmersiveHooks", "EQLHomepageCache" ],
+        "ParserAfterParse": [ "EQLImmersiveHooks", "EQLHomepageCache" ],
+        "RejectParserCacheValue": "EQLHomepageCache",
+        "PageSaveComplete": "EQLHomepageCache"
     },
     "ResourceModules": {
         "skins.EQLImmersive.waypoints": {
