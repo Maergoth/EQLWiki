@@ -45,7 +45,9 @@ Engines expose:
   Accuracy is preserved.
 - `weaponEligible(stats, slots)`, `accuracyBonus(full, fraction)`,
   `voidEligible(statsOrKeys)` and `voidBonus(statsOrKeys, full)`. Distinct known
-  zero-valued attributes/resists qualify for Void; unknown values do not.
+  primary or HP/Mana/End regen fields qualify for Void, including known zero
+  values; unknown values do not. Two qualifying fields grant +1 Void per whole
+  rank. Haste, Attack, weapon DMG, Backstab, delay and weight are excluded.
 - `scaleItemStats(stats, full, {fraction, slots, accuracyPercent})` preserves
   input keys, generates missing contextual Accuracy/Void only above tier zero,
   and preserves existing explicit Void values. The wiki DOM adapter also
@@ -66,6 +68,15 @@ Russet Boots AC 14 at `6 + 5/64` becomes 22; rounding the increase would produce
 fractional progress from whole-rank scaling, which gives 70. Positive primary
 values from 1 through 10 still gain the whole rank. Negative penalties retain
 their existing rounding because these screenshots contain no negative example.
+
+Revision 2 also includes all primary fields (AC, HP, Mana, Endurance,
+attributes and the five ordinary resists) plus HP/Mana/End regen in the two-field
+Void eligibility check. Diamondine Earring's base AC 2, HP 12 and STR 3 grant
+Void 5 at rank 5; Talisman of Kejaar Kerrath's three base regen fields of 2 do
+likewise. Serpent's Tooth has only one qualifying field, STR 3, and Glowing Iron
+Pike has none: their DMG/Backstab/delay do not qualify. An AC field alone also
+does not qualify. This correction changes eligibility, not the two-field
+threshold, whole-rank bonus or existing explicit Void handling.
 
 One observation remains unresolved: Lustrous Russet Vambraces at `3 + 0/8`
 displays AC 16, while its current [base AC 15, revision 177316](https://eqlwiki.com/index.php?title=Lustrous_Russet_Vambraces&oldid=177316)
