@@ -326,6 +326,36 @@ final class EqlNpcLootWikitext {
 		return $members;
 	}
 
+	/** One literal /who name from the normal overview; raid cards cannot supply normal aliases. */
+	public static function normalZoneWhoAliases( string $source ): array {
+		$document = self::document( $source );
+		if ( $document === null ) { return []; }
+		$active = self::active( $source );
+		preg_match_all( '/^[ \t]*(\{\|[^\r\n]*|\|\})[^\r\n]*\r?$/m', $active, $markers, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+		$stack = []; $values = [];
+		foreach ( $markers as $marker ) {
+			if ( str_starts_with( $marker[1][0], '{|' ) ) { $stack[] = $marker; continue; }
+			if ( !$stack ) { return []; }
+			$start = array_pop( $stack );
+			if ( !preg_match( '/\bzoneTopTable\b/', $start[0][0] ) || self::instanceAt( $document['outline'], $start[0][1], 'normal' ) !== 'normal' ) { continue; }
+			foreach ( $document['templates'] as $template ) {
+				if ( $start[0][1] >= $template['start'] && $start[0][1] < $template['end'] ) { return []; }
+			}
+			$table = substr( $active, $start[0][1], $marker[0][1] - $start[0][1] );
+			preg_match_all( '/^![ \t]*([^\r\n]+)\r?\n\|[ \t]*([\s\S]*?)(?=^\|-|\z)/m', $table, $rows, PREG_SET_ORDER );
+			foreach ( $rows as $row ) {
+				$label = trim( str_replace( [ "'''", "''" ], '', trim( $row[1] ) ), " \t:" );
+				if ( strcasecmp( $label, 'Name in /who' ) !== 0 ) { continue; }
+				$values[] = trim( $row[2] );
+			}
+		}
+		if ( $stack || count( $values ) !== 1 ) { return []; }
+		$value = $values[0];
+		if ( !preg_match( '/^[A-Za-z][A-Za-z0-9 _\'-]{0,95}$/D', $value ) ||
+			preg_match( '/^(?:zone name|city name|unknown|none|n\/a)$/i', $value ) ) { return []; }
+		return [ $value ];
+	}
+
 	/** Existing zone summary cells and dynamic category consumers, never whole-page prose. */
 	public static function zoneContributionCoverage( string $source ): array {
 		$result = [ 'schemaVersion' => 1, 'kind' => 'zone', 'state' => 'unsupported', 'complete' => false,
@@ -458,6 +488,41 @@ final class EqlNpcLootWikitext {
 			$bounded = false;
 		}
 		if ( count( $items ) > 1000 ) { $bounded = false; $items = array_slice( $items, 0, 1000 ); }
+		return $items;
+	}
+
+	/** A public self-labelled stub bounds uncertainty to its own identity, not positive loot. */
+	public static function literalSourceLeaf( string $source, string $title ): bool {
+		if ( strlen( $source ) > self::MAX_BYTES || preg_match( '//u', $source ) !== 1 ) { return false; }
+		$text = trim( preg_replace( '/<!--[\s\S]*?(?:-->|$)/', '', $source ) );
+		if ( $text === '' || preg_match( '/[{}\[\]<>\r\n]/', $text ) ) { return false; }
+		$name = self::title( $title, true );
+		return $name !== null && self::title( $text, true ) === $name;
+	}
+
+	/** Reviewed catalog closure supplies possible members only, never item-drop facts. */
+	public static function reviewedSourceDomainItems( string $source, string $introSha256, ?bool &$bounded = null ): array {
+		$bounded = false;
+		if ( strlen( $source ) > self::MAX_BYTES || preg_match( '//u', $source ) !== 1 ||
+			!preg_match( '/^[a-f0-9]{64}$/', $introSha256 ) ) { return []; }
+		$active = preg_replace( '/<!--[\s\S]*?(?:-->|$)/', '', $source );
+		if ( preg_match( '~</?(?:nowiki|pre|source|syntaxhighlight|ref|code)\b~i', $active ) ) { return []; }
+		$start = strpos( $active, '<ul>' );
+		if ( $start === false ) { return []; }
+		$intro = trim( preg_replace( '/[\s\p{Z}]+/u', ' ', substr( $active, 0, $start ) ) );
+		if ( hash( 'sha256', $intro ) !== $introSha256 ) { return []; }
+		$body = substr( $active, $start );
+		$entry = '<li>\s*\{\{\s*:\s*[^{}|#\r\n]+\s*\}\}\s*</li>\s*';
+		if ( !preg_match( '~\A(?:<ul>\s*(?:' . $entry . ')+</ul>\s*)+\z~', $body ) ) { return []; }
+		preg_match_all( '/\{\{\s*:\s*([^{}|#\r\n]+?)\s*\}\}/', $body, $matches );
+		if ( !$matches[1] || count( $matches[1] ) > 1000 ) { return []; }
+		$items = [];
+		foreach ( $matches[1] as $name ) {
+			$title = self::title( $name, true );
+			if ( $title === null ) { return []; }
+			self::unique( $items, $title );
+		}
+		$bounded = true;
 		return $items;
 	}
 
