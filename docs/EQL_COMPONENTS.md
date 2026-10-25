@@ -238,15 +238,19 @@ level, and delay capped at 50. Generation requires PRIMARY, a supported melee sk
 positive standalone DMG/DAMAGE, and positive Atk Delay. An existing DMG Bonus,
 Dmg Bon, Damage Bonus, or Damage Bon field wins regardless of case or value
 (including zero). Generated values carry `.eql-generated-damage-bonus`, use
-listed base stats, and remain independent of the item-rank slider like Backstab.
+listed base stats, and remain independent of the item-rank slider.
 They are rendered defaults, never written into item articles. Publishing requires
 the guarded [`sync-itembox.php`](../ops/sync-itembox.php); application deployment
 alone does not update the template. See the [development guide](EQL_DEVELOPMENT.md)
 for read-only parser checks and [operations guide](../PROJECT.md) for publication.
 
-[`ItemLevelSlider`](../extensions/ItemLevelSlider/) loads its module broadly and
-attaches to compatible item markup. Source formulas are in `itemlevelslider.js`;
-do not infer them from a displayed slider position. Important contracts:
+[`ItemLevelSlider`](../extensions/ItemLevelSlider/) loads `ext.itemLevelSlider`
+broadly through legacy PHP registration and attaches to compatible item markup.
+Source formulas are in `itemlevelslider.js`; do not infer them from a displayed
+slider position. Backstab scaling and weapon accuracy were introduced in the
+official [September 22, 2026 patch notes](https://www.everquestlegends.com/patch-notes/eql-update-notes-9-22-2026).
+The exact rates and fractional-progress curves below are working models inferred
+from item screenshots, not published game formulas. Important contracts:
 
 - `.itemtopbg` followed by `.itembg .itemdata` and `.itembotbg`; original stats
   are retained in `data-ils-*`. Dynamic content can call
@@ -255,8 +259,22 @@ do not infer them from a displayed slider position. Important contracts:
   bonus span or wraps an existing plain-text bonus in `.ils-damage-bonus`, retaining
   its label, value, and level annotation. Rank changes leave the bonus unchanged.
 - Levels cap at 10; fractions use `2^fullLevel`, with a compressed visual slider
-  curve. Standalone weapon damage scales; elemental/bane/backstab damage and
-  weapon delay do not. Every listed `Range:` value gains +10 per whole level,
+  curve. Standalone weapon damage scales; elemental/bane damage and weapon delay
+  do not. Positive `BACKSTAB`, `BACKSTAB DMG`, and `BACKSTAB DAMAGE` values use
+  `B + floor(B * effectiveRank / 20)`, where `B` is that field's original value
+  and `effectiveRank = fullLevel + fraction / 2^fullLevel`. Explicit Backstab
+  values remain independent of ordinary weapon DMG; zero/negative values stay
+  unchanged. Fractional Backstab interpolation remains provisional.
+- Melee and ranged weapon cards with positive standalone DMG gain an Accuracy
+  row inside `.itemdata`, near DMG/Ratio. AMMO-only cards are excluded. The gain
+  is `2.5 * log2(2^fullLevel + fraction)` percentage points, displayed with a `+`
+  and truncated down to one decimal with trailing `.0` removed. This reproduces
+  the screenshot values `+10.2%` at `4 + 1/16`, `+11.4%` at `4 + 8/16`,
+  `+12.9%` at `5 + 4/32`, and `+20%` at `8 + 1/256`; the fractional curve is
+  inferred. The generated row is hidden at rank zero.
+  Existing percentage Accuracy adds the gain to its original value; an existing
+  nonpercentage Accuracy field is preserved and suppresses a generated duplicate.
+- Every listed `Range:` value gains +10 per whole level,
   covering bows, throwing weapons (including those with melee skills), and ammo;
   fractional progress does not add range. Items without `Range:` gain no field.
   Negative penalties, weight, regen/haste, and eligible SV Void have distinct

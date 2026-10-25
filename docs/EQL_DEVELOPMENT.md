@@ -169,7 +169,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Icon result UI | `node ops/test-icon-finder-ui.cjs` | jsdom; 12-result batches, 100 reachable candidates, selected-alias copying, flyout formats/dismissal |
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
 | Spell rank caps | `node ops/test-spell-level-slider.cjs` | jsdom; categories, cap shorthand, split markup, base restoration, pets, and dynamic cards |
-| Item range ranks and bonus layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; bows, throwing weapons, ammo, fractional ranks, base restoration, dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
+| Item ranks and weapon stat layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; Backstab aliases and screenshot values, Accuracy eligibility/formatting, bows, throwing weapons, ammo, fractional ranks, base restoration, multiple/dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
 | Itembox damage bonus | `php maintenance/run.php ./ops/test-itembox.php` | Configured local wiki with ParserFunctions string functions and Variables; supplies the reviewed template in memory, parses synthetic cards, and saves no pages. Covers handedness, level-50 rounding, delay cap, explicit/zero overrides, Backstab, excluded items, and per-card isolation |
 | Interactive Character sheets | `php maintenance/run.php ./ops/test-character-sheet.php`, `node ops/test-character-sheet.cjs` and `node ops/build-character-sheet-templates.cjs --check` | Configured local wiki for unsaved two-template parser checks, observed modifiers/unknowns and distinct accuracy fields; jsdom for collapsed/keyboard/dynamic behavior. No page/account/upload writes; [separate publication contract](CHARACTER_SHEETS.md) |
 | Client observations | `php ops/test-eoz-observations.php`, PHP/JSON lint | Pure payload and transactional repository/API doubles: attribution, CSRF/POST declaration, dedup/conflicts, quotas/rollback. No schema installation or real account login; [activation is separate](CLIENT_API.md) |
@@ -230,9 +230,34 @@ line, delay line, and their own line, plus zero; no second bonus should appear.
 With the slider active, generated and plain-text explicit bonuses appear between
 DMG and Ratio. Check this order on narrow cards and after dynamic content refresh.
 Check article and item hover output on staging after the separately approved
-template publication. Item rank changes should leave this base-stat default
-unchanged, just as they leave Backstab unchanged. The parser fixture verifies
-template output, not live ResourceLoader, uploaded icons, or staging hovers.
+template publication. Item rank changes should leave the damage bonus's base-stat
+default unchanged. The parser fixture verifies template output, not live
+ResourceLoader, uploaded icons, or staging hovers.
+
+For ItemLevelSlider, check Backstab and Accuracy inside article and hover item
+frames at rank zero, a whole rank, and fractional progress. Backstab uses the
+original Backstab field independently of DMG; check `BACKSTAB`, `BACKSTAB DMG`,
+and `BACKSTAB DAMAGE`, including zero/negative values. Accuracy should appear
+for melee/ranged weapons with positive standalone DMG, excluding AMMO-only
+cards, and disappear on reset if the slider generated it. Existing percentage
+Accuracy adds the rank gain; existing nonpercentage Accuracy remains unchanged
+without a duplicate row. Check narrow cards, multiple cards, repeated refresh,
+and content inserted through `wikipage.content`.
+
+The working screenshot models are `B + floor(B * (fullLevel + fraction /
+2^fullLevel) / 20)` for Backstab and `2.5 * log2(2^fullLevel + fraction)`
+percentage points for Accuracy, truncated down to one decimal with trailing `.0`
+removed. Thornstinger at `5 + 4/32` should show Backstab 15 from base 12 and
+Accuracy `+12.9%`; Serpent's Tooth at `8 + 1/256` should show Backstab 18 from
+base 13 and Accuracy `+20%`. Bow of Underfoot at `4 + 1/16` should show
+Accuracy `+10.2%`; Staff of Elemental Mastery: Water at `4 + 8/16` should show
+`+11.4%`, which distinguishes truncation from rounding to `+11.5%`.
+Fractional Backstab interpolation and the fractional
+Accuracy curve remain inferred. The official
+[September 22, 2026 patch notes](https://www.everquestlegends.com/patch-notes/eql-update-notes-9-22-2026)
+confirm upgrade scaling for Backstab and Accuracy on melee/ranged weapons, but
+do not specify these formulas. These slider changes run in the filesystem
+ResourceLoader module and require no database-template publication.
 
 ## Optional anonymous talk contributions
 
