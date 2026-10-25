@@ -198,6 +198,8 @@ Their Last-Modified validation uses the same window, so a browser cannot keep an
 older document through repeated conditional 304 responses. The CDN lifetime is
 only lowered to the remaining window; existing private/no-store policies and
 shorter limits stay in force. Ordinary articles keep their normal cache behavior.
+These two pages bypass optional MediaWiki HTML file caching, whose responses are
+served before parser hooks and could otherwise outlive this freshness limit.
 
 Saving `News` immediately invokes MediaWiki's native Main Page purge, refreshing
 the home page's transcluded announcements without waiting for link-update jobs.

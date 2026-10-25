@@ -41,6 +41,7 @@ Major custom skin behavior:
 - [`HomepageCache.php`](../skins/EQLImmersive/includes/HomepageCache.php) bounds
   Main Page and main-namespace `News` parser output, conditional browser validation
   and CDN expiry to shared five-minute UTC windows, preserving private responses.
+  These two pages bypass optional HTML file caching so it cannot serve older output.
   Saving News immediately purges Main Page through native MediaWiki cache handling;
   no revisions, cron job or client polling. Existing announcement collapse/read
   markers remain local and independent. See the

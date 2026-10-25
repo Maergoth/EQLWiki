@@ -2,6 +2,7 @@
 
 namespace EQLImmersive;
 
+use MediaWiki\Cache\Hook\HTMLFileCache__useFileCacheHook;
 use MediaWiki\Hook\BeforePageDisplayHook;
 use MediaWiki\Hook\ParserAfterParseHook;
 use MediaWiki\Hook\RejectParserCacheValueHook;
@@ -15,7 +16,8 @@ final class HomepageCache implements
 	RejectParserCacheValueHook,
 	BeforePageDisplayHook,
 	OutputPageCheckLastModifiedHook,
-	PageSaveCompleteHook
+	PageSaveCompleteHook,
+	HTMLFileCache__useFileCacheHook
 {
 	public const CACHE_SECONDS = 300;
 	public const MARKER = 'eql-homepage-cache-v1';
@@ -62,6 +64,11 @@ final class HomepageCache implements
 			// Only lower an existing limit; private/no-store responses stay private.
 			$out->lowerCdnMaxage( self::CACHE_SECONDS - $now % self::CACHE_SECONDS );
 		}
+	}
+
+	/** File-cached HTML is served before parser freshness hooks can run. */
+	public function onHTMLFileCache__useFileCache( $context ): bool {
+		return !$this->applies( $context->getTitle() );
 	}
 
 	/** A browser's conditional request must cross the same shared freshness window. */
