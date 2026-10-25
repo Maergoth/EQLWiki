@@ -51,6 +51,7 @@ or update both producer and consumer when changing database templates.
 | Spell sections | `checkbox-lists.js` currently performs Category:Spells lazy loading; `spell-lazy-loader.js` stabilizes item hovers |
 | Game-page layouts | `mobpage.css`, `factionpage.css`, `spellpage.css`, `magelo.css`, item/spell/table styles |
 | Icon List | `icon-list.js/css`, database Icon List container, lightweight generated catalog |
+| Waypoint copying | `copy-waypoints.js/css`, inline coordinate buttons in rendered articles; copies `/loc` commands and refreshes with `wikipage.content` |
 | Upload workflow | `upload-purge.js`, `upload-converter.js`: return/purge tracking; no image re-encoding implementation |
 | Smaller controls | Announcements, Spellblade indicators, missing-image prompts, diagnostics and contribution links |
 
@@ -186,6 +187,29 @@ for revision IDs/timestamps and read permission, not comment text or authors.
 For the upstream API contracts see [Revisions](https://www.mediawiki.org/wiki/API:Revisions)
 and [Info](https://www.mediawiki.org/wiki/API:Info). Deploying these skin resources
 needs no database-page sync or private host/settings change.
+
+## Copyable waypoints
+
+`skins.EQLImmersive.waypoints` recognizes two- or three-number coordinate tuples
+in article text, including signed decimals. Parenthesized tuples work without a
+label; plain tuples work in location/evacuation fields and standalone coordinate
+paragraphs, list entries and cells.
+Click or activate a coordinate with the keyboard to copy `/loc 107, -438`, in the
+same coordinate order as displayed. Hover/focus is gold, and successful copying
+briefly replaces the coordinate with **Copied** without shifting the surrounding
+layout. Clipboard failures leave the original coordinate visible and announce
+the failure rather than claiming success.
+
+The enhancer preserves inline markup and ignores code, editors, diffs and ordinary
+links. A single numeric `Template:Loc` link copies on an ordinary click while
+retaining its destination for modified clicks and leaving the map icon alone.
+Arbitrary labels and multi-location map links keep their navigation behavior.
+It runs idempotently for `wikipage.content` refreshes. It does
+not change article wikitext or require a database script/template update.
+The normal deployment asset version covers its JavaScript and CSS.
+
+Unlabeled, unspaced numbers that resemble thousands grouping, such as `(1,234)`,
+are deliberately left alone. Use `(1, 234)` or `Location: (1,234)` for coordinates.
 
 ## Database scripts remain active
 

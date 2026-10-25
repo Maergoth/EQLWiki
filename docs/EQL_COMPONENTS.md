@@ -38,6 +38,15 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- `resources/copy-waypoints.js/css` (`skins.EQLImmersive.waypoints`) enhances
+  rendered article coordinate pairs/triples with accessible inline copy buttons.
+  Signed/decimal coordinates retain their displayed order and copy with `/loc`.
+  Gold hover/focus and temporary **Copied** feedback are client-only; code,
+  editors, diffs and ordinary links remain untouched. Single numeric `Template:Loc`
+  links copy on normal clicks while retaining map/modified-click navigation. The `wikipage.content`
+  hook supports dynamic sections without duplicate buttons. See the
+  [skin guide](../skins/EQLImmersive/README.md#copyable-waypoints).
+
 - [`DeploymentAssets.php`](../skins/EQLImmersive/includes/DeploymentAssets.php):
   reads the archive-managed release marker at skin registration, selects a
   query-free versioned local loader path and updates HTML Last-Modified validation.

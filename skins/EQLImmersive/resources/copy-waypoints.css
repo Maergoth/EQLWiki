@@ -1,0 +1,58 @@
+/* Inline copy feedback reserves the same space as the original coordinates. */
+.mw-parser-output .eql-copy-waypoint {
+	display: inline-grid;
+	grid-template-areas: "waypoint";
+	position: relative;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	border-radius: 2px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	line-height: inherit;
+	text-align: inherit;
+	vertical-align: baseline;
+	cursor: pointer;
+}
+
+.mw-parser-output .eql-copy-waypoint-value,
+.mw-parser-output .eql-copy-waypoint-feedback {
+	grid-area: waypoint;
+}
+
+.mw-parser-output .eql-copy-waypoint-feedback {
+	visibility: hidden;
+	text-align: center;
+}
+
+.mw-parser-output .eql-copy-waypoint:hover,
+.mw-parser-output .eql-copy-waypoint:focus-visible,
+.mw-parser-output .eql-copy-waypoint.is-copied {
+	color: #e3bb55;
+}
+
+.mw-parser-output .eql-copy-waypoint:focus-visible {
+	outline: 2px solid #e3bb55;
+	outline-offset: 3px;
+}
+
+.mw-parser-output .eql-copy-waypoint.is-copied .eql-copy-waypoint-value {
+	visibility: hidden;
+}
+
+.mw-parser-output .eql-copy-waypoint.is-copied .eql-copy-waypoint-feedback {
+	visibility: visible;
+}
+
+.mw-parser-output .eql-copy-waypoint-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
