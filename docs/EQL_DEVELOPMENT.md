@@ -153,6 +153,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Check | Command from repository root | Prerequisites / coverage |
 | --- | --- | --- |
 | JS syntax | `node --check path/to/changed.js` | Node; syntax only |
+| Waypoint copying | `node ops/test-copy-waypoints.cjs` | jsdom; coordinate recognition, excluded content, dynamic refresh, clipboard success/failure and feedback restoration |
 | Header editing policy | `php ops/test-header-editing.php` | Synthetic navigation fixtures; source Edit, extension ordering, permissions and Verify2Edit |
 | Locked header inheritance | `php ops/test-locked-header.php` | Source-only stub parent; omits inherited duplicate markup and enabled class while preserving original header data |
 | Locked header | `node ops/test-locked-header.cjs` | Synthetic DOM plus bundled Vector observer; prevents duplicate takeover, measured offsets, menu bounds, VisualEditor toolbar and source-action handling |
