@@ -26,6 +26,12 @@ function stepUp( wrapper, count ) {
 	}
 }
 
+function accuracyText( root ) {
+	const value = root.querySelector( '.ils-accuracy-value' );
+	assert.ok( value, 'Accuracy has a numeric span' );
+	return value.textContent + ( value.nextSibling ? value.nextSibling.textContent : '' );
+}
+
 async function main() {
 	const dom = new JSDOM( '', { url: 'https://example.invalid', runScripts: 'outside-only' } );
 	const { window } = dom;
@@ -125,6 +131,157 @@ async function main() {
 	assert.equal( window.document.querySelectorAll( '.ils-slider' ).length, 1 );
 	assert.equal( window.localStorage.getItem( 'ils-default-level-v2' ), '{"full":3,"fraction":5}' );
 
+	// Screen observations use distinct original weapon and backstab damage values.
+	// Synthetic names keep these fixtures independent of the live wiki's item data.
+	const backstabCases = [
+		{ title: 'Piercing A', label: 'BACKSTAB', base: 12, full: 5, fraction: 0, expected: 15, cap: 18 },
+		{ title: 'Piercing B', label: 'BACKSTAB DMG', base: 9, full: 4, fraction: 0, expected: 10, cap: 13 },
+		{ title: 'Piercing C', label: 'Backstab Damage', base: 9, full: 2, fraction: 0, expected: 9, cap: 13 },
+		{ title: 'Piercing D', label: 'BACKSTAB', base: 13, full: 8, fraction: 0, expected: 18, cap: 19 },
+		{ title: 'Piercing E', label: 'BACKSTAB', base: 15, full: 1, fraction: 0, expected: 15, cap: 22 },
+		{ title: 'Fractional backstab threshold', label: 'BACKSTAB DMG', base: 9, full: 4, fraction: 8, expected: 11, cap: 13 },
+		{ title: 'Explicit plus sign', label: 'BACKSTAB', base: 12, sign: '+', full: 5, fraction: 4, expected: 15, cap: 18 },
+		{ title: 'Zero backstab', label: 'BACKSTAB', base: 0, full: 10, fraction: 0, expected: 0, cap: 0 },
+		{ title: 'Negative backstab', label: 'BACKSTAB DAMAGE', base: -4, full: 10, fraction: 0, expected: -4, cap: -4 }
+	];
+	for ( const test of backstabCases ) {
+		window.localStorage.clear();
+		window.localStorage.setItem( 'ils-default-level-v2', JSON.stringify( { full: test.full, fraction: test.fraction } ) );
+		window.document.body.innerHTML = card( test.title,
+			`Slot: PRIMARY SECONDARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20<br>${test.label}: ${test.sign || ''}${test.base}<br>Cold DMG: 6<br>Bane DMG: 3<br>DMG Bonus: 7 @ lvl 50` );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const wrapper = window.document.querySelector( '.ils-item-wrapper' );
+		const item = wrapper.querySelector( '.itemdata' );
+		const backstab = item.querySelector( '.ils-stat[data-ils-stat="BACKSTAB"]' );
+		assert.ok( backstab, `${test.title}: explicit backstab field is instrumented` );
+		assert.equal( backstab.textContent, `${test.sign || ''}${test.expected}`, `${test.title}: observed rank value` );
+		assert.equal( Number( backstab.dataset.ilsCurrentValue ), test.expected, `${test.title}: current metadata` );
+		assert.equal( Number( backstab.dataset.ilsBase ) * ( backstab.dataset.ilsSign === '-' ? -1 : 1 ), test.base, `${test.title}: separate original backstab` );
+		assert.match( item.textContent, /Cold DMG: 6/ );
+		assert.match( item.textContent, /Bane DMG: 3/ );
+		assert.match( item.textContent, /DMG Bonus: 7 @ lvl 50/ );
+		assert.match( item.textContent, /Atk Delay: 20/ );
+		window.eqlItemLevelSliderRefresh( wrapper );
+		assert.equal( item.querySelectorAll( '.ils-stat[data-ils-stat="BACKSTAB"]' ).length, 1, `${test.title}: refresh does not duplicate backstab` );
+		assert.equal( backstab.textContent, `${test.sign || ''}${test.expected}`, `${test.title}: refresh does not scale twice` );
+		input( window, wrapper.querySelector( '.ils-slider' ), 10000 );
+		assert.equal( backstab.textContent, `${test.sign || ''}${test.cap}`, `${test.title}: rank ten` );
+		assert.equal( item.querySelector( '.ils-stat[data-ils-stat="DMG"]' ).textContent, '40', `${test.title}: weapon damage keeps its own rate` );
+		input( window, wrapper.querySelector( '.ils-slider' ), 0 );
+		assert.equal( backstab.textContent, `${test.sign || ''}${test.base}`, `${test.title}: original backstab restored` );
+		assert.equal( backstab.classList.contains( 'ils-modified' ), false, `${test.title}: reset highlight` );
+	}
+
+	// Separate cards retain their own explicit baselines, including dynamic content.
+	window.localStorage.clear();
+	window.document.body.innerHTML = card( 'Independent primary',
+		'Slot: PRIMARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20<br>BACKSTAB: 12' ) +
+		card( 'Independent secondary',
+			'Slot: SECONDARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 15<br>BACKSTAB: 9' ) +
+		card( 'No backstab weapon', 'Slot: PRIMARY<br>Skill: 1H Blunt Atk Delay: 20<br>DMG: 20' );
+	window.eqlItemLevelSliderRefresh( window.document );
+	const independentCards = window.document.querySelectorAll( '.ils-item-wrapper' );
+	input( window, independentCards[ 0 ].querySelector( '.ils-slider' ), 10000 );
+	assert.equal( independentCards[ 0 ].querySelector( '[data-ils-stat="BACKSTAB"]' ).textContent, '18' );
+	assert.equal( independentCards[ 1 ].querySelector( '[data-ils-stat="BACKSTAB"]' ).textContent, '9' );
+	assert.equal( independentCards[ 2 ].querySelector( '[data-ils-stat="BACKSTAB"]' ), null, 'no invented backstab field' );
+	assert.equal( accuracyText( independentCards[ 0 ] ), '+25%', 'first card Accuracy changes with its rank' );
+	assert.equal( accuracyText( independentCards[ 1 ] ), '0%', 'second card Accuracy remains independent' );
+	const dynamicBackstab = window.document.createElement( 'div' );
+	dynamicBackstab.innerHTML = card( 'Dynamic piercing',
+		'Slot: PRIMARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20<br>BACKSTAB: 9' );
+	window.document.body.appendChild( dynamicBackstab );
+	hooks[ 'wikipage.content' ]( window.jQuery( dynamicBackstab ) );
+	window.eqlItemLevelSliderRefresh( dynamicBackstab );
+	assert.equal( dynamicBackstab.querySelector( '.ils-level-display' ).textContent, '10' );
+	assert.equal( dynamicBackstab.querySelector( '[data-ils-stat="BACKSTAB"]' ).textContent, '13' );
+	assert.equal( dynamicBackstab.querySelectorAll( '[data-ils-stat="BACKSTAB"]' ).length, 1 );
+	assert.equal( accuracyText( dynamicBackstab ), '+25%', 'dynamic Accuracy inherits saved rank' );
+
+	// Accuracy follows merge progression and truncates the gain to one decimal.
+	// The Staff screenshot distinguishes truncation (11.4%) from rounding (11.5%).
+	const accuracyCases = [
+		{ full: 0, fraction: 0, expected: '0%' },
+		{ full: 1, fraction: 0, expected: '+2.5%' },
+		{ full: 1, fraction: 1, expected: '+3.9%' },
+		{ full: 2, fraction: 3, expected: '+7%' },
+		{ title: 'Bow of Underfoot screenshot', full: 4, fraction: 1, expected: '+10.2%' },
+		{ title: 'Staff of Elemental Mastery: Water screenshot', full: 4, fraction: 8, expected: '+11.4%' },
+		{ full: 5, fraction: 4, expected: '+12.9%' },
+		{ full: 8, fraction: 1, expected: '+20%' },
+		{ full: 10, fraction: 0, expected: '+25%' }
+	];
+	for ( const test of accuracyCases ) {
+		window.localStorage.clear();
+		window.localStorage.setItem( 'ils-default-level-v2', JSON.stringify( { full: test.full, fraction: test.fraction } ) );
+		window.document.body.innerHTML = card( test.title || 'Accuracy progression',
+			'Slot: PRIMARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20<br>BACKSTAB: 12' );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const wrapper = window.document.querySelector( '.ils-item-wrapper' );
+		const item = wrapper.querySelector( '.itemdata' );
+		const accuracy = item.querySelector( '.ils-accuracy' );
+		assert.ok( accuracy, `rank ${test.full} + ${test.fraction}: Accuracy is inside the item frame` );
+		assert.equal( accuracyText( accuracy ), test.expected, 'displayed Accuracy includes sign and percent' );
+		assert.equal( accuracy.hidden || accuracy.style.display === 'none', test.full === 0, 'generated Accuracy is hidden only at rank zero' );
+		window.eqlItemLevelSliderRefresh( wrapper );
+		assert.equal( item.querySelectorAll( '.ils-accuracy' ).length, 1, 'refresh never duplicates Accuracy' );
+		assert.equal( accuracyText( accuracy ), test.expected, 'refresh preserves the selected Accuracy' );
+		input( window, wrapper.querySelector( '.ils-slider' ), 0 );
+		assert.equal( accuracyText( accuracy ), '0%' );
+		assert.ok( accuracy.hidden || accuracy.style.display === 'none', 'reset hides generated Accuracy' );
+		input( window, wrapper.querySelector( '.ils-slider' ), 10000 );
+		assert.equal( accuracyText( accuracy ), '+25%' );
+		assert.equal( accuracy.hidden || accuracy.style.display === 'none', false, 'ranked Accuracy is visible after reset' );
+	}
+
+	const accuracyEligibilityCases = [
+		{ title: 'Primary melee Accuracy', stats: 'Slot: PRIMARY SECONDARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20', eligible: true },
+		{ title: 'Ranged bow Accuracy', stats: 'Slot: RANGE<br>Skill: Archery Atk Delay: 30<br>DMG: 20', eligible: true },
+		{ title: 'Throwable melee Accuracy', stats: 'Slot: RANGE<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20', eligible: true },
+		{ title: 'Ranged ammo slot Accuracy', stats: 'Slot: RANGE AMMO<br>Skill: Throwing Atk Delay: 20<br>DMG: 20', eligible: true },
+		{ title: 'Ammo only', stats: 'Slot: AMMO<br>DMG: 20<br>Range: 50', eligible: false },
+		{ title: 'Armor', stats: 'Slot: CHEST<br>AC: 20', eligible: false },
+		{ title: 'Elemental damage', stats: 'Slot: RANGE<br>Cold DMG: 20', eligible: false },
+		{ title: 'Zero weapon damage', stats: 'Slot: PRIMARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 0', eligible: false }
+	];
+	for ( const test of accuracyEligibilityCases ) {
+		window.localStorage.clear();
+		window.localStorage.setItem( 'ils-default-level-v2', '{"full":1,"fraction":0}' );
+		window.document.body.innerHTML = card( test.title, test.stats );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const accuracy = window.document.querySelector( '.itemdata .ils-accuracy' );
+		assert.equal( Boolean( accuracy ), test.eligible, `${test.title}: Accuracy eligibility` );
+		if ( accuracy ) {
+			assert.equal( accuracyText( accuracy ), '+2.5%', test.title );
+		}
+	}
+
+	// Existing percentage stats retain their own baseline; untyped legacy values
+	// are not silently reinterpreted as a percentage or duplicated.
+	window.localStorage.clear();
+	window.localStorage.setItem( 'ils-default-level-v2', '{"full":5,"fraction":4}' );
+	window.document.body.innerHTML = card( 'Explicit percentage Accuracy',
+		'Slot: PRIMARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20<br>Accuracy: +1.5%' );
+	window.eqlItemLevelSliderRefresh( window.document );
+	const explicitAccuracyItem = window.document.querySelector( '.itemdata' );
+	const explicitAccuracy = explicitAccuracyItem.querySelector( '.ils-stat[data-ils-stat="ACCURACY"]' );
+	assert.ok( explicitAccuracy, 'percentage Accuracy is instrumented' );
+	assert.equal( Number( explicitAccuracy.dataset.ilsBase ), 1.5, 'original percentage is retained' );
+	assert.equal( explicitAccuracy.textContent, '+14.4', 'rank gain adds to original percentage' );
+	assert.equal( explicitAccuracyItem.textContent.match( /Accuracy:/gi ).length, 1, 'no duplicate explicit Accuracy label' );
+	window.eqlItemLevelSliderRefresh( explicitAccuracyItem.parentNode );
+	assert.equal( explicitAccuracy.textContent, '+14.4', 'explicit Accuracy does not scale twice' );
+	input( window, window.document.querySelector( '.ils-slider' ), 0 );
+	assert.equal( explicitAccuracy.textContent, '+1.5', 'reset restores original percentage and sign' );
+	assert.match( explicitAccuracyItem.textContent, /Accuracy: \+1\.5%/ );
+	window.localStorage.clear();
+	window.localStorage.setItem( 'ils-default-level-v2', '{"full":10,"fraction":0}' );
+	window.document.body.innerHTML = card( 'Legacy untyped Accuracy',
+		'Slot: PRIMARY<br>Skill: 1H Piercing Atk Delay: 20<br>DMG: 20<br>Accuracy: +4' );
+	window.eqlItemLevelSliderRefresh( window.document );
+	assert.match( window.document.querySelector( '.itemdata' ).textContent, /Accuracy: \+4(?![\d.%])/ );
+	assert.equal( window.document.querySelector( '.ils-accuracy' ), null, 'legacy Accuracy suppresses a generated field' );
+
 	// The displayed order is DMG, existing/generated bonus, then calculated ratio.
 	const bonusCases = [
 		{ title: 'Inline generated bonus', stats: 'DMG: 20<span class="eql-generated-damage-bonus">&nbsp;&nbsp;DMG Bonus: 10 @ lvl 50</span><br>BACKSTAB: 20', bonus: 'DMG Bonus: 10 @ lvl 50' },
@@ -164,7 +321,7 @@ async function main() {
 	}
 
 	window.close();
-	console.log( `Item slider: ${cases.length} range cards and ${bonusCases.length} damage-bonus cards pass ranks, reset, ordering, and refresh.` );
+	console.log( `Item slider: ${cases.length} range cards, ${backstabCases.length} backstab cards, ${accuracyCases.length} Accuracy ranks, ${accuracyEligibilityCases.length} Accuracy eligibility cases, and ${bonusCases.length} damage-bonus cards pass ranks, reset, ordering, and refresh.` );
 }
 
 main().catch( error => { console.error( error ); process.exitCode = 1; } );

@@ -25,8 +25,17 @@
  *
  *   DMG:
  *     Only a standalone "DMG:" / "DAMAGE:" field scales.
- *     Elemental/Bane/Backstab/etc. damage fields remain unchanged.
+ *     Elemental/Bane/etc. damage fields remain unchanged.
  *     B > 0: B + INT( B * effectiveLevel / 10 )
+ *
+ *   Backstab (working screenshot model):
+ *     B > 0: B + INT( B * effectiveLevel / 20 )
+ *     Fractional growth follows the existing damage model; unconfirmed in-game.
+ *
+ *   Weapon Accuracy (working screenshot model):
+ *     +2.5 * log2( 2^fullLevel + fraction ) percentage points, truncated to 0.1.
+ *     Only positive standalone weapon DMG qualifies; ammo-only cards do not.
+ *     Existing percentage Accuracy is the baseline; unitless fields are preserved.
  *
  *   Ranged weapon / ammo Range:
  *     Any listed Range field
@@ -88,6 +97,11 @@
 		'SV MAGIC',
 		'SV COLD',
 		'SV FIRE',
+
+		'BACKSTAB DAMAGE',
+		'BACKSTAB DMG',
+		'BACKSTAB',
+		'ACCURACY',
 
 		'DAMAGE',
 		'DMG',
@@ -169,6 +183,8 @@
 
 		var aliases = {
 			'DAMAGE': 'DMG',
+			'BACKSTAB DAMAGE': 'BACKSTAB',
+			'BACKSTAB DMG': 'BACKSTAB',
 
 			'MANA': 'MP',
 			'MP': 'MP',
@@ -639,6 +655,22 @@
 		return signedBase + intFloor( signedBase * effective / 10 );
 	}
 
+	function scaleBackstab( signedBase, state ) {
+		if ( signedBase <= 0 ) {
+			return signedBase;
+		}
+
+		return signedBase + intFloor( signedBase * getEffectiveLevel( state ) / 20 );
+	}
+
+	function getAccuracyBonus( state ) {
+		if ( !state || state.full <= 0 ) {
+			return 0;
+		}
+
+		return intFloor( 25 * log2( getTotalProgression( state ) ) ) / 10;
+	}
+
 	function scaleRange( base, state ) {
 		if ( base < 0 ) {
 			return base;
@@ -736,10 +768,11 @@
 	function instrumentStats( $itemdata ) {
 		var html = $itemdata.html();
 		var regex = buildStatRegex();
-		var rawText = $itemdata.text();
+		var rawText = $itemdata.clone().find( 'br' ).replaceWith( '\n' ).end().text();
 		var delayMatch = rawText.match( /Atk[\s\u00a0]+Delay:\s*(\d+(?:\.\d+)?)/i );
 		var delay = delayMatch ? parseFloat( delayMatch[ 1 ] ) : 0;
 		var foundQualifiers = {};
+		var hasAccuracyField = /\bAccuracy\s*:/i.test( rawText );
 
 		if ( $itemdata.attr( 'data-ils-instrumented' ) === '1' ) {
 			return;
@@ -759,12 +792,17 @@
 				return match;
 			}
 
+			// Legacy unitless Accuracy is not a percentage bonus.
+			if ( statKey === 'ACCURACY' && pct.indexOf( '%' ) === -1 ) {
+				return match;
+			}
+
 			if ( svVoidQualifiers.indexOf( statKey ) !== -1 ) {
 				foundQualifiers[ statKey ] = true;
 			}
 
 			var span = statName + colon +
-				'<span class="ils-stat" ' +
+				'<span class="ils-stat' + ( statKey === 'ACCURACY' ? ' ils-accuracy-value' : '' ) + '" ' +
 					'data-ils-base="' + baseVal + '" ' +
 					'data-ils-sign="' + sign + '" ' +
 					'data-ils-stat="' + statKey + '">' +
@@ -780,6 +818,10 @@
 				'</span>';
 			}
 
+			if ( statKey === 'ACCURACY' ) {
+				span = '<span class="ils-accuracy">' + span + '</span>';
+			}
+
 			return span;
 		} );
 
@@ -792,10 +834,31 @@
 
 		$itemdata.html( html );
 		placeDamageBonusBeforeRatio( $itemdata );
+
+		var $damage = $itemdata.find( '.ils-stat[data-ils-stat="DMG"]' ).first();
+		var slotMatch = rawText.match( /\bSlot\s*:\s*([^\r\n]*)/i );
+		var slots = slotMatch ? slotMatch[ 1 ] : '';
+		var ammoOnly = /\bAMMO\b/i.test( slots ) && !/\b(?:PRIMARY|SECONDARY|RANGE)\b/i.test( slots );
+		var weapon = $damage.length && parseFloat( $damage.attr( 'data-ils-base' ) ) > 0 && !ammoOnly;
+		$itemdata.attr( 'data-ils-weapon', weapon ? '1' : '0' );
+
+		if ( weapon && !hasAccuracyField ) {
+			var $accuracy = $( '<span class="ils-accuracy ils-generated-accuracy" hidden>' +
+				'<span class="ils-accuracy-label">Accuracy:</span> ' +
+				'<span class="ils-stat ils-accuracy-value" data-ils-base="0" data-ils-sign="+" data-ils-stat="ACCURACY">+0</span>%' +
+				'</span>' );
+			var $rowEnd = $damage.nextAll( 'br' ).first();
+			if ( $rowEnd.length ) {
+				$accuracy.insertAfter( $rowEnd );
+			} else {
+				$itemdata.append( $accuracy );
+			}
+		}
 	}
 
 	function applyLevel( $container, state ) {
 		var effective = getEffectiveLevel( state );
+		var accuracyBonus = $container.attr( 'data-ils-weapon' ) === '1' ? getAccuracyBonus( state ) : 0;
 
 		$container.find( '.ils-stat' ).each( function () {
 			var $span = $( this );
@@ -809,6 +872,10 @@
 				newVal = scalePrimarySpreadsheetStat( signedBase, state );
 			} else if ( statKey === 'DMG' ) {
 				newVal = scaleDamage( signedBase, state );
+			} else if ( statKey === 'BACKSTAB' ) {
+				newVal = scaleBackstab( signedBase, state );
+			} else if ( statKey === 'ACCURACY' ) {
+				newVal = signedBase + accuracyBonus;
 			} else if ( statKey === 'RANGE' ) {
 				newVal = scaleRange( baseAbs, state );
 			} else if ( flatFullLevelStats.indexOf( statKey ) !== -1 ) {
@@ -829,6 +896,8 @@
 				$span.removeClass( 'ils-modified' );
 			}
 		} );
+
+		$container.find( '.ils-generated-accuracy' ).prop( 'hidden', effective <= 0 );
 
 		$container.find( '.ils-ratio' ).each( function () {
 			var $ratio = $( this );
