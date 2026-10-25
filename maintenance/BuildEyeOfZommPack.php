@@ -466,6 +466,15 @@ class BuildEyeOfZommPack extends Maintenance {
         $iconId = preg_match( '/\d+/', $iconText, $iconMatch ) ? (int)$iconMatch[0] : 0;
         $revision = $page->getRevisionRecord();
         $revisionId = $revision ? (int)$revision->getId() : 0;
+        $contributionCard = EqlNpcLootWikitext::itemContributionCard( $text, $displayLines );
+        if ( isset( $this->lootCounts ) ) {
+            try {
+                // Quiet-card proof must come from the same anonymous current
+                // revision as the exported fields, never a hidden/private slot.
+                $publicText = $this->publicLootText( $title, $page );
+                if ( $publicText === null || $publicText !== $text || $revisionId <= 0 ) { $contributionCard['complete'] = false; }
+            } catch ( \Throwable $error ) { $contributionCard['complete'] = false; }
+        }
         $dropSources = [];
         foreach ( $this->instanceSections( $text, true ) as $section ) {
             $sectionTemplate = $this->extractBalancedTemplate( $section['text'], 'Itempage' );
@@ -505,6 +514,7 @@ class BuildEyeOfZommPack extends Maintenance {
             'slots' => $slots,
             'stats' => (object)$stats,
             'displayLines' => $displayLines,
+            'contributionCard' => $contributionCard,
             'dropSources' => $dropSources,
             'revisionId' => $revisionId,
         ];

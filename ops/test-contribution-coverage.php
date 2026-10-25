@@ -66,4 +66,32 @@ $check(!$r['complete']&&$r['state']==='unsupported'&&$r['reason']==='coverage-li
 $rows=EqlNpcLootWikitext::npcLootSources("{{Namedmobpage|name=Keeper|zone=[[Synthetic Vale]]|known_loot=* [[Normal Relic]]\n=== Raid Instance ===\n* [[Raid Relic]]}}",$complete,true);
 $check($rows[0]['instance']==='normal'&&$rows[1]['instance']==='raid','Legacy reverse extraction agrees with typed internal instance scopes');
 
+$card=static fn($extra='', $stats='AC: 2<br>WT: 0.1<br>Class: ALL<br>Race: ALL')=>'{{Itempage|itemname=Synthetic basic card|statsblock='.$stats.'|dropsfrom=Various zones'.$extra.'}}';
+$proof=static fn($source)=>EqlNpcLootWikitext::itemContributionCard($source);
+$check($proof($card())===['schemaVersion'=>1,'complete'=>true,'questContext'=>false],'A single fully literal rich card has versioned completeness proof');
+$check($proof($card('|relatedquests=* [[Synthetic quest]]|foraged=* [[Synthetic Vale]]|recipes=* [[Synthetic recipe]]|merchant_value=1g'))===['schemaVersion'=>1,'complete'=>true,'questContext'=>true],'Standard acquisition and quest-link context do not invent item importance');
+$check($proof($card('|soldby={{ItemWhereTable|{{ItemWhereRow|[[Synthetic Vale]]|[[Synthetic merchant]]||{{Loc|Synthetic Vale|1,2,3}}}}}}|notes={{VeliousGray|Literal note}} {{Era|Classic}}'))['complete'],'Reviewed bounded literal acquisition wrappers preserve complete public cards');
+foreach([
+ $card('|questRoles=Epic reward'), $card('|custom_modifier=+9'), $card('|notes=one|NOTES=two'),
+ $card('|drops_from=[[Other keeper]]'), $card('|notes={{Unknown note generator}}'),
+ $card('|soldby={{ItemWhereTable|{{Unknown merchant generator}}}}'), $card('|foraged={{{unknown}}}'),
+ str_replace('Itempage','ITEMPAGE',$card()), $card('|soldby={{ITEMWHERETABLE|[[Synthetic merchant]]}}'),
+ str_replace('itemname=','ITEMNAME=',$card()), str_replace('statsblock=','StatsBlock=',$card()),
+ $card('|NOTES=Unknown metadata spelling'),
+ str_replace('itemname=Synthetic basic card','itemname={{VeliousGray|Synthetic basic card}}',$card()),
+ $card('|icon={{Era|1}}'),
+ $card('|{{Unknown key}}=hidden'), $card('|unknown positional payload'),
+ $card('', '{{Unknown stats}}'), $card('', '<nowiki>Effect: Hidden</nowiki>AC: 2'),
+ $card('', '<span style="display:none">Effect: Hidden</span>AC: 2'),
+ $card('', 'AC: 2<unclosed markup'),
+ $card('', implode('<br>',array_fill(0,16,'WT: 0.1')).'<br>Effect: Hidden at line seventeen'),
+ $card().$card(), '{{Unknown wrapper|'.$card().'}}', $card().'{{Unclosed'
+]as$source){$check(!$proof($source)['complete'],'Unknown, duplicate, dynamic, variant or truncated card metadata cannot prove absence: '.$source);}
+$check($proof($card('|unused='))['complete'],'An empty unknown auxiliary field contains no omitted modifier');
+$check($proof(str_replace('Itempage','Template:itempage',$card()))['complete'],'Canonical template namespace and first-letter normalization preserve actual Itempage identity');
+$check($proof($card('|lucy_img_ID=123'))['complete'],'Actual case-sensitive lucy_img_ID metadata remains explicitly recognized');
+$check($proof($card('',implode('<br>',array_fill(0,16,'WT: 0.1'))))['complete'],'The sixteen-line exported boundary itself remains complete');
+$check(!EqlNpcLootWikitext::itemContributionCard($card(),['AC: 2'])['complete'],'Producer comparison rejects any omitted or altered displayed card line');
+$check(EqlNpcLootWikitext::itemContributionCard($card(),['AC: 2','WT: 0.1','Class: ALL','Race: ALL'])['complete'],'Producer comparison ties proof to exactly the actual rich displayed lines');
+
 echo "Typed authored coverage: $n source checks passed.\n";

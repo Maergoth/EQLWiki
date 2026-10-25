@@ -6,6 +6,77 @@
 final class EqlNpcLootWikitext {
 	private const MAX_BYTES = 524288;
 
+	/** Whether the bounded rich card exposes all authored item-card metadata. */
+	public static function itemContributionCard( string $source, ?array $displayLines = null ): array {
+		$result = [ 'schemaVersion' => 1, 'complete' => false, 'questContext' => false ];
+		$document = self::document( $source );
+		if ( $document === null ) { return $result; }
+		$cards = array_values( array_filter( $document['templates'], static fn ( $template ) => $template['name'] === 'itempage' ) );
+		if ( count( $cards ) !== 1 ) { return $result; }
+		$card = $cards[0];
+		if ( $card['invocationKey'] !== 'Itempage' ) { return $result; }
+		// Keep the literal invocation, rather than treating a masked example or
+		// stripped dynamic value as proof that no modifier was authored.
+		$literal = substr( $source, $card['start'], $card['end'] - $card['start'] );
+		$literal = preg_replace_callback( '/<!--[\s\S]*?(?:-->|$)/', static fn ( $m ) => self::mask( $m[0] ), $literal );
+		if ( preg_match( '~</?(?:nowiki|pre|source|syntaxhighlight|ref|code)\b~i', $literal ) ) { return $result; }
+		$parts = self::parts( substr( $literal, 2, -2 ) );
+		if ( $parts === null ) { return $result; }
+		array_shift( $parts );
+		$fields = [];
+		$parameterNames = [];
+		foreach ( $parts as $part ) {
+			if ( trim( $part ) === '' ) { continue; }
+			if ( !preg_match( '/^\s*([A-Za-z][A-Za-z0-9_ ]*)\s*=([\s\S]*)$/', $part, $field ) ) { return $result; }
+			$key = strtolower( trim( $field[1] ) );
+			if ( array_key_exists( $key, $fields ) ) { return $result; }
+			$fields[$key] = $field[2];
+			$parameterNames[$key] = trim( $field[1] );
+		}
+		$result['questContext'] = ( $parameterNames['relatedquests'] ?? '' ) === 'relatedquests' && trim( $fields['relatedquests'] ?? '' ) !== '';
+		$known = [ 'itemname', 'statsblock', 'dropsfrom', 'drops_from', 'lucy_img_id', 'lucy_img_ID', 'icon', 'icon_id',
+			'notes', 'soldby', 'merchant_value', 'recipes', 'relatedquests', 'foraged' ];
+		if ( trim( $fields['itemname'] ?? '' ) === '' || trim( $fields['statsblock'] ?? '' ) === '' ||
+			( isset( $fields['dropsfrom'] ) && isset( $fields['drops_from'] ) ) ) { return $result; }
+		foreach ( $fields as $key => $value ) {
+			if ( trim( $value ) === '' ) { continue; }
+			// MediaWiki named parameters are case-sensitive. A differently cased
+			// ignored field cannot borrow literal metadata proof from a real one.
+			if ( !in_array( $parameterNames[$key], $known, true ) ) { return $result; }
+			if ( in_array( $key, [ 'itemname', 'lucy_img_id', 'icon', 'icon_id' ], true ) && preg_match( '/\{\{|\}\}/', $value ) ) { return $result; }
+			if ( $key !== 'statsblock' && !self::literalCardContext( $value ) ) { return $result; }
+		}
+		$stats = $fields['statsblock'];
+		$literalMarkup = preg_replace( '~<(?:br\s*/?\s*|/?(?:b|strong|i|em|p)\s*)>~i', '', $stats );
+		if ( preg_match( '/\{\{|\}\}/', $stats ) || strpbrk( $literalMarkup, '<>' ) !== false ) { return $result; }
+		$lines = [];
+		foreach ( preg_split( '/\r\n|\n|\r/', preg_replace( '/<br\s*\/?\s*>/i', "\n", $stats ) ) as $line ) {
+			$line = preg_replace( '/\[\[([^\]|]+)\|([^\]]+)\]\]/', '$2', $line );
+			$line = preg_replace( '/\[\[([^\]]+)\]\]/', '$1', $line );
+			$line = trim( preg_replace( '/\s+/', ' ', html_entity_decode( strip_tags( $line ), ENT_QUOTES | ENT_HTML5 ) ) );
+			if ( $line !== '' ) { $lines[] = $line; }
+		}
+		// The rich exporter exposes at most sixteen nonempty lines. A hidden
+		// seventeenth effect/custom modifier cannot become an absence proof.
+		if ( !$lines || count( $lines ) > 16 || ( $displayLines !== null && $lines !== $displayLines ) ) { return $result; }
+		$result['complete'] = true;
+		return $result;
+	}
+
+	/** Only reviewed literal layout wrappers are allowed inside context fields. */
+	private static function literalCardContext( string $value, int $depth = 0 ): bool {
+		if ( $depth >= 8 || str_contains( $value, '{{{' ) ) { return false; }
+		$templates = self::roots( $value );
+		if ( $templates === null || count( $templates ) > 1000 ) { return false; }
+		foreach ( $templates as $template ) {
+			if ( !in_array( $template['invocationKey'], [ 'ItemWhereTable', 'ItemWhereRow', 'Loc', 'VeliousGray', 'Era' ], true ) ) { return false; }
+			foreach ( $template['parts'] as $part ) {
+				if ( !self::literalCardContext( $part, $depth + 1 ) ) { return false; }
+			}
+		}
+		return true;
+	}
+
 	/** Page kind is independent of whether an affected field is editable/complete. */
 	public static function authoredPageKind( string $source ): string {
 		$document = self::document( $source, false, true );
