@@ -58,6 +58,20 @@ published game formulas. Matching the wiki does not turn them into verified
 game mechanics. Preserve the existing ceiling/rounding behavior, including
 floating-point weight boundaries, until a reviewed change updates both clients.
 
+Rules revision 2 corrects positive primary stats above 10 to
+`floor(B + B * (rank + fraction / 2^rank) / 10)`. Current wiki values are assumed
+to be the base stats. Thornstinger HP 50 at `5 + 4/32` becomes 75, and Lustrous
+Russet Boots AC 14 at `6 + 5/64` becomes 22; rounding the increase would produce
+76 and 23. Cloak of Flames HP 50 at `4 + 4/16` becomes 71, distinguishing
+fractional progress from whole-rank scaling, which gives 70. Positive primary
+values from 1 through 10 still gain the whole rank. Negative penalties retain
+their existing rounding because these screenshots contain no negative example.
+
+One observation remains unresolved: Lustrous Russet Vambraces at `3 + 0/8`
+displays AC 16, while its current [base AC 15, revision 177316](https://eqlwiki.com/index.php?title=Lustrous_Russet_Vambraces&oldid=177316)
+predicts 19 with floor or 20 with rounding. Its STR/DEX agree with rank 3.
+Keep this exception documented rather than adding an item-specific formula.
+
 ## Changing a formula
 
 For coefficient changes, edit the JSON and increment its positive integer
@@ -66,8 +80,10 @@ For coefficient changes, edit the JSON and increment its positive integer
 `node ops/test-item-level-slider.cjs` DOM suite with the documented jsdom runtime.
 Update fixtures only against evidence for an intentional formula change.
 
-A new algorithm needs a new supported `engineVersion` plus compatible client
-code. Synchronize the app's vendored engine/rules using its checked source-sync
+A new engine contract or scaling family needs a new supported `engineVersion`
+plus compatible client code. A reviewed correction within the existing contract
+increments the rules revision and changes the recorded engine hash together;
+revision 2 retains engine version 1. Synchronize the app's vendored engine/rules using its checked source-sync
 script, record the wiki commit and source hashes, then ship a new app version.
 Both coefficient and algorithm changes follow this release process. Do not add
 runtime formula checks or a second hand-maintained implementation in a consumer.

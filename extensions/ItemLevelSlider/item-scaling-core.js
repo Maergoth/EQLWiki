@@ -132,7 +132,7 @@
 			if ( family === 'primary' ) {
 				if ( base === 0 ) { return 0; }
 				if ( base > 0 && base <= rules.primary.smallThreshold ) { return base + state.full; }
-				if ( base > rules.primary.smallThreshold ) { return Math.floor( base + excelRound( base * effective / rules.primary.divisor ) ); }
+				if ( base > rules.primary.smallThreshold ) { return Math.floor( base + base * effective / rules.primary.divisor ); }
 				return Math.min( 0, base + ( Math.abs( base ) <= rules.primary.smallThreshold ? state.full :
 					excelRound( Math.abs( base ) * effective / rules.primary.divisor ) ) );
 			}

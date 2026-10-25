@@ -272,6 +272,12 @@ from item screenshots, not published game formulas. Important contracts:
   and `effectiveRank = fullLevel + fraction / 2^fullLevel`. Explicit Backstab
   values remain independent of ordinary weapon DMG; zero/negative values stay
   unchanged. Fractional Backstab interpolation remains provisional.
+- Positive primary stats above 10 use
+  `floor(B + B * effectiveRank / 10)` in rules revision 2; values from 1 through
+  10 gain only the whole rank. Negative penalties retain their separate rounding.
+  The [engine guide](../extensions/ItemLevelSlider/README.md) records the
+  screenshot evidence and the unresolved Vambraces AC observation; do not add
+  an item-specific exception or infer a new base value from it.
 - Melee and ranged weapon cards with positive standalone DMG gain an Accuracy
   row inside `.itemdata`, near DMG/Ratio. AMMO-only cards are excluded. The gain
   is `2.5 * log2(2^fullLevel + fraction)` percentage points, displayed with a `+`
