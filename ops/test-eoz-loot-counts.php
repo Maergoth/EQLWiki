@@ -76,6 +76,17 @@ namespace {
     $counts->item( 'Shared Relic', $item( "* [[A loathling lich pet]]\n* [[a carpet]]\n* [[a petal keeper]]" ) );
     $result = $counts->apply( $records, $resolve )[0];
     checkLootCount( $result['lootSourceNpcs'] === [ 'a carpet', 'a petal keeper' ] && $result['lootSourceCountComplete'], 'Only an explicit final pet token is excluded' );
+    $counts = $five();
+    $counts->item( 'Shared Relic', $item( "* [[Guardian One]]\n* [[ Ground_Spawn ]]\n* [[GROUND SPAWNS]]" ) );
+    $counts->npc( 'Ground Spawn', $npc( 'common_loot' ) );
+    $result = $counts->apply( $records, $resolve )[0];
+    checkLootCount( $result['lootSourceCount'] === 5 && $result['lootSourceCountComplete'], 'Five real NPCs plus exact normalized Ground Spawn/Spawns pseudomobs remain five complete monsters' );
+    $groundAliasResolver = static fn ( string $name ) => $name === 'Synthetic ground alias'
+        ? [ 'title' => 'Ground Spawns', 'pageId' => 500, 'public' => true, 'complete' => true ] : $resolve( $name );
+    $counts = new EqlItemLootSourceCounts();
+    $counts->item( 'Shared Relic', $item( "* [[Synthetic ground alias]]\n* [[Ground Spawn Keeper]]" ) );
+    $result = $counts->apply( $records, $groundAliasResolver )[0];
+    checkLootCount( $result['lootSourceNpcs'] === [ 'Ground Spawn Keeper' ] && $result['lootSourceCountComplete'], 'Canonical aliases to Ground Spawns are excluded; longer monster names remain valid' );
     $counts = new EqlItemLootSourceCounts( 2 );
     $counts->item( 'Shared Relic', $item() );
     foreach ( [ 'Guardian One', 'Guardian Two', 'Guardian Three' ] as $name ) { $counts->npc( $name, $npc( 'known_loot' ) ); }
