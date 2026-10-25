@@ -1,0 +1,138 @@
+=== Zone Page Blueprint ===
+
+Use this shared layout for outdoor and dungeon zones, including zones with a confirmed raid instance. Cities may continue to use the City Page Blueprint.
+
+Replace the <code>@@...@@</code> fields with confirmed information, or <code>?</code> when it is unknown. Keep the opening overview and Map section even when details are missing. Do not invent NPCs, item drops, coordinates, map files, or access requirements. Notable NPCs are an editorial selection; ordinary monsters belong in the dynamic zone list when that list is supported. Preserve exact uploaded map filenames and image captions.
+
+Answer whether the zone has a raid instance separately from which instance an observation came from. Keep the optional block between <code>EQL-ZONE-RAID:BEGIN</code> and <code>EQL-ZONE-RAID:END</code> only when a raid instance is confirmed; remove the entire block otherwise. Raid information belongs in its own overview and Raid Map below the exact <code>Raid Instance</code> heading. Do not copy normal-only facts or a general dynamic list into that section.
+
+<pre><!-- EQL-ZONE-BLUEPRINT:1 -->
+@@ERA@@
+
+'''@@ZONE_NAME@@''' is a zone in EverQuest Legends.
+
+@@OVERVIEW@@
+
+{|
+|rowspan="6" valign="top" width="160"| <div style='float:left;'>__TOC__</div>
+|valign="top"|
+{| class="zoneTopTable"
+! ''' Level of Monsters: '''
+| @@LEVEL_RANGE@@
+|-
+! ''' Minimum Player Level: '''
+| @@MIN_PLAYER_LEVEL@@
+|-
+! ''' Types of Monsters: '''
+| @@MONSTER_TYPES@@
+|-
+! ''' Notable NPCs: '''
+| @@NOTABLE_NPCS@@
+|-
+! ''' Common Loot: '''
+| @@COMMON_LOOT@@
+|-
+! ''' Unique Items: '''
+| @@UNIQUE_ITEMS@@
+|-
+! ''' Related Quests: '''
+| @@RELATED_QUESTS@@
+|-
+! ''' Adjacent Zones: '''
+| @@ADJACENT_ZONES@@
+|-
+! ''' Name in /who: '''
+| @@WHO_NAME@@
+|-
+! ''' [[Zone Spawn Timer]]: '''
+| @@RESPAWN_TIME@@
+|-
+! ''' Succor/Evacuate: '''
+| @@SUCCOR@@
+|-
+! [[Recommended Levels and ZEM List|ZEM]] ''' Value:'''
+| @@ZEM@@
+|-
+! ''' Raid Instance: '''
+| @@RAID_AVAILABILITY@@
+|}
+|}
+
+== Map ==
+
+@@MAP_IMAGE@@
+
+@@MAP_NOTES@@
+
+== Dangers ==
+
+?
+
+== Benefits ==
+
+?
+
+== Traveling To and From ==
+
+?
+
+== What's in this zone? ==
+
+@@DYNAMIC_ZONE_LIST@@
+
+<!-- EQL-ZONE-RAID:BEGIN -->
+= Raid Instance =
+
+@@RAID_OVERVIEW@@
+
+{| class="zoneTopTable"
+! ''' Level of Monsters: '''
+| @@RAID_LEVEL_RANGE@@
+|-
+! ''' Minimum Player Level: '''
+| @@RAID_MIN_PLAYER_LEVEL@@
+|-
+! ''' Types of Monsters: '''
+| @@RAID_MONSTER_TYPES@@
+|-
+! ''' Notable NPCs: '''
+| @@RAID_NOTABLE_NPCS@@
+|-
+! ''' Common Loot: '''
+| @@RAID_COMMON_LOOT@@
+|-
+! ''' Unique Items: '''
+| @@RAID_UNIQUE_ITEMS@@
+|-
+! ''' Related Quests: '''
+| @@RAID_RELATED_QUESTS@@
+|-
+! ''' Adjacent Zones: '''
+| @@RAID_ADJACENT_ZONES@@
+|-
+! ''' Name in /who: '''
+| @@RAID_WHO_NAME@@
+|-
+! ''' [[Zone Spawn Timer]]: '''
+| @@RAID_RESPAWN_TIME@@
+|-
+! ''' Succor/Evacuate: '''
+| @@RAID_SUCCOR@@
+|-
+! [[Recommended Levels and ZEM List|ZEM]] ''' Value:'''
+| @@RAID_ZEM@@
+|}
+
+== Raid Map ==
+
+@@RAID_MAP_IMAGE@@
+
+@@RAID_MAP_NOTES@@
+
+== Raid Access and Mechanics ==
+
+?
+<!-- EQL-ZONE-RAID:END -->
+
+[[Category:Zones]]
+</pre>

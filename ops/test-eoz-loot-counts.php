@@ -265,6 +265,34 @@ namespace {
     $verified = $counts->catalog( $verifiedResolve );
     checkLootCount( $verified['Shared Relic']['lootSourceCount'] === 0 && !$verified['Shared Relic']['lootSourceCountComplete'], 'Conditional possible membership is uncertainty and never a positive cross-product' );
     checkLootCount( $verified['Unrelated Relic']['lootSourceCountComplete'] && !isset( $verified['Conditional Armor Group'] ), 'A bounded unknown collection affects possible members only and is never a pseudoitem' );
+    $domainIntro = 'Synthetic reviewed historical research materials.';
+    $domainHash = hash( 'sha256', $domainIntro );
+    $domain = $domainIntro . "\n<ul><li>{{:Shared Relic}}</li><li>{{:Unrelated Relic}}</li><li>{{:Shared Relic}}</li></ul>";
+    $bounded = false;
+    checkLootCount( EqlNpcLootWikitext::reviewedSourceDomainItems( $domain, $domainHash, $bounded ) === [ 'Shared Relic', 'Unrelated Relic' ] && $bounded, 'Reviewed literal catalog closure deduplicates identical member references' );
+    foreach ( [ str_replace( $domainIntro, 'A changed meaning.', $domain ), $domain . '{{Unknown}}', str_replace( '{{:Shared Relic}}', '{{:Shared Relic|override}}', $domain ),
+        str_replace( '{{:Shared Relic}}', '{{#if:1|{{:Shared Relic}}}}', $domain ), '<nowiki>Hidden</nowiki>' . $domain,
+        str_replace( '<li>', '<li class="conditional">', $domain ), str_replace( '{{:Shared Relic}}', '{{:File:Not an item}}', $domain ),
+        str_replace( '</ul>', '', $domain ) ] as $unsafeDomain ) {
+        EqlNpcLootWikitext::reviewedSourceDomainItems( $unsafeDomain, $domainHash, $bounded );
+        checkLootCount( !$bounded, 'Changed, dynamic, protected, conditional, malformed or invalid catalogs cannot bound a historical group' );
+    }
+    checkLootCount( EqlNpcLootWikitext::literalSourceLeaf( 'Shared_Relic<!-- editorial -->', 'Shared Relic' ), 'A literal self-title stub bounds only its own possible identity' );
+    foreach ( [ 'Other Relic', '{{:Shared Relic}}', '[[Shared Relic]]', "Shared Relic\nOther Relic", '<nowiki>Shared Relic</nowiki>' ] as $unsafeLeaf ) {
+        checkLootCount( !EqlNpcLootWikitext::literalSourceLeaf( $unsafeLeaf, 'Shared Relic' ), 'Arbitrary prose, markup and another identity cannot borrow self-title proof' );
+    }
+    $counts = new EqlItemLootSourceCounts();
+    $counts->item( 'Shared Relic', $item() );
+    $counts->item( 'Unrelated Relic', '{{Itempage|itemname=Unrelated Relic|dropsfrom=}}' );
+    $counts->sets( [ 'Shared Relic' => [ 'items' => [], 'complete' => false, 'possibleItems' => [ 'Shared Relic' ], 'possibleItemsComplete' => true,
+        'source' => [ 'wikiTitle' => 'Shared Relic', 'revisionId' => 123 ], 'possibleRule' => 'literal-self-title' ] ] );
+    $counts->npc( 'Guardian One', '{{Namedmobpage|known_loot={{:Shared Relic}}}}' );
+    $leafCatalog = $counts->catalog( $verifiedResolve );
+    checkLootCount( !isset( $leafCatalog['Shared Relic'] ) && $counts->diagnostics()['uncertainItems'] === 1 && $leafCatalog['Unrelated Relic']['lootSourceCountComplete'], 'A self-title stub never creates a positive drop or globally poisons unrelated items' );
+    $counts = new EqlItemLootSourceCounts(); $counts->item( 'Shared Relic', $item() );
+    $counts->sets( [ 'Unknown Research' => [ 'items' => [], 'complete' => false, 'possibleItems' => [], 'possibleItemsComplete' => false ] ] );
+    $counts->npc( 'Guardian One', '{{Namedmobpage|known_loot=[[Unknown Research]]}}' );
+    checkLootCount( !$counts->catalog( $verifiedResolve )['Shared Relic']['lootSourceCountComplete'], 'An unsupported or missing research domain remains globally fail-closed' );
     $counts = new EqlItemLootSourceCounts();
     $counts->item( 'Shared Relic', $item() );
     $counts->npc( 'Guardian One', "{{Namedmobpage\n|name=Guardian One\n|zone=[[A place]]\n|known_loot\n<ul><li>{{:Shared Relic}}</li></ul>\n|factions=[[Unrelated Faction]]\n}}" );
@@ -282,6 +310,11 @@ namespace {
         $method( 'resolveLootTitle', 'enrichNpcRedirectAliases' ) . $method( 'enrichNpcRedirectAliases', 'parseItemDisplayLines' );
     $methods = str_replace( 'MediaWikiServices::', '\\MediaWiki\\MediaWikiServices::', $methods );
     $methods = preg_replace( '/\bTitle\b/', '\\MediaWiki\\Title\\Title', $methods );
+    preg_match( '/    private const SOURCE_GROUP_DOMAINS = \[[\s\S]*?\n    \];/', $source, $domainConstant );
+    // Exercise the actual registry adapter with synthetic reviewed signatures.
+    $producerGroupSource = 'Synthetic reviewed source group.';
+    $domainConstant[0] = preg_replace( "/('sourceSha256' => ')[a-f0-9]{64}/", '${1}' . hash( 'sha256', $producerGroupSource ), $domainConstant[0] );
+    $domainConstant[0] = preg_replace( "/('introSha256' => ')[a-f0-9]{64}/", '${1}' . $domainHash, $domainConstant[0] );
     eval( 'class LootProducerFixture {
         private $lootCounts; private array $lootTitleMemo=[]; private array $lootSourceKinds=[];
         private array $wikiRelationshipCoverage=[]; private array $lootSets=[]; private array $lootCollectionMemo=[];
@@ -289,11 +322,11 @@ namespace {
         private function maybePause(): void {}
         public function resolve($name) { return $this->resolveLootTitle($name, $GLOBALS["lootFactory"]); }
         public function remember($kind, $name) { $title = \MediaWiki\Title\Title::newFromText($name); $this->rememberPublicLootSource($kind, $title, $GLOBALS["lootFactory"]->newFromTitle($title)); }
-        public function catalog() { return $this->lootCounts->catalog(fn($name) => $this->resolve($name)); }
+        public function catalog() { $this->lootCounts->sets($this->lootSets); return $this->lootCounts->catalog(fn($name) => $this->resolve($name)); }
         public function coverage() { return $this->wikiRelationshipCoverage; }
         public function collections() { return $this->lootSets; }
         public function aliases($npcs, $db) { return $this->enrichNpcRedirectAliases($npcs, $db, $GLOBALS["lootFactory"]); }
-        ' . $methods . ' }' );
+        ' . $domainConstant[0] . $methods . ' }' );
     $GLOBALS['lootPages'] = [
         'Public guardian' => [ 'id' => 20, 'text' => '{{Namedmobpage}}' ],
         'Public alias' => [ 'id' => 21, 'text' => '#REDIRECT [[Public guardian]]', 'redirect' => 'Public guardian' ],
@@ -352,6 +385,31 @@ namespace {
     $conditionalCoverage = $candidates->coverage()['Public conditional guardian'];
     $conditionalCollection = $candidates->collections()['Public conditional armor'];
     checkLootCount( !$conditionalCoverage['edges'] && !$conditionalCoverage['collectionRefs'][0]['complete'] && !$conditionalCollection['items'] && $conditionalCollection['possibleItemsComplete'] && count( $conditionalCollection['possibleItems'] ) === 2, 'A conditional armor table exports bounded possible membership without any positive NPC-item cross-product' );
+    $GLOBALS['lootPages']['Research'] = [ 'id' => 40, 'text' => $producerGroupSource ];
+    $catalogText = $domainIntro . '<ul><li>{{:Public material}}</li><li>{{:Missing component}}</li><li>{{:Public material}}</li></ul>';
+    $GLOBALS['lootPages']['Spell Research Materials'] = [ 'id' => 41, 'text' => $catalogText ];
+    $GLOBALS['lootPages']['Public research guardian'] = [ 'id' => 42, 'text' => '{{Namedmobpage|known_loot=[[Research]]}}' ];
+    $GLOBALS['lootPages']['Public self leaf'] = [ 'id' => 43, 'text' => 'Public self leaf' ];
+    $GLOBALS['lootPages']['Public leaf guardian'] = [ 'id' => 44, 'text' => '{{Namedmobpage|known_loot={{:Public self leaf}}}}' ];
+    $domains = new LootProducerFixture(); $domains->remember( 'item', 'Public material' ); $domains->remember( 'npc', 'Public research guardian' );
+    $research = $domains->collections()['Research'];
+    checkLootCount( $research['items'] === [] && !$research['complete'] && $research['possibleItemsComplete'] && $research['possibleItems'] === [ 'Missing component', 'Public material' ], 'Actual adapter bounds a reviewed group to canonical possible identities, including literal missing components, without positive expansion' );
+    checkLootCount( $research['source'] === [ 'wikiTitle' => 'Research', 'revisionId' => 400 ] && $research['possibleSource'] === [ 'wikiTitle' => 'Spell Research Materials', 'revisionId' => 410 ] && $research['possibleRule'] === 'reviewed-research-catalog', 'Both current public revisions accompany the reviewed uncertainty domain' );
+    checkLootCount( !$domains->coverage()['Public research guardian']['edges'] && !$domains->catalog()['Public material']['lootSourceCountComplete'], 'Possible research membership cannot fabricate a guardian-to-member relationship or prove Unique for a possible member' );
+    $domains->remember( 'npc', 'Public leaf guardian' );
+    $leaf = $domains->collections()['Public self leaf'];
+    checkLootCount( $leaf['possibleRule'] === 'literal-self-title' && $leaf['possibleItems'] === [ 'Public self leaf' ] && !$leaf['complete'] && !$leaf['items'], 'Actual adapter keeps a self-labelled public stub uncertainty-only' );
+    foreach ( [ 'private' => true, 'hidden' => true, 'text' => $catalogText . '{{Unknown}}' ] as $flag => $value ) {
+        $GLOBALS['lootPages']['Spell Research Materials'][$flag] = $value;
+        $unsafe = new LootProducerFixture(); $unsafe->remember( 'npc', 'Public research guardian' );
+        checkLootCount( !$unsafe->collections()['Research']['possibleItemsComplete'], 'Private, suppressed or dynamic catalogs cannot close the source domain: ' . $flag );
+        unset( $GLOBALS['lootPages']['Spell Research Materials'][$flag] );
+        $GLOBALS['lootPages']['Spell Research Materials']['text'] = $catalogText;
+    }
+    $GLOBALS['lootPages']['Spell Research Materials']['text'] = str_replace( 'Missing component', 'Public guardian', $catalogText );
+    $unsafe = new LootProducerFixture(); $unsafe->remember( 'npc', 'Public research guardian' );
+    checkLootCount( !$unsafe->collections()['Research']['possibleItemsComplete'], 'An unreviewed non-item catalog role cannot be silently treated as an ingredient' );
+    $GLOBALS['lootPages']['Spell Research Materials']['text'] = $catalogText;
     $hiddenCandidates = new LootProducerFixture();
     $hiddenCandidates->remember( 'npc', 'Private guardian' );
     $hiddenCandidates->remember( 'npc', 'Suppressed guardian' );

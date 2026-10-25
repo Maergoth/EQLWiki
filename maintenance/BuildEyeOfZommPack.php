@@ -16,6 +16,16 @@ use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 
 class BuildEyeOfZommPack extends Maintenance {
+    // Reviewed legacy group meaning, not a material-name or monster allowlist.
+    // Every build still proves both current anonymous public revisions and the
+    // catalog's complete literal shape before using its possible-member domain.
+    private const SOURCE_GROUP_DOMAINS = [
+        'Research' => [
+            'catalog' => 'Spell Research Materials',
+            'sourceSha256' => '607aa3860142597f6fd7f7b6cd3640a9a45571a8e043f8b8364dab4d96e1b207',
+            'introSha256' => '6cb04379a5dd9bae24d1843a3678a6f62db78679777a0692ebcc242dbaa77715',
+        ],
+    ];
     private const CLASS_CODES = [
         'WAR','CLR','PAL','RNG','SHD','DRU','MNK','BRD',
         'ROG','SHM','NEC','WIZ','MAG','ENC','BST','BER','ALL'
@@ -825,6 +835,20 @@ class BuildEyeOfZommPack extends Maintenance {
         $revision = $page->getRevisionRecord();
         $revisionId = $revision && method_exists( $revision, 'getId' ) ? (int)$revision->getId() : 0;
         if ( $revisionId <= 0 ) { return null; }
+        if ( isset( self::SOURCE_GROUP_DOMAINS[$title->getText()] ) ) {
+            $result = $this->resolveReviewedSourceDomain( $title, $text, $revisionId, $factory );
+            $this->lootSourceKinds[$name] = 'collection';
+            $this->lootSets[$name] = $result;
+            return $this->lootCollectionMemo[$name] = $result;
+        }
+        if ( EqlNpcLootWikitext::literalSourceLeaf( $text, $title->getText() ) ) {
+            $result = [ 'items' => [], 'complete' => false, 'possibleItems' => [ $title->getText() ],
+                'possibleItemsComplete' => true, 'possibleRule' => 'literal-self-title',
+                'source' => [ 'wikiTitle' => $title->getText(), 'revisionId' => $revisionId ] ];
+            $this->lootSourceKinds[$name] = 'collection';
+            $this->lootSets[$name] = $result;
+            return $this->lootCollectionMemo[$name] = $result;
+        }
         $result = [ 'items' => [], 'complete' => $complete, 'possibleItems' => [], 'possibleItemsComplete' => $bounded,
             'source' => [ 'wikiTitle' => $name, 'revisionId' => $revisionId ] ];
         foreach ( array_unique( array_merge( $members, $possible ) ) as $member ) {
@@ -856,6 +880,37 @@ class BuildEyeOfZommPack extends Maintenance {
         $this->lootSourceKinds[$name] = 'collection';
         $this->lootSets[$name] = $result;
         return $this->lootCollectionMemo[$name] = $result;
+    }
+
+    /** Bound a reviewed group's uncertainty without creating any member/drop facts. */
+    private function resolveReviewedSourceDomain( Title $title, string $text, int $revisionId, $factory ): array {
+        $result = [ 'items' => [], 'complete' => false, 'possibleItems' => [], 'possibleItemsComplete' => false,
+            'source' => [ 'wikiTitle' => $title->getText(), 'revisionId' => $revisionId ] ];
+        $rule = self::SOURCE_GROUP_DOMAINS[$title->getText()] ?? null;
+        $literal = trim( preg_replace( '/[\s\p{Z}]+/u', ' ', preg_replace( '/<!--[\s\S]*?(?:-->|$)/', '', $text ) ) );
+        if ( !$rule || hash( 'sha256', $literal ) !== $rule['sourceSha256'] ) { return $result; }
+        $catalog = Title::newFromText( $rule['catalog'], NS_MAIN );
+        if ( !$catalog || $catalog->getNamespace() !== NS_MAIN || !$catalog->exists() || $catalog->isExternal() || $catalog->getFragment() ) { return $result; }
+        $page = $factory->newFromTitle( $catalog );
+        $source = $this->publicLootText( $catalog, $page );
+        $revision = $page->getRevisionRecord();
+        $catalogRevision = $revision && method_exists( $revision, 'getId' ) ? (int)$revision->getId() : 0;
+        if ( $source === null || $catalogRevision <= 0 ||
+            MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $catalog ) ) { return $result; }
+        $members = EqlNpcLootWikitext::reviewedSourceDomainItems( $source, $rule['introSha256'], $bounded );
+        if ( !$bounded ) { return $result; }
+        $possible = [];
+        foreach ( $members as $member ) {
+            $target = $this->resolveLootCountTitle( $member, $factory );
+            if ( !$target['public'] || !$target['complete'] || !in_array( $target['kind'], [ 'item', 'missing' ], true ) ) { return $result; }
+            $possible[$target['title']] = $target['title'];
+        }
+        $result['possibleItems'] = array_values( $possible );
+        sort( $result['possibleItems'], SORT_STRING );
+        $result['possibleItemsComplete'] = count( $result['possibleItems'] ) > 0;
+        $result['possibleSource'] = [ 'wikiTitle' => $catalog->getText(), 'revisionId' => $catalogRevision ];
+        $result['possibleRule'] = 'reviewed-research-catalog';
+        return $result;
     }
 
     private function mergeRelationshipLootSources(): void {
@@ -1726,52 +1781,64 @@ class BuildEyeOfZommPack extends Maintenance {
     private function loadRaidInstanceIndex( $wikiPageFactory, array $zoneRows = [] ): void {
         $this->raidNpcIndex = [];
         $candidates = [];
+        $whoClaims = [];
         foreach ( $this->zoneCatalog as $zone ) {
             $candidates[(string)( $zone['wikiTitle'] ?? $zone['name'] )] = $zone;
         }
-        // Discover source pages from the wiki's zone category. The catalog is
-        // an alias/map registry, never a hardcoded list of zones with raids.
+        // The curated catalog preserves map metadata; public Category:Zones
+        // supplies newly authored zones even when they have no raid section.
         foreach ( $zoneRows as $row ) {
             $title = str_replace( '_', ' ', (string)$row->page_title );
             $known = $this->zoneAliasMap[$this->normalizeZone( $title )] ?? null;
             $candidates[$title] = $known ?: [ 'name' => $title, 'wikiTitle' => $title, '_newZone' => true ];
-            $candidates[$title]['wikiTitle'] = $title;
+            $candidates[$title]['_sourceTitle'] = $title;
         }
         foreach ( $candidates as $zone ) {
-            $zoneTitle = (string)( $zone['wikiTitle'] ?? $zone['name'] );
+            $zoneTitle = (string)( $zone['_sourceTitle'] ?? $zone['wikiTitle'] ?? $zone['name'] );
+            unset( $zone['_sourceTitle'] );
             $title = Title::newFromText( $zoneTitle, NS_MAIN );
-            if ( !$title || !$title->exists() ) {
+            if ( !$title || !$title->exists() || $title->getNamespace() !== NS_MAIN || $title->isExternal() || $title->getFragment() !== '' ) {
                 continue;
             }
             $page = $wikiPageFactory->newFromTitle( $title );
-            if ( isset( $this->lootCounts ) ) {
-                $publicText = $this->publicLootText( $title, $page );
-                if ( $publicText === null ) { continue; }
-                if ( !MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) {
-                    $this->rememberRelationshipCoverage( 'zone', $title, $page, $publicText );
-                }
-            }
-            $content = $page->getContent();
-            if ( !$content || !method_exists( $content, 'getText' ) ) {
-                continue;
-            }
+            $publicText = $this->publicLootText( $title, $page );
+            if ( $publicText === null || MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) { continue; }
+            if ( isset( $this->lootCounts ) ) { $this->rememberRelationshipCoverage( 'zone', $title, $page, $publicText ); }
             if ( $zone['_newZone'] ?? false ) {
-                $hasRaid = false;
-                foreach ( $this->instanceSections( $content->getText(), true ) as $section ) {
-                    $hasRaid = $hasRaid || $section['raidInstance'];
-                }
-                if ( !$hasRaid ) {
-                    continue;
-                }
                 unset( $zone['_newZone'] );
-                $zone['viewerName'] = $zone['name'];
                 $zone['aliases'] = [];
                 $this->zoneCatalog[] = $zone;
-                $this->zoneAliasMap[$this->normalizeZone( $zone['name'] )] = $zone;
+            }
+            foreach ( EqlNpcLootWikitext::normalZoneWhoAliases( $publicText ) as $alias ) {
+                $whoClaims[$this->normalizeZone( $alias )][$zone['name']] = $alias;
+            }
+            foreach ( $this->zoneCatalog as &$record ) {
+                if ( $record['name'] === $zone['name'] ) { $record = $zone; break; }
+            } unset( $record );
+            foreach ( array_merge( [ $zone['name'], $zoneTitle ], $zone['aliases'] ?? [] ) as $alias ) {
+                $known = $this->zoneAliasMap[$this->normalizeZone( $alias )] ?? null;
+                if ( !$known || $this->normalizeZone( $known['name'] ) === $this->normalizeZone( $zone['name'] ) ) { $this->zoneAliasMap[$this->normalizeZone( $alias )] = $zone; }
             }
             $revision = $page->getRevisionRecord();
-            $this->collectZoneRaidReferences( $content->getText(), (string)$zone['name'], $zoneTitle,
+            $this->collectZoneRaidReferences( $publicText, (string)$zone['name'], $zoneTitle,
                 $revision ? (int)$revision->getId() : 0, $wikiPageFactory );
+        }
+        // Resolve all public claims together: page order cannot choose a winner
+        // for an ambiguous short name, nor replace a curated identity.
+        foreach ( $whoClaims as $key => $claims ) {
+            if ( count( $claims ) !== 1 ) { continue; }
+            $name = array_key_first( $claims ); $alias = $claims[$name];
+            $known = $this->zoneAliasMap[$key] ?? null;
+            if ( $known && $known['name'] !== $name ) { continue; }
+            foreach ( $this->zoneCatalog as &$record ) {
+                if ( $record['name'] !== $name ) { continue; }
+                $record['aliases'] = array_values( array_unique( array_merge( $record['aliases'] ?? [], [ $alias ] ) ) );
+                foreach ( array_merge( [ $record['name'], $record['wikiTitle'] ?? $record['name'], $record['viewerName'] ?? '' ], $record['aliases'] ) as $value ) {
+                    $aliasKey = $this->normalizeZone( $value );
+                    if ( $aliasKey !== '' && ( !isset( $this->zoneAliasMap[$aliasKey] ) || $this->zoneAliasMap[$aliasKey]['name'] === $name ) ) { $this->zoneAliasMap[$aliasKey] = $record; }
+                }
+                break;
+            } unset( $record );
         }
     }
 
