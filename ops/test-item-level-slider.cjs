@@ -6,6 +6,10 @@ const path = require( 'node:path' );
 const { JSDOM } = require( 'jsdom' );
 const source = fs.readFileSync( path.join( __dirname,
 	'../extensions/ItemLevelSlider/itemlevelslider.js' ), 'utf8' );
+const core = fs.readFileSync( path.join( __dirname,
+	'../extensions/ItemLevelSlider/item-scaling-core.js' ), 'utf8' );
+const rules = JSON.parse( fs.readFileSync( path.join( __dirname,
+	'../extensions/ItemLevelSlider/item-scaling-rules.json' ), 'utf8' ) );
 const jquery = fs.readFileSync( path.join( __dirname,
 	'../resources/lib/jquery/jquery.js' ), 'utf8' );
 
@@ -37,11 +41,12 @@ async function main() {
 	const { window } = dom;
 	const hooks = {};
 	window.mediaWiki = {
-		config: { get: ( key, fallback ) => fallback },
+		config: { get: ( key, fallback ) => key === 'wgEQLItemScalingRules' ? rules : fallback },
 		hook: name => ( { add: callback => { hooks[ name ] = callback; } } )
 	};
 	window.eval( jquery );
 	window.mw = window.mediaWiki;
+	window.eval( core );
 	window.eval( source );
 
 	// Synthetic stats retain the item-template structure without using wiki data.
@@ -50,6 +55,7 @@ async function main() {
 		{ title: 'Throwing weapon', stats: 'Slot: RANGE<br>Skill: Throwing Atk Delay: 20<br>DMG: 20<br>Range: 40', base: 40, scalable: true },
 		{ title: 'Throwingv2 weapon', stats: 'Slot: RANGE AMMO<br>Skill: Throwingv2 Atk Delay: 20<br>DMG: 20<br>Range: 20', base: 20, scalable: true },
 		{ title: 'Zero-range bow', stats: 'Slot: RANGE<br>Skill: Archery Atk Delay: 40<br>DMG: 20<br>Range: 0', base: 0, scalable: true },
+		{ title: 'Negative range penalty', stats: 'Slot: RANGE<br>DMG: 20<br>Range: -10', base: -10, scalable: true },
 		{ title: 'Multiple slots', stats: 'Slot: PRIMARY SECONDARY RANGE<br>Skill: Throwing Atk Delay: 20<br>DMG: 20<br>Range: 30', base: 30, scalable: true },
 		{ title: 'Formatted slots', stats: 'Slot:&nbsp;<a href="/synthetic-primary">PRIMARY</a> <a href="/synthetic-range">RANGE</a><br>Skill: Throwing Atk Delay: 20<br>DAMAGE: 20<br>Range: +25', base: 25, scalable: true, sign: '+' },
 		{ title: 'Throwingv1 weapon', stats: 'Slot: RANGE<br>Skill: Throwingv1 Atk Delay: 20<br>DMG: 20<br>Range: 30', base: 30, scalable: true },
@@ -79,11 +85,11 @@ async function main() {
 		function check( full, label, expectedDamage ) {
 			assert.equal( wrapper.querySelector( '.ils-level-display' ).textContent, label, test.title );
 			if ( range ) {
-				const expected = test.base + 10 * full;
+				const expected = test.base < 0 ? test.base : test.base + 10 * full;
 				assert.equal( range.textContent, `${test.sign || ''}${expected}`, `${test.title}: rank ${label}` );
-				assert.equal( Number( range.dataset.ilsBase ), test.base, `${test.title}: original range` );
+				assert.equal( Number( range.dataset.ilsBase ), Math.abs( test.base ), `${test.title}: original range` );
 				assert.equal( Number( range.dataset.ilsCurrentValue ), expected, test.title );
-				assert.equal( range.classList.contains( 'ils-modified' ), full > 0, test.title );
+				assert.equal( range.classList.contains( 'ils-modified' ), full > 0 && test.base >= 0, test.title );
 			} else {
 				assert.doesNotMatch( item.textContent, /\bRange:/i, `${test.title}: no invented range field` );
 			}
@@ -118,6 +124,31 @@ async function main() {
 		input( window, slider, 0 );
 		check( 0, '0', 20 );
 		assert.equal( item.innerHTML, instrumentedHtml, `${test.title}: rank zero restoration` );
+	}
+
+	// Primary/weight and contextual Void also flow through the injected engine.
+	window.localStorage.clear();
+	window.document.body.innerHTML = card( 'Shared numeric boundaries',
+		'STR: -4 DEX: 0<br>HP: 100<br>WT: 10.0' );
+	window.eqlItemLevelSliderRefresh( window.document );
+	const boundaryWrapper = window.document.querySelector( '.ils-item-wrapper' );
+	const boundaryItem = boundaryWrapper.querySelector( '.itemdata' );
+	input( window, boundaryWrapper.querySelector( '.ils-slider' ), 10000 );
+	assert.equal( boundaryItem.querySelector( '[data-ils-stat="STR"]' ).textContent, '0' );
+	assert.equal( boundaryItem.querySelector( '[data-ils-stat="HP"]' ).textContent, '200' );
+	assert.equal( boundaryItem.querySelector( '[data-ils-stat="WT"]' ).textContent, '1.1', 'wiki ceiling boundary is preserved' );
+	assert.equal( boundaryItem.querySelector( '.ils-void-resist' ).textContent, 'SV VOID: +10' );
+	input( window, boundaryWrapper.querySelector( '.ils-slider' ), 0 );
+	assert.equal( boundaryItem.querySelector( '[data-ils-stat="STR"]' ).textContent, '-4' );
+	assert.equal( boundaryItem.querySelector( '.ils-void-resist' ).textContent, '' );
+	for ( const label of [ 'SV VOID', 'SV Corruption' ] ) {
+		window.localStorage.clear();
+		window.document.body.innerHTML = card( 'Explicit Void resist', `STR: 5 DEX: 5<br>${label}: +3` );
+		window.eqlItemLevelSliderRefresh( window.document );
+		const explicitVoidWrapper = window.document.querySelector( '.ils-item-wrapper' );
+		input( window, explicitVoidWrapper.querySelector( '.ils-slider' ), 10000 );
+		assert.match( explicitVoidWrapper.querySelector( '.itemdata' ).textContent, new RegExp( `${label}: \\+3` ) );
+		assert.equal( explicitVoidWrapper.querySelector( '.ils-void-resist' ).textContent, '', 'explicit Void suppresses generated duplicate' );
 	}
 
 	// A dynamic card inherits the saved fractional rank, and refresh never scales twice.
