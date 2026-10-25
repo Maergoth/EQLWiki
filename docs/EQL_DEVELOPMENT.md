@@ -244,6 +244,19 @@ synchronization, without runtime formula polling, API additions, database-page
 publication or schema changes. See the
 [shared engine guide](../extensions/ItemLevelSlider/README.md).
 
+Rules revision 2 truncates positive primary stats above 10 after fractional
+scaling. With current wiki stats treated as base values, check HP 50 at
+`5 + 4/32` gives 75, AC 14 at `6 + 5/64` gives 22, and HP 50 at `4 + 4/16`
+gives 71. The first two distinguish floor from rounding; the third distinguishes
+fractional from whole-rank progress. The pure engine and DOM fixtures use literal
+observations for these cases, plus negative-penalty preservation. The engine
+guide retains the unresolved Vambraces AC 15/rank 3/displayed 16 discrepancy.
+The same revision corrects Void eligibility to count all primary fields and
+HP/Mana/End regen. Check base AC 2/HP 12/STR 3 and three regen fields of 2 each
+generate Void 5 at rank 5 and hide it on reset. One STR alongside DMG/Backstab,
+DMG/delay alone, and one AC alone must not generate Void. Distinct known zero
+primary fields still qualify, and explicit Void/Corruption suppresses duplicates.
+
 For ItemLevelSlider, check Backstab and Accuracy inside article and hover item
 frames at rank zero, a whole rank, and fractional progress. Backstab uses the
 original Backstab field independently of DMG; check `BACKSTAB`, `BACKSTAB DMG`,

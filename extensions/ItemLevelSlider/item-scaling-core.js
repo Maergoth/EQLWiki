@@ -16,8 +16,7 @@
 	var PRIMARY = [ 'AC', 'HP', 'MP', 'END', 'STR', 'STA', 'AGI', 'DEX', 'WIS', 'INT', 'CHA',
 		'SV_MAGIC', 'SV_FIRE', 'SV_COLD', 'SV_POISON', 'SV_DISEASE' ];
 	var FLAT = [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN', 'HASTE' ];
-	var VOID_QUALIFIERS = [ 'STR', 'STA', 'INT', 'AGI', 'DEX', 'CHA', 'WIS',
-		'SV_FIRE', 'SV_COLD', 'SV_POISON', 'SV_MAGIC', 'SV_DISEASE' ];
+	var VOID_QUALIFIERS = PRIMARY.concat( [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN' ] );
 	var ALIASES = {
 		DAMAGE: 'DMG', BASE_DMG: 'DMG', MANA: 'MP', ENDURANCE: 'END', ENDUR: 'END',
 		BACKSTAB_DMG: 'BACKSTAB', BACKSTAB_DAMAGE: 'BACKSTAB', WEIGHT: 'WT',
@@ -132,7 +131,7 @@
 			if ( family === 'primary' ) {
 				if ( base === 0 ) { return 0; }
 				if ( base > 0 && base <= rules.primary.smallThreshold ) { return base + state.full; }
-				if ( base > rules.primary.smallThreshold ) { return Math.floor( base + excelRound( base * effective / rules.primary.divisor ) ); }
+				if ( base > rules.primary.smallThreshold ) { return Math.floor( base + base * effective / rules.primary.divisor ); }
 				return Math.min( 0, base + ( Math.abs( base ) <= rules.primary.smallThreshold ? state.full :
 					excelRound( Math.abs( base ) * effective / rules.primary.divisor ) ) );
 			}
