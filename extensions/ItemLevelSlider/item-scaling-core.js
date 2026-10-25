@@ -1,6 +1,6 @@
 /**
  * Shared EQL item scaling kernel. The wiki owns this source and its JSON rules.
- * Consumers may vendor the kernel; remote updates are validated JSON, never code.
+ * Consumers vendor the exact kernel and rules from reviewed source at release time.
  * Copyright (c) 2026 Maergoth. SPDX-License-Identifier: MIT
  * See item-scaling-core.LICENSE for the complete license.
  */

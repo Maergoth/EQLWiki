@@ -235,6 +235,14 @@ template publication. Item rank changes should leave the damage bonus's base-sta
 default unchanged. The parser fixture verifies template output, not live
 ResourceLoader, uploaded icons, or staging hovers.
 
+ItemLevelSlider's pure engine and coefficient JSON are shared with Eye of Zomm
+through release-time source synchronization. The wiki uses its deployed files;
+each app version bundles exact reviewed source and keeps those formulas fixed.
+A formula change needs a normal wiki deployment and a new app version after
+synchronization, without runtime formula polling, API additions, database-page
+publication or schema changes. See the
+[shared engine guide](../extensions/ItemLevelSlider/README.md).
+
 For ItemLevelSlider, check Backstab and Accuracy inside article and hover item
 frames at rank zero, a whole rank, and fractional progress. Backstab uses the
 original Backstab field independently of DMG; check `BACKSTAB`, `BACKSTAB DMG`,

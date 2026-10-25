@@ -37,11 +37,8 @@ $wgExtensionCredits['other'][] = array(
 	'version'     => '3.0',
 );
 
-// One versioned rules document feeds both ResourceLoader and API consumers.
+// ResourceLoader reads the same versioned rules document vendored by clients.
 $wgAutoloadClasses['ItemLevelScalingRules'] = __DIR__ . '/ItemLevelScalingRules.php';
-$wgAutoloadClasses['ApiEQLItemScaling'] = __DIR__ . '/ApiEQLItemScaling.php';
-$wgAPIModules['eqlitemscaling'] = 'ApiEQLItemScaling';
-$wgMessagesDirs['ItemLevelSlider'] = __DIR__ . '/i18n';
 
 if ( $wgItemLevelSliderEnabled ) {
 	$wgHooks['BeforePageDisplay'][] = 'ItemLevelSliderHooks::onBeforePageDisplay';

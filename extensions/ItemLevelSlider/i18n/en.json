@@ -1,5 +1,0 @@
-{
-  "apihelp-eqlitemscaling-summary": "Read the versioned item-scaling rules shared by the wiki and offline clients.",
-  "apihelp-eqlitemscaling-extended-description": "Returns the complete JSON rules document, schema version, engine version and revision. No login or token is required. This module does not write pages or gameplay observations.",
-  "apihelp-eqlitemscaling-example-rules": "Read the current item-scaling rules."
-}
