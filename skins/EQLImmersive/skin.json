@@ -114,6 +114,7 @@
         "BeforePageDisplay": [ "EQLImmersiveHooks", "EQLHomepageCache" ],
         "ParserAfterParse": [ "EQLImmersiveHooks", "EQLHomepageCache" ],
         "RejectParserCacheValue": "EQLHomepageCache",
+        "HTMLFileCache::useFileCache": "EQLHomepageCache",
         "PageSaveComplete": "EQLHomepageCache"
     },
     "ResourceModules": {

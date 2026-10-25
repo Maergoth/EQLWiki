@@ -57,6 +57,7 @@ namespace {
 	use MediaWiki\Title\Title;
 
 	define( 'NS_MAIN', 0 );
+	require_once __DIR__ . '/../includes/cache/Hook/HTMLFileCache__useFileCacheHook.php';
 	require_once __DIR__ . '/../includes/parser/Hook/ParserAfterParseHook.php';
 	require_once __DIR__ . '/../includes/parser/Hook/RejectParserCacheValueHook.php';
 	require_once __DIR__ . '/../includes/Output/Hook/BeforePageDisplayHook.php';
@@ -115,6 +116,7 @@ namespace {
 	$expect( HomepageCache::CACHE_SECONDS, 300, 'The policy uses one five-minute window.' );
 
 	foreach ( [ $main, $news, $customMain ] as $title ) {
+		$expect( $handler->onHTMLFileCache__useFileCache( new HomepagePage( $title ) ), false, 'Main page and News bypass legacy HTML file cache so it cannot outlive their shared freshness window.' );
 		$output = new HomepageParserOutput();
 		$text = '<p>Synthetic content</p>';
 		$handler->onParserAfterParse( new HomepageParser( $title, $output ), $text, null );
@@ -145,6 +147,7 @@ namespace {
 	$baseline = [ 'page' => '20200101000000', 'user' => '20200102000000',
 		'epoch' => '20190101000000', 'eql-deployment' => '20260101000000' ];
 	foreach ( $ordinary as $title ) {
+		$expect( $handler->onHTMLFileCache__useFileCache( new HomepagePage( $title ) ), true, 'Unrelated pages, namespaces and missing title retain native HTML file-cache eligibility.' );
 		$output = new HomepageParserOutput();
 		$text = 'Unrelated';
 		$handler->onParserAfterParse( new HomepageParser( $title, $output ), $text, null );
@@ -192,7 +195,7 @@ namespace {
 	$expect( str_contains( json_encode( $logs ), 'Synthetic private failure detail' ), false, 'Failure diagnostics never disclose exception details.' );
 
 	$manifest = json_decode( file_get_contents( __DIR__ . '/../skins/EQLImmersive/skin.json' ), true, 512, JSON_THROW_ON_ERROR );
-	foreach ( [ 'ParserAfterParse', 'RejectParserCacheValue', 'BeforePageDisplay', 'OutputPageCheckLastModified', 'PageSaveComplete' ] as $hook ) {
+	foreach ( [ 'HTMLFileCache::useFileCache', 'ParserAfterParse', 'RejectParserCacheValue', 'BeforePageDisplay', 'OutputPageCheckLastModified', 'PageSaveComplete' ] as $hook ) {
 		$classes = array_map( static fn ( $handlerName ) => $manifest['HookHandlers'][$handlerName]['class'] ?? null,
 			(array)( $manifest['Hooks'][$hook] ?? [] ) );
 		$expect( in_array( HomepageCache::class, $classes, true ), true, "The active skin registers the $hook homepage handler." );
