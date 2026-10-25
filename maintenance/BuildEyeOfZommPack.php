@@ -617,6 +617,9 @@ class BuildEyeOfZommPack extends Maintenance {
         try {
             $text = $this->publicLootText( $title, $page );
             if ( $text === null ) { $this->lootCounts->incomplete(); return; }
+            // Manually categorized redirects are candidates too. Resolve their
+            // targets later; their own page IDs never identify another mob.
+            if ( MediaWikiServices::getInstance()->getRedirectLookup()->getRedirectTarget( $title ) ) { return; }
             $this->lootTitleMemo[$title->getText()] = [ 'title' => $title->getText(),
                 'pageId' => (int)$title->getArticleID() ?: null, 'public' => true, 'complete' => true ];
             if ( $kind === 'npc' ) { $this->lootCounts->npc( $title->getText(), $text ); }
