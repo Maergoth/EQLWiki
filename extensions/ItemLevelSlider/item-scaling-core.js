@@ -81,6 +81,30 @@
 	function excelRound( value ) {
 		return value >= 0 ? Math.floor( value + 0.5 ) : Math.ceil( value - 0.5 );
 	}
+	function decimalFraction( value ) {
+		var parts = String( value ).split( /e/i ), decimal = parts[ 0 ].split( '.' ),
+			numerator = Number( decimal.join( '' ) ), power = ( decimal[ 1 ] || '' ).length - Number( parts[ 1 ] || 0 ), denominator;
+		while ( power > 0 && numerator % 10 === 0 ) { numerator /= 10; power--; }
+		if ( power < 0 ) { numerator *= Math.pow( 10, -power ); power = 0; }
+		denominator = Math.pow( 10, power );
+		return Number.isSafeInteger( numerator ) && Number.isSafeInteger( denominator ) ?
+			{ numerator: numerator, denominator: denominator } : null;
+	}
+	// Whole ranks have an exact decimal result before display ceiling. Integer
+	// remainder avoids turning 7.000000000000001 into an extra displayed tenth,
+	// without snapping genuinely fractional values down with an epsilon.
+	function wholeRankWeight( base, rank, perRank, factor ) {
+		var weight = decimalFraction( base ), rate = decimalFraction( perRank ), remaining, numerator, denominator, remainder;
+		if ( !weight || !rate || !Number.isSafeInteger( rate.numerator * rank ) ) { return null; }
+		remaining = rate.denominator - rate.numerator * rank;
+		numerator = weight.numerator * remaining;
+		denominator = weight.denominator * rate.denominator;
+		if ( !Number.isSafeInteger( numerator ) || !Number.isSafeInteger( numerator * factor ) ||
+			!Number.isSafeInteger( denominator ) || denominator <= 0 ) { return null; }
+		numerator *= factor;
+		remainder = numerator % denominator;
+		return ( ( numerator - remainder ) / denominator + ( remainder > 0 ? 1 : 0 ) ) / factor;
+	}
 	function createEngine( input ) {
 		if ( !validateRules( input ) ) { throw new TypeError( 'Unsupported EQL item scaling rules.' ); }
 		var rules = freeze( JSON.parse( JSON.stringify( input ) ) );
@@ -141,9 +165,11 @@
 			if ( family === 'range' ) { return base >= 0 ? base + rules.range.perTier * state.full : base; }
 			if ( family === 'flat' ) { return base > 0 ? base + rules.flat.perTier * state.full : base; }
 			if ( family === 'weight' && base > rules.weight.minimumBase ) {
-				var factor = Math.pow( 10, rules.weight.precision );
+				var factor = Math.pow( 10, rules.weight.precision ), whole = state.fraction === 0 ?
+					wholeRankWeight( base, state.full, rules.weight.perLog2, factor ) : null;
+				if ( whole !== null ) { return Math.max( 0, whole ); }
 				return Math.max( 0, Math.ceil( base * ( 1 - rules.weight.perLog2 *
-					( Math.log( Math.pow( 2, state.full ) + state.fraction ) / Math.LN2 ) ) * factor ) / factor );
+					( state.fraction === 0 ? state.full : Math.log( Math.pow( 2, state.full ) + state.fraction ) / Math.LN2 ) ) * factor ) / factor );
 			}
 			if ( key === 'ACCURACY' && options.weapon && options.accuracyPercent ) {
 				return base + accuracyBonus( state.full, state.fraction );
