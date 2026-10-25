@@ -25,7 +25,7 @@ final class EqlItemLootSourceCounts {
         $text = preg_replace( '/\|\s*(knownloot|commonloot)\s*=/i', '|$1=', $text );
         $text = preg_replace( '/\|knownloot=/i', '|known_loot=', $text );
         $text = preg_replace( '/\|commonloot=/i', '|common_loot=', $text );
-        $rows = EqlNpcLootWikitext::npcLootSources( $text, $parsed, true );
+        $rows = EqlNpcLootWikitext::npcLootSources( $text, $parsed, true, true );
         if ( !$parsed ) { $this->incomplete(); }
         foreach ( $rows as $row ) {
             $key = $row['item'] . "\0" . $title;

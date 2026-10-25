@@ -512,6 +512,10 @@ independently of the builder account. Partial builds, unreadable/suppressed
 sources, malformed or unknown source syntax, unresolved identities and safety
 limits leave an explicit incomplete lower bound. Six verified distinct mobs
 already establish Common; fewer than six establish Unique only when complete.
+The global collector alone accepts duplicate non-loot `Namedmobpage` parameters
+using the final value, so repeated merchant `items_sold` fields do not invalidate
+unrelated loot counts. Duplicate Common/Unique loot parameters and opaque loot
+wrappers remain incomplete; ordinary renderer/helper calls retain strict parsing.
 This is cached dataset metadata, with no new count API or per-contribution wiki
 queries. Run [`ops/test-eoz-loot-counts.php`](../ops/test-eoz-loot-counts.php),
 deploy the reviewed maintenance/helper sources, then separately rebuild and

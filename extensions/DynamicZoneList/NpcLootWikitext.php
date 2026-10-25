@@ -20,8 +20,8 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** @return array{names:array,zones:array,authoredItems:array}|null */
-	public static function analyseNpcPage( string $source ): ?array {
-		$document = self::document( $source );
+	public static function analyseNpcPage( string $source, bool $globalExport = false ): ?array {
+		$document = self::document( $source, $globalExport );
 		if ( $document === null ) {
 			return null;
 		}
@@ -76,15 +76,19 @@ final class EqlNpcLootWikitext {
 		return [ 'names' => $names, 'zones' => $zones, 'existingSources' => $sources ];
 	}
 
-	/** @return array<array{item:string,npc:string,zone:string,instance:string,lootKind:string}> */
-	public static function npcLootSources( string $source, ?bool &$complete = null, bool $allowMainColon = false ): array {
+	/**
+	 * Global exports may use the last duplicate non-loot Namedmobpage parameter,
+	 * as MediaWiki does. Duplicate loot parameters and all default calls stay strict.
+	 * @return array<array{item:string,npc:string,zone:string,instance:string,lootKind:string}>
+	 */
+	public static function npcLootSources( string $source, ?bool &$complete = null, bool $allowMainColon = false, bool $globalExport = false ): array {
 		$complete = true;
-		$document = self::document( $source );
+		$document = self::document( $source, $globalExport );
 		if ( $document === null ) { $complete = false; return []; }
 		$rows = [];
 		foreach ( $document['templates'] as $template ) {
 			if ( $template['name'] !== 'namedmobpage' ) { continue; }
-			$analysis = self::analyseNpcPage( substr( $source, $template['start'], $template['end'] - $template['start'] ) );
+			$analysis = self::analyseNpcPage( substr( $source, $template['start'], $template['end'] - $template['start'] ), $globalExport );
 			$npc = self::title( $template['fields']['name'] ?? '' ) ?? '';
 			$instance = self::instanceAt( $document['outline'], $template['start'], 'normal' );
 			foreach ( [ 'known_loot' => 'known', 'common_loot' => 'common' ] as $field => $kind ) {
@@ -431,7 +435,7 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** Top-level balanced templates only; nested examples never become pages. */
-	private static function roots( string $source ): ?array {
+	private static function roots( string $source, bool $globalExport = false ): ?array {
 		$roots = [];
 		$stack = [];
 		$start = 0;
@@ -466,7 +470,7 @@ final class EqlNpcLootWikitext {
 					foreach ( $parts as $part ) {
 						if ( preg_match( '/^\s*([A-Za-z][A-Za-z0-9_ ]*)\s*=([\s\S]*)$/', $part, $field ) ) {
 							$key = strtolower( trim( $field[1] ) );
-							if ( array_key_exists( $key, $fields ) ) {
+							if ( array_key_exists( $key, $fields ) && !( $globalExport && $name === 'namedmobpage' && !in_array( $key, [ 'known_loot', 'common_loot' ], true ) ) ) {
 								return null;
 							}
 							$fields[$key] = $field[2];
@@ -499,10 +503,10 @@ final class EqlNpcLootWikitext {
 		return $parts;
 	}
 
-	private static function document( string $source ): ?array {
+	private static function document( string $source, bool $globalExport = false ): ?array {
 		if ( strlen( $source ) > self::MAX_BYTES || preg_match( '//u', $source ) !== 1 ) { return null; }
 		$active = self::active( $source );
-		$templates = self::roots( $active );
+		$templates = self::roots( $active, $globalExport );
 		if ( $templates === null ) { return null; }
 		$outline = $active;
 		foreach ( array_reverse( $templates ) as $template ) {

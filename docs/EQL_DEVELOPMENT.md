@@ -428,6 +428,10 @@ and reconciliation counters distinguish rebuilt datasets from older exports.
 
 The fixture evaluates actual exporter methods with synthetic page objects;
 it does not bootstrap MediaWiki or prove live database coverage.
+Global count regressions also cover duplicate merchant `items_sold` parameters
+at the five/six-monster boundary. Only the explicit global-export parser option
+accepts duplicate non-loot NPC parameters with final-value semantics. Duplicate
+loot fields, unknown loot wrappers and default renderer/helper calls stay strict.
 An approved source deployment and subsequent dataset rebuild/publication are
 separate release steps, described in [PROJECT.md](../PROJECT.md#existing-scheduled-jobs).
 Do not use a production export as a routine test or commit database snapshots,
