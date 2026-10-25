@@ -110,6 +110,27 @@ $once = $text;
 EqlNpcLootRenderer::onParserBeforeInternalParse( $parser, $text, null );
 npcLootExpect( $text === $once && count( $lookup->calls ) === 1, 'Repeated or recursive hooks must not add duplicate loot rows or queries.' );
 
+$projection = EqlNpcLootRenderer::entries( [ 'items' => [ [ 'title' => 'Synthetic Unknown Relic', 'lootKind' => null, 'contexts' => [] ] ] ] );
+npcLootExpect( $projection === [], 'Unknown whole-wiki classification cannot render a generated Known/Unique entry.' );
+$affectedLookup = new SyntheticNpcLootLookup();
+$affectedLookup->result = [ 'sources' => [ [ 'npc' => 'New Guardian', 'zone' => 'Synthetic Vale', 'instance' => 'normal' ] ], 'complete' => true ];
+EqlNpcLootRenderer::$itemLookupFactory = static fn () => $affectedLookup;
+$broadSource = '{{Itempage|itemname=Synthetic Material|statsblock=HP: 5|dropsfrom=Various zones}}';
+EqlNpcLootRenderer::onParserBeforeInternalParse( new SyntheticNpcLootParser( new SyntheticNpcLootTitle( 'Synthetic Material' ) ), $broadSource, null );
+npcLootExpect( !str_contains( $broadSource, 'New Guardian' ), 'A broad affected source group is not expanded merely because gear has bonus stats.' );
+$exactSource = '{{Itempage|itemname=Synthetic Relic|notes=Various unrelated notes|dropsfrom=}}';
+EqlNpcLootRenderer::onParserBeforeInternalParse( new SyntheticNpcLootParser( new SyntheticNpcLootTitle( 'Synthetic Relic' ) ), $exactSource, null );
+npcLootExpect( str_contains( $exactSource, 'New Guardian' ), 'Unrelated page prose does not block an exact affected field.' );
+$affectedLookup->result['zoneAliases'] = [ 'Vale Alias' => 'Synthetic Vale', 'Synthetic Vale' => 'Synthetic Vale' ];
+$aliasBroad = "{{Itempage|itemname=Synthetic Material|dropsfrom=[[Vale Alias]]\n* Many keepers}}";
+EqlNpcLootRenderer::onParserBeforeInternalParse( new SyntheticNpcLootParser( new SyntheticNpcLootTitle( 'Synthetic Material' ) ), $aliasBroad, null );
+npcLootExpect( !str_contains( $aliasBroad, 'New Guardian' ), 'Canonical zone aliases cannot bypass a broad affected source context.' );
+$affectedLookup->result['zoneAliases'] = [ 'Other Vale' => 'Other Vale', 'Synthetic Vale' => 'Synthetic Vale' ];
+$otherBroad = "{{Itempage|itemname=Synthetic Material|dropsfrom=[[Other Vale]]\n* Many keepers}}";
+EqlNpcLootRenderer::onParserBeforeInternalParse( new SyntheticNpcLootParser( new SyntheticNpcLootTitle( 'Synthetic Material' ) ), $otherBroad, null );
+npcLootExpect( str_contains( $otherBroad, 'New Guardian' ), 'Current public canonical proofs keep broad policy scoped to its actual zone.' );
+EqlNpcLootRenderer::$itemLookupFactory = null;
+
 // The guard must be set before an early return on an ordinary page. Otherwise a
 // nested tag parse containing a mob template can pollute unrelated root output.
 $plainParser = new SyntheticNpcLootParser( new SyntheticNpcLootTitle( 'Synthetic Guide' ) );

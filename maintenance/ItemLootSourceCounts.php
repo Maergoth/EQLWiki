@@ -8,10 +8,23 @@ final class EqlItemLootSourceCounts {
     private array $missingItems = [];
     private array $sets = [];
     private bool $complete = true;
+    private array $incompleteReasons = [];
+    private array $uncertainReferences = [];
+    private array $uncertainItems = [];
 
     public function __construct( private int $maxReferences = 200000, private int $maxNpcs = 1000 ) {}
 
-    public function incomplete(): void { $this->complete = false; }
+    public function incomplete( string $reason = 'scan-incomplete' ): void {
+        $this->complete = false;
+        $this->incompleteReasons[$reason] = ( $this->incompleteReasons[$reason] ?? 0 ) + 1;
+    }
+
+    /** Aggregate diagnostics only; no authored source or private page identity. */
+    public function diagnostics(): array {
+        return [ 'complete' => $this->complete, 'incompleteReasons' => $this->incompleteReasons,
+            'items' => count( $this->direct ), 'references' => count( $this->references ), 'collections' => count( $this->sets ),
+            'uncertainItems' => count( $this->uncertainItems ) ];
+    }
 
     /** Public, canonical set metadata supplied by the bounded producer adapter. */
     public function sets( array $sets ): void {
@@ -33,7 +46,14 @@ final class EqlItemLootSourceCounts {
         $text = preg_replace( '/\|knownloot=/i', '|known_loot=', $text );
         $text = preg_replace( '/\|commonloot=/i', '|common_loot=', $text );
         $rows = EqlNpcLootWikitext::npcLootSources( $text, $parsed, true, true, $verifiedItemTemplates );
-        if ( !$parsed ) { $this->incomplete(); }
+        $bounded = false;
+        $possible = method_exists( EqlNpcLootWikitext::class, 'possibleNpcLootItems' )
+            ? EqlNpcLootWikitext::possibleNpcLootItems( $text, $bounded ) : [];
+        if ( !$parsed && !$bounded ) { $this->incomplete( 'unsupported-npc-loot' ); }
+        if ( $bounded ) {
+            $exact = array_fill_keys( array_column( $rows, 'item' ), true );
+            foreach ( $possible as $item ) { if ( !$parsed || !isset( $exact[$item] ) ) { $this->uncertainReferences[$item] = true; } }
+        }
         foreach ( $rows as $row ) {
             $key = $row['item'] . "\0" . $title;
             if ( !isset( $this->references[$key] ) && count( $this->references ) >= $this->maxReferences ) {
@@ -59,6 +79,7 @@ final class EqlItemLootSourceCounts {
     public function catalog( callable $resolve ): array {
         $this->missingItems = [];
         $references = $this->expandedReferences( $resolve );
+        $this->expandUncertainty( $resolve );
         $titles = array_diff_key( array_fill_keys( array_keys( $this->direct ), true ), $this->sets );
         $folded = [];
         foreach ( $this->direct as $title => $_ ) { $folded[EqlNpcLootWikitext::identity( $title )][] = $title; }
@@ -91,12 +112,16 @@ final class EqlItemLootSourceCounts {
             $index[$title] = $i;
             $folded[EqlNpcLootWikitext::identity( $title )][] = $i;
             $rows[$i] = [];
-            $complete[$i] = $this->direct[$title]['complete'] ?? isset( $this->missingItems[$title] );
+            $complete[$i] = ( $this->direct[$title]['complete'] ?? isset( $this->missingItems[$title] ) ) && !isset( $this->uncertainItems[$title] );
         }
         $add = function ( int $i, string $name ) use ( &$rows, &$complete, $resolve ): void {
             if ( self::nonMonsterSource( $name ) ) { return; }
             try { $npc = $resolve( $name ); } catch ( Throwable $error ) { $complete[$i] = false; return; }
             if ( !( $npc['complete'] ?? false ) || !( $npc['public'] ?? false ) ) { $complete[$i] = false; return; }
+            // Version 2 producer adapters prove an actual public NPC card.
+            // Redlinks and arbitrary existing pages remain relationship
+            // evidence, but never inflate the verified monster lower bound.
+            if ( isset( $npc['kind'] ) && $npc['kind'] !== 'npc' ) { $complete[$i] = false; return; }
             if ( self::nonMonsterSource( $npc['title'] ) ) { return; }
             $id = $npc['pageId'] ?? null;
             $key = $id ? 'id:' . $id : 'missing:' . EqlNpcLootWikitext::identity( $npc['title'] );
@@ -159,12 +184,22 @@ final class EqlItemLootSourceCounts {
                 $setKey = $title . "\0" . $npc;
                 if ( isset( $expandedSets[$setKey] ) ) { return; }
                 $expandedSets[$setKey] = true;
-                if ( ( $set['complete'] ?? false ) !== true || count( $set['items'] ) > 1000 ) { $this->incomplete(); }
+                if ( ( $set['complete'] ?? false ) !== true ) {
+                    if ( ( $set['possibleItemsComplete'] ?? false ) === true && count( $set['possibleItems'] ?? [] ) <= 1000 ) {
+                        foreach ( $set['possibleItems'] as $possible ) { $this->uncertainReferences[$possible] = true; }
+                    } else { $this->incomplete( 'unbounded-collection-membership' ); }
+                }
+                if ( count( $set['items'] ) > 1000 ) { $this->incomplete( 'collection-member-limit' ); }
                 $visited[$title] = true;
                 foreach ( array_slice( $set['items'], 0, 1000 ) as $member ) {
                     if ( !is_string( $member ) || $member === '' ) { $this->incomplete(); continue; }
                     $expand( $member, $npc, $visited );
                 }
+                return;
+            }
+            if ( isset( $target['kind'] ) && in_array( $target['kind'], [ 'npc', 'spell', 'merchant', 'zone', 'quest', 'skill' ], true ) ) { return; }
+            if ( isset( $target['kind'] ) && !in_array( $target['kind'], [ 'item', 'missing' ], true ) ) {
+                $this->incomplete( 'unresolved-collection-membership' );
                 return;
             }
             $key = $title . "\0" . $npc;
@@ -176,6 +211,28 @@ final class EqlItemLootSourceCounts {
             if ( $expansions > $this->maxReferences * 2 ) { break; }
         }
         return $references;
+    }
+
+    /** Possible membership is uncertainty only, never an observed drop cross-product. */
+    private function expandUncertainty( callable $resolve ): void {
+        $this->uncertainItems = [];
+        $seen = [];
+        $visit = function ( string $name, int $depth = 0 ) use ( &$visit, &$seen, $resolve ): void {
+            if ( isset( $seen[$name] ) ) { return; }
+            $seen[$name] = true;
+            if ( $depth >= 8 || count( $seen ) > $this->maxReferences ) { $this->incomplete( 'uncertainty-limit' ); return; }
+            try { $target = $resolve( $name ); } catch ( Throwable $error ) { $this->incomplete( 'unresolved-uncertainty' ); return; }
+            if ( !( $target['public'] ?? false ) || !( $target['complete'] ?? false ) ) { $this->incomplete( 'unresolved-uncertainty' ); return; }
+            $title = $target['title'];
+            if ( isset( $this->sets[$title] ) ) {
+                $set = $this->sets[$title];
+                if ( !( $set['complete'] ?? false ) && !( $set['possibleItemsComplete'] ?? false ) ) { $this->incomplete( 'unbounded-collection-membership' ); }
+                foreach ( array_unique( array_merge( $set['items'] ?? [], $set['possibleItems'] ?? [] ) ) as $member ) { $visit( $member, $depth + 1 ); }
+            } elseif ( !isset( $target['kind'] ) || in_array( $target['kind'], [ 'item', 'missing' ], true ) ) {
+                $this->uncertainItems[$title] = true;
+            } elseif ( !in_array( $target['kind'], [ 'npc', 'spell', 'merchant', 'zone', 'quest', 'skill' ], true ) ) { $this->incomplete( 'unresolved-uncertainty' ); }
+        };
+        foreach ( array_keys( $this->uncertainReferences ) as $name ) { $visit( $name ); }
     }
 
     private static function nonMonsterSource( string $name ): bool {

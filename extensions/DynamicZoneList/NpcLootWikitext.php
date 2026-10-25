@@ -6,6 +6,390 @@
 final class EqlNpcLootWikitext {
 	private const MAX_BYTES = 524288;
 
+	/** Page kind is independent of whether an affected field is editable/complete. */
+	public static function authoredPageKind( string $source ): string {
+		$document = self::document( $source, false, true );
+		if ( $document === null ) { return 'unknown'; }
+		$kinds = [];
+		foreach ( $document['templates'] as $template ) {
+			$kind = [ 'itempage' => 'item', 'namedmobpage' => 'npc', 'npcpage' => 'npc',
+				'merchantpage' => 'merchant', 'spellpagesmart' => 'spell', 'spellpage' => 'spell' ][$template['name']] ?? null;
+			if ( $kind !== null ) { $kinds[$kind] = true; }
+		}
+		return count( $kinds ) === 1 ? array_key_first( $kinds ) : ( $kinds ? 'unknown' : 'other' );
+	}
+
+	/** Possible literal members constrain uncertainty only; never positive loot facts. */
+	public static function possibleLootItems( string $source, ?bool &$bounded = null ): array {
+		$bounded = strlen( $source ) <= self::MAX_BYTES && preg_match( '//u', $source ) === 1;
+		if ( !$bounded ) { return []; }
+		$active = self::active( $source );
+		$document = self::document( $active, false, true );
+		if ( $document === null ) { $bounded = false; }
+		$items = self::lootReferences( $active, true, true );
+		$inspect = static function ( string $text, int $depth = 0 ) use ( &$inspect, &$bounded, &$items ): void {
+			if ( $depth >= 8 ) { $bounded = false; return; }
+			$roots = self::roots( $text, false, true );
+			if ( $roots === null ) { $bounded = false; return; }
+			foreach ( $roots as $template ) {
+				if ( str_starts_with( $template['name'], ':' ) ) {
+					// Preserve actual title case from the source reference instead of the normalized name.
+					$reference = self::leadingReference( substr( $text, $template['start'] ), true, true );
+					if ( $reference ) { self::unique( $items, $reference['title'] ); }
+					if ( $template['parts'] ) { $bounded = false; }
+					continue;
+				}
+				if ( in_array( $template['name'], [ 'itempage', 'namedmobpage', 'npcpage', 'merchantpage', 'gear set', 'veliousgray', 'itemwheretable', 'itemwhererow', 'loc' ], true ) ||
+					!$template['parts'] && preg_match( '/(?:^| )era$/', $template['name'] ) || self::globalLootMetadata( $template ) ) {
+					foreach ( $template['parts'] as $part ) {
+						if ( $template['name'] === 'gear set' ) {
+							$literal = preg_replace( '/^\s*[0-9]+\s*=/', '', $part );
+							$title = self::title( $literal, true );
+							if ( $title !== null && !str_contains( $literal, '=' ) ) { self::unique( $items, $title ); }
+						}
+						$inspect( $part, $depth + 1 );
+					}
+				} else { $bounded = false; }
+			}
+		};
+		$inspect( $active );
+		preg_match_all( '/\[\[([^\[\]|\r\n]+)(?:\|[^\[\]\r\n]*)?\]\]/', $active, $links );
+		foreach ( $links[1] as $link ) { $title = self::title( explode( '#', $link, 2 )[0], true ); if ( $title !== null ) { self::unique( $items, $title ); } }
+		if ( count( $items ) > 1000 ) { $bounded = false; $items = array_slice( $items, 0, 1000 ); }
+		return $items;
+	}
+
+	/** Localize malformed NPC loot uncertainty without reading class/faction/quest links. */
+	public static function possibleNpcLootItems( string $source, ?bool &$bounded = null ): array {
+		$document = self::document( $source, false, true );
+		$bounded = $document !== null;
+		if ( !$document ) { return []; }
+		$items = [];
+		foreach ( $document['templates'] as $template ) {
+			if ( $template['name'] !== 'namedmobpage' ) { continue; }
+			$last = [];
+			foreach ( $template['parts'] as $position => $part ) {
+				if ( preg_match( '/^\s*(known_loot|common_loot)\s*=/i', $part, $named ) ) { $last[strtolower( $named[1] )] = $position; }
+			}
+			foreach ( $template['parts'] as $position => $part ) {
+				if ( preg_match( '/^\s*(known_loot|common_loot)\s*=/i', $part, $named ) && $last[strtolower( $named[1] )] !== $position ) { continue; }
+				if ( preg_match( '/^\s*(?:known_loot|common_loot)(?:\s*=|[ \t]*(?=\r?\n|<|\[\[|\{\{|[*#]))([\s\S]*)$/i', $part, $match ) ) {
+					self::possibleLootItems( $match[1], $fieldBounded );
+					$possible = [];
+					foreach ( self::lines( self::active( $match[1] ) ) as $line ) {
+						$lineItems = self::npcSourceReferences( $line, true, true );
+						// A standalone prose group may describe unknown materials. It is
+						// uncertainty only, unlike a note after a proven literal loot row.
+						if ( !$lineItems ) { $lineItems = self::possibleLootItems( $line, $lineBounded ); }
+						foreach ( $lineItems as $item ) { self::unique( $possible, $item ); }
+					}
+					$bounded = $bounded && $fieldBounded;
+					foreach ( $possible as $item ) { self::unique( $items, $item ); }
+				} elseif ( trim( $part ) !== '' && !preg_match( '/^\s*[A-Za-z][A-Za-z0-9_ ]*\s*=/', $part ) ) {
+					$bounded = false;
+				}
+			}
+		}
+		if ( count( $items ) > 1000 ) { $bounded = false; return array_slice( $items, 0, 1000 ); }
+		return $items;
+	}
+
+	/** Affected authored fields only; positive facts and edit capability are separate. */
+	public static function contributionCoverage( string $source, string $kind, array $verifiedItemTemplates = [] ): array {
+		if ( $kind === 'zone' ) { return self::zoneContributionCoverage( $source ); }
+		$result = [ 'schemaVersion' => 1, 'kind' => $kind, 'state' => 'unsupported', 'complete' => false,
+			'edges' => [], 'scopes' => [], 'collectionRefs' => [] ];
+		$document = self::document( $source, false, true );
+		if ( $document === null ) { return $result + [ 'reason' => 'malformed-or-conflicting-source' ]; }
+		$names = $kind === 'item' ? [ 'itempage' ] : ( $kind === 'npc' ? [ 'namedmobpage' ] : [ 'zonetoptable' ] );
+		$cards = array_values( array_filter( $document['templates'], static fn ( $card ) => in_array( $card['name'], $names, true ) ) );
+		$seen = [];
+		$variant = false;
+		foreach ( $cards as $index => $card ) {
+			$instance = self::instanceAt( $document['outline'], $card['start'], 'normal' );
+			if ( isset( $seen[$instance] ) ) { $variant = true; }
+			$seen[$instance] = true;
+			if ( $kind === 'item' && count( $cards ) > 1 ) { $variant = true; }
+			$fields = $kind === 'item' ? [ 'dropsfrom', 'drops_from' ] : ( $kind === 'npc' ? [ 'known_loot', 'common_loot' ] : [ 'unique_items', 'common_items' ] );
+			$present = array_values( array_filter( $fields, static fn ( $field ) => array_key_exists( $field, $card['fields'] ) ) );
+			$fieldCounts = [];
+			foreach ( $card['parts'] as $part ) { if ( preg_match( '/^\s*([A-Za-z][A-Za-z0-9_ ]*)\s*=/', $part, $named ) ) { $key = strtolower( trim( $named[1] ) ); $fieldCounts[$key] = ( $fieldCounts[$key] ?? 0 ) + 1; } }
+			if ( !$present ) {
+				$result['scopes'][] = [ 'zone' => '', 'instance' => $instance, 'field' => $fields[0], 'state' => 'unsupported', 'reason' => 'missing-field' ];
+			}
+			foreach ( $present as $field ) {
+				$value = $card['fields'][$field];
+				$scopes = self::coverageFieldScopes( $value, $kind !== 'item', $instance, $verifiedItemTemplates );
+				$conflict = ( $fieldCounts[$field] ?? 0 ) > 1 || $kind === 'item' && count( $present ) > 1;
+				if ( $conflict ) { foreach ( $scopes as &$scope ) { $scope['state'] = 'unsupported'; $scope['reason'] = 'conflicting-source-fields'; } unset( $scope ); }
+				foreach ( $scopes as $scope ) { $result['scopes'][] = $scope + [ 'field' => $field, 'card' => $index ]; }
+				if ( $conflict ) { continue; }
+				$cardSource = ( $instance === 'raid' ? "== Raid Instance ==\n" : '' ) . substr( $source, $card['start'], $card['end'] - $card['start'] );
+				if ( $kind === 'item' ) {
+					if ( $conflict ) { continue; }
+					$cardSource = ( $instance === 'raid' ? "== Raid Instance ==\n" : '' ) . '{{Itempage|dropsfrom=' . $value . '}}';
+					$zoneLabels = [];
+					preg_match_all( '/^\s*\[\[([^\]|\r\n]+)\|([^\]\r\n]+)\]\]\s*$/m', self::active( $value ), $headings, PREG_SET_ORDER );
+					foreach ( $headings as $heading ) { $zoneLabels[$heading[1]][$heading[2]] = true; }
+					foreach ( $result['scopes'] as &$scope ) {
+						if ( ( $scope['card'] ?? null ) === $index && $scope['field'] === $field && count( $zoneLabels[$scope['zone']] ?? [] ) > 1 ) { $scope['state'] = 'unsupported'; $scope['reason'] = 'ambiguous-zone-display'; }
+					} unset( $scope );
+					foreach ( self::itemSources( $cardSource, $complete, true ) as $edge ) {
+						if ( count( $zoneLabels[$edge['zone']] ?? [] ) > 1 ) { $edge['zone'] = ''; }
+						$result['edges'][] = $edge + [ 'precision' => $edge['zone'] === '' ? 'npc' : 'zone-npc', 'field' => $field ];
+					}
+				} else {
+					$zoneText = self::fieldText( $card['fields']['zone'] ?? '', false );
+					preg_match_all( '/\[\[([^\]|\r\n]+)(?:\|[^\]\r\n]*)?\]\]/', $zoneText, $zones );
+					$zoneNames = array_values( array_filter( array_map( static fn ( $name ) => self::title( explode( '#', $name, 2 )[0], true ), $zones[1] ) ) ) ?: [ '' ];
+					$stack = [];
+					$referenceRows = [];
+					foreach ( self::lines( self::active( $value ) ) as $line ) {
+						if ( preg_match( '/^(={1,6})\s*(.*?)\s*\1$/', trim( $line ), $heading ) ) {
+							while ( $stack && end( $stack )['level'] >= strlen( $heading[1] ) ) { array_pop( $stack ); }
+							$stack[] = [ 'level' => strlen( $heading[1] ), 'label' => $heading[2] ];
+							continue;
+						}
+						foreach ( self::npcSourceReferences( $line, true, true, $verifiedItemTemplates ) as $title ) {
+							$referenceRows[] = [ 'title' => $title, 'instance' => self::stackInstance( $stack, $instance ), 'section' => $stack ? end( $stack )['label'] : '' ];
+						}
+					}
+					foreach ( $referenceRows as $reference ) {
+						foreach ( $zoneNames as $zone ) {
+							$title = $reference['title'];
+							$edge = [ 'item' => $title, 'zone' => $zone, 'instance' => $reference['instance'], 'section' => $reference['section'], 'lootKind' => $field === 'common_loot' || $field === 'common_items' ? 'common' : 'known', 'field' => $field ];
+							$result['edges'][] = $edge;
+							$result['collectionRefs'][] = [ 'title' => $title ] + $edge;
+						}
+					}
+					foreach ( $result['scopes'] as &$scope ) {
+						if ( ( $scope['card'] ?? null ) === $index && $scope['field'] === $field && count( $zoneNames ) === 1 ) { $scope['zone'] = $zoneNames[0]; }
+					} unset( $scope );
+				}
+			}
+		}
+		if ( !$cards ) { return $result + [ 'reason' => 'missing-supported-card' ]; }
+		$states = array_column( $result['scopes'], 'state' );
+		$result['state'] = $variant ? 'variant' : ( in_array( 'unsupported', $states, true ) ? 'unsupported' : ( in_array( 'broad', $states, true ) ? 'broad' : 'exact' ) );
+		$result['complete'] = $result['state'] === 'exact';
+		if ( $variant ) {
+			foreach ( $result['scopes'] as &$scope ) { $scope['state'] = 'variant'; $scope['reason'] = 'multiple-variants'; } unset( $scope );
+			foreach ( $result['edges'] as &$edge ) { $edge['ambiguous'] = true; } unset( $edge );
+		}
+		$result['edges'] = array_values( array_unique( $result['edges'], SORT_REGULAR ) );
+		$result['collectionRefs'] = array_values( array_unique( $result['collectionRefs'], SORT_REGULAR ) );
+		if ( count( $result['edges'] ) > 1000 || count( $result['collectionRefs'] ) > 1000 || count( $result['scopes'] ) > 1000 ) {
+			$result['state'] = 'unsupported'; $result['complete'] = false; $result['reason'] = 'coverage-limit';
+			foreach ( $result['scopes'] as &$scope ) { $scope['state'] = 'unsupported'; $scope['reason'] = 'coverage-limit'; } unset( $scope );
+		}
+		$result['edges'] = array_slice( $result['edges'], 0, 1000 );
+		$result['collectionRefs'] = array_slice( $result['collectionRefs'], 0, 1000 );
+		$result['scopes'] = array_slice( $result['scopes'], 0, 1000 );
+		return $result;
+	}
+
+	private static function coverageFieldScopes( string $value, bool $items, string $base, array $verified ): array {
+		$scopes = [ [ 'zone' => '', 'instance' => $base, 'state' => 'exact' ] ];
+		$current = 0;
+		$stack = [];
+		$syntaxComplete = self::sourceSyntaxComplete( $value, $items, 0, true, $verified );
+		foreach ( self::lines( self::fieldText( self::active( $value ), $items, 0, true, $verified ) ) as $line ) {
+			$line = trim( $line );
+			if ( $line === '' || preg_match( '/^(?:\?|None|[*#]?\s*None|This item is not dropped by mobs\.)$/i', $line ) ) { continue; }
+			if ( preg_match( '/^(={1,6})\s*(.*?)\s*\1$/', $line, $heading ) ) {
+				while ( $stack && end( $stack )['level'] >= strlen( $heading[1] ) ) { array_pop( $stack ); }
+				$stack[] = [ 'level' => strlen( $heading[1] ), 'label' => $heading[2] ];
+				$current = count( $scopes );
+				$scopes[] = [ 'zone' => '', 'instance' => self::stackInstance( $stack, $base ), 'section' => $heading[2], 'state' => 'exact' ];
+				continue;
+			}
+			$bullet = preg_match( '/^[*#]+\s*/', $line, $prefix ) === 1;
+			$reference = self::leadingReference( $bullet ? substr( $line, strlen( $prefix[0] ) ) : $line, $items, true );
+			if ( !$items && !$bullet && $reference && trim( $reference['tail'] ) === '' ) {
+				$current = count( $scopes );
+				$scopes[] = [ 'zone' => $reference['title'], 'instance' => self::stackInstance( $stack, $base ), 'state' => 'exact' ];
+				continue;
+			}
+			$residual = preg_replace( '/\[\[[^\[\]\r\n]*\]\]|\{\{\s*:[^{}]*\}\}/', '', $line );
+			$residual = trim( preg_replace( '/[*#]|<[^>]*>|\x27{2,}/', '', $residual ) );
+			if ( $residual === '' ) { continue; }
+			$broad = preg_match( '/\b(?:various|many|most|all|any|random|newbie|mobs?|monsters?|types|wing)\b|\b(?:common\s+)?drops?\s+from\s+low[ -]level\s+humanoids?\b/i', str_replace( '_', ' ', $residual ) ) === 1;
+			$state = $broad ? 'broad' : 'unsupported';
+			if ( $scopes[$current]['state'] !== 'unsupported' ) { $scopes[$current]['state'] = $state; $scopes[$current]['reason'] = $broad ? 'generic-source-group' : 'unparsed-or-qualified-source'; }
+		}
+		if ( !$syntaxComplete ) { $scopes[] = [ 'zone' => '', 'instance' => $base, 'state' => 'unsupported', 'reason' => 'unknown-template' ]; }
+		return $scopes;
+	}
+
+	/** Finite unconditional list candidates; caller must verify every public member. */
+	public static function finiteCollectionItems( string $source, ?bool &$complete = null ): array {
+		$complete = false;
+		$document = self::document( $source );
+		if ( $document === null ) { return []; }
+		$sets = array_values( array_filter( $document['templates'], static fn ( $t ) => $t['name'] === 'gear set' ) );
+		if ( $sets ) { return count( $sets ) === 1 ? self::globalGearSetItems( $source, $complete ) : []; }
+		$active = self::active( $source );
+		if ( preg_match( '/\{\||\|\}|^\s*=|\b(?:only|except|depending|conditional|male|female|slots?)\b/im', $active ) ) { return []; }
+		$body = $active;
+		if ( preg_match_all( '~<ul\b[^>]*>([\s\S]*?)</ul\s*>~i', $active, $lists, PREG_OFFSET_CAPTURE ) ) {
+			if ( count( $lists[0] ) !== 1 || preg_match( '~<(?:ul|ol)\b~i', $lists[1][0][0] ) ) { return []; }
+			$body = $lists[0][0][0];
+			$start = $lists[0][0][1];
+		} elseif ( preg_match( '/^(?:[^\r\n]*\r?\n)*?([*#][\s\S]*)$/', $active, $list, PREG_OFFSET_CAPTURE ) ) { $body = $list[1][0]; $start = $list[1][1]; }
+		else { return []; }
+		foreach ( $document['templates'] as $template ) {
+			if ( $template['start'] < $start && $template['end'] > $start ) { return []; }
+			$inside = $template['start'] >= $start && $template['end'] <= $start + strlen( $body );
+			if ( !$inside && !( !$template['parts'] && preg_match( '/(?:^| )era$/', $template['name'] ) ) ) { return []; }
+		}
+		$members = [];
+		foreach ( self::lines( $body ) as $line ) {
+			$line = trim( $line );
+			if ( $line === '' ) { continue; }
+			if ( !preg_match( '/^[*#]\s*/', $line, $prefix ) ) { return []; }
+			$reference = self::leadingReference( substr( $line, strlen( $prefix[0] ) ), true, true );
+			if ( !$reference || trim( $reference['tail'] ) !== '' || count( $members ) >= 1000 ) { return []; }
+			self::unique( $members, $reference['title'] );
+		}
+		$complete = count( $members ) > 0;
+		return $members;
+	}
+
+	/** Existing zone summary cells and dynamic category consumers, never whole-page prose. */
+	public static function zoneContributionCoverage( string $source ): array {
+		$result = [ 'schemaVersion' => 1, 'kind' => 'zone', 'state' => 'unsupported', 'complete' => false,
+			'edges' => [], 'scopes' => [], 'collectionRefs' => [], 'dynamicLists' => [] ];
+		$document = self::document( $source );
+		if ( $document === null ) { return $result + [ 'reason' => 'malformed-or-conflicting-source' ]; }
+		$active = self::active( $source );
+		preg_match_all( '/^[ \t]*(\{\|[^\r\n]*|\|\})[^\r\n]*\r?$/m', $active, $markers, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+		$stack = [];
+		$tables = [];
+		$balanced = true;
+		foreach ( $markers as $marker ) {
+			if ( str_starts_with( $marker[1][0], '{|' ) ) { $stack[] = $marker; }
+			elseif ( !$stack ) { $balanced = false; }
+			else {
+				$start = array_pop( $stack );
+				if ( preg_match( '/\bzoneTopTable\b/', $start[0][0] ) ) {
+					$tables[] = [ 'start' => $start[0][1], 'end' => $marker[0][1] + strlen( $marker[0][0] ) ];
+				}
+			}
+		}
+		if ( $stack ) { $balanced = false; }
+		usort( $tables, static fn ( $a, $b ) => $a['start'] <=> $b['start'] );
+		$instances = [ 'normal' => true ];
+		$counts = [];
+		foreach ( $tables as $card => $table ) {
+			$instance = self::instanceAt( $document['outline'], $table['start'], 'normal' );
+			$instances[$instance] = true;
+			$text = substr( $active, $table['start'], $table['end'] - $table['start'] );
+			preg_match_all( '/^![ \t]*([^\r\n]+)\r?\n\|[ \t]*([\s\S]*?)(?=^\|-|^\|\}|\z)/m', $text, $rows, PREG_SET_ORDER );
+			foreach ( $rows as $row ) {
+				$label = self::identity( preg_replace( '/:[ \t]*$/', '', str_replace( [ "'''", "''" ], '', trim( $row[1] ) ) ) );
+				$field = [ 'unique items' => 'unique_items', 'common loot' => 'common_loot', 'notable npcs' => 'notable_npcs' ][$label] ?? null;
+				if ( $field === null ) { continue; }
+				$counts[$instance][$field] = ( $counts[$instance][$field] ?? 0 ) + 1;
+				$isItems = $field !== 'notable_npcs';
+				$scopes = self::coverageFieldScopes( $row[2], $isItems, $instance, [] );
+				foreach ( $scopes as $scope ) {
+					if ( preg_match( '/^\s*(?:n\/?a|none|\?|-)\s*$/i', trim( $row[2] ) ) ) { $scope['state'] = 'exact'; unset( $scope['reason'] ); }
+					$result['scopes'][] = $scope + [ 'field' => $field, 'card' => $card ];
+				}
+				foreach ( self::lines( $row[2] ) as $line ) {
+					foreach ( self::lootReferences( $line, true, $isItems ) as $name ) {
+						$result['edges'][] = [ $isItems ? 'item' : 'npc' => $name, 'zone' => '', 'instance' => $instance, 'field' => $field ];
+					}
+				}
+			}
+		}
+		preg_match_all( '/\{\{[ \t]*Special[ \t]*:[ \t]*DynamicZoneList\/([^{}|\r\n]+?)[ \t]*\}\}/i', $active, $dynamic, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+		foreach ( $dynamic as $row ) {
+			$zone = self::title( trim( $row[1][0] ), true );
+			if ( $zone === null ) { continue; }
+			$instance = self::instanceAt( $document['outline'], $row[0][1], 'normal' );
+			$instances[$instance] = true;
+			$result['dynamicLists'][] = [ 'zone' => $zone, 'instance' => $instance, 'field' => 'dynamic_population' ];
+			$result['scopes'][] = [ 'zone' => $zone, 'instance' => $instance, 'field' => 'dynamic_population', 'state' => 'exact' ];
+		}
+		foreach ( array_keys( $instances ) as $instance ) {
+			foreach ( [ 'unique_items', 'common_loot', 'notable_npcs' ] as $field ) {
+				$count = $counts[$instance][$field] ?? 0;
+				if ( $count === 1 && $balanced ) { continue; }
+				foreach ( $result['scopes'] as &$scope ) {
+					if ( $scope['instance'] === $instance && $scope['field'] === $field ) {
+						$scope['state'] = $count > 1 ? 'variant' : 'unsupported';
+						$scope['reason'] = !$balanced ? 'unbalanced-zone-table' : 'multiple-summary-cells';
+					}
+				} unset( $scope );
+				if ( !$count ) { $result['scopes'][] = [ 'zone' => '', 'instance' => $instance, 'field' => $field, 'state' => 'unsupported', 'reason' => 'missing-section' ]; }
+			}
+		}
+		$states = array_column( $result['scopes'], 'state' );
+		$result['state'] = !$balanced || in_array( 'unsupported', $states, true ) ? 'unsupported' : ( in_array( 'variant', $states, true ) ? 'variant' : ( in_array( 'broad', $states, true ) ? 'broad' : 'exact' ) );
+		$result['complete'] = $result['state'] === 'exact';
+		$limited = count( $result['edges'] ) > 1000 || count( $result['dynamicLists'] ) > 100 || count( $result['scopes'] ) > 1000;
+		$result['edges'] = array_slice( array_values( array_unique( $result['edges'], SORT_REGULAR ) ), 0, 1000 );
+		$result['dynamicLists'] = array_slice( array_values( array_unique( $result['dynamicLists'], SORT_REGULAR ) ), 0, 100 );
+		$result['scopes'] = array_slice( $result['scopes'], 0, 1000 );
+		if ( $limited ) {
+			$result['state'] = 'unsupported'; $result['complete'] = false; $result['reason'] = 'coverage-limit';
+			foreach ( $result['scopes'] as &$scope ) { $scope['state'] = 'unsupported'; $scope['reason'] = 'coverage-limit'; } unset( $scope );
+		}
+		return $result;
+	}
+
+	/** Structural possible members only: prose links do not recursively define a loot catalog. */
+	public static function possibleCollectionItems( string $source, ?bool &$bounded = null ): array {
+		$bounded = strlen( $source ) <= self::MAX_BYTES && preg_match( '//u', $source ) === 1;
+		if ( !$bounded ) { return []; }
+		$active = self::active( $source );
+		$regions = [];
+		$stack = [];
+		preg_match_all( '/^[ \t]*(\{\|[^\r\n]*|\|\})[^\r\n]*\r?$/m', $active, $markers, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+		foreach ( $markers as $marker ) {
+			if ( str_starts_with( $marker[1][0], '{|' ) ) { $stack[] = $marker[0][1]; }
+			elseif ( !$stack ) { $bounded = false; }
+			else {
+				$start = array_pop( $stack );
+				if ( !$stack ) { $regions[] = [ $start, $marker[0][1] + strlen( $marker[0][0] ) ]; }
+			}
+		}
+		if ( $stack ) { $bounded = false; $regions[] = [ $stack[0], strlen( $active ) ]; }
+		$stack = [];
+		preg_match_all( '~</?(ul|ol|table)\b[^>]*>~i', $active, $tags, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+		foreach ( $tags as $tag ) {
+			if ( !str_starts_with( $tag[0][0], '</' ) ) { $stack[] = [ 'name' => strtolower( $tag[1][0] ), 'start' => $tag[0][1] ]; }
+			elseif ( !$stack || end( $stack )['name'] !== strtolower( $tag[1][0] ) ) { $bounded = false; }
+			else {
+				$open = array_pop( $stack );
+				if ( !$stack ) { $regions[] = [ $open['start'], $tag[0][1] + strlen( $tag[0][0] ) ]; }
+			}
+		}
+		if ( $stack ) { $bounded = false; $regions[] = [ $stack[0]['start'], strlen( $active ) ]; }
+		preg_match_all( '/^(?:[ \t]*[*#][^\r\n]*(?:\r?\n|$))+/m', $active, $lists, PREG_OFFSET_CAPTURE );
+		foreach ( $lists[0] as $list ) { $regions[] = [ $list[1], $list[1] + strlen( $list[0] ) ]; }
+		$items = [];
+		$outside = $active;
+		usort( $regions, static fn ( $a, $b ) => $b[0] <=> $a[0] );
+		foreach ( $regions as [ $start, $end ] ) {
+			foreach ( self::possibleLootItems( substr( $active, $start, $end - $start ), $regionBounded ) as $item ) { self::unique( $items, $item ); }
+			$bounded = $bounded && $regionBounded;
+			$outside = substr_replace( $outside, self::mask( substr( $outside, $start, $end - $start ) ), $start, $end - $start );
+		}
+		// Literal prose links such as a forge or zone describe the page, not a
+		// recursively included catalog. Unknown generating templates can still
+		// conceal members and therefore prevent a bounded negative conclusion.
+		$roots = self::roots( $outside, false, true );
+		if ( $roots === null || !$regions ) { $bounded = false; }
+		foreach ( $roots ?? [] as $template ) {
+			if ( !$template['parts'] && preg_match( '/(?:^| )era$/', $template['name'] ) || self::globalLootMetadata( $template ) ) { continue; }
+			$bounded = false;
+		}
+		if ( count( $items ) > 1000 ) { $bounded = false; $items = array_slice( $items, 0, 1000 ); }
+		return $items;
+	}
+
 	public static function identity( string $value ): string {
 		$value = html_entity_decode( $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		if ( class_exists( 'Normalizer' ) ) {
@@ -31,7 +415,7 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** @return array{names:array,zones:array,authoredItems:array}|null */
-	public static function analyseNpcPage( string $source, bool $globalExport = false ): ?array {
+	public static function analyseNpcPage( string $source, bool $globalExport = false, bool $allowMainColon = false ): ?array {
 		$document = self::document( $source, $globalExport );
 		if ( $document === null ) {
 			return null;
@@ -43,7 +427,7 @@ final class EqlNpcLootWikitext {
 				continue;
 			}
 			$found = true;
-			$name = self::title( $template['fields']['name'] ?? '' );
+			$name = self::title( $template['fields']['name'] ?? '', $allowMainColon );
 			if ( $name !== null ) {
 				self::unique( $result['names'], $name );
 			}
@@ -56,7 +440,7 @@ final class EqlNpcLootWikitext {
 				}
 			}
 			foreach ( [ 'known_loot', 'common_loot' ] as $field ) {
-				foreach ( self::lootReferences( $template['fields'][$field] ?? '' ) as $title ) { self::unique( $result['authoredItems'], $title ); }
+				foreach ( self::lootReferences( $template['fields'][$field] ?? '', $allowMainColon ) as $title ) { self::unique( $result['authoredItems'], $title ); }
 			}
 		}
 		return $found ? $result : null;
@@ -104,11 +488,19 @@ final class EqlNpcLootWikitext {
 			$instance = self::instanceAt( $document['outline'], $template['start'], 'normal' );
 			foreach ( [ 'known_loot' => 'known', 'common_loot' => 'common' ] as $field => $kind ) {
 				if ( $allowMainColon && !self::sourceSyntaxComplete( $template['fields'][$field] ?? '', true, 0, $globalExport, $verifiedItemTemplates ) ) { $complete = false; }
-				foreach ( self::lootReferences( $template['fields'][$field] ?? '', $allowMainColon, $globalExport, $verifiedItemTemplates ) as $item ) {
+				$stack = [];
+				foreach ( self::lines( self::fieldText( $template['fields'][$field] ?? '', true, 0, $globalExport, $verifiedItemTemplates ) ) as $line ) {
+					if ( preg_match( '/^(={1,6})\s*(.*?)\s*\1$/', trim( $line ), $heading ) ) {
+						while ( $stack && end( $stack )['level'] >= strlen( $heading[1] ) ) { array_pop( $stack ); }
+						$stack[] = [ 'level' => strlen( $heading[1] ), 'label' => $heading[2] ];
+						continue;
+					}
+				foreach ( self::npcSourceReferences( $line, $allowMainColon, $globalExport, $verifiedItemTemplates ) as $item ) {
 					foreach ( ( $analysis['zones'] ?: [ '' ] ) as $zone ) {
-						$row = [ 'item' => $item, 'npc' => $npc, 'zone' => $zone, 'instance' => $instance, 'lootKind' => $kind ];
+						$row = [ 'item' => $item, 'npc' => $npc, 'zone' => $zone, 'instance' => self::stackInstance( $stack, $instance ), 'lootKind' => $kind ];
 						$rows[json_encode( $row )] = $row;
 					}
+				}
 				}
 			}
 		}
@@ -200,6 +592,22 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** Direct article references in an active native loot field, without expanding templates. */
+	/** Literal loot rows and explicit quantity prose, excluding incidental note links. */
+	private static function npcSourceReferences( string $field, bool $allowMainColon = false, bool $globalExport = false, array $verifiedItemTemplates = [] ): array {
+		$items = [];
+		foreach ( self::lines( self::fieldText( self::active( $field ), true, 0, $globalExport, $verifiedItemTemplates ) ) as $line ) {
+			$line = preg_replace( '/^[\s*#\']+/', '', strip_tags( $line ) );
+			$line = preg_replace( '/^(?:always\s+)?drops?\s+(?:(?:one|two|three|four|five|six|[0-9]+)\s+)?(?:pieces?\s+of\s+)?(?=\[\[|\{\{)/i', '', $line );
+			while ( ( $reference = self::leadingReference( $line, true, $allowMainColon ) ) !== null ) {
+				self::unique( $items, $reference['title'] );
+				$tail = preg_replace( '/^[\s\']+/', '', $reference['tail'] );
+				if ( preg_match( '/^(?:[,;\/&]|and\b|or\b)\s*/i', $tail, $separator ) ) { $tail = substr( $tail, strlen( $separator[0] ) ); }
+				$line = ltrim( $tail );
+			}
+		}
+		return $items;
+	}
+
 	private static function lootReferences( string $field, bool $allowMainColon = false, bool $globalExport = false, array $verifiedItemTemplates = [] ): array {
 		$items = [];
 		$lootText = self::fieldText( $field, true, 0, $globalExport, $verifiedItemTemplates );
@@ -337,7 +745,7 @@ final class EqlNpcLootWikitext {
 	 * @param array<array{npc:string,zone:string,instance:string,lootKind?:string}> $entries
 	 * @return array{text:string,unplaced:int}
 	 */
-	public static function mergeItemSources( string $source, array $entries ): array {
+	public static function mergeItemSources( string $source, array $entries, array $zoneAliases = [] ): array {
 		$document = self::document( $source );
 		if ( $document === null ) { return [ 'text' => $source, 'unplaced' => count( $entries ) ]; }
 		$cards = [];
@@ -351,8 +759,8 @@ final class EqlNpcLootWikitext {
 		if ( !$cards ) { return [ 'text' => $source, 'unplaced' => count( $entries ) ]; }
 		$unplaced = 0;
 		foreach ( $entries as $entry ) {
-			$npc = self::title( $entry['npc'] ?? '' );
-			$zone = ( $entry['zone'] ?? '' ) === '' ? '' : self::title( $entry['zone'] );
+			$npc = self::title( $entry['npc'] ?? '', true );
+			$zone = ( $entry['zone'] ?? '' ) === '' ? '' : self::title( $entry['zone'], true );
 			if ( $npc === null || $zone === null ) { $unplaced++; continue; }
 			$instance = ( $entry['instance'] ?? 'normal' ) === 'raid' ? 'raid' : 'normal';
 			$targets = [];
@@ -368,18 +776,6 @@ final class EqlNpcLootWikitext {
 		$replacements = [];
 		foreach ( $cards as $card ) {
 			if ( !$card['entries'] ) { continue; }
-			$groups = [];
-			foreach ( $card['entries'] as $entry ) { $groups[$entry['instance']][$entry['zone']][] = $entry['npc']; }
-			$addition = '';
-			foreach ( [ 'normal' => 'Normal', 'raid' => 'Raid' ] as $instance => $label ) {
-				if ( !isset( $groups[$instance] ) ) { continue; }
-				// Explicit groups cannot inherit an existing final Raid heading.
-				$addition .= "\n=== {$label} Instance ===\n";
-				foreach ( $groups[$instance] as $zone => $npcs ) {
-					if ( $zone !== '' ) { $addition .= '[[' . $zone . "]]\n"; }
-					foreach ( $npcs as $npc ) { $addition .= '* [[' . $npc . "]]\n"; }
-				}
-			}
 			$template = $card['template'];
 			$length = $template['end'] - $template['start'];
 			$original = substr( $source, $template['start'], $length );
@@ -392,18 +788,133 @@ final class EqlNpcLootWikitext {
 					$valueLength = strlen( $part ) - strlen( $match[1] );
 					$value = substr( $original, $start, $valueLength );
 					if ( preg_match( '~^\s*(?:\?|None|[*#]\s*None|[*#]?\s*This item is not dropped by mobs\.)\s*$~i', $value ) ) { $value = ''; }
-					$original = substr_replace( $original, $value . $addition, $start, $valueLength );
+					$original = substr_replace( $original, self::mergeSourceField( $value, array_values( $card['entries'] ), $card['instance'], $zoneAliases, $unplaced ), $start, $valueLength );
 					$updated = true;
 					break;
 				}
 				$offset += strlen( $part ) + 1;
 			}
-			if ( !$updated ) { $original = substr( $original, 0, -2 ) . "\n|dropsfrom=" . $addition . '}}'; }
+			if ( !$updated ) { $original = substr( $original, 0, -2 ) . "\n|dropsfrom=" . self::mergeSourceField( '', array_values( $card['entries'] ), $card['instance'], $zoneAliases, $unplaced ) . '}}'; }
 			$replacements[] = [ 'start' => $template['start'], 'length' => $length, 'value' => $original ];
 		}
 		usort( $replacements, static fn ( $a, $b ) => $b['start'] <=> $a['start'] );
 		foreach ( $replacements as $replacement ) { $source = substr_replace( $source, $replacement['value'], $replacement['start'], $replacement['length'] ); }
 		return [ 'text' => $source, 'unplaced' => $unplaced ];
+	}
+
+	/**
+	 * Reuse authored simple zone lists and instance sections. Only insert bytes:
+	 * prose, list labels, aliases, comments and structured tables stay intact.
+	 * Zone aliases are current public redirect proofs supplied by the lookup.
+	 */
+	private static function mergeSourceField( string $value, array $entries, string $base, array $zoneAliases, int &$unplaced ): string {
+		$canonicalZone = static function ( string $zone ) use ( $zoneAliases ): string {
+			$zone = self::title( $zone ) ?? '';
+			$target = count( $zoneAliases ) <= 200 ? ( $zoneAliases[$zone] ?? $zone ) : $zone;
+			return is_string( $target ) ? ( self::title( $target ) ?? $zone ) : $zone;
+		};
+		$existing = self::itemSources( ( $base === 'raid' ? "== Raid Instance ==\n" : '' ) . '{{Itempage|dropsfrom=' . $value . '}}' );
+		$pending = [];
+		foreach ( $entries as $entry ) {
+			$found = false;
+			foreach ( $existing as $row ) {
+				// An unscoped authored NPC already states this relationship without a zone.
+				if ( $row['npc'] === $entry['npc'] && $row['instance'] === $entry['instance'] &&
+					( $row['zone'] === '' || $canonicalZone( $row['zone'] ) === $canonicalZone( $entry['zone'] ) ) ) { $found = true; break; }
+			}
+			if ( !$found ) { $pending[] = $entry; }
+		}
+		if ( !$pending ) { return $value; }
+		$active = self::active( $value );
+		// Nested template arguments cannot establish a line/heading context.
+		foreach ( self::roots( $active ) ?? [] as $template ) {
+			$active = substr_replace( $active, self::mask( substr( $active, $template['start'], $template['end'] - $template['start'] ) ), $template['start'], $template['end'] - $template['start'] );
+		}
+		preg_match_all( '/[^\r\n]*(?:\r\n|\r|\n|$)/', $active, $matches, PREG_OFFSET_CAPTURE );
+		$lines = [];
+		$stack = [];
+		$sections = [ [ 'instance' => $base, 'start' => 0, 'end' => strlen( $value ), 'explicit' => false ] ];
+		$section = 0;
+		foreach ( $matches[0] as [ $line, $offset ] ) {
+			if ( $line === '' ) { continue; }
+			if ( preg_match( '/^(={1,6})[ \t]*(.*?)[ \t]*\1[ \t]*$/', trim( $line ), $heading ) ) {
+				$sections[$section]['end'] = $offset;
+				while ( $stack && end( $stack )['level'] >= strlen( $heading[1] ) ) { array_pop( $stack ); }
+				$stack[] = [ 'level' => strlen( $heading[1] ), 'label' => $heading[2] ];
+				$section = count( $sections );
+				$sections[] = [ 'instance' => self::stackInstance( $stack, $base ), 'start' => $offset + strlen( $line ),
+					'end' => strlen( $value ), 'explicit' => preg_match( '/\b(?:Normal|Raid)[ _]+(?:Instance|Zone)\b/i', $heading[2] ) === 1 ];
+				$lines[] = [ 'kind' => 'section', 'section' => $section, 'offset' => $offset, 'end' => $offset + strlen( $line ) ];
+				continue;
+			}
+			$bullet = preg_match( '/^\s*[*#]+\s*/', $line, $prefix ) === 1;
+			$ref = self::leadingReference( $bullet ? substr( $line, strlen( $prefix[0] ) ) : $line, false );
+			$lines[] = [ 'kind' => trim( $line ) === '' ? 'blank' : ( $ref && ( $bullet || trim( $ref['tail'] ) === '' ) ? ( $bullet ? 'mob' : 'link' ) : 'other' ),
+				'title' => $ref['title'] ?? '', 'section' => $section, 'offset' => $offset, 'end' => $offset + strlen( $line ) ];
+		}
+		$blocks = [];
+		for ( $i = 0; $i < count( $lines ); $i++ ) {
+			if ( $lines[$i]['kind'] !== 'link' ) { continue; }
+			$j = $i + 1;
+			while ( isset( $lines[$j] ) && $lines[$j]['kind'] === 'blank' ) { $j++; }
+			if ( !isset( $lines[$j] ) || $lines[$j]['kind'] !== 'mob' || $lines[$j]['section'] !== $lines[$i]['section'] ) { continue; }
+			$end = $lines[$j]['end'];
+			while ( isset( $lines[++$j] ) && in_array( $lines[$j]['kind'], [ 'mob', 'blank' ], true ) && $lines[$j]['section'] === $lines[$i]['section'] ) {
+				if ( $lines[$j]['kind'] === 'mob' ) { $end = $lines[$j]['end']; }
+			}
+			$blocks[] = [ 'zone' => $canonicalZone( $lines[$i]['title'] ), 'instance' => $sections[$lines[$i]['section']]['instance'], 'end' => $end ];
+		}
+		$insertions = [];
+		// Adding the first zone must not silently re-scope an authored unscoped
+		// list. A minimal explicit instance boundary keeps those bullets unscoped.
+		$unscoped = array_values( array_filter( $existing, static fn ( $row ) => $row['zone'] === '' ) );
+		$hasNewZone = count( array_filter( $pending, static fn ( $row ) => $row['zone'] !== '' ) ) > 0;
+		if ( $unscoped && $hasNewZone ) {
+			$plain = array_column( array_filter( $lines, static fn ( $line ) => $line['kind'] === 'link' ), 'title' );
+			if ( array_intersect( array_column( $unscoped, 'npc' ), $plain ) ) {
+				// Bare unscoped links have no safe list boundary. Do not reinterpret them.
+				$unplaced += count( $pending );
+				return $value;
+			}
+			if ( !$blocks ) {
+				$names = array_column( $unscoped, 'npc' );
+				foreach ( $lines as $line ) {
+					$scope = $sections[$line['section']];
+					if ( $line['kind'] === 'mob' && in_array( $line['title'], $names, true ) && !$scope['explicit'] ) {
+						$insertions[$scope['start']] = [ "\n=== " . ucfirst( $scope['instance'] ) . " Instance ===\n" ];
+					}
+				}
+			}
+		}
+		$new = [];
+		foreach ( $pending as $entry ) {
+			$targets = array_values( array_filter( $blocks, static fn ( $block ) => $block['zone'] === $canonicalZone( $entry['zone'] ) && $block['instance'] === $entry['instance'] ) );
+			if ( count( $targets ) > 1 ) { $unplaced++; continue; }
+			if ( $entry['zone'] !== '' && count( $targets ) === 1 ) {
+				$insertions[$targets[0]['end']][] = '* [[' . $entry['npc'] . "]]\n";
+			} else { $new[$entry['instance']][$entry['zone']][] = $entry['npc']; }
+		}
+		foreach ( $new as $instance => $zones ) {
+			// Emit unknown-zone references before the first zone heading in this group.
+			if ( isset( $zones[''] ) ) { $zones = [ '' => $zones[''] ] + $zones; }
+			$targets = array_values( array_filter( $sections, static fn ( $scope ) => $scope['instance'] === $instance ) );
+			$target = $targets ? end( $targets ) : null;
+			$offset = $target ? $target['end'] : strlen( $value );
+			$addition = '';
+			// Unknown-zone mobs need a reset to avoid inheriting the previous zone.
+			if ( !$target || isset( $zones[''] ) ) { $addition .= "\n=== " . ucfirst( $instance ) . " Instance ===\n"; }
+			foreach ( $zones as $zone => $npcs ) {
+				if ( $zone !== '' ) { $addition .= "\n[[" . $zone . "]]\n"; }
+				foreach ( $npcs as $npc ) { $addition .= '* [[' . $npc . "]]\n"; }
+			}
+			$insertions[$offset][] = $addition;
+		}
+		krsort( $insertions, SORT_NUMERIC );
+		foreach ( $insertions as $offset => $parts ) {
+			$prefix = $offset > 0 && !in_array( $value[$offset - 1], [ "\r", "\n" ], true ) ? "\n" : '';
+			$value = substr_replace( $value, $prefix . implode( '', $parts ), $offset, 0 );
+		}
+		return $value;
 	}
 
 	/** @return array<array{npc:string,zone:string,instance:string}> */
@@ -482,7 +993,8 @@ final class EqlNpcLootWikitext {
 					$key = $instance . '|' . $zone;
 					if ( isset( $zoneScopes[$key] ) ) {
 						$complete = false;
-						return [];
+						// Repeated/aliased display blocks do not erase other verified positives.
+						continue;
 					}
 					$zoneScopes[$key] = true;
 					continue;
@@ -530,7 +1042,7 @@ final class EqlNpcLootWikitext {
 	}
 
 	/** Top-level balanced templates only; nested examples never become pages. */
-	private static function roots( string $source, bool $globalExport = false ): ?array {
+	private static function roots( string $source, bool $globalExport = false, bool $duplicateStaticFields = false ): ?array {
 		$roots = [];
 		$stack = [];
 		$start = 0;
@@ -568,7 +1080,7 @@ final class EqlNpcLootWikitext {
 					foreach ( $parts as $part ) {
 						if ( preg_match( '/^\s*([A-Za-z][A-Za-z0-9_ ]*)\s*=([\s\S]*)$/', $part, $field ) ) {
 							$key = strtolower( trim( $field[1] ) );
-							if ( array_key_exists( $key, $fields ) && !( $globalExport && $name === 'namedmobpage' && $parameterNames[$key] === trim( $field[1] ) ) ) {
+							if ( array_key_exists( $key, $fields ) && !$duplicateStaticFields && !( $globalExport && $name === 'namedmobpage' && $parameterNames[$key] === trim( $field[1] ) ) ) {
 								return null;
 							}
 							$parameterNames[$key] = trim( $field[1] );
@@ -604,10 +1116,10 @@ final class EqlNpcLootWikitext {
 		return $parts;
 	}
 
-	private static function document( string $source, bool $globalExport = false ): ?array {
+	private static function document( string $source, bool $globalExport = false, bool $duplicateStaticFields = false ): ?array {
 		if ( strlen( $source ) > self::MAX_BYTES || preg_match( '//u', $source ) !== 1 ) { return null; }
 		$active = self::active( $source );
-		$templates = self::roots( $active, $globalExport );
+		$templates = self::roots( $active, $globalExport, $duplicateStaticFields );
 		if ( $templates === null ) { return null; }
 		$outline = $active;
 		foreach ( array_reverse( $templates ) as $template ) {
