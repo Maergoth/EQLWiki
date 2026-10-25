@@ -1327,6 +1327,8 @@ class BuildEyeOfZommPack extends Maintenance {
             'MANA_REGEN' => [ 'MANA REGENERATION', 'MANA REGEN', 'MP REGEN' ],
             'END_REGEN' => [ 'ENDURANCE REGENERATION', 'ENDURANCE REGEN', 'ENDUR REGEN', 'END REGEN' ],
             'HASTE' => [ 'HASTE' ],
+            'DELAY' => [ 'ATK DELAY', 'ATTACK DELAY', 'DELAY' ],
+            'DMG_BONUS' => [ 'DMG BONUS', 'DAMAGE BONUS', 'DMG BON', 'DAMAGE BON' ],
             'RANGE' => [ 'RANGE' ],
             'WT' => [ 'WT', 'WEIGHT' ],
             'COLD_DMG' => [ 'COLD DMG', 'COLD DAMAGE' ],
@@ -1334,12 +1336,12 @@ class BuildEyeOfZommPack extends Maintenance {
             'MAGIC_DMG' => [ 'MAGIC DMG', 'MAGIC DAMAGE' ],
             'POISON_DMG' => [ 'POISON DMG', 'POISON DAMAGE' ],
             'DISEASE_DMG' => [ 'DISEASE DMG', 'DISEASE DAMAGE' ],
-            'BACKSTAB_DMG' => [ 'BACKSTAB DMG', 'BACKSTAB DAMAGE' ],
+            'BACKSTAB_DMG' => [ 'BACKSTAB DMG', 'BACKSTAB DAMAGE', 'BACKSTAB' ],
             'BANE_DMG' => [ 'BANE DMG', 'BANE DAMAGE' ],
         ];
         foreach ( $map as $key => $labels ) {
             foreach ( $labels as $label ) {
-                $pattern = '/\b' . preg_quote( $label, '/' ) . ':\s*([+\-]?\d+(?:\.\d+)?)/i';
+                $pattern = '/\b' . str_replace( ' ', '\s+', preg_quote( $label, '/' ) ) . '\s*:\s*([+\-]?\d+(?:\.\d+)?)/i';
                 if ( preg_match( $pattern, $statsBlock, $m ) ) {
                     $stats[$key] = strpos( $m[1], '.' ) !== false ? (float)$m[1] : (int)$m[1];
                     break;
@@ -1348,7 +1350,7 @@ class BuildEyeOfZommPack extends Maintenance {
         }
         // Generic matching above can see the DMG token inside "Cold DMG".
         // Standalone DMG is therefore captured separately from a field boundary.
-        if ( preg_match( '/(?:^|<br\s*\/?>|\R)\s*(?:DMG|DAMAGE):\s*([+\-]?\d+(?:\.\d+)?)/i', $statsBlock, $m ) ) {
+        if ( preg_match( '/(?:^|<br\s*\/?>|\R)\s*(?:DMG|DAMAGE)\s*:\s*([+\-]?\d+(?:\.\d+)?)/i', $statsBlock, $m ) ) {
             $stats['DMG'] = strpos( $m[1], '.' ) !== false ? (float)$m[1] : (int)$m[1];
         }
         return $stats;

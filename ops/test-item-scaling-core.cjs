@@ -11,7 +11,7 @@ const engine = core.createEngine( rules );
 const clone = value => JSON.parse( JSON.stringify( value ) );
 
 assert.equal( core.validateRules( rules ), true );
-assert.equal( engine.revision, 2 );
+assert.equal( engine.revision, 3 );
 assert.equal( engine.statFamily( 'Backstab DMG' ), 'backstab' );
 assert.equal( engine.statFamily( 'Mana' ), 'primary' );
 assert.equal( engine.statFamily( 'Endurance Regen' ), 'flat' );
@@ -36,13 +36,53 @@ const cases = [
 	[ 'BACKSTAB', -4, 10, 0, -4 ], [ 'BACKSTAB', 0, 10, 0, 0 ],
 	[ 'RANGE', 100, 4, 15, 140 ], [ 'RANGE', -10, 4, 0, -10 ], [ 'RANGE', 0, 2, 0, 20 ],
 	[ 'HP_REGEN', 4, 4, 15, 8 ], [ 'HASTE', 0, 4, 0, 0 ], [ 'MANA_REGEN', -2, 4, 0, -2 ],
-	// Preserve the wiki's unadjusted IEEE-754 ceiling, including this boundary.
-	[ 'WT', 10, 1, 0, 9.1 ], [ 'WT', 10, 10, 0, 1.1 ], [ 'WT', 0.1, 10, 0, 0.1 ],
+	// Decimal display ceiling must not add a tenth at an exact boundary.
+	[ 'WT', 10, 1, 0, 9.1 ], [ 'WT', 10, 10, 0, 1 ], [ 'WT', 0.1, 10, 0, 0.1 ],
+	[ 'WT', 2.5, 8, 0, 0.7 ], [ 'WT', 2.5, 10, 0, 0.3 ], [ 'WT', 1, 10, 0, 0.1 ],
+	[ 'WT', 5, 2, 0, 4.1 ], [ 'WT', 2.55, 8, 0, 0.8 ],
+	[ 'WT', 2.5000000001, 8, 0, 0.8 ], [ 'WT', 2.4999999999, 8, 0, 0.7 ],
+	[ 'WT', 2.500000000000001, 8, 0, 0.8 ],
 	[ 'COLD_DMG', 4, 10, 0, 4 ], [ 'DELAY', 19, 10, 0, 19 ], [ 'DMG_BONUS', 9, 10, 0, 9 ]
 ];
 for ( const [ key, base, full, fraction, expected ] of cases ) {
 	assert.equal( engine.scaleStat( key, base, full, { fraction } ), expected,
 		`${key} ${base} at ${full}+${fraction}` );
+}
+let weightCases = 0;
+// Independent integer oracle for every displayed base tenth through weight100.
+for ( let tenths = 0; tenths <= 1000; tenths++ ) {
+	for ( let rank = 0; rank <= 10; rank++ ) {
+		const expected = Math.floor( ( tenths * ( 100 - 9 * rank ) + 99 ) / 100 ) / 10;
+		assert.equal( engine.scaleStat( 'WT', tenths / 10, rank ), expected,
+			`decimal ceiling for ${tenths}/10 at rank ${rank}` );
+		weightCases++;
+	}
+}
+// Genuine fractional ranks keep the reviewed logarithmic reduction unchanged.
+for ( let rank = 1; rank < 10; rank++ ) {
+	for ( let fraction = 1; fraction < 2 ** rank; fraction++ ) {
+		for ( const base of [ 0.2, 0.3, 1, 2.5, 5, 100 ] ) {
+			const expected = Math.max( 0, Math.ceil( base * ( 1 - 0.09 *
+				( Math.log( 2 ** rank + fraction ) / Math.LN2 ) ) * 10 ) / 10 );
+			assert.equal( engine.scaleStat( 'WT', base, rank, { fraction } ), expected );
+			weightCases++;
+		}
+	}
+}
+// The arithmetic works with reviewed decimal rates/precision, not hardcoded9%.
+for ( const [ rate, thousandths ] of [ [ 0, 0 ], [ 0.003, 3 ], [ 0.07, 70 ], [ 0.1, 100 ] ] ) {
+	for ( const precision of [ 0, 1, 2, 3 ] ) {
+		const customRules = clone( rules ); customRules.weight.perLog2 = rate; customRules.weight.precision = precision;
+		const custom = core.createEngine( customRules ), factor = 10n ** BigInt( precision );
+		for ( const hundredths of [ 11, 25, 100, 255, 500, 1001 ] ) {
+			for ( let rank = 1; rank <= 10; rank++ ) {
+				const numerator = BigInt( hundredths ) * BigInt( 1000 - thousandths * rank ) * factor;
+				const expected = Number( ( numerator + 99999n ) / 100000n ) / Number( factor );
+				assert.equal( custom.scaleStat( 'WT', hundredths / 100, rank ), expected );
+				weightCases++;
+			}
+		}
+	}
 }
 for ( const [ full, fraction, expected ] of [ [ 0, 0, 0 ], [ 1, 0, 2.5 ], [ 4, 1, 10.2 ],
 	[ 4, 8, 11.4 ], [ 5, 4, 12.9 ], [ 8, 1, 20 ], [ 10, 0, 25 ] ] ) {
@@ -91,7 +131,7 @@ for ( const mutate of [ value => { value.schemaVersion = 2; }, value => { value.
 	assert.equal( core.validateRules( invalid ), false );
 	assert.throws( () => core.createEngine( invalid ), /Unsupported/ );
 }
-const changed = clone( rules ); changed.revision = 3; changed.range.perTier = 20;
+const changed = clone( rules ); changed.revision = 4; changed.range.perTier = 20;
 const changedEngine = core.createEngine( changed ); changed.range.perTier = 99;
 assert.equal( changedEngine.scaleStat( 'RANGE', 100, 2 ), 140, 'validated rules own an immutable copy' );
 assert.equal( engine.scaleStat( 'RANGE', 100, 2 ), 120, 'existing engine remains stable during review' );
@@ -101,4 +141,6 @@ const browser = {};
 vm.runInNewContext( fs.readFileSync( path.join( directory, 'item-scaling-core.js' ), 'utf8' ), browser );
 assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'BACKSTAB', 12, 5 ), 15,
 	'the exact same bytes run as a browser script without require/eval of downloaded data' );
-console.log( `Shared item scaling: ${cases.length} stat cases, contextual fields, strict JSON validation, versioning and browser/CommonJS parity pass.` );
+assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'WT', 2.5, 8 ), 0.7,
+	'the browser engine uses the same exact decimal weight ceiling' );
+console.log( `Shared item scaling: ${cases.length} stat cases, ${weightCases} weight boundaries/states, contextual fields, strict JSON validation, versioning and browser/CommonJS parity pass.` );
