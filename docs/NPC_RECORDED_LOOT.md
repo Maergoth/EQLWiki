@@ -17,6 +17,10 @@ words elsewhere on the page or an item's bonus-stat numbers. Broad groups,
 qualified/unsupported layouts and multiple physical item variants retain their
 positive facts but do not authorize blind automatic expansion. Comments, quoted
 examples and arbitrary wrapper arguments never become source claims.
+Recognized affected-field group wording includes "common drop from low-level
+humanoids" and "drops from low-level humanoids". These establish broad intent,
+without inventing exact NPC identities; unknown generating templates or other
+unparsed qualifiers still require review.
 
 Only public authored fields establish relationships; generic prose, comments,
 protected examples and unused wrapper arguments do not establish drops.
