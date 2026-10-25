@@ -11,28 +11,23 @@ adapter and injects the same JSON as `wgEQLItemScalingRules`. Template parsing,
 layout, green modified values, saved slider state and dynamic-card refresh stay
 in `itemlevelslider.js`. ClassSlotEquip continues to consume the same module.
 No database-page synchronization or schema migration is required for this
-extension's engine, rules or read-only endpoint.
+extension's engine or rules.
 
-## Public rules endpoint
+## Release-time synchronization
 
-```
-GET /api.php?action=eqlitemscaling&format=json&formatversion=2
-```
+Eye of Zomm bundles the exact engine and JSON rules from a reviewed wiki commit.
+Its source-sync script records that commit and each file's SHA-256; its source
+check rejects edited or mismatched copies. Formula changes therefore need one
+canonical implementation change, followed by source synchronization into a new
+app version. An installed app keeps its packaged formulas for its entire version,
+including previews, reverse calculations and contribution review.
 
-The response is `{eqlitemscaling:{schemaVersion:1,engineVersion:1,revision:1,rules}}`.
-`rules` is the complete tracked document, not executable JavaScript. The endpoint
-needs no account, CSRF token or observation module and never writes pages/data.
-It disables shared API caching so a deployment's new revision is available on
-the next client check. ResourceLoader versions deployed JavaScript normally;
-page config carries coefficient updates independently of the script URL.
-
-Offline clients bundle the exact engine and an initial rules document. They may
-refresh JSON from their configured trusted wiki origin, validate the entire
-schema with `validateRules`, reject incompatible engine/schema versions and
-older revisions, then atomically replace their last-known-good rules. Network
-failure or invalid data must retain the last valid document. Never download and
-evaluate formula code. Freeze one engine/rules revision for an in-progress
-reverse calculation or contribution review; record its revision in evidence.
+The app does not poll the wiki, download rules or apply formula changes while it
+is running. There is no item-scaling API endpoint. A wiki formula deployment uses
+the normal application deployment; the matching app formulas arrive through an
+app update. ResourceLoader versions deployed JavaScript normally, and the wiki
+injects the tracked rules into page config. No public API documentation page
+needs publishing for this feature.
 
 ## Portable engine contract
 
@@ -72,7 +67,7 @@ For coefficient changes, edit the JSON and increment its positive integer
 Update fixtures only against evidence for an intentional formula change.
 
 A new algorithm needs a new supported `engineVersion` plus compatible client
-code. It cannot be expressed as downloaded JavaScript or arbitrary expressions.
-Synchronize the app's vendored engine/rules using its checked source-sync script;
-record the wiki commit and source hashes. A normal compatible coefficient
-revision can then reach installed clients through the validated JSON endpoint.
+code. Synchronize the app's vendored engine/rules using its checked source-sync
+script, record the wiki commit and source hashes, then ship a new app version.
+Both coefficient and algorithm changes follow this release process. Do not add
+runtime formula checks or a second hand-maintained implementation in a consumer.
