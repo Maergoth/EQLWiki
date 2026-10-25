@@ -119,6 +119,28 @@ namespace {
     $counts->npc( 'Guardian Two', '{{Namedmobpage|known_loot={{UnknownLootWrapper|{{:Shared Relic}}}}}}' );
     checkLootCount( !$counts->apply( $records, $resolve )[0]['lootSourceCountComplete'], 'Unknown unexpanded loot wrappers cannot prove Unique' );
 
+    $duplicateMerchant = '{{Namedmobpage|name=Merchant display|zone=[[Earlier Zone]]|zone=[[Final Zone]]|items_sold=Earlier stock|items_sold=Final stock|known_loot={{:Shared Relic}}}}';
+    checkLootCount( EqlNpcLootWikitext::analyseNpcPage( $duplicateMerchant ) === null, 'Default renderer analysis still rejects duplicate non-loot parameters' );
+    $parsed = true;
+    checkLootCount( EqlNpcLootWikitext::npcLootSources( $duplicateMerchant, $parsed, true ) === [] && !$parsed, 'Colon-permissive recognition alone does not opt into duplicate compatibility' );
+    $analysis = EqlNpcLootWikitext::analyseNpcPage( $duplicateMerchant, true );
+    checkLootCount( $analysis !== null && $analysis['zones'] === [ 'Final Zone' ], 'Global-only NPC analysis uses the last duplicate non-loot parameter' );
+    $counts = $five();
+    $counts->npc( 'Guardian Five', str_replace( [ 'Namedmobpage', 'known_loot' ], [ 'MerchantPage', 'knownloot' ], $duplicateMerchant ) );
+    $result = $counts->apply( $records, $resolve )[0];
+    checkLootCount( $result['lootSourceCount'] === 5 && $result['lootSourceCountComplete'], 'Duplicate merchant items_sold fields cannot make five global sources incomplete' );
+    $counts->npc( 'Guardian Six', str_replace( 'Namedmobpage', 'NPCpage', $duplicateMerchant ) );
+    $result = $counts->apply( $records, $resolve )[0];
+    checkLootCount( $result['lootSourceCount'] === 6 && $result['lootSourceCountComplete'], 'Duplicate non-loot NPC fields retain complete six-source Common proof' );
+    foreach ( [ 'known_loot', 'common_loot' ] as $field ) {
+        $counts = $five();
+        $counts->npc( 'Guardian Five', '{{Namedmobpage|' . $field . '={{:Shared Relic}}|' . $field . '=None}}' );
+        checkLootCount( !$counts->apply( $records, $resolve )[0]['lootSourceCountComplete'], 'Duplicate authored loot fields stay incomplete in global mode' );
+    }
+    $parsed = true;
+    EqlNpcLootWikitext::npcLootSources( '{{OtherTemplate|items_sold=First|items_sold=Second}}{{Namedmobpage|known_loot={{:Shared Relic}}}}', $parsed, true, true );
+    checkLootCount( !$parsed, 'Global duplicate compatibility applies only to Namedmobpage, not arbitrary templates' );
+
     // Execute the actual producer's public revision/redirect adapter against
     // service doubles, rather than testing only a permissive resolver callback.
     $source = file_get_contents( __DIR__ . '/../maintenance/BuildEyeOfZommPack.php' );
