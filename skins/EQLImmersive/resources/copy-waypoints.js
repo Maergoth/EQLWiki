@@ -51,7 +51,7 @@
 	}
 
 	function commandFor( value ) {
-		return '/loc ' + value.replace( /^\(\s*|\s*\)$/g, '' ).replace( /\u2212/g, '-' )
+		return '/way ' + value.replace( /^\(\s*|\s*\)$/g, '' ).replace( /\u2212/g, '-' )
 			.split( ',' ).map( function ( part ) { return part.trim(); } ).join( ', ' );
 	}
 
