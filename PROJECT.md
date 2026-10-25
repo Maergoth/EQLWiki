@@ -300,7 +300,9 @@ files, a low-memory selector fixture, and stub publisher/syncer commands; it doe
 not contact MediaWiki/GitHub or establish that a host copy has been installed.
 
 The application-side producer is `maintenance/BuildEyeOfZommPack.php` with
-`maintenance/zone-catalog.json`; Eye of Zomm retains a matching source copy in
+`maintenance/zone-catalog.json` and `maintenance/ItemLootSourceCounts.php`; the
+loot helper also uses `extensions/DynamicZoneList/NpcLootWikitext.php` from the
+same reviewed application release. Eye of Zomm retains a matching source copy in
 its `server/` directory. Review the
 [companion desktop integration changes](https://github.com/Maergoth/EQL-EOZ/tree/codex/wiki-map-integration-audit)
 when updating this contract. `ALL except` class restrictions export an explicit
@@ -337,6 +339,16 @@ settings, generated packs, and other private data outside the source PR.
 `php ops/test-eoz-exporter.php` runs synthetic source-only contract checks without
 bootstrapping MediaWiki, contacting a database, writing a pack, or publishing data.
 It does not substitute for checking an approved rebuilt dataset.
+
+Global classification metadata uses `meta.lootSourceCountsVersion = 1` and the
+top-level `lootSourceCounts` catalog, including statless and missing item titles;
+rich item records mirror its count/completeness/canonical-NPC fields. Verify
+the published gzip contains these fields after rebuilding, along with public
+NPC redirect aliases. No new wiki API, schema or host wrapper is needed. A
+manual invocation of the already installed `eoz-pack-refresh.sh` without
+`--if-stale` forces a build under its existing lock; `--local-only` does not
+publish to GitHub. Source deployment and the later filtered dataset publication
+must be verified separately.
 
 ## Staging and contributions
 
