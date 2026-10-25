@@ -231,6 +231,8 @@ foreach ( [
     $records = $fixture->npc( $title, $zoneField, array_merge( $categories, [ 'Kunark' ] ), $templateName );
     $expect( array_column( $records, 'zone' ), $expectedZones, "NPC zone provenance {$title}" );
     foreach ( $records as $record ) {
+        $expect( $record['zoneScope'] ?? null, $zoneField === 'Various' ? 'various' : null,
+            "Only literal Various establishes unrestricted scope {$title}" );
         $expect( [
             $record['name'], $record['wikiTitle'], $record['revisionId'],
             $record['levelMin'], $record['levelMax'], $record['avgLevel'],
