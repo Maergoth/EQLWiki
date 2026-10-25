@@ -445,6 +445,10 @@ wiki category, field, and title-suffix aliases while retaining existing canonica
 viewer names. Recognized explicit NPC template zones take precedence and retain
 all listed zones; categories are a fallback, then the article-title suffix.
 Stale categories must not override explicit fields or discard a second zone.
+An exact literal NPC `zone = Various` additionally exports `zoneScope: various`
+on that template's records. It includes a client's current zone without inventing
+additional map locations; concrete category rows remain intact for dynamic lists.
+The marker does not cross normal/raid template scopes or apply to surrounding prose.
 Unknown zones remain unmapped unless a categorized zone article with a Raid
 Instance section establishes a new canonical zone. NPC locations keep the wiki's
 displayed `Y, X, Z` order. Source-only synthetic coverage lives in

@@ -399,6 +399,9 @@ without renaming the canonical viewer records or guessing unknown zones.
 Recognized explicit NPC template zones win over categories and preserve every
 listed zone; categories and title suffixes are fallbacks. Include conflicting
 categories and multi-zone fields in producer regressions.
+Also preserve an exact literal `zone = Various` as `zoneScope: various`, scoped
+to its own NPC template; category-derived zone rows remain unchanged. Test mixed
+normal/raid templates and a phrase containing Various which must not get this marker.
 
 Raid tests must include an uncatalogued future zone, nested/sibling headings,
 normal and raid variants with the same NPC name, an explicit raid-only boss,

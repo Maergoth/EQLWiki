@@ -331,6 +331,10 @@ class BuildEyeOfZommPack extends Maintenance {
             // The NPC template describes its explicit spawn zones. Categories can
             // be incomplete or stale, so use them only when no field zone resolves.
             $zoneText = $this->extractParamByLine( $body, [ 'zone' ] );
+            // Keep the authored all-zones scope separately from the concrete
+            // category rows used by DynamicZoneList. Do not turn prose such as
+            // "Various or Qeynos" into an unrestricted spawn claim.
+            $variousZones = (bool)preg_match( '/^\s*Various\s*$/i', $zoneText );
             $zones = $this->detectZonesFromField( $zoneText );
             if ( !$zones ) {
                 $zones = $this->detectZonesFromCategories( $categories );
@@ -367,6 +371,9 @@ class BuildEyeOfZommPack extends Maintenance {
                     '_instanceExplicit' => $section['explicit'],
                     '_raidOnly' => $raidCategory || $raidRespawn,
                 ];
+                if ( $variousZones ) {
+                    $record['zoneScope'] = 'various';
+                }
                 if ( $section['explicit'] ) {
                     $record['instanceSources'] = [ [ 'wikiTitle' => $title->getText(),
                         'revisionId' => $revisionId, 'section' => $section['heading'] ] ];
