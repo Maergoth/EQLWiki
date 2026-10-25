@@ -67,6 +67,8 @@ $fixtures['Synthetic case charm'] = [ 'text' => $item( 'Synthetic case charm', '
 $fixtures['Synthetic Case charm'] = [ 'text' => $item( 'Synthetic Case charm', '' ) ];
 $fixtures['Synthetic loot-only raid looter'] = [ 'text' => $withLoot( $npc( $zone, 50 ), "* {{:Synthetic normal-only loot}}\n== Raid Instance ==\n* {{:Synthetic raid-only loot}}\n== Other drops ==\n* {{:Synthetic NPC-only wand}}" ) ];
 $fixtures['Synthetic outer raid looter'] = [ 'text' => "= Raid Instance =\n" . $withLoot( $npc( $zone, 60 ), "* {{:Synthetic raid-only loot}}\n== Normal Instance ==\n* {{:Synthetic normal-only loot}}\n== Other drops ==\n* {{:Synthetic NPC-only wand}}" ) ];
+$fixtures['Synthetic various normal'] = [ 'text' => str_replace( '[[Various]]', 'Various', $npc( 'Various', 10 ) ) . "\n= Raid Instance =\n" . $npc( $zone, 60 ) ];
+$fixtures['Synthetic various raid'] = [ 'text' => $npc( $zone, 10 ) . "\n= Raid Instance =\n" . str_replace( '[[Various]]', 'Various', $npc( 'Various', 60 ) ) ];
 $factory = new class {
     public function newFromTitle( $title ) {
         return new class( $GLOBALS['fixtures'][$title->getText()] ?? null ) {
@@ -118,6 +120,13 @@ $expect = static function ( $actual, $expected, string $label ) use ( &$checks )
 };
 $records = static fn ( string $name ) => array_values( array_filter( $npcs, static fn ( $record ) => $record['name'] === $name ) );
 $variants = static fn ( string $name ) => array_column( $records( $name ), 'raidInstance' );
+$scopes = static function ( string $name ) use ( $records ): array {
+    $result = [];
+    foreach ( $records( $name ) as $record ) { $result[$record['instanceType']] = $record['zoneScope'] ?? null; }
+    ksort( $result ); return $result;
+};
+$expect( $scopes( 'Synthetic various normal' ), [ 'normal' => 'various', 'raid' => null ], 'Normal Various scope cannot leak into the raid template' );
+$expect( $scopes( 'Synthetic various raid' ), [ 'normal' => null, 'raid' => 'various' ], 'Raid Various scope cannot leak into the normal template' );
 $sourceTuples = static fn ( string $name ) => array_map(
     static fn ( $record ) => [ $record['zone'], $record['name'], $record['raidInstance'] ], $items[$name]['dropSources'] );
 $byTitle = static fn ( string $name ) => array_values( array_filter( $items, static fn ( $record ) => $record['wikiTitle'] === $name ) )[0];

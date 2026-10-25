@@ -418,9 +418,12 @@ viewer markup asset versions, and worker URLs consistent when releasing changes.
 
 [`maintenance/BuildEyeOfZommPack.php`](../maintenance/BuildEyeOfZommPack.php) and
 [`zone-catalog.json`](../maintenance/zone-catalog.json) are separate
-wiki-data/asset export tooling, not a browser upload flow. The builder reads the
-local wiki database/assets without calling its own HTTP server and requires an
-output JSON file path, for example `--output=.local/eoz/eye-of-zomm-pack.json`.
+wiki-data/asset export tooling, not a browser upload flow. The
+optional `viewerId` on a catalog record preserves an explicit archive preference
+for ambiguous display labels. Clients retain a verified logged short name before
+this preference; the producer exports the catalog metadata unchanged. The builder
+reads the local wiki database/assets without calling its own HTTP server and
+requires an output JSON file path, for example `--output=.local/eoz/eye-of-zomm-pack.json`.
 The private `eoz-pack-refresh.sh --if-stale` checks hourly and validates/publishes
 a dataset after at least 24 hours since its last successful GitHub publication;
 `eoz-sync-github.sh` manages the separate **Maergoth/EQL-EOZ dataset branch**.
@@ -445,6 +448,14 @@ wiki category, field, and title-suffix aliases while retaining existing canonica
 viewer names. Recognized explicit NPC template zones take precedence and retain
 all listed zones; categories are a fallback, then the article-title suffix.
 Stale categories must not override explicit fields or discard a second zone.
+An exact literal NPC `zone = Various` additionally exports `zoneScope: various`
+on that template's records. It includes a client's current zone without inventing
+additional map locations; concrete category rows remain intact for dynamic lists.
+The marker does not cross normal/raid template scopes or apply to surrounding prose.
+NPC `categoryZones` separately retains verified concrete zone categories, because
+DynamicZoneList's NPC table uses the zone/NPC category intersection even when an
+explicit spawn field names another zone. This is presence evidence for the normal
+dynamic list, not a replacement spawn/stat identity or a raid-membership claim.
 Unknown zones remain unmapped unless a categorized zone article with a Raid
 Instance section establishes a new canonical zone. NPC locations keep the wiki's
 displayed `Y, X, Z` order. Source-only synthetic coverage lives in

@@ -10,6 +10,7 @@
   {
     "name": "Plane of Sky",
     "viewerName": "Plane of Sky",
+    "viewerId": "airplane",
     "wikiTitle": "The Plane of Sky",
     "aliases": [
       "airplane",
@@ -423,6 +424,7 @@
   {
     "name": "North Ro",
     "viewerName": "North Ro",
+    "viewerId": "nro",
     "wikiTitle": "The Northern Desert of Ro",
     "aliases": [
       "nro",
@@ -453,7 +455,8 @@
     "viewerName": "Ocean of Tears",
     "wikiTitle": "Ocean of Tears",
     "aliases": [
-      "oot"
+      "oot",
+      "oceanoftears"
     ]
   },
   {
@@ -494,6 +497,7 @@
   {
     "name": "West Karana",
     "viewerName": "West Karana",
+    "viewerId": "qey2hh1",
     "wikiTitle": "West Karana",
     "aliases": [
       "qey2hh1",
@@ -598,6 +602,7 @@
   {
     "name": "South Ro",
     "viewerName": "South Ro",
+    "viewerId": "sro",
     "wikiTitle": "The Southern Desert of Ro",
     "aliases": [
       "sro",
@@ -636,7 +641,8 @@
     "viewerName": "New Sebilis Expedition",
     "wikiTitle": "New Sebilis Expedition",
     "aliases": [
-      "newsebilis"
+      "newsebilis",
+      "newsebexp"
     ]
   },
   {
