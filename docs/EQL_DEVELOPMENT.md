@@ -396,12 +396,24 @@ aligned. `Class: ALL except` must export the playable-class complement, explicit
 `NONE` must remain distinct from unknown `[]`, and wiki `Y, X, Z` location order
 must not be converted to viewer axes in the producer. Add exact zone aliases
 without renaming the canonical viewer records or guessing unknown zones.
+The optional catalog `viewerId` selects an explicitly reviewed primary archive
+when multiple supported archive IDs share a display name. Retain a verified
+logged short name before this preference, including an alternate supported ID;
+an unknown or conflicting short name must not silently load a different map.
+The exact client filename aliases `oceanoftears` and `newsebexp` belong to the
+existing Ocean of Tears and New Sebilis Expedition records. The desktop tests
+compare every catalog alias and the seven documented client filename equivalences
+against the pinned viewer registry, including exact-ID precedence when both
+archives exist and separate missing-archive results.
 Recognized explicit NPC template zones win over categories and preserve every
 listed zone; categories and title suffixes are fallbacks. Include conflicting
 categories and multi-zone fields in producer regressions.
 Also preserve an exact literal `zone = Various` as `zoneScope: various`, scoped
 to its own NPC template; category-derived zone rows remain unchanged. Test mixed
 normal/raid templates and a phrase containing Various which must not get this marker.
+Retain `categoryZones` separately from explicit spawn zones and test a categorized
+zone omitted by the spawn field. Clients can recognize the existing dynamic list
+membership without replacing authoritative map/stat records or crossing raid scope.
 
 Raid tests must include an uncatalogued future zone, nested/sibling headings,
 normal and raid variants with the same NPC name, an explicit raid-only boss,
