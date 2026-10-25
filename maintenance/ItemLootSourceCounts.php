@@ -87,10 +87,10 @@ final class EqlItemLootSourceCounts {
             $complete[$i] = $this->direct[$title]['complete'] ?? isset( $this->missingItems[$title] );
         }
         $add = function ( int $i, string $name ) use ( &$rows, &$complete, $resolve ): void {
-            if ( self::pet( $name ) ) { return; }
+            if ( self::nonMonsterSource( $name ) ) { return; }
             try { $npc = $resolve( $name ); } catch ( Throwable $error ) { $complete[$i] = false; return; }
             if ( !( $npc['complete'] ?? false ) || !( $npc['public'] ?? false ) ) { $complete[$i] = false; return; }
-            if ( self::pet( $npc['title'] ) ) { return; }
+            if ( self::nonMonsterSource( $npc['title'] ) ) { return; }
             $id = $npc['pageId'] ?? null;
             $key = $id ? 'id:' . $id : 'missing:' . EqlNpcLootWikitext::identity( $npc['title'] );
             if ( !isset( $rows[$i][$key] ) && count( $rows[$i] ) >= $this->maxNpcs ) { $complete[$i] = false; return; }
@@ -134,7 +134,8 @@ final class EqlItemLootSourceCounts {
         return $items;
     }
 
-    private static function pet( string $name ): bool {
+    private static function nonMonsterSource( string $name ): bool {
+        if ( in_array( EqlNpcLootWikitext::identity( $name ), [ 'ground spawn', 'ground spawns' ], true ) ) { return true; }
         $label = preg_replace( '/[.!?,;:]+$/', '', EqlNpcLootWikitext::identity( $name ) );
         $label = preg_replace( '/^(?:the )?corpse of /', '', $label );
         $label = preg_replace( "/(?:'s corpse| \\(corpse\\))$/", '', $label );
