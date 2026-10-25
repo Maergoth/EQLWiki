@@ -240,6 +240,37 @@ namespace {
     $boundedSet = $counts->catalog( $resolve )['Shared Relic'];
     checkLootCount( $boundedSet['lootSourceCount'] === 1 && !$boundedSet['lootSourceCountComplete'], 'A bounded set expansion retains proved lower bounds and cannot prove a small total' );
 
+    $verifiedResolve = static function ( string $name ) use ( $resolve, $ids ): array {
+        $target = $resolve( $name );
+        $target['kind'] = in_array( $target['title'], array_map( static fn ( $n ) => 'Guardian ' . $n, [ 'One', 'Two', 'Three', 'Four', 'Five', 'Six' ] ), true ) ? 'npc'
+            : ( in_array( $target['title'], [ 'Shared Relic', 'Unrelated Relic' ], true ) ? 'item' : ( $target['pageId'] ? 'other' : 'missing' ) );
+        return $target;
+    };
+    $counts = $five();
+    $counts->item( 'Shared Relic', $item( "* [[Guardian One]]\n* [[Missing guardian]]" ) );
+    $verified = $counts->catalog( $verifiedResolve )['Shared Relic'];
+    checkLootCount( $verified['lootSourceCount'] === 5 && !$verified['lootSourceCountComplete'] && !in_array( 'Missing guardian', $verified['lootSourceNpcs'], true ), 'Version 2 excludes authored NPC redlinks from verified counts and limits their uncertainty to the affected item' );
+    $counts = new EqlItemLootSourceCounts();
+    $counts->item( 'Shared Relic', $item( '* [[Synthetic group page]]' ) );
+    $groupNpcResolve = static fn ( $name ) => $name === 'Synthetic group page'
+        ? [ 'title' => $name, 'pageId' => 999, 'public' => true, 'complete' => true, 'kind' => 'collection' ] : $verifiedResolve( $name );
+    $verified = $counts->catalog( $groupNpcResolve )['Shared Relic'];
+    checkLootCount( $verified['lootSourceCount'] === 0 && !$verified['lootSourceCountComplete'], 'An existing collection page ID cannot become a real monster lower bound' );
+    $counts = new EqlItemLootSourceCounts();
+    $counts->item( 'Shared Relic', $item() );
+    $counts->item( 'Unrelated Relic', '{{Itempage|itemname=Unrelated Relic|dropsfrom=}}' );
+    $counts->sets( [ 'Conditional Armor Group' => [ 'items' => [], 'complete' => false,
+        'possibleItems' => [ 'Shared Relic' ], 'possibleItemsComplete' => true ] ] );
+    $counts->npc( 'Guardian One', '{{Namedmobpage|known_loot=[[Conditional Armor Group]]}}' );
+    $verified = $counts->catalog( $verifiedResolve );
+    checkLootCount( $verified['Shared Relic']['lootSourceCount'] === 0 && !$verified['Shared Relic']['lootSourceCountComplete'], 'Conditional possible membership is uncertainty and never a positive cross-product' );
+    checkLootCount( $verified['Unrelated Relic']['lootSourceCountComplete'] && !isset( $verified['Conditional Armor Group'] ), 'A bounded unknown collection affects possible members only and is never a pseudoitem' );
+    $counts = new EqlItemLootSourceCounts();
+    $counts->item( 'Shared Relic', $item() );
+    $counts->npc( 'Guardian One', "{{Namedmobpage\n|name=Guardian One\n|zone=[[A place]]\n|known_loot\n<ul><li>{{:Shared Relic}}</li></ul>\n|factions=[[Unrelated Faction]]\n}}" );
+    $verified = $counts->catalog( $verifiedResolve )['Shared Relic'];
+    checkLootCount( $verified['lootSourceCount'] === 0 && !$verified['lootSourceCountComplete'] && $counts->diagnostics()['complete'], 'A malformed static loot field can bound uncertainty without inventing a positive source or tainting the whole scan' );
+
     // Execute the actual producer's public revision/redirect adapter against
     // service doubles, rather than testing only a permissive resolver callback.
     $source = file_get_contents( __DIR__ . '/../maintenance/BuildEyeOfZommPack.php' );
@@ -252,12 +283,15 @@ namespace {
     $methods = str_replace( 'MediaWikiServices::', '\\MediaWiki\\MediaWikiServices::', $methods );
     $methods = preg_replace( '/\bTitle\b/', '\\MediaWiki\\Title\\Title', $methods );
     eval( 'class LootProducerFixture {
-        private $lootCounts; private array $lootTitleMemo=[];
+        private $lootCounts; private array $lootTitleMemo=[]; private array $lootSourceKinds=[];
+        private array $wikiRelationshipCoverage=[]; private array $lootSets=[]; private array $lootCollectionMemo=[];
         public function __construct() { $this->lootCounts=new EqlItemLootSourceCounts(); }
         private function maybePause(): void {}
         public function resolve($name) { return $this->resolveLootTitle($name, $GLOBALS["lootFactory"]); }
         public function remember($kind, $name) { $title = \MediaWiki\Title\Title::newFromText($name); $this->rememberPublicLootSource($kind, $title, $GLOBALS["lootFactory"]->newFromTitle($title)); }
         public function catalog() { return $this->lootCounts->catalog(fn($name) => $this->resolve($name)); }
+        public function coverage() { return $this->wikiRelationshipCoverage; }
+        public function collections() { return $this->lootSets; }
         public function aliases($npcs, $db) { return $this->enrichNpcRedirectAliases($npcs, $db, $GLOBALS["lootFactory"]); }
         ' . $methods . ' }' );
     $GLOBALS['lootPages'] = [
@@ -269,12 +303,18 @@ namespace {
         'Loop alias' => [ 'id' => 25, 'text' => '#REDIRECT [[Loop alias]]', 'redirect' => 'Loop alias' ],
         'Section alias' => [ 'id' => 26, 'text' => '#REDIRECT [[Public guardian#Raid Instance]]', 'redirect' => 'Public guardian#Raid Instance' ],
         'Public material' => [ 'id' => 27, 'text' => "{{Itempage|itemname=Public material|dropsfrom=* [[Public guardian]]\n* [[Public alias]]}}" ],
+        'Public redlink evidence' => [ 'id' => 28, 'text' => "{{Itempage|itemname=Public redlink evidence|dropsfrom=* [[Missing guardian]]}}" ],
+        'Public finite loot pool' => [ 'id' => 29, 'text' => "Finite shared treasure pool.\n<ul><li>{{:Public material}}</li><li>[[Public redlink evidence]]</li></ul>" ],
+        'Public pool guardian' => [ 'id' => 30, 'text' => "{{Namedmobpage|name=Public pool guardian|zone=[[Synthetic Vale]]|known_loot=Always drops two pieces of [[Public finite loot pool]]|common_loot=?}}" ],
+        'Public conditional armor' => [ 'id' => 31, 'text' => "{| class=\"wikitable\"\n| Arms || [[Public material]]\n|-\n| Legs || [[Public redlink evidence]]\n|}" ],
+        'Public conditional guardian' => [ 'id' => 32, 'text' => "{{Namedmobpage|name=Public conditional guardian|zone=[[Synthetic Vale]]|known_loot=[[Public conditional armor]]|common_loot=?}}" ],
     ];
     $GLOBALS['lootFactory'] = new class {
         public function newFromTitle( $title ) { return new class( $GLOBALS['lootPages'][$title->getText()] ?? [] ) {
             public function __construct( private array $page ) {}
             public function getRevisionRecord() { return new class( $this->page ) {
                 public function __construct( private array $page ) {}
+                public function getId(): int { return ( $this->page['id'] ?? 0 ) * 10; }
                 public function getContent( $slot, $audience ) {
                     checkLootCount( $slot === 'main' && $audience === \MediaWiki\Revision\RevisionRecord::FOR_PUBLIC, 'Read only public current main-slot content' );
                     if ( $this->page['hidden'] ?? false ) { return null; }
@@ -291,6 +331,7 @@ namespace {
         } }; }
         public function getRedirectLookup() { return new class { public function getRedirectTarget( $title ) { return isset( $GLOBALS['lootPages'][$title->getText()]['redirect'] ) ? Title::newFromText( $GLOBALS['lootPages'][$title->getText()]['redirect'] ) : null; } }; }
         public function getTitleFactory() { return new class { public function newFromLinkTarget( $target ) { return $target; } }; }
+        public function getWikiPageFactory() { return $GLOBALS['lootFactory']; }
     };
     $candidates = new LootProducerFixture();
     $candidates->remember( 'npc', 'Public alias' );
@@ -299,6 +340,18 @@ namespace {
     $candidates->remember( 'item', 'Public material' );
     $candidateCount = $candidates->catalog()['Public material'];
     checkLootCount( $candidateCount === [ 'lootSourceNpcs' => [ 'Public guardian' ], 'lootSourceCount' => 1, 'lootSourceCountComplete' => true ], 'Reading canonical and redirect category candidates still counts one public monster' );
+    $typed = $candidates->coverage();
+    checkLootCount( $typed['Public material']['kind'] === 'item' && $typed['Public material']['revisionId'] === 270 && $typed['Public material']['edges'][0]['source']['field'] === 'dropsfrom', 'Actual public revision adapter exports statless affected-field provenance before rich item filtering' );
+    $candidates->remember( 'item', 'Public redlink evidence' );
+    $redlinkCoverage = $candidates->coverage()['Public redlink evidence'];
+    checkLootCount( $redlinkCoverage['edges'][0]['npc'] === 'Missing guardian' && $redlinkCoverage['edges'][0]['verifiedNpc'] === false, 'Authored redlinks remain positive relationship evidence separate from real-monster count proof' );
+    $candidates->remember( 'npc', 'Public pool guardian' );
+    $poolCoverage = $candidates->coverage()['Public pool guardian'];
+    checkLootCount( count( $poolCoverage['edges'] ) === 2 && $poolCoverage['collectionRefs'][0]['complete'] && $poolCoverage['collectionRefs'][0]['collectionSource']['revisionId'] === 290, 'Explicit quantity prose resolves one verified public finite pool and retains both source revisions' );
+    $candidates->remember( 'npc', 'Public conditional guardian' );
+    $conditionalCoverage = $candidates->coverage()['Public conditional guardian'];
+    $conditionalCollection = $candidates->collections()['Public conditional armor'];
+    checkLootCount( !$conditionalCoverage['edges'] && !$conditionalCoverage['collectionRefs'][0]['complete'] && !$conditionalCollection['items'] && $conditionalCollection['possibleItemsComplete'] && count( $conditionalCollection['possibleItems'] ) === 2, 'A conditional armor table exports bounded possible membership without any positive NPC-item cross-product' );
     $hiddenCandidates = new LootProducerFixture();
     $hiddenCandidates->remember( 'npc', 'Private guardian' );
     $hiddenCandidates->remember( 'npc', 'Suppressed guardian' );

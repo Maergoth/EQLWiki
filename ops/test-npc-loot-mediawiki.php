@@ -180,6 +180,26 @@ class EQLTestNpcLootMediaWiki extends Maintenance {
 		$oldItemOutput->setExtensionData( EqlNpcLootRenderer::GUARD, null );
 		$this->check( EqlNpcLootRenderer::onRejectParserCacheValue( $oldItemOutput, $pageFactory->newFromTitle( $itemTitle ), $cacheOptions ) === false, 'Old item-containing parser cache entries must refresh once for reciprocal sources.' );
 		$this->check( EqlNpcLootRenderer::onRejectParserCacheValue( $itemOutput, $pageFactory->newFromTitle( $itemTitle ), $cacheOptions ) !== false, 'Fresh reciprocal item output must remain cacheable.' );
+		$groupedSource = '<onlyinclude>{{Itempage|itemname=EQL synthetic later relic|statsblock=HP: 1|dropsfrom=' .
+			"\n[[EQL synthetic cavern]]\n* [[EQL synthetic authored guardian]]\n=== Raid Instance ===\n[[EQL synthetic cavern]]\n* [[EQL synthetic authored raid guardian]]\n}}</onlyinclude>";
+		$groupedOutput = $factory->create()->parse( $groupedSource, $itemTitle, ParserOptions::newFromAnon() );
+		$groupedHtml = $groupedOutput->getRawText();
+		$this->check( substr_count( $groupedHtml, '>EQL synthetic cavern</a>' ) === 2 && substr_count( $groupedHtml, 'Raid Instance' ) >= 1 && !str_contains( $groupedHtml, 'Normal Instance' ), 'Existing item zone lists and raid boundary must be reused without duplicate instance/zone blocks.' );
+		$groupedDocument = new DOMDocument();
+		$previous = libxml_use_internal_errors( true );
+		$groupedDocument->loadHTML( '<?xml encoding="UTF-8">' . $groupedHtml );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous );
+		$groupedXpath = new DOMXPath( $groupedDocument );
+		$this->check( $groupedXpath->query( '//li[not(normalize-space())]' )->length === 0, 'Reciprocal source insertion must not create empty list bullets in an actual parser result.' );
+		$beforeVarious = $itemLookup->calls;
+		$variousSource = str_replace( [ 'dropsfrom=', 'HP: 1' ], [ 'dropsfrom=Various zones ', 'AC: 1<br>DMG: 10' ], $groupedSource );
+		$variousOutput = $factory->create()->parse( $variousSource, $itemTitle, ParserOptions::newFromAnon() );
+		$this->check( $itemLookup->calls === $beforeVarious + 1 && str_contains( $variousOutput->getRawText(), 'Various zones' ) && !str_contains( $variousOutput->getRawText(), 'EQL synthetic normal guardian' ), 'Authored Various pages must render their own lists without generated entries or warning clutter.' );
+
+		$bonusOutput = $factory->create()->parse( str_replace( 'dropsfrom=Various zones ', 'notes=Various unrelated notes|dropsfrom=', $variousSource ), $itemTitle, ParserOptions::newFromAnon() );
+		$this->check( $itemLookup->calls === $beforeVarious + 2 && str_contains( $bonusOutput->getRawText(), 'EQL synthetic normal guardian' ), 'Various outside the affected drop-source field does not block exact reciprocal sources.' );
+
 		EqlNpcLootRenderer::$itemLookupFactory = null;
 		if ( $this->hasOption( 'output' ) ) {
 			$this->check( file_put_contents( $this->getOption( 'output' ), $html ) === strlen( $html ), 'Could not write the optional private synthetic HTML.' );
