@@ -161,6 +161,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
 | Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
 | Global item loot classification | `php ops/test-eoz-loot-counts.php` | Synthetic public-revision/permission/redirect service doubles and actual producer helpers; five/six distinct mobs, all zones/instances, Common/Unique fields, statless materials and redlinked items, aliases/IDs, pets, hidden pages, bounded incomplete results. No wiki/database/pack writes |
+| Typed contribution coverage | `php ops/test-eoz-relationship-coverage.php` and `php ops/test-contribution-coverage.php` | Affected-field positive facts/capabilities, finite pools and conditional uncertainty, nested/formatted zone summary cells, DynamicZoneList category consumers, instance boundaries and limits. No wiki/database/pack writes |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
 | Whitespace | `git diff --check` | Git |
 | Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |
@@ -346,11 +347,17 @@ extension; see the extension guide for safe rollback ordering.
 
 [`DynamicZoneList`'s reciprocal lookup](NPC_RECORDED_LOOT.md) fills native NPC loot
 and item Drops From fields while rendering public authored relationships, including
-manual pages created in either order. Targeted old/new cache purges repeat after
+manual pages created in either order. Existing zone lists and normal/raid sections
+are reused with current public canonical proofs. Typed affected-field coverage
+separates verified source edges, finite collections, broad/unsupported contexts
+and renderer capability; unrelated page prose and bonus-stat values are not
+source policy. Global Unique cannot be inferred from a small direct-source list.
+Targeted old/new cache purges repeat after
 link updates. Stored wikicode and native Common/Unique fields remain intact. Run these bounded,
 synthetic checks without a database:
 
 ```sh
+php ops/test-contribution-coverage.php
 php ops/test-npc-loot-source.php
 php ops/test-npc-loot-lookup.php
 php ops/test-npc-loot-renderer.php
@@ -396,6 +403,22 @@ aligned. `Class: ALL except` must export the playable-class complement, explicit
 `NONE` must remain distinct from unknown `[]`, and wiki `Y, X, Z` location order
 must not be converted to viewer axes in the producer. Add exact zone aliases
 without renaming the canonical viewer records or guessing unknown zones.
+
+Quiet routine-item decisions require the rich record's versioned
+`contributionCard` proof from `EqlNpcLootWikitext::itemContributionCard`. Keep
+unknown auxiliary metadata, duplicate fields, nested/protected stats and any
+stat line beyond the exported sixteen-line bound incomplete. Supported context
+fields are `itemname`, `statsblock`, `dropsfrom`/`drops_from`, `lucy_img_id`,
+`icon`/`icon_id`, `notes`, `soldby`, `merchant_value`, `recipes`, `relatedquests`
+and `foraged`; only bounded literal ItemWhereTable/ItemWhereRow/Loc/VeliousGray/Era
+wrappers are recognized there. Literal related-quest associations set
+`questContext` and do not establish importance. Test the actual rich exporter as
+well as the pure parser so discarded display lines cannot masquerade as absent
+effects. Mirror the parser, builder, collector and catalog to the desktop repo.
+Required/card field names retain MediaWiki's case-sensitive spelling; the
+actual `lucy_img_ID` icon spelling is also explicitly recognized. Case-distinct
+template names and ignored parameter spellings cannot borrow proof.
+
 The optional catalog `viewerId` selects an explicitly reviewed primary archive
 when multiple supported archive IDs share a display name. Retain a verified
 logged short name before this preference, including an alternate supported ID;
@@ -461,6 +484,16 @@ Explicit top-level `Gear Set` members export as `lootSets` and expand NPC set
 references into member source counts. Regressions cover a sixth source supplied
 by a set, direct/set and nested-set deduplication, aliases, incomplete sets,
 cycles and expansion limits. Set titles do not become fictitious item entries.
+Unconditional root-only list pools use the same verified public membership
+contract. Conditional slot/class tables supply possible-member uncertainty only,
+never all-items/all-mobs source facts. Tests must distinguish the public source
+revision from the collection revision, retain statless metadata before rich
+filtering, and exclude NPC redlinks/non-monster pages from version 2 count proof.
+The versioned `wikiRelationshipCoverage` map records exact edges independently
+from broad/unsupported/variant field capabilities. Include unrelated prose,
+unknown wrappers, repeated affected fields, formatted nested zone tables and a
+missing optional Unique Items cell. A whole-page lexical opt-out is not this
+contract; preserve the source research examples without deploying prototypes.
 An approved source deployment and subsequent dataset rebuild/publication are
 separate release steps, described in [PROJECT.md](../PROJECT.md#existing-scheduled-jobs).
 Do not use a production export as a routine test or commit database snapshots,

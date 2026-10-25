@@ -6,7 +6,7 @@ use MediaWiki\Parser\ParserOutputLinkTypes;
 /** Read-only reciprocal loot on NPC/item article views; never changes page source. */
 class EqlNpcLootRenderer {
     public const MARKER = 'eql-npc-source-loot';
-    public const GUARD = 'eql-npc-source-loot-scanned-v6';
+    public const GUARD = 'eql-npc-source-loot-scanned-v8';
     public const CACHE_SECONDS = 300;
 
     /** @var callable|null Source-only fixtures may inject a lookup without writing wiki pages. */
@@ -27,12 +27,14 @@ class EqlNpcLootRenderer {
         ) {
             return;
         }
-        $analysis = EqlNpcLootWikitext::analyseNpcPage( $text );
+        $analysis = EqlNpcLootWikitext::analyseNpcPage( $text, false, true );
         $isNpc = $analysis !== null;
-        $analysis ??= EqlNpcLootWikitext::analyseItemPage( $text );
+        $analysis ??= EqlNpcLootWikitext::analyseItemPage( $text, $sourceComplete, true );
         if ( $analysis === null ) {
             return;
         }
+        $coverage = EqlNpcLootWikitext::contributionCoverage( $text, $isNpc ? 'npc' : 'item' );
+        if ( $isNpc ) { $analysis['authoredContexts'] = $coverage['edges']; }
         // Even an empty result must expire: a newly linked item is not a dependency yet.
         $output->setExtensionData( self::MARKER, true );
         $output->updateCacheExpiry( self::CACHE_SECONDS );
@@ -47,8 +49,42 @@ class EqlNpcLootRenderer {
             }
             $result = [ 'items' => [], 'complete' => false, 'warnings' => [] ];
         }
-        $merged = $isNpc ? EqlNpcLootWikitext::mergeNpcLoot( $text, self::entries( $result ) ) :
-            EqlNpcLootWikitext::mergeItemSources( $text, $result['sources'] ?? [] );
+        $entries = $isNpc ? self::entries( $result ) : ( $result['sources'] ?? [] );
+        $zoneAliases = $result['zoneAliases'] ?? [];
+        $entries = array_values( array_filter( array_map( static function ( $entry ) use ( $isNpc, $coverage, $zoneAliases ) {
+            if ( $coverage['state'] === 'variant' ) { return null; }
+            $field = $isNpc ? ( $entry['field'] ?? 'known_loot' ) : 'dropsfrom';
+            $contexts = $isNpc ? ( $entry['contexts'] ?? [] ) : [ $entry ];
+            if ( !$contexts ) { $contexts = [ [ 'zone' => '', 'instance' => 'normal' ] ]; }
+            $allowed = [];
+            foreach ( $contexts as $context ) {
+                $supported = false;
+                $blocked = false;
+                foreach ( $coverage['scopes'] as $scope ) {
+                    if ( $scope['field'] !== $field && !( !$isNpc && $scope['field'] === 'drops_from' ) ) { continue; }
+                    $supported = true;
+                    // Native outer cards are supported. Inner instance sections
+                    // require separate placement logic; never append under the wrong one.
+                    if ( $isNpc && preg_match( '/\b(?:Normal|Raid)[ _]+(?:Instance|Zone)\b/i', $scope['section'] ?? '' ) ) { $blocked = true; }
+                    $scopeZone = $scope['zone'] ?? '';
+                    $contextZone = $context['zone'] ?? '';
+                    $sameZone = $scopeZone === '' || $contextZone === '' ||
+                        EqlNpcLootWikitext::identity( $zoneAliases[$scopeZone] ?? $scopeZone ) === EqlNpcLootWikitext::identity( $zoneAliases[$contextZone] ?? $contextZone );
+                    // Without a current canonical proof, two spellings cannot
+                    // establish that a broad context belongs to another zone.
+                    if ( !$sameZone && ( !isset( $zoneAliases[$scopeZone] ) || !isset( $zoneAliases[$contextZone] ) ) ) { $sameZone = true; }
+                    if ( $scope['state'] !== 'exact' &&
+                        ( $scope['instance'] ?? 'normal' ) === ( $context['instance'] ?? 'normal' ) &&
+                        $sameZone ) { $blocked = true; }
+                }
+                if ( $supported && !$blocked ) { $allowed[] = $context; }
+            }
+            if ( !$allowed ) { return null; }
+            if ( $isNpc ) { $entry['contexts'] = $allowed; }
+            return $entry;
+        }, $entries ) ) );
+        $merged = $isNpc ? EqlNpcLootWikitext::mergeNpcLoot( $text, $entries ) :
+            EqlNpcLootWikitext::mergeItemSources( $text, $entries, $result['zoneAliases'] ?? [] );
         $text = $merged['text'];
         if ( empty( $result['complete'] ) || $merged['unplaced'] ) {
             $text .= "\n<p class=\"eql-recorded-loot-notice\">Some recorded drops could not be placed or checked. Try again shortly.</p>\n";
@@ -66,6 +102,8 @@ class EqlNpcLootRenderer {
     public static function entries( array $result ): array {
         $entries = [];
         foreach ( $result['items'] ?? [] as $item ) {
+            // A partial direct-source list cannot establish whole-wiki Unique loot.
+            if ( array_key_exists( 'lootKind', $item ) && $item['lootKind'] === null ) { continue; }
             $title = self::mainTitle( $item['title'] ?? '' );
             if ( !$title ) {
                 continue;

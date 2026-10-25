@@ -48,8 +48,7 @@ foreach ( [
 	"<nowiki>[[Synthetic Vale]]\n* [[Fake keeper]]</nowiki>",
 	"{{Example|\n[[Synthetic Vale]]\n* [[Fake keeper]]\n}}",
 	"<pre>[[Synthetic Vale]]\n* [[Fake keeper]]</pre>",
-	"[[Synthetic Vale]]\nA passing mention of [[Fake keeper]].",
-	"[[Synthetic Vale]]\n* [[Fake keeper]]\n[[Synthetic_Vale]]\n* [[Another keeper]]"
+	"[[Synthetic Vale]]\nA passing mention of [[Fake keeper]]."
 ] as $drops ) {
 	$expect( EqlNpcLootWikitext::itemSources( $item( $drops ) ), [], 'Protected, prose-only or ambiguous source sections are not evidence' );
 }
@@ -117,6 +116,7 @@ $npcFirst = $npc( 'Old keeper', '[[Synthetic Vale]]', '* <span class="ih">[[Miss
 $expect( EqlNpcLootWikitext::npcLootSources( $npcFirst ), [ $lootRow( 'Missing Gem', 'Old keeper', 'Synthetic Vale' ), $lootRow( 'Common Missing Gem', 'Old keeper', 'Synthetic Vale', 'normal', 'common' ) ], 'An older manual mob exposes both native loot kinds for an item created later' );
 $expect( EqlNpcLootWikitext::npcLootSources( "== Raid Instance ==\n" . $npc( 'Raid keeper', '[[Synthetic Vale]] / [[Other Vale]]', '* {{VeliousGray|{{:Missing Gem}}}}' ) ), [ $lootRow( 'Missing Gem', 'Raid keeper', 'Synthetic Vale', 'raid' ), $lootRow( 'Missing Gem', 'Raid keeper', 'Other Vale', 'raid' ) ], 'Reciprocal NPC evidence keeps every declared zone and the outer instance' );
 $expect( EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot=[[Missing Gem]]}}' ), [ $lootRow( 'Missing Gem', '', '' ) ], 'Absent NPC and zone literals remain blank for canonical service title fallback' );
+$expect( EqlNpcLootWikitext::npcLootSources( '{{Namedmobpage|known_loot=* [[Missing Gem]], [[Second Gem]] (for [[Research]])}}' ), [ $lootRow( 'Missing Gem', '', '' ), $lootRow( 'Second Gem', '', '' ) ], 'Literal inline loot groups stop before incidental parenthetical links' );
 $expect( EqlNpcLootWikitext::npcLootSources( $npc( 'Old keeper', '[[Synthetic Vale]]', '<nowiki>[[Quoted Gem]]</nowiki>{{Example|{{:Nested Gem}}}} [[Actual Gem]]' ) . '\nOutside [[Outside Gem]]' ), [ $lootRow( 'Actual Gem', 'Old keeper', 'Synthetic Vale' ) ], 'Protected examples and prose outside native loot fields cannot establish reciprocal item evidence' );
 $merge = EqlNpcLootWikitext::mergeItemSources( $existing, [ $row( 'New keeper', 'Synthetic Vale' ), $row( 'Raid keeper', 'Synthetic Vale', 'raid' ) ] );
 $expect( str_starts_with( $merge['text'], substr( $existing, 0, strpos( $existing, '}}</onlyinclude>' ) ) ) && $merge['unplaced'] === 0, true, 'Reciprocal item source insertion preserves the original card and authored drop list prefix' );
@@ -144,4 +144,25 @@ $expect( [ str_contains( $merge['text'], '{{ItemWhereTable|{{ItemWhereRow|[[Synt
 $ambiguousItems = $itemNormal . "\n" . $itemNormal;
 $expect( EqlNpcLootWikitext::mergeItemSources( $ambiguousItems, [ $row( 'New keeper', 'Synthetic Vale' ) ] ), [ 'text' => $ambiguousItems, 'unplaced' => 1 ], 'Ambiguous same-instance item cards do not receive guessed reciprocal rows' );
 $expect( EqlNpcLootWikitext::mergeItemSources( $missingSources, [ $row( 'Unsafe|name', 'Synthetic Vale' ) ] ), [ 'text' => $missingSources, 'unplaced' => 1 ], 'Unsafe literal source titles cannot inject item parameters' );
+$expect( [ substr_count( $merge = EqlNpcLootWikitext::mergeItemSources( $existing, [ $row( 'New keeper', 'Synthetic Vale' ) ] )['text'], '[[Synthetic Vale]]' ), substr_count( $merge, 'Normal Instance' ) ], [ 1, 0 ], 'A matching simple source list is extended without another zone or instance heading' );
+$expect( EqlNpcLootWikitext::mergeItemSources( $merge, [ $row( 'Old keeper', 'Synthetic Vale' ), $row( 'New keeper', 'Synthetic Vale' ) ] ), [ 'text' => $merge, 'unplaced' => 0 ], 'Source merging is idempotent even when the caller repeats already authored rows' );
+$authored = $item( "Lead prose remains.\n[[Alias Vale]]\n* [[Old keeper]]<!-- preserve -->\n\nTrailing authored prose.\n=== Raid Instance ===\n[[Alias Vale]]\n* [[Raid old keeper]]\n" );
+$merge = EqlNpcLootWikitext::mergeItemSources( $authored, [ $row( 'New keeper', 'Canonical Vale' ), $row( 'Raid new keeper', 'Canonical Vale', 'raid' ), $row( 'Other keeper', 'Other Vale' ) ], [ 'Alias Vale' => 'Canonical Vale' ] );
+$expect( [ substr_count( $merge['text'], '[[Alias Vale]]' ), substr_count( $merge['text'], '[[Canonical Vale]]' ), substr_count( $merge['text'], 'Raid Instance' ), substr_count( $merge['text'], 'Normal Instance' ) ], [ 2, 0, 1, 0 ], 'Verified canonical aliases reuse authored zone labels separately in the existing normal and raid lists' );
+$expect( str_contains( $merge['text'], '* [[Old keeper]]<!-- preserve -->' ) && str_contains( $merge['text'], 'Trailing authored prose.' ) && strpos( $merge['text'], '[[Other Vale]]' ) < strpos( $merge['text'], 'Raid Instance' ), true, 'New normal zones stay before the authored raid boundary and surrounding prose/comments survive exactly' );
+$expect( EqlNpcLootWikitext::mergeItemSources( $authored, [ $row( 'Old keeper', 'Canonical Vale' ) ], [ 'Alias Vale' => 'Canonical Vale' ] ), [ 'text' => $authored, 'unplaced' => 0 ], 'A canonical zone proof also deduplicates an already authored NPC alias-zone row' );
+$merge = EqlNpcLootWikitext::mergeItemSources( $existing, [ $row( 'Known keeper', 'Other Vale' ), $row( 'Unknown keeper', '' ) ] );
+$expect( EqlNpcLootWikitext::itemSources( $merge['text'] ), [ $row( 'Old keeper', 'Synthetic Vale' ), $row( 'Unknown keeper', '' ), $row( 'Known keeper', 'Other Vale' ) ], 'Unknown-zone references are emitted before new zone headings so they cannot inherit a different zone' );
+$duplicateZones = $item( "[[Synthetic Vale]]\n* [[Old keeper]]\n[[Synthetic Vale]]\n* [[Other keeper]]" );
+$expect( EqlNpcLootWikitext::mergeItemSources( $duplicateZones, [ $row( 'New keeper', 'Synthetic Vale' ) ] ), [ 'text' => $duplicateZones, 'unplaced' => 1 ], 'Ambiguous duplicate authored zone lists are preserved with an explicit unplaced result instead of adding another block' );
+$unscoped = $item( "* [[Unscoped keeper]]\n" );
+$merge = EqlNpcLootWikitext::mergeItemSources( $unscoped, [ $row( 'New keeper', 'Synthetic Vale' ) ] );
+$expect( EqlNpcLootWikitext::itemSources( $merge['text'] ), [ $row( 'Unscoped keeper', '' ), $row( 'New keeper', 'Synthetic Vale' ) ], 'Adding the first zone preserves the existing unscoped NPC list instead of reinterpreting or losing it' );
+$explicitUnscoped = $item( "=== Normal Instance ===\n* [[Unscoped keeper]]\n" );
+$merge = EqlNpcLootWikitext::mergeItemSources( $explicitUnscoped, [ $row( 'New keeper', 'Synthetic Vale' ) ] );
+$expect( [ substr_count( $merge['text'], 'Normal Instance' ), EqlNpcLootWikitext::itemSources( $merge['text'] ) ], [ 1, [ $row( 'Unscoped keeper', '' ), $row( 'New keeper', 'Synthetic Vale' ) ] ], 'An existing explicit unscoped instance boundary is reused without another heading' );
+
+$bareUnscoped = $item( '[[Unscoped keeper]]' );
+$expect( EqlNpcLootWikitext::mergeItemSources( $bareUnscoped, [ $row( 'New keeper', 'Synthetic Vale' ) ] ), [ 'text' => $bareUnscoped, 'unplaced' => 1 ], 'A bare unscoped authored link is not silently reinterpreted as a new zone heading' );
+
 echo "NPC loot wikitext: {$checks} source-only checks passed.\n";

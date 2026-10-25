@@ -42,6 +42,8 @@ jobs:
           php ops/test-hover-item-metadata.php
       - name: Check automatic NPC recorded loot
         run: |
+          php ops/test-contribution-coverage.php
+          php ops/test-eoz-relationship-coverage.php
           php ops/test-npc-loot-source.php
           php ops/test-npc-loot-lookup.php
           php ops/test-npc-loot-renderer.php

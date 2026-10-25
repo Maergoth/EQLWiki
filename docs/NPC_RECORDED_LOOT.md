@@ -12,6 +12,16 @@ An authored relationship on either page is enough once both pages exist:
 
 The extension changes the parser's in-memory input. It never saves generated
 wikicode, creates placeholder pages, invents an edit author or adds fake revisions.
+Automatic display enrichment uses the affected authored source/loot field, not
+words elsewhere on the page or an item's bonus-stat numbers. Broad groups,
+qualified/unsupported layouts and multiple physical item variants retain their
+positive facts but do not authorize blind automatic expansion. Comments, quoted
+examples and arbitrary wrapper arguments never become source claims.
+Recognized affected-field group wording includes "common drop from low-level
+humanoids" and "drops from low-level humanoids". These establish broad intent,
+without inventing exact NPC identities; unknown generating templates or other
+unparsed qualifiers still require review.
+
 Only public authored fields establish relationships; generic prose, comments,
 protected examples and unused wrapper arguments do not establish drops.
 
@@ -23,6 +33,11 @@ same field. Exact None placeholders disappear when the first drop is added.
 The template keeps its native headings: Known Loot, or Unique Loot when Common
 Loot is populated. Explicit contributor Common/Unique fields stay intact.
 Item additions go inside the existing `Itempage.dropsfrom` / `drops_from` field.
+Existing simple zone lists and normal/raid sections are extended in place,
+including when a current public zone redirect supplies an equivalent title.
+New normal zones are inserted before the raid boundary. Unknown-zone sources
+receive an explicit instance reset so they cannot inherit the preceding zone.
+Duplicate or unsafe list contexts remain unchanged and report unplaced sources.
 There is no separate Additional recorded drops panel.
 
 Normal/raid and zone contexts are preserved. A sole unheaded card is shared;
@@ -31,12 +46,16 @@ Ambiguous relationships are reported instead of being assigned to an arbitrary
 card. Generated NPC loot rows display only the item name through normal item
 transclusions, retaining the original wiki hover cards. Zone and instance remain
 internal placement metadata rather than extra labels beside every item.
-Automatic additions default to Common Loot when the item's authored Drops From
-field lists more than five distinct monsters. Canonical redirects and repeated
-zone/instance rows do not increase that count. An existing manual loot entry on
-the NPC remains authoritative and suppresses the automatic addition.
-Unreadable or broken NPC redirects encountered only while choosing that default
-are skipped; they do not mark already verified loot as incomplete. Actual source
+A generated NPC row is classified Common only after more than five distinct
+canonical publicly readable NPC sources are proved, a safe whole-wiki lower
+bound. Five or fewer direct sources cannot establish whole-wiki Unique. Such
+facts remain available to lookup callers with `projectionSupported=false` and a
+null `lootKind`, while the renderer quietly skips that new row. Existing authored
+Known/Unique/Common rows remain authoritative. No global scan runs during parsing.
+Inner normal/raid sections within one NPC loot field are extracted as distinct
+facts, but generated appends to those fields are quietly deferred rather than
+placed under the wrong heading. Native outer instance cards remain supported.
+Actual source
 lookup failures and shared read/byte-budget exhaustion still report incomplete
 results. Native loot lists use the skin's stable grid layout so opening an item
 hover cannot move entries between balanced columns.
@@ -47,7 +66,33 @@ are supported without merging two real case-distinct pages. NPC loot exclusions
 cover direct transclusions and links inside spans, bold markup, inline groups,
 leading-colon links and fragments. If the authored exclusion set exceeds its
 bound, additions are withheld rather than risking duplicates. Existing authored
-lists and their rarity notes remain unchanged.
+lists and their rarity notes remain unchanged. An authored unscoped NPC already
+covers that same canonical NPC in the matching instance; recovering a zone does
+not add the NPC a second time. Real case-distinct zone pages stay distinct.
+Zone redirect proof uses the same anonymous current-public revision checks and
+shared read/byte limits as source lookup.
+
+Finite collections are explicit `Gear Set` members or one unconditional root-only
+list of literal item links/transclusions. Every member and nested collection must
+resolve to a current anonymous-readable item/finite collection before complete
+coverage is used. Conditional tables, nested wrapper/NPC loot lists, unknown
+expansions and family name patterns are not finite collection proofs. Reverse
+item discovery checks at most 20 collections, depth eight, within the existing
+160-candidate and 320-public-read budgets. Membership and permissions are
+rechecked on cache hits. An authored complete set suppresses redundant individual
+NPC projections in the same Normal/Raid instance and supplies member item read
+views without saved mirrors. Quantity/rarity prose can retain a verified set
+reference for coverage while conservatively deferring a novel automatic append.
+
+The shared `contributionCoverage` contract separates exact positive edges from
+field capability (`exact`, `broad`, `unsupported`, `variant`) and preserves scoped
+collection candidates for public verification. `authoredPageKind` recognizes
+balanced root cards independently of unrelated duplicate fields. Literal possible
+member helpers are uncertainty over-approximations only: they never prove drops
+or a Cartesian product. Conflicting affected fields do not choose arbitrary
+positive facts. Reaching an edge, scope or collection limit marks capability
+incomplete; a truncated list never authorizes an automatic append. See
+[the item-source research](AUTOMATIC_ITEM_SOURCE_RESEARCH.md).
 
 ## Targeted cache invalidation
 
@@ -59,7 +104,8 @@ candidate result. Moves and deletions use the same public relationship checks.
 Each affected page receives a candidate-discovery WAN check-key invalidation and
 core `WikiPage::doPurge()`, refreshing page/parser/file/CDN caches without creating
 a revision. Unrelated pages are not globally purged. A per-output guard prevents
-recursive parses; pre-feature item/NPC-containing parser caches refresh once.
+recursive parses; prior-layout item/NPC-containing parser caches refresh once.
+The guard version also invalidates output generated with prior projection policies.
 
 The fallback remains a 60-second discovery cache (ten seconds when incomplete)
 and at most 300 seconds for parser/CDN output. Deferred link processing, replica
@@ -75,10 +121,12 @@ permissions are rechecked when lookups execute.
 | --- | --- |
 | `extensions/DynamicZoneList/DynamicZoneList.php` | Active legacy registration, autoload and hooks |
 | `NpcLootWikitext.php` | Balanced public field contracts, scoped relationship extraction and in-memory native-field merging |
+| `PublicLootCollections.php` | Shared current-public finite set/list closure, with cycle/depth/read limits |
 | `NpcLootLookup.php` | Item-to-NPC public lookup and authored-loot exclusions |
 | `ItemDropLookup.php` | NPC-to-item public lookup, including pagelinks and item transclusion backlinks |
 | `NpcLootInvalidation.php` | Old/new relationship invalidation on save, post-links, move and delete |
 | `NpcLootRenderer.php` | Root read-view routing, normal item cards and cache markers |
+| `ops/test-contribution-coverage.php` | Affected-field capabilities, positive precision, finite/possible collection boundaries and truncation guards |
 | `ops/test-npc-loot-source.php` | Synthetic source and placement regressions |
 | `ops/test-npc-loot-lookup.php`, `ops/test-item-drop-lookup.php` | Synthetic public repository/cache/identity regressions |
 | `ops/test-npc-loot-invalidation.php` | Save, post-links, move/delete and both-direction purge contracts |
@@ -104,6 +152,12 @@ reconstructing historical drop tables.
 3. Verify ordinary public NPC and item pages, native sections, duplicate handling
    and the active extension version. A forced link refresh of an existing test
    page can exercise post-links invalidation without editing its content.
+
+The 25 October candidate passed 40 unsaved checks through the actual MediaWiki
+legacy parser, including native sections, unchanged pre-save source, hover
+dependencies and affected-field policy. The lookup factories in that parser
+fixture are synthetic; separate repository fixtures verify collection discovery,
+permissions, canonical identity and bounds. No wiki pages were saved by the probe.
 
 No schema, private setting, template publication, database pull or host-script
 installation is required. Roll back the scoped application commit to remove the

@@ -3,10 +3,12 @@
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Title\Title;
+require_once __DIR__ . '/PublicLootCollections.php';
 
 class EqlNpcLootLookup {
+	use EqlPublicLootCollections;
 
-	private const VERSION = 4;
+	private const VERSION = 5;
 	private const CANDIDATE_TTL = 60;
 	private const MAX_ALIASES = 20;
 	private const MAX_ZONES = 8;
@@ -31,7 +33,7 @@ class EqlNpcLootLookup {
 
 	/** @return array{items:array,complete:bool,warnings:array} */
 	public function find( Title $npcTitle, array $analysis ): array {
-		$this->publicMemo = $this->resolveMemo = $this->classificationMemo = [];
+		$this->publicMemo = $this->resolveMemo = $this->classificationMemo = $this->collectionMemo = [];
 		$this->complete = true;
 		$this->warnings = [];
 		$this->bytesRead = 0;
@@ -75,7 +77,15 @@ class EqlNpcLootLookup {
 			if ( !$discovery['complete'] ) {
 				$this->incomplete( 'Recorded-drop lookup reached a source limit; additional drops may exist.' );
 			}
-			$authoredIds = $authoredMissing = [];
+			$authoredIds = $authoredMissing = $authoredScopes = $authoredMissingScopes = [];
+			$scopedAuthored = array_key_exists( 'authoredContexts', $analysis );
+			$instances = [];
+			foreach ( $analysis['authoredContexts'] ?? [] as $edge ) {
+				if ( isset( $edge['item'] ) && empty( $edge['ambiguous'] ) ) {
+					$edgeTitle = $this->title( $edge['item'] );
+					if ( $edgeTitle ) { $instances[$edgeTitle->getDBkey()][$edge['instance'] ?? 'normal'] = true; }
+				}
+			}
 			foreach ( $authored as $name ) {
 				$title = $this->title( $name );
 				if ( !$title ) {
@@ -83,11 +93,21 @@ class EqlNpcLootLookup {
 				}
 				if ( !$title->exists() ) {
 					$authoredMissing[EqlNpcLootWikitext::identity( $name )] = true;
+					$authoredMissingScopes[EqlNpcLootWikitext::identity( $name )] = $instances[$title->getDBkey()] ?? [];
 					continue;
 				}
 				$canonical = $this->canonical( $title );
 				if ( $canonical ) {
 					$authoredIds[$canonical->getDBkey()] = true;
+					$memberInstances = $instances[$title->getDBkey()] ?? [];
+					$authoredScopes[$canonical->getDBkey()] = ( $authoredScopes[$canonical->getDBkey()] ?? [] ) + $memberInstances;
+					$collection = $this->collectionMembers( $canonical );
+					if ( $collection['complete'] ) {
+						foreach ( $collection['items'] as $member ) {
+							$authoredIds[$member->getDBkey()] = true;
+							$authoredScopes[$member->getDBkey()] = ( $authoredScopes[$member->getDBkey()] ?? [] ) + $memberInstances;
+						}
+					}
 				}
 			}
 			$allowed = array_fill_keys( array_map( [ EqlNpcLootWikitext::class, 'identity' ], array_merge( $names, $discovery['aliases'] ) ), true );
@@ -95,19 +115,21 @@ class EqlNpcLootLookup {
 			foreach ( $discovery['titles'] as $name ) {
 				$title = is_string( $name ) ? $this->title( $name ) : null;
 				$canonical = $title ? $this->canonical( $title ) : null;
-				if ( !$canonical || isset( $authoredIds[$canonical->getDBkey()] ) ||
-					isset( $authoredMissing[EqlNpcLootWikitext::identity( $canonical->getPrefixedText() )] ) ) {
+				if ( !$canonical || !$scopedAuthored && ( isset( $authoredIds[$canonical->getDBkey()] ) ||
+					isset( $authoredMissing[EqlNpcLootWikitext::identity( $canonical->getPrefixedText() )] ) ) ) {
 					continue;
 				}
 				$record = $this->publicText( $canonical );
 				if ( !$record ) {
 					continue;
 				}
-				$sources = EqlNpcLootWikitext::itemSources( $record['text'] );
+				$sources = EqlNpcLootWikitext::itemSources( $record['text'], $sourceComplete, true );
 				foreach ( $sources as $source ) {
 					if ( !$this->matchesNpc( $source['npc'], $npcTitle, $allowed ) ) {
 						continue;
 					}
+					if ( $scopedAuthored && ( isset( $authoredScopes[$canonical->getDBkey()][$source['instance']] ) ||
+						isset( $authoredMissingScopes[EqlNpcLootWikitext::identity( $canonical->getPrefixedText() )][$source['instance']] ) ) ) { continue; }
 					$key = $canonical->getDBkey();
 					if ( !isset( $items[$key] ) && count( $items ) >= self::MAX_ITEMS ) {
 						$this->incomplete( 'Recorded-drop lookup reached its item limit; additional drops may exist.' );
@@ -122,6 +144,7 @@ class EqlNpcLootLookup {
 				}
 			}
 			ksort( $items, SORT_NATURAL | SORT_FLAG_CASE );
+			foreach ( $items as &$item ) { $item['projectionSupported'] = $item['lootKind'] !== null; } unset( $item );
 			return $this->result( array_values( $items ) );
 		} catch ( Throwable $error ) {
 			if ( function_exists( 'wfDebugLog' ) ) {
@@ -290,40 +313,34 @@ class EqlNpcLootLookup {
 	 * been excluded, so this policy cannot move an explicitly classified row.
 	 * Only direct, parsed item drop sources count; no reverse graph is scanned.
 	 */
-	private function defaultLootKind( array $sources ): string {
+	private function defaultLootKind( array $sources ): ?string {
 		$titles = [];
 		foreach ( $sources as $source ) {
 			$title = $this->title( $source['npc'] );
 			if ( $title ) { $titles[$title->getDBkey()] = $title; }
 		}
-		if ( count( $titles ) <= 5 ) { return 'known'; }
-		$canonicalIds = $spellings = $missing = [];
+		if ( count( $titles ) <= 5 ) { return null; }
+		$canonicalIds = [];
 		$processed = 0;
 		foreach ( $titles as $title ) {
 			if ( ++$processed > self::MAX_CLASSIFICATION_NAMES ) {
 				// Do not infer a rarity change when alias resolution is incomplete.
-				return 'known';
+				return null;
 			}
 			$key = $title->getDBkey();
 			if ( !array_key_exists( $key, $this->classificationMemo ) ) {
-				if ( count( $this->classificationMemo ) >= self::MAX_CLASSIFICATION_NAMES || count( $this->publicMemo ) >= self::MAX_PUBLIC_READS ) { return 'known'; }
+				if ( count( $this->classificationMemo ) >= self::MAX_CLASSIFICATION_NAMES || count( $this->publicMemo ) >= self::MAX_PUBLIC_READS ) { return null; }
 				$this->classificationMemo[$key] = $title->exists() ? $this->canonical( $title, true ) : false;
 			}
 			$canonical = $this->classificationMemo[$key];
-			if ( $canonical === false ) {
-				$missing[EqlNpcLootWikitext::identity( $title->getPrefixedText() )] = true;
-				continue;
-			}
 			if ( !$canonical ) { continue; }
+			$record = $this->publicMemo[$canonical->getDBkey()] ?? null;
+			if ( !$record || EqlNpcLootWikitext::authoredPageKind( $record['text'] ) !== 'npc' ) { continue; }
 			$canonicalIds[$canonical->getDBkey()] = true;
-			$spellings[EqlNpcLootWikitext::identity( $title->getPrefixedText() )] = true;
-			$spellings[EqlNpcLootWikitext::identity( $canonical->getPrefixedText() )] = true;
 			if ( count( $canonicalIds ) > 5 ) { return 'common'; }
 		}
-		foreach ( $missing as $identity => $_ ) {
-			if ( !isset( $spellings[$identity] ) ) { $canonicalIds['missing:' . $identity] = true; }
-		}
-		return count( $canonicalIds ) > 5 ? 'common' : 'known';
+
+		return count( $canonicalIds ) > 5 ? 'common' : null;
 	}
 
 	// Optional rarity probes must not claim that verified loot is missing.
