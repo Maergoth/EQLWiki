@@ -240,6 +240,11 @@ Interactive player snapshots use the reviewed `Template:Character_sheet` and
 `Template:Character_sheet_item` database sources under `ops/`, plus the existing
 skin's `skins.EQLImmersive.characterSheet` module. A ParserAfterParse hook adds
 the module only for rendered schema-1 markup, including unsaved API previews.
+The main template calls the skin's `CharacterScreenshot` parser tag for a left
+public File image or **Add an image** upload placeholder. Its account/page-scoped
+default and optional local filename override retain native media dependencies;
+no upload, user-page write or statistic inference occurs during rendering. The
+helper/CSS deploy precedes the guarded database main-template publication.
 The skin also registers `<eqlplayers />` for the `Player_List` directory and
 its conditional `skins.EQLImmersive.playerList` module. EQLClientData's read-only
 `eqlplayers` API indexes current public User-page snapshots with class/server/

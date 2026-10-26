@@ -11,6 +11,12 @@ const htmlIndex = process.argv.indexOf( '--html' );
 const markup = htmlIndex < 0 ? fixture( 'Synthetic Reader (Fixture One)' ) + fixture( 'Synthetic Reader (Fixture Two)' ) : fs.readFileSync( process.argv[ htmlIndex + 1 ], 'utf8' );
 const dom = new JSDOM( '<head><style>' + css + '</style></head><body><main>' + markup + '</main><button id="outside">Outside</button></body>', { url: 'https://wiki.example/wiki/User_talk:Synthetic', runScripts: 'outside-only' } );
 const { window } = dom, document = window.document;
+const screenshots = Array.from( document.querySelectorAll( '.eql-character-screenshot-v1' ) );
+const screenshotMarkup = screenshots.map( element => element.outerHTML );
+for ( const screenshot of screenshots ) {
+    assert.notEqual( window.getComputedStyle( screenshot ).display, 'none', 'Static no-JS screenshot or upload placeholder stays visible.' );
+    assert( screenshot.querySelector( 'a[href]' ), 'The screenshot or missing-image action is a native link without JavaScript.' );
+}
 let hook;
 window.mw = { util: { getUrl: title => { assert.equal( title, 'Player_List' );return '/wiki/' + title; } }, hook: name => { assert.equal( name, 'wikipage.content' ); return { add: fn => { hook = fn; } }; } };
 assert.equal( document.querySelectorAll( '.eql-character-body[hidden]' ).length, 0, 'Static no-JS content remains readable.' );
@@ -22,6 +28,10 @@ window.clearTimeout = id => timers.delete( id );
 window.eval( source );
 document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
 let toggles = document.querySelectorAll( '.eql-character-disclosure' );
+screenshots.forEach( ( screenshot, index ) => {
+    assert( screenshot.isConnected );assert.equal( screenshot.outerHTML, screenshotMarkup[index], 'Enhancement never rewrites screenshot pixels, upload destinations or File identity.' );
+    assert.equal( screenshot.querySelector( 'a' ).getAttribute( 'role' ), null, 'Native image/upload navigation is not turned into a custom button.' );
+} );
 assert.equal( toggles.length, 2 );
 assert.equal( document.querySelectorAll( '.eql-character-body[hidden]' ).length, 2, 'Multiple characters start collapsed.' );
 assert.notEqual( toggles[ 0 ].getAttribute( 'aria-controls' ), toggles[ 1 ].getAttribute( 'aria-controls' ) );
