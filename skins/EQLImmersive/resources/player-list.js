@@ -14,7 +14,7 @@
         [ 'Resists', [ [ 'sv_magic', 'Magic resist' ], [ 'sv_fire', 'Fire resist' ], [ 'sv_cold', 'Cold resist' ], [ 'sv_poison', 'Poison resist' ], [ 'sv_disease', 'Disease resist' ], [ 'sv_corruption', 'Void resist' ] ] ],
         [ 'Additional modifiers', [ [ 'accuracy', 'Accuracy bonus' ], [ 'avoidance', 'Avoidance' ], [ 'combat_effects', 'Combat effects' ], [ 'strikethrough', 'Strikethrough' ], [ 'stun_resist', 'Stun resist' ], [ 'damage_shield', 'Damage shield' ], [ 'damage_shield_mitigation', 'Damage shield mitigation' ], [ 'dot_shielding', 'DoT shielding' ], [ 'melee_shielding', 'Melee shielding' ], [ 'spell_shielding', 'Spell shielding' ], [ 'attack_speed', 'Attack speed' ], [ 'haste', 'Haste' ], [ 'velocity', 'Velocity' ] ] ]
     ];
-    var labels = Object.assign( Object.create( null ), { name: 'Character', level: 'Level', aa: 'AA points', totalTier: 'Total equipped tier' } ), classCodes = Object.create( null );
+    var labels = Object.assign( Object.create( null ), { name: 'Character', level: 'Level', aa: 'AA points', totalTier: 'Total equipped tier', achievementCount: 'Achievement count' } ), classCodes = Object.create( null );
     CLASSES.forEach( function ( pair ) { classCodes[ pair[ 0 ] ] = pair[ 0 ]; classCodes[ pair[ 1 ].toUpperCase().replace( /[^A-Z]/g, '' ) ] = pair[ 0 ]; } );
     classCodes.SK = 'SHD'; classCodes.SHD = 'SHD';
     GROUPS.forEach( function ( group ) { group[ 1 ].forEach( function ( pair ) { labels[ pair[ 0 ] ] = pair[ 1 ]; } ); } );
@@ -49,13 +49,13 @@
         }
         if ( String( value.id ).length > 1000 ) { throw new Error( 'Invalid player identity' ); }
         return { id: String( value.id ), name: text( value.name ), server: text( value.server, 150 ), classes: classes,
-            level: number( value.level ), aa: number( value.aa ), totalTier: number( value.totalTier ), equippedSlots: number( value.equippedSlots ), tieredSlots: number( value.tieredSlots ), stats: stats,
+            level: number( value.level ), aa: number( value.aa ), totalTier: number( value.totalTier ), achievementCount: Number.isInteger( value.achievementCount ) && value.achievementCount >= 0 && value.achievementCount <= 1000000000 ? value.achievementCount : null, equippedSlots: number( value.equippedSlots ), tieredSlots: number( value.tieredSlots ), stats: stats,
             updated: text( value.updated, 80 ), pageTitle: text( value.pageTitle ), pageUrl: text( value.pageUrl, 2000 ), snapshotConflict: value.snapshotConflict === true };
     }
     function compareName( first, second ) {
         return first.name.localeCompare( second.name, undefined, { sensitivity: 'base', numeric: true } ) || first.server.localeCompare( second.server ) || first.pageTitle.localeCompare( second.pageTitle ) || first.id.localeCompare( second.id );
     }
-    function valueFor( player, key ) { return key === 'name' ? player.name : [ 'level', 'aa', 'totalTier' ].indexOf( key ) >= 0 ? player[ key ] : Object.prototype.hasOwnProperty.call( player.stats, key ) ? player.stats[ key ] : null; }
+    function valueFor( player, key ) { return key === 'name' ? player.name : [ 'level', 'aa', 'totalTier', 'achievementCount' ].indexOf( key ) >= 0 ? player[ key ] : Object.prototype.hasOwnProperty.call( player.stats, key ) ? player.stats[ key ] : null; }
     function dateLabel( value ) {
         if ( /^\d{4}-\d{2}-\d{2}$/.test( value ) ) { value += 'T12:00:00'; }
         if ( /^\d{14}$/.test( value ) ) { value = value.slice( 0, 4 ) + '-' + value.slice( 4, 6 ) + '-' + value.slice( 6, 8 ) + 'T' + value.slice( 8, 10 ) + ':' + value.slice( 10, 12 ) + ':' + value.slice( 12, 14 ) + 'Z'; }
@@ -89,7 +89,7 @@
         classActions.append( matchLabel, clearClasses ); classes.append( legend, classGrid, classActions ); filters.append( top, classes );
         var resultsBar = element( 'div', undefined, 'eql-pl-results-bar' ), resultCount = element( 'p', '', 'eql-pl-result-count' ), order = element( 'select' ); order.id = prefix + '-order'; resultCount.setAttribute( 'role', 'status' ); resultCount.setAttribute( 'aria-live', 'polite' );
         function option( key, label, parent ) { var node = element( 'option', label ); node.value = key; parent.appendChild( node ); }
-        var baseGroup = element( 'optgroup' ); baseGroup.label = 'Character'; [ 'totalTier', 'level', 'aa', 'name' ].forEach( function ( key ) { option( key, labels[ key ], baseGroup ); } ); order.appendChild( baseGroup );
+        var baseGroup = element( 'optgroup' ); baseGroup.label = 'Character'; [ 'totalTier', 'level', 'aa', 'achievementCount', 'name' ].forEach( function ( key ) { option( key, labels[ key ], baseGroup ); } ); order.appendChild( baseGroup );
         GROUPS.forEach( function ( group ) { var node = element( 'optgroup' ); node.label = group[ 0 ]; group[ 1 ].forEach( function ( pair ) { option( pair[ 0 ], pair[ 1 ], node ); } ); order.appendChild( node ); } ); order.value = sortKey;
         var direction = button( 'Highest first ↓', 'eql-pl-direction' ), refresh = button( 'Refresh list', 'eql-pl-quiet-button' ), ordering = element( 'div', undefined, 'eql-pl-ordering' );
         ordering.append( field( 'Order by', order ), direction, refresh ); resultsBar.append( resultCount, ordering );
@@ -144,6 +144,7 @@
                 if ( unranked ) { rank.setAttribute( 'aria-label', 'Unranked: no reported value' ); } row.appendChild( rank );
                 var identity = element( 'td', undefined, 'eql-pl-identity' ), url = profileUrl( player ), name = element( url ? 'a' : 'strong', player.name ); if ( url ) { name.href = url; name.setAttribute( 'aria-label', player.name + ' · view public profile' ); }
                 identity.append( name, element( 'span', player.server || 'Server not specified', 'eql-pl-server' ) );
+                if ( player.achievementCount !== null ) { identity.appendChild( element( 'small', format( player.achievementCount ) + ' achievements', 'eql-pl-achievement-count' ) ); }
                 if ( player.snapshotConflict ) { identity.appendChild( element( 'small', 'Conflicting snapshots · view profile', 'eql-pl-updated' ) ); }
                 var updated = dateLabel( player.updated ); if ( updated ) { identity.appendChild( element( 'small', 'Updated ' + updated, 'eql-pl-updated' ) ); } row.appendChild( identity );
                 var combinations = element( 'td', undefined, 'eql-pl-combination' ); if ( player.classes.length ) { player.classes.forEach( function ( code ) { var chip = element( 'abbr', code ); chip.title = CLASSES.find( function ( pair ) { return pair[ 0 ] === code; } )[ 1 ]; combinations.appendChild( chip ); } ); } else { combinations.textContent = 'Not specified'; } row.appendChild( combinations );

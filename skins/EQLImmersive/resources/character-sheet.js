@@ -243,6 +243,32 @@
             '<span class="eql-character-players-copy"><strong>View Other Players</strong></span>';
         equipment.appendChild( link );
     }
+    function achievementCount( section, sheet ) {
+        var summaries = Array.from( section.querySelectorAll( ':scope > .eql-character-achievements-body > p.eql-character-achievements-summary' ) ).filter( function ( node ) {
+            return node.closest( '.eql-character-achievements-v1' ) === section && node.closest( '.eql-character-sheet-v1' ) === sheet;
+        } );
+        if ( summaries.length !== 1 || summaries[ 0 ].textContent.length > 100 ) { return null; }
+        var match = summaries[ 0 ].textContent.replace( /\s+/g, ' ' ).trim().match( /^(0|[1-9]\d{0,9})\s*\/\s*(0|[1-9]\d{0,9}) achievements complete$/ );
+        if ( !match ) { return null; }
+        var completed = Number( match[ 1 ] ), total = Number( match[ 2 ] );
+        return completed <= total && total <= 1000000000 ? completed : null;
+    }
+    function achievementBadge( heading, count ) {
+        if ( !heading ) { return; }
+        var badge = heading.querySelector( ':scope > .eql-character-achievement-count' );
+        if ( count === null ) { if ( badge ) { badge.remove(); } return; }
+        if ( !badge ) {
+            badge = document.createElement( 'span' );
+            badge.className = 'eql-character-achievement-count';
+            var number = document.createElement( 'span' ), label = document.createElement( 'small' );
+            number.className = 'eql-character-achievement-count-number';
+            label.textContent = heading.classList.contains( 'eql-character-achievements-disclosure' ) ? 'Complete' : 'Achievements';
+            badge.append( number, label );
+            heading.appendChild( badge );
+        }
+        badge.setAttribute( 'aria-label', count.toLocaleString() + ' completed achievements' );
+        badge.querySelector( '.eql-character-achievement-count-number' ).textContent = count.toLocaleString();
+    }
     // Static template content is readable without JavaScript. Enhancement adds
     // independent native buttons; neither achievements nor categories save any
     // account/browser state or change the completion recorded in the export.
@@ -266,8 +292,13 @@
                 toggle.setAttribute( 'aria-expanded', String( !body.hidden ) );
             } );
         }
-        sheet.querySelectorAll( '.eql-character-achievements-v1' ).forEach( function ( section ) {
+        var sections = Array.from( sheet.querySelectorAll( ':scope > .eql-character-body > .eql-character-achievements-v1' ) ).filter( function ( section ) {
+            return section.closest( '.eql-character-sheet-v1' ) === sheet;
+        } );
+        achievementBadge( sheet.querySelector( ':scope > .eql-character-heading, :scope > .eql-character-disclosure' ), sections.length === 1 ? achievementCount( sections[ 0 ], sheet ) : null );
+        sections.forEach( function ( section ) {
             disclosure( section, 'eql-character-achievements-heading', 'eql-character-achievements-body' );
+            achievementBadge( section.querySelector( ':scope > .eql-character-achievements-disclosure' ), achievementCount( section, sheet ) );
             section.querySelectorAll( '.eql-character-achievement-category' ).forEach( function ( category ) {
                 disclosure( category, 'eql-character-achievement-category-heading', 'eql-character-achievement-list' );
             } );
