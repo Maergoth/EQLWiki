@@ -273,10 +273,11 @@ HP/Mana/End regen. Check base AC 2/HP 12/STR 3 and three regen fields of 2 each
 generate Void 5 at rank 5 and hide it on reset. One STR alongside DMG/Backstab,
 DMG/delay alone, and one AC alone must not generate Void. Distinct known zero
 primary fields still qualify, and explicit Void/Corruption suppresses duplicates.
-Revision 4 additionally scales positive intrinsic Void with the existing flat
-gain, independently of these qualifiers: base 3 at rank 5 is 8 and base 20 is
-25. Check explicit zero/negative unchanged, unknown still unknown, aliases,
-fractional progress with no extra Void, reset to the authored base, the tier 10
+Revision 4 additionally scales intrinsic Void with the existing primary/save
+curve, independently of these qualifiers: base 3 at rank 5 is 8, while base 25
+at `5 + 16/32` is 38 and base -25 is -11. Check explicit zero unchanged,
+unknown still unknown, aliases, fractional progress matching other saves,
+reset to the authored base, the tier 10
 cap and repeated/dynamic refresh with no second row. The shared core and DOM
 fixtures cover these cases without altering item pages. The consumer's default
 inverse must remain contextual; observed Void alone does not establish base zero.

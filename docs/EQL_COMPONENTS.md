@@ -343,11 +343,12 @@ from item screenshots, not published game formulas. Important contracts:
   alongside attributes and the five ordinary resists. Haste, Attack, weapon
   DMG, Backstab, delay and weight do not qualify. Eligible cards gain +1 per
   whole rank, hidden at zero; explicit Void/Corruption suppresses generation.
-- Rules revision 4 scales positive intrinsic SV Void/Corruption from its listed
-  base using the existing flat family: base 3 becomes 8 at rank 5; base 20 becomes
-  25. Explicit zero and negative values stay unchanged, null remains unknown,
-  and fractions add no Void. Intrinsic values do not need other qualifying stats
-  or create a generated duplicate; missing-field eligibility is unchanged.
+- Rules revision 4 scales intrinsic SV Void/Corruption from its listed base
+  using exactly the existing primary-resist family: base 3 becomes 8 at rank 5;
+  base 25 becomes 38 at `5 + 16/32`. Explicit zero stays zero, null remains
+  unknown, and negative values use the same primary-penalty rules. Intrinsic
+  values do not need other qualifying stats or create a generated duplicate;
+  missing-field eligibility is unchanged.
   The shared aliases cover compact/spaced/dotted/underscored SV labels and bare
   Void/Corruption. App recovery must retain contextual uncertainty and verify
   manually supplied bases against the same forward engine.
@@ -363,7 +364,7 @@ from item screenshots, not published game formulas. Important contracts:
 - Every listed `Range:` value gains +10 per whole level,
   covering bows, throwing weapons (including those with melee skills), and ammo;
   fractional progress does not add range. Items without `Range:` gain no field.
-  Negative penalties, weight, regen/haste, and eligible SV Void have distinct
+  Negative penalties, weight, regen/haste, and generated SV Void have distinct
   rules. Preserve base values to avoid scaling twice.
 - Defaults persist in `ils-default-level-v2` with legacy `ils-default-level`
   migration. Legacy PHP unconditionally assigns its configuration before hook
