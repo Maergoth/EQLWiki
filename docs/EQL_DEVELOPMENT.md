@@ -429,6 +429,15 @@ aligned. `Class: ALL except` must export the playable-class complement, explicit
 must not be converted to viewer axes in the producer. Add exact zone aliases
 without renaming the canonical viewer records or guessing unknown zones.
 
+Intrinsic Void export checks must cover `SV Void`/`SV Corruption` aliases,
+positive/negative/zero literals, grouped resist fields with Void first or last,
+consistent duplicates, conflicts and explicit unknowns. The typed key is
+`SV_CORRUPTION`; no base or tier bonus is inferred when the field is absent.
+Check both the pure numeric parser and actual rich `buildItemRecord`, retaining
+display text and source revision. Notes/effects, comments and unexpanded
+template/protected content cannot establish a numeric base. These source-only
+fixtures do not rebuild or publish a dataset.
+
 Quiet routine-item decisions require the rich record's versioned
 `contributionCard` proof from `EqlNpcLootWikitext::itemContributionCard`. Keep
 unknown auxiliary metadata, duplicate fields, nested/protected stats and any
