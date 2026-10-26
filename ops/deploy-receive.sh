@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install outside public_html. GitHub's SSH key may only invoke this receiver.
+# Install outside public_html. The forced SSH command permits only status/deploy.
 set -Eeuo pipefail
 umask 077
 case "${EQL_DEPLOY_ENV:-production}" in
@@ -7,97 +7,98 @@ case "${EQL_DEPLOY_ENV:-production}" in
   staging) ROOT=/home/eqlwikdq/test.eqlwiki.com; STATE=/home/eqlwikdq/deploy/EQLWiki-staging; HEALTH_URL=https://test.eqlwiki.com; HEALTH_AUTH=(--netrc-file "$STATE/health.netrc") ;;
   *) echo 'Unknown deployment environment.' >&2; exit 2 ;;
 esac
-COMMAND=${SSH_ORIGINAL_COMMAND:-${1:-}}
-if [[ ! "$COMMAND" =~ ^deploy\ ([a-f0-9]{40})$ ]]; then
-  echo 'Only deploy followed by a full commit SHA is accepted.' >&2
-  exit 2
+# Synthetic tests cannot redirect an actual forced SSH invocation.
+if [[ "${EQL_DEPLOY_TESTING:-}" == 1 && -z "${SSH_ORIGINAL_COMMAND:-}" ]]; then
+  ROOT=${EQL_DEPLOY_TEST_ROOT:?}; STATE=${EQL_DEPLOY_TEST_STATE:?}; HEALTH_URL=${EQL_DEPLOY_TEST_HEALTH_URL:?}; HEALTH_AUTH=()
 fi
-SHA=${BASH_REMATCH[1]}
-if [[ "${EQL_DEPLOY_ENV:-production}" == staging && -f "$STATE/refresh-in-progress" ]]; then
-  echo 'A staging refresh did not complete; run a forced refresh before deployment.' >&2; exit 4
+COMMAND=${SSH_ORIGINAL_COMMAND:-${1:-}}
+if [[ "$COMMAND" != status && ! "$COMMAND" =~ ^deploy\ ([a-f0-9]{40})$ ]]; then
+  echo 'Only status or deploy followed by a full commit SHA is accepted.' >&2; exit 2
 fi
 mkdir -p "$STATE/releases" "$STATE/backups"
 exec 9>"$STATE/deploy.lock"
 flock -n 9 || { echo 'A deployment is already running.' >&2; exit 3; }
+if [[ "$COMMAND" == status ]]; then php "$STATE/deploy-files.php" status "$STATE"; exit; fi
+php "$STATE/deploy-files.php" ready "$STATE"
+SHA=${COMMAND#deploy }
+if [[ "${EQL_DEPLOY_ENV:-production}" == staging && -f "$STATE/refresh-in-progress" ]]; then
+  echo 'A staging refresh did not complete; run a forced refresh before deployment.' >&2; exit 4
+fi
 STAGE=$(mktemp -d "$STATE/releases/$SHA.XXXXXX")
 trap 'rm -rf -- "$STAGE"' EXIT
 cat > "$STAGE/release.tar.gz"
-# Only our trusted packaging process creates this archive, but reject path escapes.
-tar -tzf "$STAGE/release.tar.gz" > "$STAGE/archive-list"
-if grep -Eq '(^/|(^|/)\.\.(/|$)|^\.git(/|$)|^LocalSettings\.php$|^BridgeSecrets\.php$|^EQLStaging\.php$|^bb/Settings\.php$|^images/|^cache/|^static/eql-icon-index/|^bb/(uploads|attachments|custom_avatar|cache|exports|Packages)/)' "$STAGE/archive-list"; then
-  echo 'Archive contains a protected path.' >&2; exit 4
-fi
+# List original names without tar's leading-/../ stripping. Reject links,
+# directories, specials, duplicate/escaped paths before extracting any member.
+tar --list --gzip --absolute-names --quoting-style=escape --file "$STAGE/release.tar.gz" > "$STAGE/archive-list"
+tar --list --verbose --numeric-owner --gzip --absolute-names --quoting-style=escape --file "$STAGE/release.tar.gz" > "$STAGE/archive-types"
+php "$STATE/deploy-files.php" validate-archive "$STAGE/archive-list" "$STAGE/archive-types"
 mkdir "$STAGE/site"
-tar -xzf "$STAGE/release.tar.gz" -C "$STAGE/site" --no-same-owner
+tar --extract --gzip --file "$STAGE/release.tar.gz" --directory "$STAGE/site" --no-same-owner --same-permissions --no-overwrite-dir
+php "$STATE/deploy-files.php" validate "$STAGE/site" "$SHA" > "$STAGE/bundle.json"
+health() {
+  curl --fail --silent --show-error --retry 2 --connect-timeout 10 --max-time 30 "${HEALTH_AUTH[@]}" "$HEALTH_URL/api.php?action=query&meta=siteinfo&format=json" \
+    | php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!isset($j["query"]["general"]["sitename"])) { exit(1); } echo "Wiki API health check passed\n";'
+}
 if [[ "${EQL_DEPLOY_ENV:-production}" == staging ]]; then
-  cp "$STAGE/site/.htaccess" "$STAGE/htaccess-base"
-  php "$STATE/staging-prepare.php" "$STAGE/site"
+  if [[ -f "$STAGE/site/.htaccess" ]]; then cp "$STAGE/site/.htaccess" "$STAGE/htaccess-base"; fi
+  php "$STATE/staging-prepare.php" "$STAGE/site" "$STATE"
 fi
-MANIFEST="$STAGE/site/.eql-deployment-manifest"
-test -s "$MANIFEST"
-test -f "$STAGE/site/index.php"
-test -f "$ROOT/LocalSettings.php"
-test -f "$ROOT/BridgeSecrets.php"
-while IFS= read -r FILE; do
-  [[ "$FILE" != /* && "$FILE" != *'..'* ]] || exit 5
-  test -f "$STAGE/site/$FILE" && test ! -L "$STAGE/site/$FILE" || exit 5
-done < "$MANIFEST"
-# Validate the custom PHP we own before touching the live tree.
-find "$STAGE/site/extensions" "$STAGE/site/skins/EQLImmersive" -type f -name '*.php' \
-    \( -path '*/site/extensions/EQL*/*' -o -path '*/site/skins/EQLImmersive/*' -o -path '*/AjaxHoverHelper/*' -o -path '*/ClassSlotEquip/*' \
-    -o -path '*/DynamicQuestItemList/*' -o -path '*/DynamicZoneList/*' \
-    -o -path '*/ItemLevelSlider/*' -o -path '*/SpellLevelSlider/*' -o -path '*/UserPageEditProtection/*' \) -print0 > "$STAGE/lint-list"
+# Lost SSH acknowledgments are safe to retry only when the exact transferred,
+# staging-prepared delta still matches the already activated target.
+if php "$STATE/deploy-files.php" already-applied "$STAGE/site" "$ROOT" "$STATE" "$SHA"; then
+  health
+  echo "Deployed $SHA (already applied delta; no files rewritten)."
+  exit
+else
+  DUPLICATE_STATUS=$?
+  [[ "$DUPLICATE_STATUS" == 10 ]] || exit "$DUPLICATE_STATUS"
+fi
+test -f "$ROOT/LocalSettings.php" && test ! -L "$ROOT/LocalSettings.php"
+test -f "$ROOT/BridgeSecrets.php" && test ! -L "$ROOT/BridgeSecrets.php"
+# Lint only transferred custom PHP. Unchanged manifest entries are not opened.
+php -r '
+require $argv[1]; $stage=$argv[2];
+$files=eql_deploy_list(is_file("$stage/.eql-deployment-payload")?"$stage/.eql-deployment-payload":"$stage/.eql-deployment-manifest");
+foreach($files as $file) {
+ if(!str_ends_with($file,".php"))continue;
+ if(!str_contains($file,"/") || preg_match("~^bb/[^/]+\\.php$~",$file) || $file==="bb/Themes/PurpleHaze/index.template.php" || preg_match("~^(?:skins/EQLImmersive/|extensions/(?:EQL[^/]*|AjaxHoverHelper|ClassSlotEquip|DynamicQuestItemList|DynamicZoneList|ItemLevelSlider|SpellLevelSlider|UserPageEditProtection)/)~",$file)) echo "$stage/$file\0";
+}' "$STATE/deploy-files.php" "$STAGE/site" > "$STAGE/lint-list"
 while IFS= read -r -d '' FILE; do php -l "$FILE" >/dev/null; done < "$STAGE/lint-list"
-find "$STAGE/site" "$STAGE/site/bb" -maxdepth 1 -type f -name '*.php' -print0 > "$STAGE/custom-lint-list"
-printf '%s\0' "$STAGE/site/bb/Themes/PurpleHaze/index.template.php" >> "$STAGE/custom-lint-list"
-while IFS= read -r -d '' FILE; do php -l "$FILE" >/dev/null; done < "$STAGE/custom-lint-list"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 BACKUP="$STATE/backups/$STAMP-$SHA"
+if [[ -e "$BACKUP" ]]; then
+  sleep 1
+  STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+  BACKUP="$STATE/backups/$STAMP-$SHA"
+fi
 mkdir "$BACKUP"
-if [[ -f "$STATE/manifest" ]]; then cp "$STATE/manifest" "$BACKUP/previous-manifest"; else cp "$MANIFEST" "$BACKUP/previous-manifest"; fi
-cp "$MANIFEST" "$BACKUP/new-manifest"
-sort -u "$BACKUP/previous-manifest" "$MANIFEST" > "$BACKUP/managed-paths"
-while IFS= read -r FILE; do
-  if [[ -f "$ROOT/$FILE" ]]; then printf '%s\n' "$FILE"; fi
-done < "$BACKUP/managed-paths" > "$BACKUP/existing-paths"
-tar -czf "$BACKUP/files.tar.gz" -C "$ROOT" -T "$BACKUP/existing-paths"
-[[ ! -f "$STATE/current-sha" ]] || cp "$STATE/current-sha" "$BACKUP/previous-sha"
-sort "$MANIFEST" > "$BACKUP/sorted-new"
-sort "$BACKUP/existing-paths" > "$BACKUP/sorted-existing"
-sort "$BACKUP/previous-manifest" > "$BACKUP/sorted-previous"
-comm -23 "$BACKUP/sorted-new" "$BACKUP/sorted-existing" > "$BACKUP/new-paths"
-comm -23 "$BACKUP/sorted-previous" "$BACKUP/sorted-new" > "$BACKUP/deleted-paths"
+if php "$STATE/deploy-files.php" plan "$STAGE/site" "$ROOT" "$STATE" "$SHA" "$BACKUP" > "$STAGE/plan.json"; then
+  :
+else
+  PLAN_STATUS=$?
+  # Rejected stale/unsafe bundles leave no empty backup transaction behind.
+  # Preserve any nonempty partial backup for operator inspection.
+  rmdir "$BACKUP" 2>/dev/null || true
+  exit "$PLAN_STATUS"
+fi
+php "$STATE/deploy-files.php" begin "$STATE" "$BACKUP"
 rollback() {
-  echo 'Deployment failed; restoring the previous files.' >&2
-  while IFS= read -r FILE; do rm -f -- "$ROOT/$FILE"; done < "$BACKUP/new-paths"
-  tar -xzf "$BACKUP/files.tar.gz" -C "$ROOT" --no-same-owner
+  local code=${1:-$?}
+  trap - ERR INT TERM HUP
+  echo 'Deployment failed; restoring previous touched files and private state.' >&2
+  if ! php "$STATE/deploy-files.php" restore "$ROOT" "$STATE" "$BACKUP" automatic; then
+    echo "Automatic recovery failed; preserve and inspect $BACKUP before another deployment." >&2
+  fi
+  exit "$code"
 }
-trap 'rollback' ERR
-# Keep settings, database, uploads, and generated caches untouched.
-php -r '
-[$script,$stage,$root,$manifest]=$argv;
-foreach (file($manifest, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $file) {
-    $source="$stage/$file"; $target="$root/$file"; $directory=dirname($target);
-    if (!is_dir($directory)) {
-        $missing=[]; $cursor=$directory;
-        while (!is_dir($cursor)) { $missing[]=$cursor; $cursor=dirname($cursor); }
-        foreach (array_reverse($missing) as $newDirectory) {
-            if (!mkdir($newDirectory,0755) || !chmod($newDirectory,0755)) { exit(1); }
-        }
-    }
-    $temporary=$target.".eql-deploy-tmp";
-    if (!copy($source,$temporary) || !chmod($temporary,0644|(fileperms($source)&0111)) || !rename($temporary,$target)) { exit(1); }
-}
-' "$STAGE/site" "$ROOT" "$MANIFEST"
-while IFS= read -r FILE; do
-  # Older manifests included generated cache JSON. It is now host-owned.
-  [[ "$FILE" == static/eql-icon-index/* ]] && continue
-  rm -f -- "$ROOT/$FILE"
-done < "$BACKUP/deleted-paths"
-curl --fail --silent --show-error --retry 2 "${HEALTH_AUTH[@]}" "$HEALTH_URL/api.php?action=query&meta=siteinfo&format=json" \
-  | php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!isset($j["query"]["general"]["sitename"])) { exit(1); } echo "Wiki API health check passed\n";'
-cp "$MANIFEST" "$STATE/manifest"
-if [[ "${EQL_DEPLOY_ENV:-production}" == staging ]]; then cp "$STAGE/htaccess-base" "$STATE/htaccess-base"; fi
-printf '%s\n' "$SHA" > "$STATE/current-sha"
-trap - ERR
-echo "Deployed $SHA; rollback archive: $BACKUP/files.tar.gz"
+trap rollback ERR
+trap 'rollback 130' INT
+trap 'rollback 143' TERM
+trap 'rollback 129' HUP
+# The marker is installed after every payload write and managed deletion.
+php "$STATE/deploy-files.php" apply "$STAGE/site" "$ROOT" "$BACKUP"
+health
+php "$STATE/deploy-files.php" activate "$STAGE/site" "$STATE" "$BACKUP" "$SHA"
+trap - ERR INT TERM HUP
+cat "$STAGE/plan.json"
+echo "Deployed $SHA; rollback backup: $BACKUP"

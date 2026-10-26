@@ -704,6 +704,12 @@ that variable existing.
   execution is disabled (`wgJobRunRate=0`). `eql-icon-cache-refresh.sh` is the
   isolated, locked icon rebuild wrapper. `eql-worker-watch.sh` captures worker
   incident diagnostics. These are source copies of privately installed jobs.
+- Application deployment uses the runner's `ops/build-release.py` and privately
+  installed `ops/deploy-receive.sh`/`deploy-files.php`. It leases a Git delta
+  against the actual host revision, backs up only touched files, and retains a
+  complete-repair path and guarded reverse rollback chain. The staging wrapper
+  and preparer are part of that private installation, not normal release content;
+  see [incremental deployment](INCREMENTAL_DEPLOYMENT.md).
 - Root `fix-bard-instrument-resonance.php`, `fix-item-transclusion-tags.php`,
   `fix-shopkeeper-class.php`, and maintenance `AddQuestItemsCategory.php`,
   `tagRedirectsWithEra.php`, `migrateItemPages.php` are historical data-repair

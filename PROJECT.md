@@ -57,17 +57,23 @@ The built-in local PHP server uses `ops/local-router.php` instead.
 
 ## Deployment implementation
 
-GitHub Actions creates an archive containing tracked application files plus a
-generated, manifest-managed deployment asset marker and
-streams it to the cPanel hosting account. It uses a dedicated restricted SSH key;
+GitHub Actions reads the actual installed commit through the private receiver's
+`status` command, packages only changed tracked application files plus the
+generated deployment asset marker, and streams it to the cPanel hosting account.
+A complete manifest tracks removals; a null/unavailable baseline uses a full
+repair bundle. It uses a dedicated restricted SSH key;
 the key can invoke only `/home/eqlwikdq/deploy/EQLWiki/deploy-receive.sh` with a
-full commit SHA. It cannot start an interactive shell or use SFTP.
+full commit SHA, or read deployment status. It cannot start an interactive shell
+or use SFTP.
 
 The receiver validates protected paths and custom PHP syntax, saves the previous
-managed files, updates each file by rename, removes previously managed files that
-were deleted from Git, and checks the public MediaWiki API. On failure it restores
-the backup. A multi-file release is not globally atomic; use a maintenance window
-for changes that require all files to switch simultaneously.
+managed files that will change, updates each changed file by rename, removes
+previously managed files that were deleted from Git, and checks the public
+MediaWiki API. On failure it restores
+the backup and prior manifest/revision state. It refuses a delta whose base no
+longer matches the installed revision. A multi-file release is not globally
+atomic; use a maintenance window for changes that require all files to switch
+simultaneously.
 
 The packager installs the asset marker last. The skin registration callback uses
 its commit SHA in a query-free `/eql-assets/<commit>/load.php` path; the tracked
@@ -92,13 +98,21 @@ Server deployment state and backups:
 ```
 /home/eqlwikdq/deploy/EQLWiki/current-sha
 /home/eqlwikdq/deploy/EQLWiki/manifest
-/home/eqlwikdq/deploy/EQLWiki/backups/<timestamp>-<commit>/files.tar.gz
+/home/eqlwikdq/deploy/EQLWiki/backups/<timestamp>-<commit>/plan.json
+/home/eqlwikdq/deploy/EQLWiki/backups/<timestamp>-<commit>/files/
 ```
 
 Use `ops/rollback.sh <backup-folder-name>` through the local SSH key to restore
-a previous release. Receiver updates are operational changes: review and copy
-`ops/deploy-receive.sh` to its server location explicitly; a normal release does
-not replace its own receiver.
+the immediately preceding release. Incremental backups must be walked in reverse
+order; rollback refuses a backup for a different current release. Receiver updates
+are operational changes: review and install `ops/deploy-receive.sh` and its private
+`deploy-files.php` helper explicitly; a normal release does not replace its own
+receiver. Install the reviewed receiver/helper and staging companion scripts
+before enabling the new workflow. See [incremental deployment](docs/INCREMENTAL_DEPLOYMENT.md)
+for installation order, full repair, staging transformations and checks.
+Legacy full backups retain `files.tar.gz` and are supported by the reviewed
+rollback tool; new backups contain only touched files under `files/` plus their
+recovery plan and previous deployment state.
 
 Repository secrets: `CPANEL_DEPLOY_KEY`, `CPANEL_KNOWN_HOSTS`.
 Keep the host fingerprint pinned; verify any host-key change through cPanel or
