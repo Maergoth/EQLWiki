@@ -187,7 +187,8 @@
                 "resources/toc-limit.css",
                 "resources/header-search.css",
                 "resources/todo.css",
-                "resources/selection-search.css"
+                "resources/selection-search.css",
+                "resources/collapsible.css"
             ]
         },
         "skins.EQLImmersive.homepage.styles": {
