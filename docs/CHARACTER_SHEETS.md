@@ -1,22 +1,27 @@
 # Interactive Character sheets
 
 `Template:Character_sheet` and `Template:Character_sheet_item` render a public,
-hand-editable inventory snapshot. Each Character (Server) starts collapsed after
-JavaScript initializes; its disclosure is keyboard accessible and independent of
-other characters on the page. Without JavaScript the full static sheet remains
+hand-editable inventory snapshot. A page with one Character (Server) opens it by
+default; multiple characters start collapsed. Each disclosure is keyboard
+accessible and independent of other characters on the page. Without JavaScript the static sheet remains
 readable. Item icons link to their existing wiki pages. Hovering or focusing gear
 shows its supplied tier-specific stat card, reviewed rich metadata/effect links
-and clickable known Exaltations.
+and clickable known Exaltations. Socketed Exaltations show their name and effect
+only; their numeric stats, tier and unrelated equipment metadata are omitted.
+The stylized **View Other Players!** link below equipment opens `Player_List`.
 The interactive inspect is a labeled nonmodal dialog. A short 200 ms pointer
 grace period allows crossing the gap from gear to its links; entering the card
 cancels dismissal. Keyboard users can press ArrowDown from gear to enter those
 links, and Escape returns focus to the gear. Focus leaving the card, page scroll,
 resize or collapsing a character dismisses it. Without enhancement, all item
-statistics and socket links stay visible in the static sheet.
+equipped statistics and socket name links stay visible in the static sheet.
 
 This uses the already loaded EQLImmersive skin, not the historical Magelo PHP
 extension. No new extension, namespace, database schema or authentication policy
-is enabled. The browser module has no network, account-state or storage writes.
+is enabled. The browser module makes no account-state or storage writes. A
+memoized, bounded public effect-metadata lookup fills absent effects in old
+snapshots without changing supplied values. See [Player List](PLAYER_LIST.md)
+for its directory, effect-enrichment and public-read safeguards.
 The desktop app owns reviewed, revision-guarded own User-page upserts; templates never
 write pages. A new snapshot updates that character's managed block and preserves
 other characters and the owner's unrelated User-page text. Old User_talk blocks
@@ -212,7 +217,9 @@ Each fixed equipment prefix accepts `_details`; indexed Exaltations accept
 `{label,value,linkTitle?}` lines/item, labels<=60/value<=400 and8000 UTF-8 bytes.
 Its serializer escapes all untrusted text including underscores/signatures,
 then generates only `<br>` and canonical main-namespace effect links. Numeric
-`_stats` remains a separate supplied tier-specific block. The wiki computes no
+`_stats` remains a separate supplied tier-specific block for equipped gear.
+Legacy indexed Exaltation numeric fields remain accepted but are not displayed;
+only effect metadata is shown for sockets. The wiki computes no
 item/Character totals and does not add Exaltations to recorded current stats.
 Hand-edited wiki source uses ordinary wiki permissions/sanitization.
 

@@ -472,6 +472,9 @@ class BuildEyeOfZommPack extends Maintenance {
         $slots = $this->parseSlots( $statsBlock );
         $stats = $this->parseItemStats( $statsBlock );
         $displayLines = $this->parseItemDisplayLines( $statsBlock );
+        // Itempage keeps focus_effect outside statsblock. Preserve it as typed
+        // metadata, including canonical effect links, for old and new inventories.
+        $effectDetails = EqlNpcLootWikitext::itemEffects( $text );
         $iconText = $this->extractParamByLine( $body, [ 'lucy_img_ID', 'lucy_img_id' ] );
         $iconId = preg_match( '/\d+/', $iconText, $iconMatch ) ? (int)$iconMatch[0] : 0;
         $revision = $page->getRevisionRecord();
@@ -524,6 +527,7 @@ class BuildEyeOfZommPack extends Maintenance {
             'slots' => $slots,
             'stats' => (object)$stats,
             'displayLines' => $displayLines,
+            'details' => $effectDetails,
             'contributionCard' => $contributionCard,
             'dropSources' => $dropSources,
             'revisionId' => $revisionId,

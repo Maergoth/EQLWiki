@@ -6,6 +6,54 @@
 final class EqlNpcLootWikitext {
 	private const MAX_BYTES = 524288;
 
+	/** Public effect facts only: literal card fields, never inferred item stats. */
+	public static function itemEffects( string $source ): array {
+		$document = self::document( $source );
+		if ( $document === null ) { return []; }
+		$cards = array_values( array_filter( $document['templates'], static fn ( $card ) =>
+			( $card['invocationKey'] ?? '' ) === 'Itempage' ) );
+		// Variant cards do not establish which effect belongs to a saved snapshot.
+		if ( count( $cards ) !== 1 ) { return []; }
+		$fields = [];
+		foreach ( $cards[0]['parts'] as $part ) {
+			if ( preg_match( '/^\s*(statsblock|focus_effect)\s*=([\s\S]*)$/', $part, $match ) ) {
+				$fields[$match[1]] = $match[2];
+			}
+		}
+		$labels = [ 'effect' => 'Effect', 'combat effect' => 'Combat effect', 'proc effect' => 'Proc effect',
+			'click effect' => 'Click effect', 'worn effect' => 'Worn effect', 'focus effect' => 'Focus effect' ];
+		$rows = [];
+		foreach ( preg_split( '/\R|<br\s*\/?\s*>/i', $fields['statsblock'] ?? '' ) as $line ) {
+			$line = preg_replace( '~</?(?:b|strong|i|em)>~i', '', $line );
+			if ( preg_match( '/^\s*(Effect|Combat Effect|Proc Effect|Click Effect|Worn Effect|Focus Effect)\s*:\s*(.+)$/i', $line, $match ) ) {
+				$rows[] = [ $labels[strtolower( $match[1] )], $match[2] ];
+			}
+		}
+		if ( trim( $fields['focus_effect'] ?? '' ) !== '' ) { $rows[] = [ 'Focus effect', $fields['focus_effect'] ]; }
+		$result = [];
+		foreach ( array_slice( $rows, 0, 32 ) as [ $label, $raw ] ) {
+			if ( preg_match( '/[{}<>\x00-\x08\x0b\x0c\x0e-\x1f\x7f]|\[\s*(?:https?:)?\/\//i', $raw ) ) { continue; }
+			preg_match_all( '/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/', $raw, $links );
+			$value = preg_replace( '/\[\[([^\]|]+)\|([^\]]+)\]\]/', '$2', $raw );
+			$value = preg_replace( '/\[\[([^\]]+)\]\]/', '$1', $value );
+			$value = trim( preg_replace( '/[\s\p{Z}]+/u', ' ', html_entity_decode( $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
+			if ( $value === '' || strlen( $value ) > 400 || preg_match( '/[\[\]{}<>|\x00-\x1f\x7f]/', $value ) ||
+				preg_match( '/^(?:\?|none|unknown|n\/?a|-)$/i', $value ) ) { continue; }
+			$entry = [ 'label' => $label, 'value' => $value ];
+			if ( count( $links[1] ) === 1 ) {
+				$target = self::title( $links[1][0], true );
+				if ( $target !== null && !str_contains( $target, ':' ) ) { $entry['linkTitle'] = $target; }
+			} elseif ( !$links[1] ) {
+				$target = preg_replace( '/\s*\((?:Combat|Worn|Click|Proc|Must Equip|Can Equip|Casting Time)\b.*$/i', '', $value );
+				$target = preg_replace( '/\s+(?:at|Req(?:uired)?\.?)\s+Level\s+\d+.*$/i', '', $target );
+				$target = self::title( $target, true );
+				if ( $target !== null && !str_contains( $target, ':' ) ) { $entry['linkTitle'] = $target; }
+			}
+			$result[json_encode( $entry )] = $entry;
+		}
+		return array_values( $result );
+	}
+
 	/** Whether the bounded rich card exposes all authored item-card metadata. */
 	public static function itemContributionCard( string $source, ?array $displayLines = null ): array {
 		$result = [ 'schemaVersion' => 1, 'complete' => false, 'questContext' => false ];
