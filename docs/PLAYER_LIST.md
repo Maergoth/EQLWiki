@@ -9,8 +9,9 @@ only**, and all sixteen class checkboxes. **Any** appears first and starts check
 without a class restriction. Selecting classes requires every selected class in
 the character's combination; choosing Any clears those selections. Clearing the
 last class returns to Any. Class labels cannot be text-selected, while native
-checkboxes and keyboard focus remain available. Sort by total
-equipped gear tier, level, AA points, **Achievement count**, or any supported
+checkboxes and keyboard focus remain available. Any spans both class rows on
+desktop; narrower layouts give it a full-width row before the evenly packed classes.
+Sort by total equipped gear tier, **Gear Score**, level, AA points, **Achievement count**, or any supported
 published statistic. Achievement count means completed achievements and starts
 highest first; it is one option in the existing Order by dropdown.
 Unknown and estimated values are unranked and sort last in either direction.
@@ -26,6 +27,40 @@ Guide titles follow the current wiki selector: sort full class names alphabetica
 replace spaces with underscores, join with underscores and append `_Guide`.
 The displayed class order is preserved. Incomplete or malformed combinations stay
 plain text; links use the wiki's local URL builder without per-row API requests.
+
+## Provisional Gear Score v1
+
+This browser-only benchmark weights published whole-character totals. It does
+not estimate equipment-only deltas or normalize class, level, AA or buffs. The
+initial ATK weighting favors offense; use the class/max-level filters for closer
+comparisons. The existing equipped-tier sort remains the default.
+
+| Required reported stats | Points |
+| --- | ---: |
+| HP, Mana, Endurance | each × 0.05 |
+| STR, STA, AGI, DEX, WIS, INT, CHA | each × 1 |
+| Six resists, including Void (`sv_corruption`) | each × 0.25 |
+| Mitigation AC + Evasion AC | each × 1 |
+| ATK offense + ATK accuracy | each × 5 |
+| Explicit Haste | × 10 |
+| If Haste is unavailable: Attack Speed | (reported value − 100) × 10 |
+
+The 100% speed baseline is a declared **point-system policy**, not a conversion
+to a Haste stat; no snapshot value, label or wiki source is changed. Explicit
+Haste zero wins over Attack Speed. Negative readings retain signed points.
+
+Legacy AC/ATK may replace the corresponding **entire** component pair only when
+both components are unavailable. A partial pair never mixes with or falls back
+to an aggregate. AC softcap, regeneration, DPS, other derived bonuses, tiers,
+progression and achievement counts add no separate points.
+
+All required readings must be numeric; missing, estimated, conflicting or
+nonfinite totals remain unranked rather than contributing invented zeros.
+Rankings use unrounded totals, with rounding only for display and stable ties.
+Selecting Gear Score shows a keyboard-accessible formula disclosure. Score cells
+explain their contributions or missing readings in their title; legacy scoring
+is labeled. This calculation uses the already loaded complete directory and
+adds no API requests, cache schema changes, or database/template writes.
 
 ## Ownership and data flow
 
