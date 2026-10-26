@@ -28,7 +28,7 @@ assert.notEqual( toggles[ 0 ].getAttribute( 'aria-controls' ), toggles[ 1 ].getA
 for ( const sheet of document.querySelectorAll( '.eql-character-sheet-v1' ) ) {
     const cta = sheet.querySelector( '.eql-character-players-cta' );
     assert( cta );assert.equal( cta.parentElement.className, 'eql-character-equipment' );assert.equal( cta.parentElement.lastElementChild, cta, 'Player link follows equipment rows.' );
-    assert.equal( cta.href, 'https://wiki.example/wiki/Player_List' );assert.equal( cta.getAttribute( 'aria-label' ), 'View Other Players!' );assert.equal( cta.tabIndex, 0 );
+    assert.equal( cta.href, 'https://wiki.example/wiki/Player_List' );assert.equal( cta.getAttribute( 'aria-label' ), 'View Other Players' );assert.equal( cta.tabIndex, 0 );
     assert.equal( cta.querySelector( 'svg' ).getAttribute( 'focusable' ), 'false' );assert.equal( cta.querySelectorAll( 'script,image,foreignObject,img' ).length, 0 );
 }
 toggles[ 0 ].click();
