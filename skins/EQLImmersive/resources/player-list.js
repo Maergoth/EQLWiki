@@ -2,6 +2,7 @@
 ( function () {
     'use strict';
     var mounted = new WeakSet(), serial = 0, PAGE_SIZE = 50;
+    var SCORE_SETTINGS_TITLE = 'MediaWiki:PlayerListGearScore.json', scoreSettingsFlight = null;
     var CLASSES = [ [ 'WAR', 'Warrior' ], [ 'CLR', 'Cleric' ], [ 'PAL', 'Paladin' ], [ 'RNG', 'Ranger' ],
         [ 'SHD', 'Shadow Knight' ], [ 'DRU', 'Druid' ], [ 'MNK', 'Monk' ], [ 'BRD', 'Bard' ],
         [ 'ROG', 'Rogue' ], [ 'SHM', 'Shaman' ], [ 'NEC', 'Necromancer' ], [ 'WIZ', 'Wizard' ],
@@ -28,10 +29,32 @@
     function number( value ) { return typeof value === 'number' && Number.isFinite( value ) ? value : null; }
     function text( value, limit ) { return typeof value === 'string' ? value.slice( 0, limit || 300 ) : ''; }
     function format( value ) { return value === null ? '—' : value.toLocaleString( undefined, { maximumFractionDigits: 2 } ); }
-    // Provisional v1 benchmark of reported character totals, never inferred gear stats.
-    function gearScore( stats, explain ) {
+    function exactKeys( value, keys ) {
+        return value && typeof value === 'object' && !Array.isArray( value ) && Object.keys( value ).length === keys.length && keys.every( function ( key ) { return Object.prototype.hasOwnProperty.call( value, key ); } );
+    }
+    function scorePolicy( response ) {
+        var pages = response && response.query && response.query.pages, page = Array.isArray( pages ) && pages.length === 1 ? pages[ 0 ] : null;
+        var revision = page && Array.isArray( page.revisions ) && page.revisions.length === 1 ? page.revisions[ 0 ] : null;
+        var slot = revision && revision.slots && revision.slots.main;
+        if ( !page || page.title !== SCORE_SETTINGS_TITLE || page.ns !== 8 || page.missing || page.redirect || !revision || !Number.isSafeInteger( revision.revid ) || revision.revid < 1 || revision.texthidden || revision.suppressed || !slot || slot.contentmodel !== 'json' || typeof slot.content !== 'string' || slot.content.length > 8192 ) { throw new Error( 'Unavailable score settings' ); }
+        var policy = JSON.parse( slot.content ), keys = [ 'resources', 'attributes', 'resists', 'ac', 'atk', 'haste' ];
+        if ( !exactKeys( policy, [ 'schemaVersion', 'weights', 'attackSpeedBaseline' ] ) || policy.schemaVersion !== 1 || !exactKeys( policy.weights, keys ) || !keys.every( function ( key ) { return number( policy.weights[ key ] ) !== null && policy.weights[ key ] >= 0 && policy.weights[ key ] <= 1000; } ) || number( policy.attackSpeedBaseline ) === null || policy.attackSpeedBaseline < 0 || policy.attackSpeedBaseline > 1000 ) { throw new Error( 'Invalid score settings' ); }
+        return { weights: policy.weights, attackSpeedBaseline: policy.attackSpeedBaseline, revision: revision.revid };
+    }
+    function readScorePolicy( api ) {
+        if ( !scoreSettingsFlight ) {
+            scoreSettingsFlight = Promise.resolve().then( function () { return api.get( { action: 'query', prop: 'revisions', titles: SCORE_SETTINGS_TITLE, rvprop: 'ids|content|contentmodel', rvslots: 'main', rvlimit: 1, formatversion: 2, maxage: 0, smaxage: 0 }, { timeout: 10000 } ); } ).then( scorePolicy ).catch( function () { return null; } );
+            var flight = scoreSettingsFlight;
+            flight.then( function () { if ( scoreSettingsFlight === flight ) { scoreSettingsFlight = null; } } );
+        }
+        return scoreSettingsFlight;
+    }
+    // One validated wiki policy per complete load; never infer gear stats.
+    function gearScore( stats, policy, explain ) {
+        if ( !policy ) { return { value: null, missing: [ 'score settings unavailable' ], parts: [], legacy: false }; }
         var total = 0, parts = [], missing = [], legacy = false;
         function add( key, weight, baseline ) {
+            if ( weight === 0 ) { return; }
             var value = number( stats[ key ] );
             if ( value === null ) { missing.push( labels[ key ] ); return; }
             var points = ( value - ( baseline || 0 ) ) * weight;
@@ -39,16 +62,19 @@
             if ( explain ) { parts.push( labels[ key ] + ': ' + ( baseline ? '(' + format( value ) + ' − ' + baseline + ')' : format( value ) ) + ' × ' + weight + ' = ' + format( points ) ); }
         }
         function pair( first, second, aggregate, weight ) {
+            if ( weight === 0 ) { return; }
             if ( number( stats[ first ] ) === null && number( stats[ second ] ) === null && number( stats[ aggregate ] ) !== null ) { add( aggregate, weight ); legacy = true; }
             else { add( first, weight ); add( second, weight ); }
         }
-        [ 'hp', 'mp', 'end' ].forEach( function ( key ) { add( key, 0.05 ); } );
-        [ 'str', 'sta', 'agi', 'dex', 'wis', 'int', 'cha' ].forEach( function ( key ) { add( key, 1 ); } );
-        [ 'sv_magic', 'sv_fire', 'sv_cold', 'sv_poison', 'sv_disease', 'sv_corruption' ].forEach( function ( key ) { add( key, 0.25 ); } );
-        pair( 'ac_mitigation', 'ac_evasion', 'ac', 1 ); pair( 'atk_offense', 'atk_accuracy', 'atk', 5 );
-        if ( number( stats.haste ) !== null ) { add( 'haste', 10 ); }
-        else if ( number( stats.attack_speed ) !== null ) { add( 'attack_speed', 10, 100 ); }
-        else { missing.push( 'Haste or attack speed' ); }
+        [ 'hp', 'mp', 'end' ].forEach( function ( key ) { add( key, policy.weights.resources ); } );
+        [ 'str', 'sta', 'agi', 'dex', 'wis', 'int', 'cha' ].forEach( function ( key ) { add( key, policy.weights.attributes ); } );
+        [ 'sv_magic', 'sv_fire', 'sv_cold', 'sv_poison', 'sv_disease', 'sv_corruption' ].forEach( function ( key ) { add( key, policy.weights.resists ); } );
+        pair( 'ac_mitigation', 'ac_evasion', 'ac', policy.weights.ac ); pair( 'atk_offense', 'atk_accuracy', 'atk', policy.weights.atk );
+        if ( policy.weights.haste !== 0 ) {
+            if ( number( stats.haste ) !== null ) { add( 'haste', policy.weights.haste ); }
+            else if ( number( stats.attack_speed ) !== null ) { add( 'attack_speed', policy.weights.haste, policy.attackSpeedBaseline ); }
+            else { missing.push( 'Haste or attack speed' ); }
+        }
         return { value: missing.length || !Number.isFinite( total ) ? null : total, missing: missing, parts: parts, legacy: legacy };
     }
     function profileUrl( player ) {
@@ -69,7 +95,7 @@
             return /^https?:$/.test( url.protocol ) && url.origin === window.location.origin && !url.username && !url.password ? url.href : null;
         } catch ( error ) { return null; }
     }
-    function normalize( value ) {
+    function normalize( value, policy ) {
         if ( !value || typeof value !== 'object' || !( typeof value.id === 'string' && value.id.length || typeof value.id === 'number' && Number.isFinite( value.id ) ) || typeof value.name !== 'string' || !value.name.trim() ) { throw new Error( 'Invalid player record' ); }
         var classes = [], stats = Object.create( null );
         ( Array.isArray( value.classes ) ? value.classes : [] ).slice( 0, 16 ).forEach( function ( raw ) {
@@ -81,7 +107,7 @@
         }
         if ( String( value.id ).length > 1000 ) { throw new Error( 'Invalid player identity' ); }
         return { id: String( value.id ), name: text( value.name ), server: text( value.server, 150 ), classes: classes, hasClassCombination: Array.isArray( value.classes ) && value.classes.length === 3 && classes.length === 3,
-            level: number( value.level ), aa: number( value.aa ), totalTier: number( value.totalTier ), gearScore: value.snapshotConflict === true ? { value: null, missing: [ 'conflicting snapshots' ], parts: [], legacy: false } : gearScore( stats ), achievementCount: Number.isInteger( value.achievementCount ) && value.achievementCount >= 0 && value.achievementCount <= 1000000000 ? value.achievementCount : null, equippedSlots: number( value.equippedSlots ), tieredSlots: number( value.tieredSlots ), stats: stats,
+            level: number( value.level ), aa: number( value.aa ), totalTier: number( value.totalTier ), gearScore: value.snapshotConflict === true ? { value: null, missing: [ 'conflicting snapshots' ], parts: [], legacy: false } : gearScore( stats, policy ), achievementCount: Number.isInteger( value.achievementCount ) && value.achievementCount >= 0 && value.achievementCount <= 1000000000 ? value.achievementCount : null, equippedSlots: number( value.equippedSlots ), tieredSlots: number( value.tieredSlots ), stats: stats,
             updated: text( value.updated, 80 ), pageTitle: text( value.pageTitle ), pageUrl: text( value.pageUrl, 2000 ), snapshotConflict: value.snapshotConflict === true };
     }
     function compareName( first, second ) {
@@ -97,7 +123,7 @@
     function mount( root ) {
         if ( mounted.has( root ) || root.dataset.eqlPlayerListMounted === '1' ) { return; }
         mounted.add( root ); root.dataset.eqlPlayerListMounted = '1';
-        var prefix = 'eql-pl-' + ( ++serial ), players = [], maxLevel = null, loading = false, complete = false, generation = 0, page = 0, sortKey = 'totalTier', descending = true, columnsKey = '';
+        var prefix = 'eql-pl-' + ( ++serial ), players = [], maxLevel = null, loading = false, complete = false, generation = 0, page = 0, sortKey = 'totalTier', descending = true, columnsKey = '', policy = null;
         root.classList.add( 'eql-player-list' );
         var hero = element( 'header', undefined, 'eql-pl-hero' ), intro = element( 'div' ), summary = element( 'div', undefined, 'eql-pl-summary' );
         intro.append( element( 'span', 'THE ADVENTURERS’ REGISTER', 'eql-pl-eyebrow' ), element( 'h2', 'Discover the players of Legends' ), element( 'p', 'Browse public character snapshots shared by players. Find a class combination, compare published stats, and open a profile to explore its equipment.' ) );
@@ -127,10 +153,21 @@
         var direction = button( 'Highest first ↓', 'eql-pl-direction' ), refresh = button( 'Refresh list', 'eql-pl-quiet-button' ), ordering = element( 'div', undefined, 'eql-pl-ordering' );
         ordering.append( field( 'Order by', order ), direction, refresh ); resultsBar.append( resultCount, ordering );
         var scoreDetails = element( 'details', undefined, 'eql-pl-score-details' ); scoreDetails.hidden = true;
-        scoreDetails.append( element( 'summary', 'How Gear Score is calculated · provisional v1' ), element( 'p', 'A first-pass comparison of published character totals, including base stats and class/AA effects—not equipment alone. Use the class and max-level filters for closer comparisons. Missing or estimated required readings stay unranked.' ) );
-        var weights = element( 'ul' );
-        [ 'HP, Mana and Endurance: ÷ 20.', 'STR, STA, AGI, DEX, WIS, INT and CHA: × 1.', 'All six resists: × 0.25.', 'Mitigation AC + Evasion AC: × 1.', 'ATK offense + ATK accuracy: × 5.', 'Haste: × 10. If Haste is absent, (Attack Speed − 100) × 10 uses 100% as a scoring baseline; it does not change the reported stat.' ].forEach( function ( line ) { weights.appendChild( element( 'li', line ) ); } );
-        scoreDetails.append( weights, element( 'p', 'Legacy AC or ATK replaces its entire component pair; never both. AC softcap, regeneration, DPS, other bonuses, gear tiers, level, AA count and achievements add no separate points. These initial weights favor offense and are not class-balanced.' ) );
+        function showScorePolicy() {
+            scoreDetails.replaceChildren( element( 'summary', 'How Gear Score is calculated · provisional' ), element( 'p', 'A first-pass comparison of published character totals, including base stats and class/AA effects—not equipment alone. Use the class and max-level filters for closer comparisons. Missing or estimated required readings stay unranked.' ) );
+            var settings = element( 'p' ), link = element( 'a', 'Gear Score settings' ); link.href = mw.util.getUrl( SCORE_SETTINGS_TITLE );
+            settings.append( link, document.createTextNode( policy ? ' · revision ' + policy.revision + '. Edit the wiki settings to tune these weights, then refresh the list.' : '. Refresh the list to retry loading the wiki settings.' ) );
+            scoreDetails.appendChild( settings );
+            if ( !policy ) { scoreDetails.appendChild( element( 'p', 'Gear Score is unavailable because the wiki weight settings could not be loaded or validated. Other comparisons still work.', 'is-error' ) ); return; }
+            var weights = element( 'ul' );
+            [ [ 'HP, Mana and Endurance', 'resources' ], [ 'STR, STA, AGI, DEX, WIS, INT and CHA', 'attributes' ], [ 'All six resists', 'resists' ], [ 'Mitigation AC + Evasion AC', 'ac' ], [ 'ATK offense + ATK accuracy', 'atk' ], [ 'Haste', 'haste' ] ].forEach( function ( group ) {
+                var weight = policy.weights[ group[ 1 ] ], line = group[ 0 ] + ( weight === 0 ? ': excluded.' : ': × ' + weight + '.' );
+                if ( group[ 1 ] === 'haste' && weight !== 0 ) { line += ' If Haste is absent, (Attack Speed − ' + policy.attackSpeedBaseline + ') × ' + weight + ' uses ' + policy.attackSpeedBaseline + '% as a scoring baseline; it does not change the reported stat.'; }
+                weights.appendChild( element( 'li', line ) );
+            } );
+            scoreDetails.append( weights, element( 'p', 'A zero weight excludes that group and requires no readings for it. Legacy AC or ATK replaces its entire component pair; never both. AC softcap, regeneration, DPS, other bonuses, gear tiers, level, AA count and achievements add no separate points. This provisional benchmark is not class-balanced.' ) );
+        }
+        showScorePolicy();
         var status = element( 'p', '', 'eql-pl-status' ); status.setAttribute( 'role', 'status' ); status.setAttribute( 'aria-live', 'polite' );
         var retry = button( 'Try again', 'eql-pl-retry' ); retry.hidden = true;
         var scroll = element( 'div', undefined, 'eql-pl-table-scroll' ); scroll.tabIndex = 0; scroll.setAttribute( 'role', 'region' ); scroll.setAttribute( 'aria-label', 'Player comparisons; scroll horizontally for more columns' );
@@ -193,7 +230,7 @@
                 tier.appendChild( element( 'small', format( player.equippedSlots ) + ' equipped · ' + format( player.tieredSlots ) + ' tiered' ) );
                 if ( fieldsStat() ) {
                     var featured = numericCell( row, valueFor( player, sortKey ), 'eql-pl-number eql-pl-featured-stat' );
-                    if ( sortKey === 'gearScore' ) { featured.title = player.gearScore.value === null ? 'Unranked: ' + ( player.snapshotConflict ? 'conflicting snapshots' : player.gearScore.missing.length ? 'missing ' + player.gearScore.missing.join( ', ' ) : 'invalid score total' ) : 'Provisional Gear Score v1\n' + gearScore( player.stats, true ).parts.join( '\n' ); featured.appendChild( element( 'small', player.gearScore.value === null ? 'Incomplete stats' : player.gearScore.legacy ? 'Provisional · legacy totals' : 'Provisional' ) ); }
+                    if ( sortKey === 'gearScore' ) { featured.title = player.gearScore.value === null ? 'Unranked: ' + ( player.snapshotConflict ? 'conflicting snapshots' : !policy ? 'score settings unavailable' : player.gearScore.missing.length ? 'missing ' + player.gearScore.missing.join( ', ' ) : 'invalid score total' ) : 'Provisional Gear Score · settings revision ' + policy.revision + '\n' + gearScore( player.stats, policy, true ).parts.join( '\n' ); featured.appendChild( element( 'small', player.gearScore.value === null ? !policy ? 'Settings unavailable' : 'Incomplete stats' : player.gearScore.legacy ? 'Provisional · legacy totals' : 'Provisional' ) ); }
                 } body.appendChild( row );
             } );
             scroll.hidden = filtered.length === 0; empty.hidden = filtered.length !== 0; navigation.hidden = filtered.length <= PAGE_SIZE;
@@ -223,7 +260,7 @@
                     var result = response && response.eqlplayers;
                     if ( !result || !Array.isArray( result.players ) || !Number.isInteger( result.maxLevel ) || result.maxLevel < 1 || result.maxLevel > 1000 || reportedMax !== null && reportedMax !== result.maxLevel ) { throw new Error( 'Invalid directory response' ); }
                     reportedMax = result.maxLevel;
-                    result.players.forEach( function ( value ) { var player = normalize( value ); if ( !ids.has( player.id ) ) { ids.add( player.id ); loaded.push( player ); } } );
+                    result.players.forEach( function ( value ) { var player = normalize( value, policy ); if ( !ids.has( player.id ) ) { ids.add( player.id ); loaded.push( player ); } } );
                     if ( loaded.length > 20000 ) { throw new Error( 'Directory exceeds browser bounds' ); }
                     status.textContent = 'Gathering public character snapshots… ' + loaded.length.toLocaleString() + ' found.';
                     if ( result.continue !== undefined ) { if ( typeof result.continue !== 'string' || !result.continue || result.continue.length > 4096 || tokens.has( result.continue ) ) { throw new Error( 'Invalid directory continuation' ); } tokens.add( result.continue ); return read( result.continue ); }
@@ -238,7 +275,7 @@
                     setBusy( false ); status.hidden = true; render();
                 } );
             }
-            Promise.resolve().then( function () { api = new mw.Api(); return read(); } ).catch( function () { if ( !current() ) { return; } setBusy( false ); status.classList.add( 'is-error' ); status.textContent = 'The complete player list could not be loaded. No partial rankings are shown.'; retry.hidden = false; scroll.hidden = empty.hidden = navigation.hidden = true; } );
+            Promise.resolve().then( function () { api = new mw.Api(); return readScorePolicy( api ); } ).then( function ( settings ) { if ( !current() ) { return; } policy = settings; showScorePolicy(); return read(); } ).catch( function () { if ( !current() ) { return; } setBusy( false ); status.classList.add( 'is-error' ); status.textContent = 'The complete player list could not be loaded. No partial rankings are shown.'; retry.hidden = false; scroll.hidden = empty.hidden = navigation.hidden = true; } );
         }
         refresh.addEventListener( 'click', load ); retry.addEventListener( 'click', load ); load();
     }

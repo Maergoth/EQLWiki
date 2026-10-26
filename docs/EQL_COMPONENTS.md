@@ -249,10 +249,16 @@ row combinations open the canonical build guide in a new tab. `eqlcharactereffec
 fills missing effect metadata in existing character sheets; socketed Exaltations
 show only their name and effect. See [Player List](PLAYER_LIST.md) for public
 visibility, continuation, cache, producer and separate page-publication contracts.
-The browser's provisional Gear Score weights reported total stats under a visible
-versioned policy, keeps incomplete readings unranked, and never adds legacy
-AC/ATK aggregates to their component pairs. It does not rewrite snapshot values
-or request extra data. Any spans both desktop class rows; narrow layouts retain
+The browser's provisional Gear Score weights reported total stats under one
+validated revision of the protected JSON page `MediaWiki:PlayerListGearScore.json`.
+Its initial reviewed source is `ops/player-gear-score.json` (resists ×2). A bounded
+public read precedes each complete directory load; Refresh list picks up edits
+without deployment or polling. The formula and row breakdown use that same policy.
+Invalid/unavailable settings disable only Gear Score; zero weights exclude their
+groups. It keeps incomplete readings unranked, never adds legacy AC/ATK aggregates
+to their component pairs, and never rewrites snapshot values. The initial JSON
+page requires separate guarded publication; later deployments preserve tuning.
+Any spans both desktop class rows; narrow layouts retain
 an even class grid below its full-width control.
 Each character expands independently; supplied tier-specific gear/augment stats
 and links remain distinct from the base-item AjaxHoverHelper. No historical
