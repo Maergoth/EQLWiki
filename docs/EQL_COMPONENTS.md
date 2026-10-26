@@ -38,6 +38,11 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- `resources/collapsible.css`, loaded by the core skin styles, gives native
+  article Expand/Collapse buttons gold text, a state chevron and keyboard focus
+  styling. It preserves MediaWiki placement, labels, ARIA and collapse events
+  across sections, tables and lists; custom toggles are outside its scope.
+
 - [`HomepageCache.php`](../skins/EQLImmersive/includes/HomepageCache.php) bounds
   Main Page and main-namespace `News` parser output, conditional browser validation
   and CDN expiry to shared five-minute UTC windows, preserving private responses.

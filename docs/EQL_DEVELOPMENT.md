@@ -137,6 +137,9 @@ entire Common.js page with `sky-rewards.js`.
 
 For browser changes, inspect ResourceLoader registration, conditional hooks, and
 rendered template markers. A source file existing in Git does not mean it executes.
+Native article collapse-control presentation belongs in the core skin module's
+`collapsible.css`; retain `.mw-collapsible-text`, native ARIA and events, and
+MediaWiki's float rules for tables, lists and content direction.
 Normal releases stamp local loader paths automatically; see
 [deployment asset caching](DEPLOYMENT_ASSETS.md) before changing loader URLs or
 release packaging. A normal page reload should pick up a new release without a
