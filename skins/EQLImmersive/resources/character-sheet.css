@@ -49,3 +49,8 @@
 .eql-character-achievement.is-complete>.eql-character-achievement-heading>.eql-character-achievement-status,.eql-character-achievement-objectives>.is-complete>.eql-character-achievement-status{color:#8ddd9c}
 .eql-character-achievement.is-complete>.eql-character-achievement-heading>.eql-character-achievement-status::before,.eql-character-achievement-objectives>.is-complete>.eql-character-achievement-status::before{content:'\2713 ';font-weight:bold}
 .eql-character-achievement-objectives>li{margin:5px 0;color:#c6d1df}.eql-character-achievement-progress{font-variant-numeric:tabular-nums;color:#e5cb83;white-space:nowrap}
+.eql-character-achievement-count{display:inline-flex;align-items:center;gap:9px;margin-left:10px;padding-left:14px;border-left:1px solid #796438;color:#f0d18a;vertical-align:middle;line-height:1.1}
+.eql-character-achievement-count-number{font-family:Georgia,"Times New Roman",serif;font-size:32px;font-weight:bold;font-variant-numeric:lining-nums tabular-nums;letter-spacing:.02em;text-shadow:0 1px 0 #000,0 0 14px #dab35825}
+.eql-character-achievement-count small{font-size:10px;font-weight:normal;text-transform:uppercase;letter-spacing:.06em}
+.eql-character-achievements-v1>.eql-character-achievements-disclosure{display:flex;align-items:center;gap:8px}.eql-character-achievements-disclosure>.eql-character-achievement-count{margin-left:auto}
+@media(max-width:500px){.eql-character-achievement-count{gap:6px;padding-left:9px;margin-left:0}.eql-character-achievement-count-number{font-size:27px}.eql-character-achievement-count small{font-size:9px}}

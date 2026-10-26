@@ -104,6 +104,7 @@ final class CharacterSheetSnapshot {
 			}
 			$equipment = $layout ? self::one( $xpath, './div[' . self::hasClass( 'eql-character-equipment' ) . ']', $layout ) : null;
 			[ $totalTier, $equippedSlots, $tieredSlots ] = self::tiers( $xpath, $equipment );
+			$achievementCount = self::achievementCount( $xpath, $body );
 			$note = $body ? self::one( $xpath, './p[' . self::hasClass( 'eql-character-note' ) . ']', $body ) : null;
 			$updated = null;
 			if ( $note && preg_match( '/Updated: (.{1,100})$/uD', self::text( $note ), $match ) && !in_array( $match[1], [ '?', 'Unknown' ], true ) ) {
@@ -111,6 +112,7 @@ final class CharacterSheetSnapshot {
 			}
 			$rows[] = [
 				'name' => $character, 'server' => $server, 'level' => $level, 'classes' => $classes, 'aa' => $aa,
+				'achievementCount' => $achievementCount,
 				'totalTier' => $totalTier, 'equippedSlots' => $equippedSlots, 'tieredSlots' => $tieredSlots,
 				'stats' => $stats, 'updated' => $updated
 			];
@@ -123,12 +125,25 @@ final class CharacterSheetSnapshot {
 			if ( !isset( $unique[$key] ) ) {
 				$unique[$key] = $row;
 			} elseif ( $unique[$key] !== $row ) {
-				$unique[$key] = array_replace( $unique[$key], [ 'level' => null, 'aa' => null,
+				$unique[$key] = array_replace( $unique[$key], [ 'level' => null, 'aa' => null, 'achievementCount' => null,
 					'totalTier' => null, 'stats' => array_fill_keys( array_keys( self::STAT_LABELS ), null ),
 					'snapshotConflict' => true ] );
 			}
 		}
 		return array_values( $unique );
+	}
+
+	/** Only the optional schema-1 summary reports achievement completion, never objectives. */
+	private static function achievementCount( DOMXPath $xpath, ?DOMNode $body ): ?int {
+		$section = $body ? self::one( $xpath, './div[' . self::hasClass( 'eql-character-achievements-v1' ) . ']', $body ) : null;
+		$content = $section ? self::one( $xpath, './div[' . self::hasClass( 'eql-character-achievements-body' ) . ']', $section ) : null;
+		$summary = $content ? self::one( $xpath, './p[' . self::hasClass( 'eql-character-achievements-summary' ) . ']', $content ) : null;
+		if ( !$summary || !preg_match( '/^([0-9]{1,10})\s*\/\s*([0-9]{1,10}) achievements complete$/D', self::text( $summary ), $parts ) ) {
+			return null;
+		}
+		$complete = self::integer( $parts[1], 0, 1000000000 );
+		$total = self::integer( $parts[2], 0, 1000000000 );
+		return $complete !== null && $total !== null && $complete <= $total ? $complete : null;
 	}
 
 	private static function tiers( DOMXPath $xpath, ?DOMNode $equipment ): array {

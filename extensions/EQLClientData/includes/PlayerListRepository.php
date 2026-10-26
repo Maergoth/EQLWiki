@@ -97,7 +97,7 @@ final class PlayerListRepository {
 		if ( !$revision ) {
 			return [];
 		}
-		$key = $this->cache->makeKey( 'eqlplayers', 'schema1-v1', $page->getId(), $page->getLatest(), $page->getTouched(), $maxLevel );
+		$key = $this->cache->makeKey( 'eqlplayers', 'schema1-v2', $page->getId(), $page->getLatest(), $page->getTouched(), $maxLevel );
 		$cached = $this->cache->get( $key );
 		if ( is_array( $cached ) && isset( $cached['rows'], $cached['dependencies'] ) &&
 			$this->dependenciesCurrent( $cached['dependencies'] ) ) {

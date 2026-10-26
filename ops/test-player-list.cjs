@@ -9,10 +9,10 @@ const css = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/resour
 const url = title => '/wiki/' + encodeURIComponent( title.replace( / /g, '_' ) );
 const player = ( id, name, extra = {} ) => ( { id, name, server: 'Pine', level: 50, classes: [ 'WAR' ], aa: 4, totalTier: 40, equippedSlots: 20, tieredSlots: 20, stats: {}, updated: '20261025010203', pageTitle: 'User:Owner' + id, pageUrl: url( 'User:Owner' + id ) + '#Character', ...extra } );
 const players = [
-    player( 'a', 'Aster', { classes: [ 'Warrior', 'Cleric' ], aa: 9, totalTier: 140, stats: { hp: 1000, mp: null, atk_accuracy: 500, accuracy: 5 }, pageTitle: 'User:Alice', pageUrl: url( 'User:Alice' ) + '#Aster' } ),
-    player( 'b', 'Bracken', { level: 49, aa: 0, totalTier: 90, stats: { hp: 0, mp: 300 } } ),
+    player( 'a', 'Aster', { classes: [ 'Warrior', 'Cleric' ], aa: 9, achievementCount: 76, totalTier: 140, stats: { hp: 1000, mp: null, atk_accuracy: 500, accuracy: 5 }, pageTitle: 'User:Alice', pageUrl: url( 'User:Alice' ) + '#Aster' } ),
+    player( 'b', 'Bracken', { level: 49, aa: 0, achievementCount: 0, totalTier: 90, stats: { hp: 0, mp: 300 } } ),
     player( 'c', 'Cinder', { server: 'Cedar', classes: [ 'PAL', 'CLR' ], totalTier: null, stats: { hp: null } } ),
-    player( 'd', 'Dusk', { server: 'Cedar', classes: [ 'WAR', 'CLR', 'DRU' ], totalTier: 140, stats: { hp: 1500 } } ),
+    player( 'd', 'Dusk', { server: 'Cedar', classes: [ 'WAR', 'CLR', 'DRU' ], achievementCount: 100, totalTier: 140, stats: { hp: 1500 } } ),
     player( 'e', '<img src=x onerror="window.attacked=1">', { server: '<b>Realm</b>', classes: [ 'Rogue' ], totalTier: 0, aa: null, stats: { hp: null }, pageUrl: 'javascript:window.attacked=1' } ),
     player( 'f', 'Fenn', { server: 'Cedar', level: null, classes: [ 'Shadow Knight', 'Enchanter' ], totalTier: 30, aa: '', stats: { hp: 50, mp: '', useful_counter: 7 } } )
 ];
@@ -41,6 +41,14 @@ function fixture( get = () => response() ) {
     assert.equal( f.rows().find( row => row.dataset.playerId === 'b' ).children[ 4 ].textContent, '0', 'Reported zero stays zero.' );
     assert.equal( f.rows().find( row => row.dataset.playerId === 'f' ).children[ 4 ].textContent, '—', 'Empty strings never invent numeric zero.' );
     assert.equal( f.rows().find( row => row.dataset.playerId === 'c' ).children[ 0 ].textContent, '—', 'Unknown total tier is visible but unranked.' );
+    assert.equal( f.rows().find( row => row.dataset.playerId === 'b' ).querySelector( '.eql-pl-achievement-count' ).textContent, '0 achievements' );
+    assert.equal( f.rows().find( row => row.dataset.playerId === 'c' ).querySelector( '.eql-pl-achievement-count' ), null );
+    assert.equal( f.root().querySelectorAll( 'option[value=achievementCount]' ).length, 1, 'Achievement count is a single option in the existing dropdown.' );
+    f.set( '.eql-pl-ordering select', 'achievementCount' );assert.deepEqual( f.ids().slice( 0, 3 ), [ 'd', 'a', 'b' ], 'Complete-directory achievement ranking starts highest first.' );
+    assert.match( f.root().querySelector( 'thead' ).textContent, /Achievement count/ );
+    f.root().querySelector( '.eql-pl-direction' ).click();assert.deepEqual( f.ids().slice( 0, 3 ), [ 'b', 'a', 'd' ], 'Known zero sorts numerically; unknown achievements remain last in either direction.' );
+    assert.equal( f.rows().find( row => row.dataset.playerId === 'c' ).children[0].textContent, '—' );
+    f.set( '.eql-pl-ordering select', 'totalTier' );
     f.set( 'input[type=search]', 'alice', 'input' ); assert.deepEqual( f.ids(), [ 'a' ], 'Search includes public wiki user title.' );
     f.set( 'input[type=search]', 'DUSK', 'input' ); assert.deepEqual( f.ids(), [ 'd' ] );
     f.set( 'input[type=search]', '', 'input' ); f.set( '.eql-pl-filter-row select', 'Cedar' ); assert.deepEqual( f.ids(), [ 'd', 'f', 'c' ] );
@@ -89,6 +97,7 @@ function fixture( get = () => response() ) {
     replacement.remove(); stale.document.querySelector( 'main' ).appendChild( oldRoot ); stale.hooks.forEach( hook => hook( [ oldRoot ] ) ); await stale.loaded(); assert.deepEqual( stale.ids(), [ 'b' ], 'A retired mount can initialize again if its original element returns.' ); stale.close();
 
     const empty = fixture( () => response( [] ) ); await empty.loaded(); assert.match( empty.root().querySelector( '.eql-pl-empty' ).textContent, /No public character snapshots yet/ ); assert.match( empty.root().querySelector( '.eql-pl-result-count' ).textContent, /0 of 0/ ); empty.close();
+    const invalidCounts = fixture( () => response( [ -1, 0.5, '76', 1000000001 ].map( ( achievementCount, i ) => player( 'bad-' + i, 'Bad count ' + i, { achievementCount } ) ) ) );await invalidCounts.loaded();invalidCounts.set( '.eql-pl-ordering select', 'achievementCount' );assert.equal( invalidCounts.root().querySelectorAll( '.eql-pl-achievement-count' ).length, 0 );assert( invalidCounts.rows().every( row => row.children[0].textContent === '—' ), 'Malformed count fields never rank as zero.' );invalidCounts.close();
     const many = fixture( () => response( Array.from( { length: 51 }, ( _, index ) => player( 'many-' + index, 'Character ' + index, { totalTier: index } ) ) ) ); await many.loaded(); assert.equal( many.rows().length, 50 ); many.root().querySelector( '.eql-pl-pagination button:last-child' ).click(); assert.equal( many.rows().length, 1 ); assert.equal( many.rows()[ 0 ].children[ 0 ].textContent, '51' ); many.set( 'input[type=search]', 'Character 50', 'input' ); assert.equal( many.rows().length, 1 ); assert.equal( many.rows()[ 0 ].children[ 0 ].textContent, '1' ); many.close();
 
     assert.doesNotMatch( source, /innerHTML|localStorage|fetch\s*\(/, 'Directory uses secure DOM construction and only the registered read-only wiki API.' );
