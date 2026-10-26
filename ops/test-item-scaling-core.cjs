@@ -15,7 +15,7 @@ assert.equal( engine.revision, 4 );
 assert.equal( engine.statFamily( 'Backstab DMG' ), 'backstab' );
 assert.equal( engine.statFamily( 'Mana' ), 'primary' );
 assert.equal( engine.statFamily( 'Endurance Regen' ), 'flat' );
-assert.equal( engine.statFamily( 'SV Void' ), 'flat' );
+assert.equal( engine.statFamily( 'SV Void' ), 'primary' );
 assert.equal( engine.statFamily( 'Cold DMG' ), null );
 assert.deepEqual( engine.normalizeRank( 0, 40 ), { full: 0, fraction: 0, denom: 1 } );
 assert.deepEqual( engine.normalizeRank( 10, 1000 ), { full: 10, fraction: 0, denom: 1024 } );
@@ -37,10 +37,11 @@ const cases = [
 	[ 'BACKSTAB', -4, 10, 0, -4 ], [ 'BACKSTAB', 0, 10, 0, 0 ],
 	[ 'RANGE', 100, 4, 15, 140 ], [ 'RANGE', -10, 4, 0, -10 ], [ 'RANGE', 0, 2, 0, 20 ],
 	[ 'HP_REGEN', 4, 4, 15, 8 ], [ 'HASTE', 0, 4, 0, 0 ], [ 'MANA_REGEN', -2, 4, 0, -2 ],
-	// Intrinsic Void keeps its listed base and adds only whole tiers, even above10.
-	[ 'SV_CORRUPTION', 3, 5, 4, 8 ], [ 'SV_VOID', 20, 5, 31, 25 ],
+	// Intrinsic Void uses the same primary curve as the other saves.
+	[ 'SV_CORRUPTION', 3, 5, 4, 8 ], [ 'SV_VOID', 20, 5, 31, 31 ],
+	[ 'SV_CORRUPTION', 25, 5, 16, 38 ], [ 'SV_CORRUPTION', -25, 5, 16, -11 ],
 	[ 'SV_CORRUPTION', 3, 10, 900, 13 ], [ 'SV_CORRUPTION', 0, 5, 0, 0 ],
-	[ 'SV_CORRUPTION', -3, 5, 0, -3 ], [ 'SV_CORRUPTION', null, 5, 0, null ],
+	[ 'SV_CORRUPTION', -3, 5, 0, 0 ], [ 'SV_CORRUPTION', null, 5, 0, null ],
 	// Decimal display ceiling must not add a tenth at an exact boundary.
 	[ 'WT', 10, 1, 0, 9.1 ], [ 'WT', 10, 10, 0, 1 ], [ 'WT', 0.1, 10, 0, 0.1 ],
 	[ 'WT', 2.5, 8, 0, 0.7 ], [ 'WT', 2.5, 10, 0, 0.3 ], [ 'WT', 1, 10, 0, 0.1 ],
@@ -127,7 +128,7 @@ for ( const alias of voidAliases ) {
 			const stats = { STR: 5, DEX: 5, [ alias ]: base };
 			assert.deepEqual( engine.scaleItemStats( stats, full, { fraction } ), {
 				STR: rank ? 5 + rank : 5, DEX: rank ? 5 + rank : 5,
-				[ alias ]: base > 0 ? base + rank : base
+				[ alias ]: engine.scaleStat( 'SV_FIRE', base, full, { fraction } )
 			}, `${alias}/${base}: exact explicit field suppresses a generated duplicate at ${full}+${fraction}` );
 		}
 	}
@@ -140,6 +141,17 @@ assert.deepEqual( engine.scaleItemStats( { AC: 0, HP: 0 }, 5, { fraction: 31 } )
 	{ AC: 0, HP: 0, SV_CORRUPTION: 5 }, 'absent Void still uses qualified whole-tier generation' );
 assert.deepEqual( engine.scaleItemStats( { DMG: 3 }, 5, { slots: [ 'AMMO' ] } ),
 	{ DMG: 4 }, 'an absent unqualified field is not assumed to have base zero' );
+let voidParityCases = 0;
+for ( let full = 0; full <= 10; full++ ) {
+	for ( let fraction = 0; fraction < ( full > 0 && full < 10 ? 2 ** full : 1 ); fraction++ ) {
+		for ( const base of [ null, 0, 1, 3, 10, 11, 25, 100, -3, -10, -11, -25, -100 ] ) {
+			assert.equal( engine.scaleStat( 'SV_CORRUPTION', base, full, { fraction } ),
+				engine.scaleStat( 'SV_FIRE', base, full, { fraction } ),
+				`intrinsic Void/save parity for ${base} at ${full}+${fraction}` );
+			voidParityCases++;
+		}
+	}
+}
 assert.equal( engine.weaponEligible( { DMG: 18 }, [ 'AMMO' ] ), false );
 assert.equal( engine.weaponEligible( { DMG: 18 }, [ 'RANGE', 'AMMO' ] ), true );
 assert.equal( engine.weaponEligible( { COLD_DMG: 18 }, [ 'PRIMARY' ] ), false );
@@ -170,6 +182,6 @@ assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'BACKS
 	'the exact same bytes run as a browser script without require/eval of downloaded data' );
 assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'WT', 2.5, 8 ), 0.7,
 	'the browser engine uses the same exact decimal weight ceiling' );
-assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'SVVoid', 20, 5 ), 25,
+assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'SVVoid', 25, 5, { fraction: 16 } ), 38,
 	'the browser and CommonJS engine preserve the same intrinsic Void base' );
-console.log( `Shared item scaling: ${cases.length} stat cases, ${weightCases} weight boundaries/states, contextual fields, strict JSON validation, versioning and browser/CommonJS parity pass.` );
+console.log( `Shared item scaling: ${cases.length} stat cases, ${weightCases} weight boundaries/states, ${voidParityCases} intrinsic Void/save states, contextual fields, strict JSON validation, versioning and browser/CommonJS parity pass.` );

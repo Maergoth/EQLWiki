@@ -15,7 +15,7 @@
 	'use strict';
 	var PRIMARY = [ 'AC', 'HP', 'MP', 'END', 'STR', 'STA', 'AGI', 'DEX', 'WIS', 'INT', 'CHA',
 		'SV_MAGIC', 'SV_FIRE', 'SV_COLD', 'SV_POISON', 'SV_DISEASE' ];
-	var FLAT = [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN', 'HASTE', 'SV_CORRUPTION' ];
+	var FLAT = [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN', 'HASTE' ];
 	var VOID_QUALIFIERS = PRIMARY.concat( [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN' ] );
 	var ALIASES = {
 		DAMAGE: 'DMG', BASE_DMG: 'DMG', MANA: 'MP', ENDURANCE: 'END', ENDUR: 'END',
@@ -38,7 +38,8 @@
 	}
 	function statFamily( key ) {
 		key = canonicalStatKey( key );
-		if ( PRIMARY.indexOf( key ) !== -1 ) { return 'primary'; }
+		// Intrinsic Void scales like other resists, but cannot qualify generated Void.
+		if ( key === 'SV_CORRUPTION' || PRIMARY.indexOf( key ) !== -1 ) { return 'primary'; }
 		if ( FLAT.indexOf( key ) !== -1 ) { return 'flat'; }
 		return ( { DMG: 'damage', BACKSTAB: 'backstab', RANGE: 'range', WT: 'weight' } )[ key ] || null;
 	}

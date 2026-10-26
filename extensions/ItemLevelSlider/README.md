@@ -50,7 +50,7 @@ Engines expose:
   rank. Haste, Attack, weapon DMG, Backstab, delay and weight are excluded.
 - `scaleItemStats(stats, full, {fraction, slots, accuracyPercent})` preserves
   input keys, generates missing contextual Accuracy/Void only above tier zero,
-  and scales positive explicit Void from its listed base using the existing flat
+  and scales explicit Void from its listed base using the existing primary
   family. The wiki DOM adapter also suppresses a generated duplicate when explicit
   Void/Corruption is present, including zero or an unknown value.
 
@@ -62,18 +62,20 @@ game mechanics. Preserve the reviewed rates and ceiling/rounding policy when
 updating both clients.
 
 Rules revision 4 recognizes intrinsic SV Void (SV Corruption) as an existing
-flat stat: a positive listed base `B` becomes `B + rank * flat.perTier`, currently
-`B + rank`. A base of 3 at rank 5 becomes 8, and a base of 20 becomes 25; this
-does not use the percentage curve of ordinary primary resists. Fractional rank
-progress adds no Void. Explicit zero and negative bases remain unchanged, and
-null stays unknown. Intrinsic Void does not require two other qualifying stats
-and is not itself a qualifier. An absent field retains the existing two-field
-generated bonus using `void.perTier`; it is not universally assumed to have
+primary stat, using exactly the same curve as the other saves. A positive listed
+base `B` through 10 gains the whole rank; larger bases use
+`floor(B + B * effectiveRank / 10)`, including fractional progress. Base 3 at
+rank 5 becomes 8; base 25 at `5 + 16/32` becomes 38. Negative values use the
+same existing primary-penalty rules: base -25 at that fractional rank becomes
+`-11`. Explicit zero stays zero, and null stays unknown. Intrinsic Void does not
+require two other qualifying stats and is not itself a qualifier. An absent
+field retains the existing two-field whole-rank generated bonus using
+`void.perTier`; it is not universally assumed to have
 base zero. Compact `SVVoid`/`SVCorruption`, spaced/dotted/underscored SV labels,
 bare Void/Corruption and ResistVoid/ResistCorruption share the canonical key.
 The engine preserves caller keys and the wiki retains the authored label/base
 while preventing a duplicate generated row. Tier 0 and the tier 10 cap remain
-unchanged. This correction reuses the flat family, so schema/engine version 1
+unchanged. This correction reuses the primary family, so schema/engine version 1
 remain supported while the rules revision and engine hash change together.
 
 Void reverse recovery requires context: an observed value alone cannot establish
