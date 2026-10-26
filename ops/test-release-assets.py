@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Synthetic archive contracts; no host, credentials or full repository package."""
 import importlib.util
+import json
+from contextlib import ExitStack
 import sys
 import tarfile
 import tempfile
@@ -49,7 +51,10 @@ class ReleaseAssetTests(unittest.TestCase):
             if arguments == ['git', 'ls-files', '--stage', '-z']:
                 return ('\0'.join(f'{mode:o} {"0" * 40} 0\t{name}' for name, (_, mode) in self.files.items()) + '\0').encode()
             raise AssertionError(f'Unexpected Git command: {arguments}')
-        return patch.object(RELEASE.subprocess, 'check_output', side_effect=command)
+        stack = ExitStack()
+        stack.enter_context(patch.object(RELEASE.subprocess, 'check_output', side_effect=command))
+        stack.enter_context(patch.object(RELEASE.subprocess, 'check_call', return_value=0))
+        return stack
 
     def package(self, revision, filename='release.tar.gz'):
         target = self.root / filename
@@ -58,22 +63,24 @@ class ReleaseAssetTests(unittest.TestCase):
         self.assertFalse((self.root / RELEASE.MANIFEST_PATH).exists())
         with tarfile.open(target) as archive:
             names = archive.getnames()
-            self.assertEqual(names[-2:], [RELEASE.MARKER_PATH, RELEASE.MANIFEST_PATH])
-            self.assertEqual(names[:-2], sorted(names[:-2]))
+            self.assertEqual(names[-4:], [RELEASE.MARKER_PATH, RELEASE.MANIFEST_PATH, RELEASE.PAYLOAD_PATH, RELEASE.METADATA_PATH])
+            self.assertEqual(names[:-4], sorted(names[:-4]))
             result = {member.name: (archive.extractfile(member).read(), member.mode) for member in archive}
-        self.assertEqual(count, len(result) - 1)
+        self.assertEqual(count, len(result) - len(RELEASE.CONTROL_PATHS))
+        self.assertEqual(json.loads(result[RELEASE.METADATA_PATH][0]), {'protocol': 2, 'revision': revision, 'base_revision': None})
         return result
 
     def test_managed_marker_modes_and_private_exclusions(self):
         original = (self.root / RELEASE.MARKER_PATH).read_bytes()
         result = self.package(SHA_ONE)
-        self.assertEqual(set(result), {'index.php', 'resources/site.css', 'application-command.sh', RELEASE.MARKER_PATH, RELEASE.MANIFEST_PATH})
+        self.assertEqual(set(result), {'index.php', 'resources/site.css', 'application-command.sh', RELEASE.MARKER_PATH, *RELEASE.CONTROL_PATHS})
         self.assertEqual(result[RELEASE.MARKER_PATH], ((SHA_ONE + '\n').encode('ascii'), 0o644))
         self.assertEqual(result['application-command.sh'][1], 0o755)
         self.assertEqual(result['resources/site.css'][1], 0o644)
         manifest = result[RELEASE.MANIFEST_PATH][0].decode().splitlines()
         self.assertEqual(manifest[-1], RELEASE.MARKER_PATH)
-        self.assertEqual(manifest[:-1], sorted(set(result) - {RELEASE.MANIFEST_PATH, RELEASE.MARKER_PATH}))
+        self.assertEqual(manifest[:-1], sorted(set(result) - RELEASE.CONTROL_PATHS - {RELEASE.MARKER_PATH}))
+        self.assertEqual(result[RELEASE.PAYLOAD_PATH][0].decode().splitlines(), manifest)
         self.assertEqual(manifest.count(RELEASE.MARKER_PATH), 1)
         self.assertEqual((self.root / RELEASE.MARKER_PATH).read_bytes(), original)
 

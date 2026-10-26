@@ -172,6 +172,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Typed contribution coverage | `php ops/test-eoz-relationship-coverage.php` and `php ops/test-contribution-coverage.php` | Affected-field positive facts/capabilities, finite pools and conditional uncertainty, nested/formatted zone summary cells, DynamicZoneList category consumers, instance boundaries and limits. No wiki/database/pack writes |
 | Public zone admission | `php ops/test-dynamic-zone-admission.php` | Actual SpecialPage entry and synthetic anonymous permissions/current revisions, exact Category:Zones joins, legacy names, namespace/redirect/protected-source/size refusal and new titles longer than forty bytes; no wiki writes |
 | Shell syntax | `bash -n path/to/changed.sh` | Bash; syntax only |
+| Incremental deploy and rollback | `python3 ops/test-incremental-deploy.py` and `python3 ops/test-release-assets.py` | Synthetic Git/filesystem fixtures with Python, PHP and Linux Bash tools; actual-base leasing, changed files/modes/deletions, protected paths, failure rollback and staging preparation. No host/database writes |
 | Whitespace | `git diff --check` | Git |
 | Talk contribution policy | `php ops/test-talk-contributions.php` | Source-only synthetic title/user/configuration fixtures; policy and signup form hooks, not live editing or revision attribution |
 | Talk permissions integration | `php maintenance/run.php ./ops/test-talk-permissions.php --conf .local/talk-contributions/LocalSettings.php` | Configured isolated local wiki and ignored activation overlay; read-only core permission checks, no page/account/protection writes |
@@ -190,7 +191,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Full icon coverage | `php ops/verify-icon-coverage.php <library> <index-json> <audit-manifest>` | GD and the private source library/current index/audit |
 | Header search layout | `node ops/test-header-search.cjs` | jsdom 27 via `NODE_PATH`; synthetic header measurements, resize, and input fixtures, not real browser layout or native suggestion integration |
 | Search integration | `python ops/check-search.py http://127.0.0.1:8080` | A running populated wiki with item/title fixtures; autocomplete, submitted `Raku`, case, namespaces, pagination, native syntax and full-text; use `--help` for staging options |
-| Release archive | `python ops/build-release.py --output .local/release-review.tar.gz` | Python; create `.local/` first. Tracked files only, so stage new files before checking inclusion |
+| Release archive | `python ops/build-release.py --output .local/release-review.tar.gz` | Python; create `.local/` first. Requires a clean committed tracked tree; private/untracked files are excluded |
 
 To run jsdom tests, install the pinned dependency in an ignored directory using
 a Node version supported by jsdom 27:
@@ -323,7 +324,8 @@ extension; see the extension guide for safe rollback ordering.
 - Contributions target `staging`; the owner separately approves `main` releases.
   Promote specific reviewed changes, not the entire staging branch.
 - Every push to either deployment branch runs a file deployment, even docs-only
-  pushes. The receiver validates, backs up managed files, and checks the wiki API.
+  pushes. The [incremental receiver](INCREMENTAL_DEPLOYMENT.md) leases the actual
+  installed revision, validates and backs up touched managed files, and checks the wiki API.
   It does not apply database schema migrations or publish arbitrary wiki pages.
 - A staging push or hourly scheduled eligibility check copies the entire live
   wiki/forum database when the previous successful refresh is at least 24 hours
