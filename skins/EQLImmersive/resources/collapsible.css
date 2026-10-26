@@ -1,0 +1,102 @@
+/* Native MediaWiki article toggles. Keep custom controls and core placement intact. */
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55em;
+	box-sizing: border-box;
+	min-block-size: 32px;
+	max-inline-size: 100%;
+	margin-block: 2px;
+	margin-inline: 0.75em 0;
+	padding: 6px 11px;
+	border: 1px solid #8c7545;
+	border-radius: 5px;
+	background: linear-gradient( 180deg, #202b38, #121c29 );
+	color: #eed393;
+	font-family: inherit;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	line-height: 1.25;
+	letter-spacing: 0.015em;
+	text-align: center;
+	text-transform: none;
+	text-decoration: none;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	vertical-align: middle;
+	box-shadow: inset 0 1px 0 #f2d68c12, 0 1px 3px #0003;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+/* Core colors this inner span like a link, independently of its button. */
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default > .mw-collapsible-text {
+	min-inline-size: 0;
+	color: inherit;
+	text-decoration: none;
+}
+
+/* Replace only the default control's brackets with a decorative chevron. */
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default::before {
+	content: '';
+	display: inline-block;
+	flex: 0 0 auto;
+	inline-size: 0.45em;
+	block-size: 0.45em;
+	border: solid currentColor;
+	/* @noflip */
+	border-width: 0 2px 2px 0;
+	/* @noflip */
+	transform: rotate( -45deg );
+	transition: transform 0.15s;
+}
+
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default::after {
+	content: none;
+}
+
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default:dir(rtl)::before {
+	/* @noflip */
+	transform: rotate( 135deg );
+}
+
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default[aria-expanded='true']::before {
+	/* @noflip */
+	transform: rotate( 45deg );
+}
+
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default:hover {
+	border-color: #d5b86f;
+	background: linear-gradient( 180deg, #2b3949, #1a2838 );
+	color: #ffe5ab;
+	text-decoration: none;
+}
+
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default:active {
+	background: #111c2a;
+}
+
+body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default:focus-visible {
+	outline: 2px solid #ffe1a0;
+	outline-offset: 3px;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default,
+	body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default::before {
+		transition: none;
+	}
+}
+
+@media ( forced-colors: active ) {
+	body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default {
+		border-color: ButtonText;
+		background: ButtonFace;
+		color: ButtonText;
+		box-shadow: none;
+	}
+
+	body.skin-eqlimmersive .mw-parser-output .mw-collapsible-toggle-default:focus-visible {
+		outline-color: Highlight;
+	}
+}
