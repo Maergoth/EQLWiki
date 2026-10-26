@@ -108,10 +108,13 @@
         },
         "EQLPlayerList": {
             "class": "EQLImmersive\\PlayerList"
+        },
+        "EQLCharacterScreenshot": {
+            "class": "EQLImmersive\\CharacterScreenshot"
         }
     },
     "Hooks": {
-        "ParserFirstCallInit": "EQLPlayerList",
+        "ParserFirstCallInit": [ "EQLPlayerList", "EQLCharacterScreenshot" ],
         "OutputPageCheckLastModified": [ "EQLDeploymentAssets", "EQLHomepageCache" ],
         "SkinTemplateNavigation::Universal": "EQLImmersiveHooks",
         "SkinBuildSidebar": "EQLImmersiveHooks",
