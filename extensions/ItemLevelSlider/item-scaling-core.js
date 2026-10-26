@@ -25,7 +25,9 @@
 		MAGIC: 'SV_MAGIC', FIRE: 'SV_FIRE', COLD: 'SV_COLD', POISON: 'SV_POISON', DISEASE: 'SV_DISEASE',
 		RESISTMAGIC: 'SV_MAGIC', RESISTFIRE: 'SV_FIRE', RESISTCOLD: 'SV_COLD',
 		RESISTPOISON: 'SV_POISON', RESISTDISEASE: 'SV_DISEASE', RESISTCORRUPTION: 'SV_CORRUPTION',
-		SV_VOID: 'SV_CORRUPTION', HPREGEN: 'HP_REGEN', MANAREGEN: 'MANA_REGEN',
+		SV_VOID: 'SV_CORRUPTION', SVVOID: 'SV_CORRUPTION', SVCORRUPTION: 'SV_CORRUPTION',
+		VOID: 'SV_CORRUPTION', CORRUPTION: 'SV_CORRUPTION', RESISTVOID: 'SV_CORRUPTION',
+		HPREGEN: 'HP_REGEN', MANAREGEN: 'MANA_REGEN',
 		ENDURANCEREGEN: 'END_REGEN', ENDURANCE_REGEN: 'END_REGEN', ENDUR_REGEN: 'END_REGEN',
 		MP_REGEN: 'MANA_REGEN', HP_REGENERATION: 'HP_REGEN', MANA_REGENERATION: 'MANA_REGEN',
 		ENDURANCE_REGENERATION: 'END_REGEN'
@@ -36,7 +38,8 @@
 	}
 	function statFamily( key ) {
 		key = canonicalStatKey( key );
-		if ( PRIMARY.indexOf( key ) !== -1 ) { return 'primary'; }
+		// Intrinsic Void scales like other resists, but cannot qualify generated Void.
+		if ( key === 'SV_CORRUPTION' || PRIMARY.indexOf( key ) !== -1 ) { return 'primary'; }
 		if ( FLAT.indexOf( key ) !== -1 ) { return 'flat'; }
 		return ( { DMG: 'damage', BACKSTAB: 'backstab', RANGE: 'range', WT: 'weight' } )[ key ] || null;
 	}
@@ -188,7 +191,7 @@
 			} );
 			if ( normalizeRank( full, 0 ).full > 0 ) {
 				if ( weapon && !accuracyKey ) { result.ACCURACY = accuracyBonus( full, options.fraction ); }
-				// Existing explicit Void stays caller-owned; only generate a missing field.
+				// Explicit Void scales from its own base; only generate a missing field.
 				if ( !keys.some( function ( key ) { return canonicalStatKey( key ) === 'SV_CORRUPTION'; } ) && voidEligible( stats ) ) {
 					result.SV_CORRUPTION = voidBonus( stats, full );
 				}

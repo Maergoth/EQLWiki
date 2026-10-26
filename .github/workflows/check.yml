@@ -49,11 +49,12 @@ jobs:
           node ops/build-character-sheet-templates.cjs --check
           node --check skins/EQLImmersive/resources/player-list.js
           node --check skins/EQLImmersive/resources/character-sheet.js
-      - name: Check character directory and sheet interactions
+      - name: Check character and item interactions
         run: |
           npm install --prefix "$RUNNER_TEMP/eql-player-dom" --no-save --ignore-scripts --package-lock=false jsdom@27.0.0
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-player-list.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-character-sheet.cjs
+          NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-item-level-slider.cjs
       - name: Check Eye of Zomm refresh wrapper
         run: bash ops/test-eoz-refresh-wrapper.sh
       - name: Check client API and guarded activation contracts
