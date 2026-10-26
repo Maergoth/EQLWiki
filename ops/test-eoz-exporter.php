@@ -181,6 +181,36 @@ $expect( $fixture->stats( 'DMG: 10' ), [ 'DMG'=>10 ], 'Missing weapon fields are
 $expect( $fixture->stats( 'Cold DMG: 4<br>Backstab DMG: 15' ), [ 'COLD_DMG'=>4, 'BACKSTAB_DMG'=>15 ], 'Elemental and Backstab labels never become ordinary damage' );
 $expect( $fixture->stats( "backstab\t damage : 15<br>attack\t delay : 22<br>dmg\t bonus : 10<br>DMG : 10" ),
     [ 'DELAY'=>22, 'DMG_BONUS'=>10, 'BACKSTAB_DMG'=>15, 'DMG'=>10 ], 'Multiword labels retain literal whitespace and case compatibility' );
+foreach ( [ 'SV VOID', 'SV Corruption', 'SV_VOID', 'SV_CORRUPTION', 'SV.Void', 'SV.Corruption',
+    'SV. Void', 'SV. Corruption', 'SV-Void', 'SV-Corruption',
+    'SVVoid', 'SVCorruption', 'ResistVoid', 'ResistCorruption', 'Void', 'Corruption', "sv\tvoid" ] as $label ) {
+    foreach ( [ '+30' => 30, '0' => 0, '-2' => -2, '0.5' => 0.5 ] as $written => $numeric ) {
+        $expect( $fixture->stats( $label . ' : ' . $written ), [ 'SV_CORRUPTION' => $numeric ], "Literal intrinsic Void alias {$label} preserves {$written}" );
+    }
+}
+foreach ( [ 'SV MAGIC: +5 SV FIRE: +5 SV VOID: +30', 'SV VOID: +30 SV FIRE: +5',
+    'STR: 2 SV VOID: +30 DEX: 3', 'SV VOID: +30 SV Corruption: 30.0',
+    'SV. MAGIC: +5 SV. FIRE: +5 SV. VOID: +30', 'SV._ MAGIC: +5 SV._ VOID: +30',
+    'SV-VOID: +30 SV. COLD: +5' ] as $line ) {
+    $expect( $fixture->stats( $line )['SV_CORRUPTION'] ?? null, 30, 'Void survives first/middle/last and consistent repeated grouped numeric fields' );
+}
+foreach ( [ 'SV VOID: 30<br>SV Corruption: 31', 'SV VOID: 0 SV_CORRUPTION: -2',
+    'SV VOID: ?', 'SV VOID: unknown', 'SV VOID: 30?', 'SV VOID: 30 to 31', 'SV VOID: + 30',
+    'SV FIRE: 5 SV VOID: ?', 'SV VOID: 30<br>SV VOID: unknown',
+    'SV VOID: 9223372036854775808', 'SV VOID: -9223372036854775809',
+    'SV VOID: ' . str_repeat( '9', 400 ) ] as $line ) {
+    $stats = $fixture->stats( $line );
+    $expect( array_key_exists( 'SV_CORRUPTION', $stats ), true, 'Explicit malformed/conflicting Void retains unknown field presence' );
+    $expect( $stats['SV_CORRUPTION'], null, 'Malformed/conflicting intrinsic aliases cannot become a trusted numeric base' );
+}
+foreach ( [ 'HP: 12 STR: 2', 'Effect: SV VOID: 30', 'Notes: Corruption: 30',
+    'SV FIRE: 5 and a note about SV VOID: 30', 'Bonus SV VOID: 30', 'SV VOIDLESS: 30',
+    '<!-- SV VOID: 30 -->', "<!--\nSV VOID: 30\n-->", '<nowiki>SV VOID: 30</nowiki>',
+    "<pre>\nSV VOID: 30\n</pre>", "{{Unknown\nSV VOID: 30\n}}" ] as $line ) {
+    $expect( array_key_exists( 'SV_CORRUPTION', $fixture->stats( $line ) ), false, 'Absent, incidental or unexpanded content never invents a Void base' );
+}
+$expect( $fixture->stats( '<!-- SV VOID: 99 --><br>SV VOID: 30' ), [ 'SV_CORRUPTION' => 30 ], 'Commented pseudo-stat does not conflict with the literal field' );
+$expect( $fixture->stats( 'SV VOID: 9007199254740991' ), [ 'SV_CORRUPTION' => 9007199254740991 ], 'The JavaScript-safe numeric boundary is preserved without integer saturation' );
 $viewerIds = [];
 foreach ( $fixture->catalog() as $zone ) {
     if ( !isset( $zone['viewerId'] ) ) { continue; }
