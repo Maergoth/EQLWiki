@@ -252,6 +252,14 @@ and links remain distinct from the base-item AjaxHoverHelper. No historical
 Magelo extension is enabled. Optional totals include ten observed Additional
 Modifiers; accuracy bonus is distinct from ATK Accuracy. The template only
 displays the supplied equipped-stat reading and never adds item/catalog stats.
+Optional imported achievements use the same schema-1 sheet through the generated
+`achievements` parameter. The main template advertises
+`EQL_CHARACTER_ACHIEVEMENTS_V1`; the skin adds independent collapsed achievement
+and category disclosures below the gear/stat layout, preserving exported parent
+and objective completion plus counters. Missing data leaves old sheets unchanged;
+static content remains readable without JavaScript. No new extension or database
+table is required. See `ops/test-character-achievements.cjs` and the Character
+sheet guide for payload bounds and capability checks.
 See [the contract, separate guarded publication and
 checks](CHARACTER_SHEETS.md); Git deployment does not publish the templates.
 

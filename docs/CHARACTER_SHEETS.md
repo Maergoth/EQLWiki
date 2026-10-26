@@ -9,6 +9,12 @@ shows its supplied tier-specific stat card, reviewed rich metadata/effect links
 and clickable known Exaltations. Socketed Exaltations show their name and effect
 only; their numeric stats, tier and unrelated equipment metadata are omitted.
 The stylized **View Other Players** link below equipment opens `Player_List`.
+An optional achievement export appears below the equipment and statistics.
+Achievements and their categories have independent, initially collapsed
+disclosures. Each achievement and objective keeps its explicit Complete or
+Incomplete marker, including objective counters; completing every objective
+does not change an incomplete parent. Without JavaScript the full list remains
+readable. Old sheets without achievements render exactly as before.
 The interactive inspect is a labeled nonmodal dialog. A short 200 ms pointer
 grace period allows crossing the gap from gear to its links; entering the card
 cancels dismissal. Keyboard users can press ArrowDown from gear to enter those
@@ -48,10 +54,31 @@ The app preflights both template sources for `EQL_CHARACTER_SHEET_V1` and
 `EQL_CHARACTER_SHEET_ITEM_V1`, then uses an unsaved `action=parse` request with a
 synthetic populated `head_item`. It requires `.eql-character-sheet-v1`, the
 helper's `.eql-character-inspect-v1` and the exact module in `parse.modules`.
+For an achievement-bearing share it additionally requires
+`EQL_CHARACTER_ACHIEVEMENTS_V1` in the main template and an unsaved parse that
+retains `.eql-character-achievements-v1` and its supplied probe. A legacy wiki
+template must not silently discard the imported list. Shares without an
+achievement export still use the original schema-1 capability.
 Missing templates or deployment capability must prevent publishing a broken
 sheet. Parser/module availability does not grant edit permission.
 
 ## Flat parameter contract
+
+The optional `achievements` parameter is generated, bounded HTML containing
+`.eql-character-achievement-category`, its category heading/list, individual
+`.eql-character-achievement` rows, and optional objective rows with progress.
+The app validates the shared export DTO before serialization, recomputes counts,
+and entity-escapes every text field before inserting fixed HTML. It publishes no
+file path, hash, raw file bytes or inferred completion. The public JSON payload
+is limited to 512 KiB, generated template source to 1 MiB and updated User page
+to 2 MiB; larger data is rejected without partial publication or truncation.
+Existing schema-1 gear, totals, identity and item-helper parameters are unchanged.
+
+`node ops/test-character-achievements.cjs` checks the optional static markup,
+independent nested disclosures and dynamic initialization using synthetic DOM.
+The normal template generator `--check` and Character sheet parser/DOM checks
+continue to cover the base contract. Publishing a new main template remains a
+separate revision-guarded database change after deploying the reviewed skin.
 
 Use named parameters; underscores and spaces in the two template titles have
 normal MediaWiki equivalence. A minimal sheet is:
