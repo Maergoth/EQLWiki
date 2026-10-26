@@ -15,6 +15,11 @@ disclosures. Each achievement and objective keeps its explicit Complete or
 Incomplete marker, including objective counters; completing every objective
 does not change an incomplete parent. Without JavaScript the full list remains
 readable. Old sheets without achievements render exactly as before.
+The skin displays the completed count in gold serif numerals on both the outer
+Character header and inner Achievements header, including while collapsed. It
+reads the existing fixed summary and keeps explicit zero distinct from missing
+data. This badge and the Player List's Achievement count sort need only a source
+deployment; they require no new app payload or database-template publication.
 The interactive inspect is a labeled nonmodal dialog. A short 200 ms pointer
 grace period allows crossing the gap from gear to its links; entering the card
 cancels dismissal. Keyboard users can press ArrowDown from gear to enter those
