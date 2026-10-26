@@ -115,7 +115,7 @@ function fixture( get = () => response(), getUrl = url ) {
     assert( scoreCell( 'haste' ).textContent.startsWith( '10' ) ); assert( scoreCell( 'atk' ).textContent.startsWith( '5' ) );
     assert.match( scoreCell( 'speed' ).title, /Attack speed: \(115 − 100\) × 10 = 150/ );
     for ( const id of [ 'missing', 'partial', 'no-speed', 'conflict', 'string', 'overflow' ] ) { assert.equal( scoreCell( id ).parentNode.firstChild.textContent, '—', id + ': unknown stays unranked.' ); assert.match( scoreCell( id ).textContent, /Incomplete stats/ ); }
-    assert.match( scoreCell( 'partial' ).title, /ATK accuracy/ );
+    assert.match( scoreCell( 'partial' ).title, /ATK accuracy/ ); assert.equal( scoreCell( 'conflict' ).title, 'Unranked: conflicting snapshots' );
     assert( scoreCell( 'negative' ).textContent.startsWith( '-1' ), 'Signed resists retain negative contributions.' );
     assert( scored.ids().indexOf( 'tiny-high' ) < scored.ids().indexOf( 'tiny-low' ), 'Ranking uses full precision even when displayed scores round alike.' );
     assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, false );
