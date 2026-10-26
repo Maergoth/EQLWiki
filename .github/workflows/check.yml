@@ -24,8 +24,15 @@ jobs:
       - name: Check release packaging
         run: |
           python3 ops/test-release-assets.py
+          python3 ops/test-incremental-deploy.py
           php ops/test-deployment-assets.php
           python3 ops/build-release.py --output "$RUNNER_TEMP/release.tar.gz"
+          tar --list --gzip --absolute-names --quoting-style=escape --file "$RUNNER_TEMP/release.tar.gz" > "$RUNNER_TEMP/release-paths"
+          tar --list --verbose --numeric-owner --gzip --absolute-names --quoting-style=escape --file "$RUNNER_TEMP/release.tar.gz" > "$RUNNER_TEMP/release-types"
+          php ops/deploy-files.php validate-archive "$RUNNER_TEMP/release-paths" "$RUNNER_TEMP/release-types"
+          mkdir "$RUNNER_TEMP/deployment-preflight"
+          tar --extract --gzip --file "$RUNNER_TEMP/release.tar.gz" --directory "$RUNNER_TEMP/deployment-preflight" --no-same-owner --same-permissions
+          php ops/deploy-files.php validate "$RUNNER_TEMP/deployment-preflight" "$(git rev-parse HEAD)"
       - name: Check Eye of Zomm source export contracts
         run: |
           php ops/test-eoz-exporter.php

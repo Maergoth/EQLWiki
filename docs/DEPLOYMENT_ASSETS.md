@@ -5,6 +5,10 @@ Each application archive includes a generated, manifest-managed
 It is not a tracked source file or a cache snapshot. The packager puts it **last**
 in the manifest so the existing deployment receiver installs all application
 files before activating their new public cache identity.
+The [incremental deployment protocol](INCREMENTAL_DEPLOYMENT.md) always carries
+the marker, even when it carries no other application change. It activates the
+marker after file removals as well as replacements and restores it with the
+corresponding reverse-patch backup on rollback.
 
 The EQLImmersive registration callback reads this marker before MediaWiki settings
 become read-only. A standard configured `/load.php` endpoint becomes
@@ -17,8 +21,9 @@ The application `.htaccess` internally routes valid release paths to native
 `load.php`, preserving the query. Old valid release paths remain routable to
 the currently installed loader; they do not refer to disappearing generated PHP
 files. The local router implements the same route. Malformed reserved paths
-return 404. No private receiver installation or database-page publication is
-required.
+return 404. The asset URL mechanism needs no database-page publication;
+[private receiver installation](INCREMENTAL_DEPLOYMENT.md) is a separate
+deployment operation.
 
 The loader base is deliberately query-free: native JavaScript module loading,
 `mw.util.wikiScript('load')`, and Parsoid append their own query strings. Native

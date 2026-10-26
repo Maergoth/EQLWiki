@@ -3,6 +3,11 @@ on:
   push:
     branches: [main, staging]
   workflow_dispatch:
+    inputs:
+      full:
+        description: 'Reconcile the complete managed application (repair or staging-transform update)'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -15,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - name: Package application
-        run: python3 ops/build-release.py --output "$RUNNER_TEMP/release.tar.gz"
+        with:
+          fetch-depth: 0
       - name: Configure deployment SSH
         env:
           DEPLOY_KEY: ${{ github.ref_name == 'staging' && secrets.CPANEL_STAGING_DEPLOY_KEY || secrets.CPANEL_DEPLOY_KEY }}
@@ -26,10 +31,19 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/eqlwiki_deploy
           printf '%s\n' "$HOST_KEYS" > ~/.ssh/known_hosts
+      - name: Read installed deployment revision
+        run: bash ops/ssh-command.sh status > "$RUNNER_TEMP/deploy-status.json"
       - name: Refresh staging data if older than 24 hours
         if: github.ref_name == 'staging'
         run: |
           bash ops/ssh-command.sh 'refresh if-stale'
+      - name: Package changed application files
+        env:
+          FULL_DEPLOY: ${{ inputs.full && 'true' || 'false' }}
+        run: |
+          ARGS=()
+          if [[ "$FULL_DEPLOY" == true ]]; then ARGS+=(--full); fi
+          python3 ops/build-release.py --status-file "$RUNNER_TEMP/deploy-status.json" "${ARGS[@]}" --output "$RUNNER_TEMP/release.tar.gz"
       - name: Deploy and verify wiki
         run: |
           bash ops/ssh-command.sh "deploy $GITHUB_SHA" "$RUNNER_TEMP/release.tar.gz"

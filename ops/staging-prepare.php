@@ -2,12 +2,16 @@
 // Environment substitutions in a staged release, never in production files.
 $root = $argv[1] ?? '';
 if (!is_file("$root/.eql-deployment-manifest")) { throw new RuntimeException('Missing release manifest'); }
+$state = $argv[2] ?? '/home/eqlwikdq/deploy/EQLWiki-staging';
+$payload = is_file("$root/.eql-deployment-payload") ? file("$root/.eql-deployment-payload", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : file("$root/.eql-deployment-manifest", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$included = array_fill_keys($payload, true);
 $files = ['eql_logout.php', 'wiki_auth_bridge.php', 'bb/smf_mediawiki_login.php', 'bb/smf_mediawiki_auto_login.php',
     'bb/smf_mediawiki_logout.php', 'bb/eql_inline_image_upload.php', 'bb/eql_inline_image_finalize.php',
     'bb/Themes/PurpleHaze/index.template.php', 'skins/EQLImmersive/resources/contribute.js',
     'skins/EQLImmersive/resources/item-hover.js', 'skins/EQLImmersive/resources/main.js',
     'skins/EQLImmersive/resources/spellblade-indicator.js', 'bb/.htaccess'];
 foreach ($files as $file) {
+    if (!isset($included[$file])) { continue; }
     if (!is_file("$root/$file")) { throw new RuntimeException("Missing staging source: $file"); }
     $source = file_get_contents("$root/$file");
     $source = str_replace(['https://www.eqlwiki.com', 'https://eqlwiki.com'], 'https://test.eqlwiki.com', $source);
@@ -23,9 +27,12 @@ foreach ($files as $file) {
     if ($file === 'bb/smf_mediawiki_logout.php') {
         $source = str_replace("['', 'eqlwiki.com', '.eqlwiki.com']", "['', 'test.eqlwiki.com', '.test.eqlwiki.com']", $source);
     }
-    file_put_contents("$root/$file", $source);
+    if (file_put_contents("$root/$file", $source) !== strlen($source)) { throw new RuntimeException("Cannot prepare staging source: $file"); }
 }
 // Persist access protection when a release replaces the production .htaccess.
-require_once '/home/eqlwikdq/deploy/EQLWiki-staging/staging-access-lib.php';
-file_put_contents("$root/.htaccess", eql_staging_access_rules(file_get_contents("$root/.htaccess")));
+if (isset($included['.htaccess'])) {
+    require_once "$state/staging-access-lib.php";
+    $rules = eql_staging_access_rules(file_get_contents("$root/.htaccess"));
+    if (file_put_contents("$root/.htaccess", $rules) !== strlen($rules)) { throw new RuntimeException('Cannot prepare staging access rules'); }
+}
 echo "Staging URLs, authentication headers, and cookie isolation prepared\n";
