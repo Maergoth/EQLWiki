@@ -193,7 +193,7 @@
                 tier.appendChild( element( 'small', format( player.equippedSlots ) + ' equipped · ' + format( player.tieredSlots ) + ' tiered' ) );
                 if ( fieldsStat() ) {
                     var featured = numericCell( row, valueFor( player, sortKey ), 'eql-pl-number eql-pl-featured-stat' );
-                    if ( sortKey === 'gearScore' ) { featured.title = player.gearScore.value === null ? 'Unranked: ' + ( player.gearScore.missing.length ? 'missing ' + player.gearScore.missing.join( ', ' ) : 'invalid score total' ) : 'Provisional Gear Score v1\n' + gearScore( player.stats, true ).parts.join( '\n' ); featured.appendChild( element( 'small', player.gearScore.value === null ? 'Incomplete stats' : player.gearScore.legacy ? 'Provisional · legacy totals' : 'Provisional' ) ); }
+                    if ( sortKey === 'gearScore' ) { featured.title = player.gearScore.value === null ? 'Unranked: ' + ( player.snapshotConflict ? 'conflicting snapshots' : player.gearScore.missing.length ? 'missing ' + player.gearScore.missing.join( ', ' ) : 'invalid score total' ) : 'Provisional Gear Score v1\n' + gearScore( player.stats, true ).parts.join( '\n' ); featured.appendChild( element( 'small', player.gearScore.value === null ? 'Incomplete stats' : player.gearScore.legacy ? 'Provisional · legacy totals' : 'Provisional' ) ); }
                 } body.appendChild( row );
             } );
             scroll.hidden = filtered.length === 0; empty.hidden = filtered.length !== 0; navigation.hidden = filtered.length <= PAGE_SIZE;
