@@ -7,11 +7,16 @@ published readings, not a game-server verification of characters or equipment.
 The directory supports character/wiki-user search, server selection, **Max level
 only**, and all sixteen class checkboxes. **Include every selected class** selects
 class combinations; uncheck it to include any selected class. Sort by total
-equipped gear tier, level, AA points or any supported published statistic.
+equipped gear tier, level, AA points, **Achievement count**, or any supported
+published statistic. Achievement count means completed achievements and starts
+highest first; it is one option in the existing Order by dropdown.
 Unknown and estimated values are unranked and sort last in either direction.
 Equipped-tier sums exclude socketed Exaltations. An equipped item without a valid
 reported tier makes the sum unknown; it never silently contributes zero. The
 directory shows the reported equipment coverage alongside that sum.
+Known achievement counts also appear in gold below the character identity.
+An exported zero is a known value; legacy or malformed achievement summaries
+remain unknown and sort last in either direction.
 
 ## Ownership and data flow
 
@@ -37,6 +42,14 @@ directory shows the reported equipment coverage alongside that sum.
   and direct equipped tiers. It does not infer stats from item base values or
   Exaltations. Identical duplicate character/server snapshots collapse;
   conflicting duplicate snapshots retain a profile link with unranked values.
+  Its optional `achievementCount` integer comes only from the fixed direct
+  `.eql-character-achievements-summary` text `N / T achievements complete`.
+  Both numbers must be bounded nonnegative integers with N<=T. It never infers
+  completed achievements from completed objectives. Missing, duplicate, malformed
+  or conflicted summaries return null rather than zero. The extracted-row cache
+  schema changes so previously cached rows gain the optional field on next read.
+  The API still traverses complete keyset batches; it does not add per-batch
+  sorting or change public visibility/continuation behavior.
 - `$wgEQLClientDataPlayerMaxLevel` defaults to 50 and controls Max level only.
   Raising a game level cap is an explicit configuration change.
 
@@ -44,6 +57,11 @@ The existing character-sheet module opens a single-character page by default;
 multiple sheets retain independent disclosures. A stylized **View Other Players**
 link sits below each equipment display and targets `Player_List`. Repeated wiki
 content hooks preserve disclosure state and do not duplicate links or listeners.
+When an achievement summary is present, both the outer Character header and
+inner Achievements header display a large gold serif completed count. It is
+visible while those sections are collapsed. Enhancement reads the existing
+summary without rewriting the template or User page; dynamic refreshes update
+the two badges without duplicating them or resetting disclosure state.
 
 ## Existing and future effect metadata
 

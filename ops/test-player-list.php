@@ -151,11 +151,16 @@ namespace {
 			}
 			$equipment .= '<div class="eql-character-equipment-row"><div class="eql-character-slot"><span class="eql-character-slot-label">' . $label . '</span>' . $card . '</div></div>';
 		}
+		$achievements = $options['achievementsHtml'] ?? ( array_key_exists( 'achievementSummary', $options ) ? achievementSummary( $options['achievementSummary'] ) : '' );
 		return '<div class="eql-character-sheet eql-character-sheet-v1"><div class="eql-character-heading"><strong>' . $name . ' (' . $server . ')</strong>' .
 			'<span class="eql-character-metadata">Level ' . ( $options['level'] ?? '50' ) . ' · ' . ( $options['classes'] ?? 'WAR / CLR' ) . ' · ' . ( $options['aa'] ?? '12' ) . ' AAs · Human</span></div>' .
 			'<div class="eql-character-body"><div class="eql-character-layout"><div class="eql-character-totals"><dl>' . $pairs . ( $options['extraPairs'] ?? '' ) . '</dl></div>' .
-			'<div class="eql-character-equipment">' . $equipment . '</div></div><p class="eql-character-note">? Unknown · * Estimate. Updated: 2026-10-26T12:00:00Z</p>' .
-			'<div class="eql-character-caption"><dl><div><dt>HP</dt><dd>999999</dd></div></dl><span class="eql-character-tier">+10</span></div></div></div>';
+			'<div class="eql-character-equipment">' . $equipment . '</div></div>' . $achievements . '<p class="eql-character-note">? Unknown · * Estimate. Updated: 2026-10-26T12:00:00Z</p>' .
+			'<div class="eql-character-caption"><dl><div><dt>HP</dt><dd>999999</dd></div></dl><span class="eql-character-tier">+10</span><p class="eql-character-achievements-summary">999 / 999 achievements complete</p></div></div></div>';
+	}
+	function achievementSummary( string $summary ): string {
+		return '<div class="eql-character-achievements-v1"><div class="eql-character-achievements-heading">Achievements</div>' .
+			'<div class="eql-character-achievements-body"><p class="eql-character-achievements-summary">' . $summary . '</p></div></div>';
 	}
 	class WANObjectCache {
 		public array $data = [];
@@ -225,6 +230,33 @@ namespace {
 	check( $row['stats']['hp'] === 1234 && $row['stats']['mp'] === 0 && $row['stats']['atk_accuracy'] === 400 && $row['stats']['accuracy'] === 3, 'Zero and the two accuracy concepts remain distinct; caption decoys ignored.' );
 	check( $row['totalTier'] === 1 && $row['equippedSlots'] === 2 && $row['tieredSlots'] === 2, 'Sum only direct equipped tiers, including explicit zero; exclude inspect duplicates and Exaltations.' );
 	check( count( $row['stats'] ) === count( Snapshot::STAT_LABELS ) && $row['stats']['sv_fire'] === null && $row['updated'] === '2026-10-26T12:00:00Z', 'Absent values remain null and reported update text is retained.' );
+	check( $row['achievementCount'] === null, 'Legacy sheets without the fixed summary have unknown achievements; caption lookalikes do not count.' );
+	foreach ( [ '15 / 80 achievements complete' => 15, '0 / 3 achievements complete' => 0,
+		'0 / 0 achievements complete' => 0, '1000000000 / 1000000000 achievements complete' => 1000000000 ] as $summary => $expected ) {
+		check( Snapshot::extract( sheet( [ 'achievementSummary' => $summary ] ) )[0]['achievementCount'] === $expected, 'Only the bounded completed achievement count is public: ' . $summary );
+	}
+	foreach ( [ '? / 2 achievements complete', '-1 / 2 achievements complete', '1.5 / 2 achievements complete',
+		'3 / 2 achievements complete', '1 / -2 achievements complete', '1 / 1.5 achievements complete',
+		'1e3 / 2000 achievements complete', '1,000 / 2000 achievements complete', '01 / 2 achievements complete',
+		'1 / 02 achievements complete', '1000000001 / 1000000001 achievements complete',
+		'1 / 1000000001 achievements complete', '999999999999999999 / 999999999999999999 achievements complete',
+		'1 / 2 achievements complete *', '1 / 2 objectives complete' ] as $summary ) {
+		check( Snapshot::extract( sheet( [ 'achievementSummary' => $summary ] ) )[0]['achievementCount'] === null, 'Malformed, estimated, excessive or contradictory achievement summary stays unranked: ' . $summary );
+	}
+	$fixedAchievements = achievementSummary( '7 / 20 achievements complete' );
+	$duplicateSummary = str_replace( '</p>', '</p><p class="eql-character-achievements-summary">8 / 20 achievements complete</p>', $fixedAchievements );
+	check( Snapshot::extract( sheet( [ 'achievementsHtml' => $duplicateSummary ] ) )[0]['achievementCount'] === null, 'Duplicate fixed summaries cannot choose an arbitrary completion count.' );
+	check( Snapshot::extract( sheet( [ 'achievementsHtml' => $fixedAchievements . $fixedAchievements ] ) )[0]['achievementCount'] === null, 'Multiple achievement sections remain unranked rather than selecting the first.' );
+	$nestedSummary = str_replace( '<p class="eql-character-achievements-summary">', '<div><p class="eql-character-achievements-summary">', $fixedAchievements );
+	$nestedSummary = str_replace( '</p>', '</p></div>', $nestedSummary );
+	check( Snapshot::extract( sheet( [ 'achievementsHtml' => $nestedSummary ] ) )[0]['achievementCount'] === null, 'Nested objective or category summary lookalikes do not report the fixed sheet total.' );
+	$independentAchievements = Snapshot::extract( sheet( [ 'achievementSummary' => '4 / 10 achievements complete' ] ) .
+		sheet( [ 'server' => 'Other Realm', 'achievementSummary' => '0 / 12 achievements complete' ] ) );
+	check( array_column( $independentAchievements, 'achievementCount' ) === [ 4, 0 ], 'Each character sheet supplies its own count without leaking a sibling summary.' );
+	$achievementConflict = Snapshot::extract( sheet( [ 'achievementSummary' => '4 / 10 achievements complete' ] ) .
+		sheet( [ 'achievementSummary' => '5 / 10 achievements complete' ] ) );
+	check( count( $achievementConflict ) === 1 && $achievementConflict[0]['snapshotConflict'] && $achievementConflict[0]['achievementCount'] === null,
+		'Conflicting repeated snapshots cannot manufacture an achievement rank.' );
 	foreach ( [ '?', '12 *', 'NaN', 'Infinity', '1e4', '1,000', '4 apples', '999999999999999' ] as $invalid ) {
 		check( Snapshot::extract( sheet( [ 'totals' => [ 'HP' => $invalid ] ] ) )[0]['stats']['hp'] === null, 'Unsupported/estimated total cannot rank: ' . $invalid );
 	}
@@ -248,7 +280,14 @@ namespace {
 	rejects( fn () => Snapshot::extract( str_repeat( sheet(), Snapshot::MAX_SHEETS + 1 ) ), 'player-list-sheet-limit' );
 
 	[ $repo, $db, $pages, $lookup, $permissions, $parser, $cache, $config ] = fixtures();
+	$parser->outputs[10]->html = sheet( [ 'achievementSummary' => '6 / 10 achievements complete' ] );
+	$legacyRow = Snapshot::extract( sheet() )[0];
+	unset( $legacyRow['achievementCount'] );
+	$legacyKey = $cache->makeKey( 'eqlplayers', 'schema1-v1', 10, 110, $pages->pages[10]->touched, 50 );
+	$cache->data[$legacyKey] = [ 'rows' => [ $legacyRow ], 'dependencies' => [ [ 'id' => 100, 'revision' => 1000, 'namespace' => 10, 'title' => 'Character_sheet' ] ] ];
 	$first = $repo->getBatch( null, 2 ); $calls = $parser->calls;
+	check( $first['players'][0]['achievementCount'] === 6 && $first['players'][1]['achievementCount'] === null && $parser->calls === 2,
+		'Cache schema change bypasses pre-feature rows and returns numeric/null achievement fields through unchanged keyset batches.' );
 	check( count( $first['players'] ) === 2 && isset( $first['continue'] ) && $first['maxLevel'] === 50, 'First keyset batch has exactly its configured page budget.' );
 	check( str_starts_with( $first['players'][0]['id'], '10:' ) && $first['players'][0]['pageTitle'] === 'User:Fixture 10' && str_starts_with( $first['players'][0]['pageUrl'], '/wiki/' ), 'Public rows link to the page and expose no account/private identifiers.' );
 	$repo->getBatch( null, 2 ); check( $parser->calls === $calls, 'Verified current extracted rows reuse short-lived server cache.' );
@@ -287,6 +326,8 @@ namespace {
 	$main = new \MediaWiki\Api\ApiMain(); $api = new \EQLClientData\ApiPlayers( $main, 'eqlplayers', $repo );
 	$api->params = [ 'limit' => 2 ]; $api->execute();
 	check( !$api->mustBePosted() && !$api->isWriteMode() && !$api->isInternal() && isset( $main->data['eqlplayers']['continue'] ), 'Actual API class is read-only public GET and preserves continuation payload.' );
+	$api->params = [ 'limit' => 2, 'continue' => $empty['continue'] ]; $api->execute();
+	check( array_key_exists( 'achievementCount', $main->data['eqlplayers']['players'][0] ), 'The existing read-only API exposes the optional count without adding per-batch sorting or altering continuation.' );
 	$api->params['continue'] = 'malformed'; rejects( fn () => $api->execute(), 'badcontinue' );
 	$api->params = [ 'limit' => 25 ]; $parser->fail = true;
 	$before = $main->data;

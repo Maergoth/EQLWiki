@@ -260,6 +260,11 @@ and objective completion plus counters. Missing data leaves old sheets unchanged
 static content remains readable without JavaScript. No new extension or database
 table is required. See `ops/test-character-achievements.cjs` and the Character
 sheet guide for payload bounds and capability checks.
+The skin reads the fixed completed-achievement summary for gold counts on both
+collapsed headers. Public snapshot extraction exposes optional `achievementCount`
+(null for legacy/invalid/conflicted data); Player List adds that one sorting
+option after completing all keyset batches. No template write, private inventory
+read, objective-based completion inference or server pagination change occurs.
 See [the contract, separate guarded publication and
 checks](CHARACTER_SHEETS.md); Git deployment does not publish the templates.
 
