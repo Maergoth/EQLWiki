@@ -105,9 +105,13 @@
         },
         "EQLHomepageCache": {
             "class": "EQLImmersive\\HomepageCache"
+        },
+        "EQLPlayerList": {
+            "class": "EQLImmersive\\PlayerList"
         }
     },
     "Hooks": {
+        "ParserFirstCallInit": "EQLPlayerList",
         "OutputPageCheckLastModified": [ "EQLDeploymentAssets", "EQLHomepageCache" ],
         "SkinTemplateNavigation::Universal": "EQLImmersiveHooks",
         "SkinBuildSidebar": "EQLImmersiveHooks",
@@ -124,7 +128,13 @@
         },
         "skins.EQLImmersive.characterSheet": {
             "scripts": [ "resources/character-sheet.js" ],
-            "styles": [ "resources/character-sheet.css" ]
+            "styles": [ "resources/character-sheet.css" ],
+            "dependencies": [ "mediawiki.util", "mediawiki.api" ]
+        },
+        "skins.EQLImmersive.playerList": {
+            "scripts": [ "resources/player-list.js" ],
+            "styles": [ "resources/player-list.css" ],
+            "dependencies": [ "mediawiki.api", "mediawiki.util" ]
         },
         "skins.EQLImmersive.talkUnread": {
             "scripts": [ "resources/talk-unread.js" ],
