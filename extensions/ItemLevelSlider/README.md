@@ -50,8 +50,9 @@ Engines expose:
   rank. Haste, Attack, weapon DMG, Backstab, delay and weight are excluded.
 - `scaleItemStats(stats, full, {fraction, slots, accuracyPercent})` preserves
   input keys, generates missing contextual Accuracy/Void only above tier zero,
-  and preserves existing explicit Void values. The wiki DOM adapter also
-  suppresses a generated duplicate when explicit Void/Corruption is present.
+  and scales positive explicit Void from its listed base using the existing flat
+  family. The wiki DOM adapter also suppresses a generated duplicate when explicit
+  Void/Corruption is present, including zero or an unknown value.
 
 Only standalone weapon DMG scales. Elemental/bane DMG, delay and damage bonus
 remain independent. Generated damage bonuses still belong to `Template:Itembox`.
@@ -59,6 +60,27 @@ Backstab and fractional Accuracy remain screenshot-derived working models, not
 published game formulas. Matching the wiki does not turn them into verified
 game mechanics. Preserve the reviewed rates and ceiling/rounding policy when
 updating both clients.
+
+Rules revision 4 recognizes intrinsic SV Void (SV Corruption) as an existing
+flat stat: a positive listed base `B` becomes `B + rank * flat.perTier`, currently
+`B + rank`. A base of 3 at rank 5 becomes 8, and a base of 20 becomes 25; this
+does not use the percentage curve of ordinary primary resists. Fractional rank
+progress adds no Void. Explicit zero and negative bases remain unchanged, and
+null stays unknown. Intrinsic Void does not require two other qualifying stats
+and is not itself a qualifier. An absent field retains the existing two-field
+generated bonus using `void.perTier`; it is not universally assumed to have
+base zero. Compact `SVVoid`/`SVCorruption`, spaced/dotted/underscored SV labels,
+bare Void/Corruption and ResistVoid/ResistCorruption share the canonical key.
+The engine preserves caller keys and the wiki retains the authored label/base
+while preventing a duplicate generated row. Tier 0 and the tier 10 cap remain
+unchanged. This correction reuses the flat family, so schema/engine version 1
+remain supported while the rules revision and engine hash change together.
+
+Void reverse recovery requires context: an observed value alone cannot establish
+whether it came from an intrinsic base or the generated bonus. Consumers should
+keep automatic recovery contextual/unknown and forward-check any manually
+supplied base, rather than inserting a zero base. Existing saved observations
+and item article stats are not rewritten by this formula change.
 
 Rules revision 3 corrects arithmetic at exact decimal weight boundaries without
 changing the 9% reduction or ceiling to one decimal place. Whole ranks evaluate
@@ -87,7 +109,8 @@ Void 5 at rank 5; Talisman of Kejaar Kerrath's three base regen fields of 2 do
 likewise. Serpent's Tooth has only one qualifying field, STR 3, and Glowing Iron
 Pike has none: their DMG/Backstab/delay do not qualify. An AC field alone also
 does not qualify. This correction changes eligibility, not the two-field
-threshold, whole-rank bonus or existing explicit Void handling.
+threshold or whole-rank bonus. Revision 4 separately corrects intrinsic Void
+handling as described above.
 
 One observation remains unresolved: Lustrous Russet Vambraces at `3 + 0/8`
 displays AC 16, while its current [base AC 15, revision 177316](https://eqlwiki.com/index.php?title=Lustrous_Russet_Vambraces&oldid=177316)
@@ -105,7 +128,8 @@ Update fixtures only against evidence for an intentional formula change.
 A new engine contract or scaling family needs a new supported `engineVersion`
 plus compatible client code. A reviewed correction within the existing contract
 increments the rules revision and changes the recorded engine hash together;
-revisions 2 and 3 retain engine version 1. Synchronize the app's vendored engine/rules using its checked source-sync
+revisions 2 through 4 retain engine version 1. Synchronize the app's vendored
+engine/rules using its checked source-sync
 script, record the wiki commit and source hashes, then ship a new app version.
 Both coefficient and algorithm changes follow this release process. Do not add
 runtime formula checks or a second hand-maintained implementation in a consumer.

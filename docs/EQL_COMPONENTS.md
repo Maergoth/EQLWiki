@@ -343,6 +343,14 @@ from item screenshots, not published game formulas. Important contracts:
   alongside attributes and the five ordinary resists. Haste, Attack, weapon
   DMG, Backstab, delay and weight do not qualify. Eligible cards gain +1 per
   whole rank, hidden at zero; explicit Void/Corruption suppresses generation.
+- Rules revision 4 scales positive intrinsic SV Void/Corruption from its listed
+  base using the existing flat family: base 3 becomes 8 at rank 5; base 20 becomes
+  25. Explicit zero and negative values stay unchanged, null remains unknown,
+  and fractions add no Void. Intrinsic values do not need other qualifying stats
+  or create a generated duplicate; missing-field eligibility is unchanged.
+  The shared aliases cover compact/spaced/dotted/underscored SV labels and bare
+  Void/Corruption. App recovery must retain contextual uncertainty and verify
+  manually supplied bases against the same forward engine.
 - Melee and ranged weapon cards with positive standalone DMG gain an Accuracy
   row inside `.itemdata`, near DMG/Ratio. AMMO-only cards are excluded. The gain
   is `2.5 * log2(2^fullLevel + fraction)` percentage points, displayed with a `+`

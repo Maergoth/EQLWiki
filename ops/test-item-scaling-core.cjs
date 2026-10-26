@@ -11,10 +11,11 @@ const engine = core.createEngine( rules );
 const clone = value => JSON.parse( JSON.stringify( value ) );
 
 assert.equal( core.validateRules( rules ), true );
-assert.equal( engine.revision, 3 );
+assert.equal( engine.revision, 4 );
 assert.equal( engine.statFamily( 'Backstab DMG' ), 'backstab' );
 assert.equal( engine.statFamily( 'Mana' ), 'primary' );
 assert.equal( engine.statFamily( 'Endurance Regen' ), 'flat' );
+assert.equal( engine.statFamily( 'SV Void' ), 'flat' );
 assert.equal( engine.statFamily( 'Cold DMG' ), null );
 assert.deepEqual( engine.normalizeRank( 0, 40 ), { full: 0, fraction: 0, denom: 1 } );
 assert.deepEqual( engine.normalizeRank( 10, 1000 ), { full: 10, fraction: 0, denom: 1024 } );
@@ -36,6 +37,10 @@ const cases = [
 	[ 'BACKSTAB', -4, 10, 0, -4 ], [ 'BACKSTAB', 0, 10, 0, 0 ],
 	[ 'RANGE', 100, 4, 15, 140 ], [ 'RANGE', -10, 4, 0, -10 ], [ 'RANGE', 0, 2, 0, 20 ],
 	[ 'HP_REGEN', 4, 4, 15, 8 ], [ 'HASTE', 0, 4, 0, 0 ], [ 'MANA_REGEN', -2, 4, 0, -2 ],
+	// Intrinsic Void keeps its listed base and adds only whole tiers, even above10.
+	[ 'SV_CORRUPTION', 3, 5, 4, 8 ], [ 'SV_VOID', 20, 5, 31, 25 ],
+	[ 'SV_CORRUPTION', 3, 10, 900, 13 ], [ 'SV_CORRUPTION', 0, 5, 0, 0 ],
+	[ 'SV_CORRUPTION', -3, 5, 0, -3 ], [ 'SV_CORRUPTION', null, 5, 0, null ],
 	// Decimal display ceiling must not add a tenth at an exact boundary.
 	[ 'WT', 10, 1, 0, 9.1 ], [ 'WT', 10, 10, 0, 1 ], [ 'WT', 0.1, 10, 0, 0.1 ],
 	[ 'WT', 2.5, 8, 0, 0.7 ], [ 'WT', 2.5, 10, 0, 0.3 ], [ 'WT', 1, 10, 0, 0.1 ],
@@ -113,6 +118,28 @@ for ( const test of [
 for ( const excluded of [ 'HASTE', 'ATK', 'DMG', 'BACKSTAB', 'DELAY', 'WT' ] ) {
 	assert.equal( engine.voidEligible( { AC: 2, [ excluded ]: 5 } ), false, `${excluded} cannot be a second Void qualifier` );
 }
+const voidAliases = [ 'SV_CORRUPTION', 'SV Corruption', 'SV.Corruption', 'SVCorruption',
+	'SV_VOID', 'SV Void', 'SV.Void', 'SVVoid', 'Void', 'Corruption', 'ResistVoid', 'ResistCorruption' ];
+for ( const alias of voidAliases ) {
+	assert.equal( engine.canonicalStatKey( alias ), 'SV_CORRUPTION', `${alias}: canonical identity` );
+	for ( const base of [ 0, -3, 3, 20, null ] ) {
+		for ( const [ full, fraction, rank ] of [ [ -2, 10, 0 ], [ 0, 5, 0 ], [ 5, 31, 5 ], [ 11, 1, 10 ] ] ) {
+			const stats = { STR: 5, DEX: 5, [ alias ]: base };
+			assert.deepEqual( engine.scaleItemStats( stats, full, { fraction } ), {
+				STR: rank ? 5 + rank : 5, DEX: rank ? 5 + rank : 5,
+				[ alias ]: base > 0 ? base + rank : base
+			}, `${alias}/${base}: exact explicit field suppresses a generated duplicate at ${full}+${fraction}` );
+		}
+	}
+	assert.deepEqual( engine.scaleItemStats( { [ alias ]: 3 }, 5 ), { [ alias ]: 8 },
+		`${alias}: intrinsic scaling does not require contextual qualifiers` );
+	assert.equal( engine.voidEligible( { AC: 2, [ alias ]: 3 } ), false,
+		`${alias}: intrinsic Void is not a second generated-Void qualifier` );
+}
+assert.deepEqual( engine.scaleItemStats( { AC: 0, HP: 0 }, 5, { fraction: 31 } ),
+	{ AC: 0, HP: 0, SV_CORRUPTION: 5 }, 'absent Void still uses qualified whole-tier generation' );
+assert.deepEqual( engine.scaleItemStats( { DMG: 3 }, 5, { slots: [ 'AMMO' ] } ),
+	{ DMG: 4 }, 'an absent unqualified field is not assumed to have base zero' );
 assert.equal( engine.weaponEligible( { DMG: 18 }, [ 'AMMO' ] ), false );
 assert.equal( engine.weaponEligible( { DMG: 18 }, [ 'RANGE', 'AMMO' ] ), true );
 assert.equal( engine.weaponEligible( { COLD_DMG: 18 }, [ 'PRIMARY' ] ), false );
@@ -143,4 +170,6 @@ assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'BACKS
 	'the exact same bytes run as a browser script without require/eval of downloaded data' );
 assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'WT', 2.5, 8 ), 0.7,
 	'the browser engine uses the same exact decimal weight ceiling' );
+assert.equal( browser.EQLItemScalingCore.createEngine( rules ).scaleStat( 'SVVoid', 20, 5 ), 25,
+	'the browser and CommonJS engine preserve the same intrinsic Void base' );
 console.log( `Shared item scaling: ${cases.length} stat cases, ${weightCases} weight boundaries/states, contextual fields, strict JSON validation, versioning and browser/CommonJS parity pass.` );
