@@ -243,6 +243,36 @@
             '<span class="eql-character-players-copy"><strong>View Other Players</strong></span>';
         equipment.appendChild( link );
     }
+    // Static template content is readable without JavaScript. Enhancement adds
+    // independent native buttons; neither achievements nor categories save any
+    // account/browser state or change the completion recorded in the export.
+    function enhanceAchievements( sheet ) {
+        function disclosure( section, headingClass, bodyClass ) {
+            if ( section.querySelector( ':scope > .eql-character-achievements-disclosure' ) ) { return; }
+            var heading = section.querySelector( ':scope > .' + headingClass ),
+                body = section.querySelector( ':scope > .' + bodyClass );
+            if ( !heading || !body ) { return; }
+            var toggle = document.createElement( 'button' );
+            toggle.type = 'button';
+            toggle.className = 'eql-character-achievements-disclosure';
+            body.id = 'eql-character-achievements-body-' + ( ++nextId );
+            toggle.setAttribute( 'aria-controls', body.id );
+            toggle.setAttribute( 'aria-expanded', 'false' );
+            while ( heading.firstChild ) { toggle.appendChild( heading.firstChild ); }
+            heading.replaceWith( toggle );
+            body.hidden = true;
+            toggle.addEventListener( 'click', function () {
+                body.hidden = !body.hidden;
+                toggle.setAttribute( 'aria-expanded', String( !body.hidden ) );
+            } );
+        }
+        sheet.querySelectorAll( '.eql-character-achievements-v1' ).forEach( function ( section ) {
+            disclosure( section, 'eql-character-achievements-heading', 'eql-character-achievements-body' );
+            section.querySelectorAll( '.eql-character-achievement-category' ).forEach( function ( category ) {
+                disclosure( category, 'eql-character-achievement-category-heading', 'eql-character-achievement-list' );
+            } );
+        } );
+    }
     function initialize( root ) {
         root = root && root.querySelectorAll ? root : document;
         var sheets = Array.from( root.querySelectorAll( '.eql-character-sheet-v1' ) );
@@ -258,6 +288,7 @@
             simplifyAugments( sheet );
             addPlayerLink( sheet );
             hydrateEffects( sheet );
+            enhanceAchievements( sheet );
             if ( initialized.has( sheet ) ) { return; }
             var heading = sheet.querySelector( ':scope > .eql-character-heading' ),
                 body = sheet.querySelector( ':scope > .eql-character-body' );
