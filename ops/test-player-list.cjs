@@ -19,10 +19,10 @@ const players = [
 const response = ( records = players, continuation ) => ( { eqlplayers: { players: records, maxLevel: 50, ...( continuation === undefined ? {} : { continue: continuation } ) } } );
 const turn = () => new Promise( resolve => setImmediate( resolve ) );
 async function until( predicate, label ) { for ( let i = 0; i < 40; i++ ) { if ( predicate() ) { return; } await turn(); } assert.fail( 'Did not settle: ' + label ); }
-function fixture( get = () => response() ) {
+function fixture( get = () => response(), getUrl = url ) {
     const dom = new JSDOM( '<head><style>' + css + '</style></head><body><main><div id="eql-player-list" class="eql-player-list"><noscript>Enable JavaScript.</noscript></div></main></body>', { url: 'https://wiki.example/Player_List', runScripts: 'outside-only' } );
     const window = dom.window, document = window.document, calls = [], hooks = [];
-    window.mw = { hook: name => { assert.equal( name, 'wikipage.content' ); return { add: fn => hooks.push( fn ) }; }, util: { getUrl: url }, Api: function () { this.get = params => { calls.push( { ...params } ); return get( params, calls.length ); }; } };
+    window.mw = { hook: name => { assert.equal( name, 'wikipage.content' ); return { add: fn => hooks.push( fn ) }; }, util: { getUrl }, Api: function () { this.get = params => { calls.push( { ...params } ); return get( params, calls.length ); }; } };
     window.eval( source ); document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
     const root = () => document.getElementById( 'eql-player-list' );
     const rows = () => [ ...root().querySelectorAll( 'tbody tr' ) ];
@@ -35,7 +35,11 @@ function fixture( get = () => response() ) {
     const f = fixture(); await f.loaded();
     assert.deepEqual( f.ids(), [ 'a', 'd', 'b', 'f', 'e', 'c' ], 'Complete default tier ranking, stable name ties, unknown last.' );
     assert.equal( f.root().querySelectorAll( '[data-player-class]' ).length, 16 );
-    assert.equal( f.root().querySelector( '[data-filter=match-all]' ).checked, true );
+    assert.equal( f.root().querySelector( '.eql-pl-class-grid input' ).dataset.filter, 'any-class', 'Any is the first class choice.' );
+    assert.equal( f.root().querySelector( '[data-filter=any-class]' ).checked, true );
+    assert.equal( f.root().querySelector( '[data-filter=match-all]' ), null );
+    assert.equal( f.window.getComputedStyle( f.root().querySelector( '.eql-pl-class-choice' ) ).userSelect, 'none' );
+    assert.notEqual( f.window.getComputedStyle( f.root().querySelector( '.eql-pl-table' ) ).userSelect, 'none', 'Only controls suppress text selection.' );
     assert.match( f.root().querySelector( '.eql-pl-maximum' ).textContent, /50/ );
     assert.match( f.root().querySelector( '.eql-pl-summary' ).textContent, /6characters3servers/ );
     assert.equal( f.rows().find( row => row.dataset.playerId === 'b' ).children[ 4 ].textContent, '0', 'Reported zero stays zero.' );
@@ -55,9 +59,12 @@ function fixture( get = () => response() ) {
     f.set( '[data-filter=maximum]', true ); assert.deepEqual( f.ids(), [ 'd', 'c' ], 'Unknown levels and below-cap levels are excluded.' );
     f.set( '.eql-pl-filter-row select', '' ); f.set( '[data-filter=maximum]', false );
     f.set( '[data-player-class=WAR]', true ); f.set( '[data-player-class=CLR]', true ); assert.deepEqual( f.ids(), [ 'a', 'd' ], 'AND allows a selected multi-class combination, including additional classes.' );
-    f.set( '[data-filter=match-all]', false ); assert.deepEqual( f.ids(), [ 'a', 'd', 'b', 'c' ], 'Unchecked means any selected class.' );
-    f.root().querySelector( '.eql-pl-class-actions button' ).click(); f.set( '[data-player-class=SHD]', true ); assert.deepEqual( f.ids(), [ 'f' ], 'Full backend class names normalize to canonical codes.' );
-    f.root().querySelector( '.eql-pl-class-actions button' ).click();
+    assert.equal( f.root().querySelector( '[data-filter=any-class]' ).checked, false );
+    f.root().querySelector( '[data-filter=any-class]' ).parentNode.click(); assert.equal( f.rows().length, 6, 'Clicking the Any label clears the combination.' );
+    assert.equal( f.root().querySelectorAll( '[data-player-class]:checked' ).length, 0 );
+    f.set( '[data-player-class=SHD]', true ); assert.deepEqual( f.ids(), [ 'f' ], 'Full backend class names normalize to canonical codes.' );
+    f.set( '[data-player-class=SHD]', false ); assert.equal( f.root().querySelector( '[data-filter=any-class]' ).checked, true ); assert.equal( f.rows().length, 6, 'Clearing the last class restores Any.' );
+    f.root().querySelector( '[data-filter=any-class]' ).click(); assert.equal( f.root().querySelector( '[data-filter=any-class]' ).checked, true, 'Any remains selected when no specific class is selected.' );
     f.set( '.eql-pl-ordering select', 'hp' ); assert.deepEqual( f.ids().slice( 0, 4 ), [ 'd', 'a', 'f', 'b' ] );
     assert.equal( f.rows().find( row => row.dataset.playerId === 'c' ).children[ 0 ].textContent, '—', 'Unknown HP is unranked in descending order.' );
     assert.equal( f.root().querySelector( 'thead th:last-child' ).getAttribute( 'aria-sort' ), 'descending' );
@@ -69,12 +76,32 @@ function fixture( get = () => response() ) {
     f.set( '.eql-pl-ordering select', 'accuracy' ); assert.match( f.root().querySelector( 'thead' ).textContent, /Accuracy bonus/ );
     f.set( '.eql-pl-ordering select', 'useful_counter' ); assert.equal( f.ids()[ 0 ], 'f', 'Additional published numeric keys are selectable.' );
     f.set( 'input[type=search]', 'no matching character', 'input' ); assert.equal( f.rows().length, 0 ); assert.equal( f.root().querySelector( '.eql-pl-empty' ).hidden, false );
-    f.root().querySelector( '.eql-pl-empty button' ).click(); assert.equal( f.rows().length, 6 ); assert.equal( f.root().querySelector( '[data-filter=match-all]' ).checked, true ); assert.equal( f.document.activeElement.type, 'search' );
+    f.root().querySelector( '.eql-pl-empty button' ).click(); assert.equal( f.rows().length, 6 ); assert.equal( f.root().querySelector( '[data-filter=any-class]' ).checked, true ); assert.equal( f.document.activeElement.type, 'search' );
     assert.equal( f.root().querySelectorAll( 'script,img,b' ).length, 0, 'Untrusted names/server strings remain text, never markup.' );
     assert( f.root().textContent.includes( '<img src=x' ) ); assert( f.root().textContent.includes( '<b>Realm</b>' ) ); assert.equal( f.window.attacked, undefined );
     for ( const link of f.root().querySelectorAll( 'a' ) ) { assert.equal( new URL( link.href ).origin, 'https://wiki.example' ); assert.equal( new URL( link.href ).protocol, 'https:' ); }
     const requests = f.calls.length; f.hooks.forEach( hook => { hook( [ f.root() ] ); hook( [ f.document.querySelector( 'main' ) ] ); } ); f.window.eval( source ); f.hooks.forEach( hook => hook( [ f.root() ] ) ); await turn(); assert.equal( f.calls.length, requests, 'Repeated content hooks/module evaluation do not duplicate requests or mounts.' ); assert.equal( f.root().querySelectorAll( '.eql-pl-hero' ).length, 1 );
     f.close();
+
+    const guides = fixture( () => response( [
+        player( 'guide', 'Guide', { classes: [ 'ROG', 'Berserker', 'Monk' ] } ),
+        player( 'aliases', 'Aliases', { classes: [ 'SK', 'BST', 'ENC' ] } ),
+        player( 'unknown', 'Unknown', { classes: [ 'WAR', 'CLR', 'DRU', 'Unknown' ] } ),
+        player( 'duplicate', 'Duplicate', { classes: [ 'WAR', 'Warrior', 'CLR' ] } ),
+        player( 'incomplete', 'Incomplete', { classes: [ 'WAR', 'CLR' ] } )
+    ] ) ); await guides.loaded();
+    const guide = guides.root().querySelector( '[data-player-id=guide] .eql-pl-build-guide' );
+    assert.equal( guide.href, 'https://wiki.example/wiki/Berserker_Monk_Rogue_Guide' );
+    assert.equal( guide.target, '_blank' ); assert.equal( guide.rel, 'noopener noreferrer' );
+    assert.match( guide.getAttribute( 'aria-label' ), /Rogue, Berserker, Monk build guide \(opens in a new tab\)/ );
+    assert.deepEqual( [ ...guide.querySelectorAll( 'abbr' ) ].map( node => node.textContent ), [ 'ROG', 'BER', 'MNK' ], 'Only the URL is alphabetized; the published display order is preserved.' );
+    assert.equal( guides.root().querySelector( '[data-player-id=aliases] .eql-pl-build-guide' ).href, 'https://wiki.example/wiki/Beastlord_Enchanter_Shadow_Knight_Guide' );
+    for ( const id of [ 'unknown', 'duplicate', 'incomplete' ] ) { assert.equal( guides.root().querySelector( '[data-player-id=' + id + '] .eql-pl-build-guide' ), null, 'Incomplete or malformed combinations do not fabricate guide links.' ); }
+    assert.equal( guides.calls.length, 1, 'Guide links do not trigger extra API requests.' ); guides.close();
+    for ( const unsafe of [ 'https://foreign.example/', 'javascript:alert(1)', 'https://user:pass@wiki.example/' ] ) {
+        const guarded = fixture( () => response( [ player( 'unsafe', 'Unsafe', { classes: [ 'WAR', 'CLR', 'DRU' ] } ) ] ), () => unsafe );
+        await guarded.loaded(); assert.equal( guarded.root().querySelector( '.eql-pl-build-guide' ), null ); guarded.close();
+    }
 
     let releaseLast;
     const paged = fixture( ( params, index ) => index === 1 ? response( players.slice( 0, 2 ), 'first' ) : index === 2 ? response( [], 'second' ) : new Promise( resolve => { releaseLast = resolve; } ) );
@@ -102,5 +129,5 @@ function fixture( get = () => response() ) {
 
     assert.doesNotMatch( source, /innerHTML|localStorage|fetch\s*\(/, 'Directory uses secure DOM construction and only the registered read-only wiki API.' );
     assert.match( css, /\.eql-pl-table-scroll\{[^}]*overflow-x:auto/ ); assert.match( css, /@media\(max-width:700px\)/ ); assert.doesNotMatch( css, /@import|url\(/ );
-    console.log( 'Player List DOM passed: complete paginated rankings, all stats and distinct Accuracy fields, class AND/OR/server/name/user/max-level filters, stable ties/null-last sorting, bounded result pages, secure local links, errors/retry, detached-response guards and dynamic idempotence.' );
+    console.log( 'Player List DOM passed: complete paginated rankings, all stats and distinct Accuracy fields, Any/class-combination/server/name/user/max-level filters, scoped text-selection controls, canonical new-tab guide links, stable ties/null-last sorting, bounded result pages, secure local links, errors/retry, detached-response guards and dynamic idempotence.' );
 } )().catch( error => { console.error( error ); process.exitCode = 1; } );
