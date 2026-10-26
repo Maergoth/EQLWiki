@@ -28,7 +28,7 @@ replace spaces with underscores, join with underscores and append `_Guide`.
 The displayed class order is preserved. Incomplete or malformed combinations stay
 plain text; links use the wiki's local URL builder without per-row API requests.
 
-## Provisional Gear Score v1
+## Editable provisional Gear Score
 
 This browser-only benchmark weights published whole-character totals. It does
 not estimate equipment-only deltas or normalize class, level, AA or buffs. The
@@ -39,13 +39,54 @@ comparisons. The existing equipped-tier sort remains the default.
 | --- | ---: |
 | HP, Mana, Endurance | each × 0.05 |
 | STR, STA, AGI, DEX, WIS, INT, CHA | each × 1 |
-| Six resists, including Void (`sv_corruption`) | each × 0.25 |
+| Six resists, including Void (`sv_corruption`) | each × 2 |
 | Mitigation AC + Evasion AC | each × 1 |
 | ATK offense + ATK accuracy | each × 5 |
 | Explicit Haste | × 10 |
 | If Haste is unavailable: Attack Speed | (reported value − 100) × 10 |
 
-The 100% speed baseline is a declared **point-system policy**, not a conversion
+These are the initial settings, not constants in the browser code. Administrators
+can edit **[MediaWiki:PlayerListGearScore.json](https://eqlwiki.com/MediaWiki:PlayerListGearScore.json)**
+using the normal wiki editor. The reviewed initial source is
+[`ops/player-gear-score.json`](../ops/player-gear-score.json):
+
+```json
+{
+  "schemaVersion": 1,
+  "weights": {
+    "resources": 0.05,
+    "attributes": 1,
+    "resists": 2,
+    "ac": 1,
+    "atk": 5,
+    "haste": 10
+  },
+  "attackSpeedBaseline": 100
+}
+```
+
+`resources` applies to each of HP/Mana/Endurance; `attributes` to each primary
+attribute; `resists` to each of the six resistances. `ac` and `atk` apply to each
+corresponding component (or the legacy aggregate under the rules below).
+`haste` also weights the Attack Speed fallback. A weight of `0` excludes its
+whole group and requires no readings for it. All weights and the speed baseline
+must be JSON numbers from 0 through 1000; all listed keys are required and extra
+keys or an unsupported schema version invalidate the complete policy. Keep the
+page's content model **JSON**. The namespace's normal interface/site-JSON editing
+permissions control edits; this feature grants no new permissions. See MediaWiki's
+[interface administrator documentation](https://www.mediawiki.org/wiki/Help:User_rights_and_groups#Interface_administrators).
+
+Use **Refresh list** or reload after saving. One bounded read of that fixed public
+page loads the current settings before each complete directory load; concurrent
+mounts share an in-flight request. There is no polling or browser-persisted policy.
+Each complete ranking uses one validated revision, including its display and
+per-player contribution breakdown. The formula disclosure links the settings and
+shows that revision. Settings edits need no Git deployment, EOZ update or export.
+If the page is missing, hidden, malformed, not JSON, or cannot be read, Gear Score
+alone stays unavailable while other directory filters/sorts work. There are no
+silent hardcoded defaults. The request has a ten-second network timeout.
+
+The default 100% speed baseline is a declared **point-system policy**, not a conversion
 to a Haste stat; no snapshot value, label or wiki source is changed. Explicit
 Haste zero wins over Attack Speed. Negative readings retain signed points.
 
@@ -54,13 +95,13 @@ both components are unavailable. A partial pair never mixes with or falls back
 to an aggregate. AC softcap, regeneration, DPS, other derived bonuses, tiers,
 progression and achievement counts add no separate points.
 
-All required readings must be numeric; missing, estimated, conflicting or
+All readings required by enabled groups must be numeric; missing, estimated, conflicting or
 nonfinite totals remain unranked rather than contributing invented zeros.
 Rankings use unrounded totals, with rounding only for display and stable ties.
 Selecting Gear Score shows a keyboard-accessible formula disclosure. Score cells
 explain their contributions or missing readings in their title; legacy scoring
-is labeled. This calculation uses the already loaded complete directory and
-adds no API requests, cache schema changes, or database/template writes.
+is labeled. This calculation uses the complete directory and the single public
+policy read. It adds no cache schema changes or User/template writes.
 
 ## Ownership and data flow
 
@@ -152,3 +193,12 @@ for both fixed template pages and a new private backup. Do not overwrite User
 pages or republish the main character template unnecessarily. Git deployment
 alone does not install database pages. No schema migration, new namespace,
 historical Magelo extension, account permission or authentication change is needed.
+
+For the initial editable-score rollout, separately create
+`MediaWiki:PlayerListGearScore.json` with content model `json` from the reviewed
+`ops/player-gear-score.json`. This is a fixed interface-page publication, not a
+file deployed from `ops/`. Review the current target (revision 0 means absent),
+retain a fresh private recovery record, verify the ordinary owner's page and
+site-JSON edit permissions, and use edit-conflict/create-only protection. Preserve
+an existing page rather than resetting tuned weights during later releases.
+Future tuning belongs on that wiki page; do not republish the initial example.
