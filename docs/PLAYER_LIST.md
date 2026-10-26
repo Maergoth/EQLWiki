@@ -5,8 +5,11 @@ on root `User:` pages. It is a player-reported directory: rankings compare the
 published readings, not a game-server verification of characters or equipment.
 
 The directory supports character/wiki-user search, server selection, **Max level
-only**, and all sixteen class checkboxes. **Include every selected class** selects
-class combinations; uncheck it to include any selected class. Sort by total
+only**, and all sixteen class checkboxes. **Any** appears first and starts checked
+without a class restriction. Selecting classes requires every selected class in
+the character's combination; choosing Any clears those selections. Clearing the
+last class returns to Any. Class labels cannot be text-selected, while native
+checkboxes and keyboard focus remain available. Sort by total
 equipped gear tier, level, AA points, **Achievement count**, or any supported
 published statistic. Achievement count means completed achievements and starts
 highest first; it is one option in the existing Order by dropdown.
@@ -17,6 +20,12 @@ directory shows the reported equipment coverage alongside that sum.
 Known achievement counts also appear in gold below the character identity.
 An exported zero is a known value; legacy or malformed achievement summaries
 remain unknown and sort last in either direction.
+
+Clicking a complete three-class combination opens its build guide in a new tab.
+Guide titles follow the current wiki selector: sort full class names alphabetically,
+replace spaces with underscores, join with underscores and append `_Guide`.
+The displayed class order is preserved. Incomplete or malformed combinations stay
+plain text; links use the wiki's local URL builder without per-row API requests.
 
 ## Ownership and data flow
 
