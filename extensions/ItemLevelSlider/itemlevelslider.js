@@ -44,6 +44,14 @@
 		'SV MAGIC',
 		'SV COLD',
 		'SV FIRE',
+		'SV CORRUPTION',
+		'SV VOID',
+		'SVCORRUPTION',
+		'SVVOID',
+		'RESISTCORRUPTION',
+		'RESISTVOID',
+		'CORRUPTION',
+		'VOID',
 
 		'BACKSTAB DAMAGE',
 		'BACKSTAB DMG',
@@ -91,7 +99,8 @@
 		} );
 
 		var escaped = sorted.map( function ( s ) {
-			return s.replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+			var label = s.replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+			return /^SV (?:VOID|CORRUPTION)$/.test( s ) ? label.replace( ' ', '[.\\s_]+' ) : label;
 		} );
 
 		return new RegExp(
@@ -499,7 +508,7 @@
 		var delay = delayMatch ? parseFloat( delayMatch[ 1 ] ) : 0;
 		var foundQualifiers = {};
 		var hasAccuracyField = /\bAccuracy\s*:/i.test( rawText );
-		var hasExplicitVoid = /\bSV[.\s_]+(?:VOID|CORRUPTION)\s*:/i.test( rawText );
+		var hasExplicitVoid = /\b(?:(?:SV[.\s_]*)?(?:VOID|CORRUPTION)|RESIST(?:VOID|CORRUPTION))\s*:/i.test( rawText );
 
 		if ( $itemdata.attr( 'data-ils-instrumented' ) === '1' ) {
 			return;
