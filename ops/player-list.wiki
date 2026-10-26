@@ -1,0 +1,15 @@
+__NOTOC__
+<div class="eql-player-list-intro">
+== Put your character on the list ==
+'''Eye of Zomm''' is a free companion app for EverQuest Legends on Windows and Linux. It helps you import your equipment, capture your character's stats and share an interactive profile here on the wiki.
+
+[https://github.com/Maergoth/EQL-EOZ/releases/latest '''Download Eye of Zomm →''']
+
+# '''Install and open Eye of Zomm.''' Point it to your EverQuest Legends game folder, then open '''Character''' and start the guided setup.
+# '''Import your equipment.''' Keep your gear equipped and type <code>/outputfile inventory</code> in game. Follow the app's inventory import step.
+# '''Read and review your stats.''' Follow the guided stat capture with your equipment on and buffs off. Check your character details, class combination, equipment and numbers before sharing.
+# '''Share to the wiki.''' Sign in with your EQLWiki account in the app, preview the character sheet and publish it to your own user page. Your character will then appear below automatically. Share again when you want to update it.
+
+'''Already shared your character?''' Your existing user-page sheet is included. You do not need to upload it again to join this list.
+</div>
+<eqlplayers />

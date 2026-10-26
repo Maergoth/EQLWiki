@@ -19,6 +19,11 @@
   "GroupPermissions": { "user": { "eoz-submit-observations": true } },
   "GrantPermissions": { "eozobservations": { "eoz-submit-observations": true } },
   "APIModules": {
+    "eqlcharactereffects": { "class": "EQLClientData\\ApiCharacterEffects" },
+    "eqlplayers": {
+      "class": "EQLClientData\\ApiPlayers",
+      "services": [ "EQLClientData.PlayerListRepository" ]
+    },
     "eozobservations": {
       "class": "EQLClientData\\ApiObservations",
       "services": [ "EQLClientData.ObservationRepository", "MainConfig" ]
@@ -49,6 +54,7 @@
     "PageMoveComplete": "main"
   },
   "config": {
+    "EQLClientDataPlayerMaxLevel": { "value": 50 },
     "EQLClientDataEnableObservations": { "value": false },
     "EQLClientDataObservationRequireConfirmedEmail": { "value": true },
     "EQLClientDataObservationHourlyBatches": { "value": 12 },

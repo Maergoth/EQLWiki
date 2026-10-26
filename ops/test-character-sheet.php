@@ -59,11 +59,10 @@ class EQLTestCharacterSheet extends Maintenance {
                     $this->check( in_array( $augment['title'], $targets, true ), 'A canonical weapon augment in boots must preserve its exact apostrophe/ampersand/Unicode destination.' );
                     foreach ( $augment['details'] ?? [] as $detail ) { $this->check( str_contains( $inspect->textContent, $detail['label'] . ': ' . $detail['value'] ), 'Indexed Exaltation metadata must survive actual serialization and parsing.' ); }
                 }
-                $occupied = array_column( $item['augments'], 'index' );
                 for ( $socket = 0; $socket < 8; $socket++ ) {
-                    $empty = $item['augmentSlots'] !== null && $socket < $item['augmentSlots'] && !in_array( $socket, $occupied, true );
-                    $this->check( str_contains( $inspect->textContent, 'Socket ' . ( $socket + 1 ) . ': Empty' ) === $empty, 'Known dense/sparse socket indexes and empty capacity must be preserved exactly.' );
+                    $this->check( !str_contains( $inspect->textContent, 'Socket ' . ( $socket + 1 ) . ': Empty' ), 'Unoccupied socket indexes must not clutter the public inspect.' );
                 }
+                $this->check( $xpath->query( './/*[' . $class( 'eql-character-augments' ) . ']//*[' . $class( 'eql-character-tier' ) . ' or ' . $class( 'eql-character-augment-stats' ) . ' or ' . $class( 'eql-character-augment-icon' ) . ']', $inspect )->length === 0, 'Socket presentation omits tier, numeric stats and duplicate icons while retaining parent gear.' );
             }
             $this->check( $xpath->query( './/*[' . $class( 'eql-character-slot-label' ) . ' and text()="Any 1"]', $sheet )->length === 1 && $xpath->query( './/*[' . $class( 'eql-character-slot-label' ) . ' and text()="Any 2"]', $sheet )->length === 1, 'Both Any slots must render once.' );
             $this->check( $xpath->query( './/*[' . $class( 'eql-character-slot-label' ) . ' and text()="Power"]', $sheet )->length === 0, 'Public sheet must omit Power.' );
@@ -110,6 +109,7 @@ class EQLTestCharacterSheet extends Maintenance {
             . '|total_stun_resist=8|total_damage_shield=19|total_damage_shield_mitigation=?|total_dot_shielding=4.5|total_melee_shielding=11|total_spell_shielding=12'
             . '|feet_item=Synthetic Boots|feet_tier=3|feet_stats=HP: 133<br>STR: 7'
             . '|feet_augment_slots=2|feet_augment_1_item=Synthetic Sword|feet_augment_1_tier=2|feet_augment_1_stats=HP: 5'
+            . '|feet_augment_1_details=Flags: LORE<br>Effect: [[See Invisible]] (Worn)<br>Class: ALL<br>Size: SMALL'
             . '}}'
             . "\n{{Character_sheet|name=Synthetic &amp; Reader|server=Fixture Two|level=42|total_hp=800|total_ac=55|total_haste=0|head_item=Synthetic Cap|head_tier=0|head_stats=HP: ?}}";
         $input = null;
@@ -171,7 +171,8 @@ class EQLTestCharacterSheet extends Maintenance {
         $this->check( $legacyHaste->length === 1 && $legacyHaste[0]->textContent === '0', 'Legacy Haste remains available and preserves a known zero when Attack speed is omitted.' );
         $this->check( $xpath->query( './/*[' . $class( 'eql-character-group-heading' ) . ' and text()="Additional modifiers"]', $sheets[0] )->length === 1 && $xpath->query( './/*[' . $class( 'eql-character-group-heading' ) . ' and text()="Additional modifiers"]', $sheets[1] )->length === 0, 'Additional modifiers appear only when supplied; old sheets keep their existing layout.' );
         $this->check( !str_contains( $totals, 'Current' ) && !str_contains( $totals, 'Maximum' ) && !str_contains( $totals, 'Fraction' ), 'Public resources display only their selected maximum values.' );
-        $this->check( str_contains( $html, 'Socket 2: Empty' ) && !str_contains( $html, 'Socket 3: Empty' ), 'Known capacity renders exactly its unfilled sockets.' );
+        $this->check( !str_contains( $html, 'Socket 2: Empty' ) && !str_contains( $html, 'Socket 3: Empty' ), 'Empty socket details stay out of the public inspect.' );
+        $this->check( $xpath->query( '//*[' . $class( 'eql-character-augments' ) . ']//*[' . $class( 'eql-character-tier' ) . ' or ' . $class( 'eql-character-augment-stats' ) . ' or ' . $class( 'eql-character-augment-icon' ) . ']' )->length === 0, 'Occupied Exaltations do not display their tier, numeric stats or duplicate icon.' );
         $this->check( $xpath->query( '//a[starts-with(@title,"Synthetic Sword")]' )->length > 0, 'A socket can link any known item, including a weapon in boots.' );
         $this->check( !preg_match( '/<script\b|data:image|Augments unknown|partial item stats/i', $html ), 'Sheet output must not include scripts, pixels or noisy coverage warnings.' );
         if ( $this->hasOption( 'output' ) ) {

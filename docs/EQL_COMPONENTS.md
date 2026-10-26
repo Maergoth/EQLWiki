@@ -235,6 +235,13 @@ Interactive player snapshots use the reviewed `Template:Character_sheet` and
 `Template:Character_sheet_item` database sources under `ops/`, plus the existing
 skin's `skins.EQLImmersive.characterSheet` module. A ParserAfterParse hook adds
 the module only for rendered schema-1 markup, including unsaved API previews.
+The skin also registers `<eqlplayers />` for the `Player_List` directory and
+its conditional `skins.EQLImmersive.playerList` module. EQLClientData's read-only
+`eqlplayers` API indexes current public User-page snapshots with class/server/
+max-level filters and numeric sorting in the browser. `eqlcharactereffects`
+fills missing effect metadata in existing character sheets; socketed Exaltations
+show only their name and effect. See [Player List](PLAYER_LIST.md) for public
+visibility, continuation, cache, producer and separate page-publication contracts.
 Each character expands independently; supplied tier-specific gear/augment stats
 and links remain distinct from the base-item AjaxHoverHelper. No historical
 Magelo extension is enabled. Optional totals include ten observed Additional
