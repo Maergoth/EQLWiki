@@ -8,7 +8,7 @@ readable. Item icons link to their existing wiki pages. Hovering or focusing gea
 shows its supplied tier-specific stat card, reviewed rich metadata/effect links
 and clickable known Exaltations. Socketed Exaltations show their name and effect
 only; their numeric stats, tier and unrelated equipment metadata are omitted.
-The stylized **View Other Players!** link below equipment opens `Player_List`.
+The stylized **View Other Players** link below equipment opens `Player_List`.
 The interactive inspect is a labeled nonmodal dialog. A short 200 ms pointer
 grace period allows crossing the gap from gear to its links; entering the card
 cancels dismissal. Keyboard users can press ArrowDown from gear to enter those

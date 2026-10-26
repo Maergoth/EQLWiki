@@ -226,18 +226,21 @@
         var link = document.createElement( 'a' );
         link.className = 'eql-character-players-cta';
         link.href = wikiUrl( 'Player_List' );
-        link.setAttribute( 'aria-label', 'View Other Players!' );
+        link.setAttribute( 'aria-label', 'View Other Players' );
         // Original decorative artwork; no uploaded item icons or game art are changed.
-        link.innerHTML = '<span class="eql-character-players-crest" aria-hidden="true">' +
-            '<svg viewBox="0 0 64 72" focusable="false" aria-hidden="true">' +
-            '<path d="M32 4 57 14v19c0 16-13 27-25 34C20 60 7 49 7 33V14Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
-            '<path d="M32 10 51 18v15c0 12-9 21-19 27-10-6-19-15-19-27V18Z" fill="none" stroke="currentColor" opacity=".4"/>' +
-            '<g fill="currentColor"><circle cx="17" cy="29" r="5"/><circle cx="47" cy="29" r="5"/>' +
-            '<path d="M10 43v-3a7 7 0 0 1 14 0v3ZM40 43v-3a7 7 0 0 1 14 0v3Z" opacity=".65"/>' +
-            '<circle cx="32" cy="25" r="7"/><path d="M21 47v-6a11 11 0 0 1 22 0v6Z"/></g>' +
-            '<path d="m28 54 4-3 4 3-4 3Z" fill="currentColor"/></svg></span>' +
-            '<span class="eql-character-players-copy"><span class="eql-character-players-eyebrow">The fellowship of Norrath</span>' +
-            '<strong>View Other Players!</strong><span class="eql-character-players-caption">Discover characters and their equipment <span aria-hidden="true">›</span></span></span>';
+        link.innerHTML = '<span class="eql-character-players-inlay" aria-hidden="true"></span>' +
+            '<span class="eql-character-players-gem" aria-hidden="true"></span>' +
+            '<span class="eql-character-players-gem eql-character-players-gem-right" aria-hidden="true"></span>' +
+            '<span class="eql-character-players-crest" aria-hidden="true">' +
+            '<svg viewBox="0 0 80 90" focusable="false" aria-hidden="true">' +
+            '<path d="m40 3 27 12 10 30-10 30-27 12-27-12L3 45l10-30Z" fill="#101b25" stroke="currentColor" stroke-width="1.5"/>' +
+            '<circle cx="40" cy="45" r="34" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+            '<circle cx="40" cy="45" r="29" fill="none" stroke="currentColor" opacity=".45"/>' +
+            '<g fill="currentColor"><circle cx="24" cy="40" r="5.5"/><circle cx="56" cy="40" r="5.5"/>' +
+            '<path d="M17 57v-6a7 7 0 0 1 14 0v6ZM49 57v-6a7 7 0 0 1 14 0v6Z" opacity=".65"/>' +
+            '<circle cx="40" cy="33" r="8"/><path d="M29 62V49a11 11 0 0 1 22 0v13Z"/></g>' +
+            '<path d="m36 70 4-3 4 3-4 3Z" fill="currentColor"/></svg></span>' +
+            '<span class="eql-character-players-copy"><strong>View Other Players</strong></span>';
         equipment.appendChild( link );
     }
     function initialize( root ) {

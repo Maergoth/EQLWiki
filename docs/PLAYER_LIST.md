@@ -41,7 +41,7 @@ directory shows the reported equipment coverage alongside that sum.
   Raising a game level cap is an explicit configuration change.
 
 The existing character-sheet module opens a single-character page by default;
-multiple sheets retain independent disclosures. A stylized **View Other Players!**
+multiple sheets retain independent disclosures. A stylized **View Other Players**
 link sits below each equipment display and targets `Player_List`. Repeated wiki
 content hooks preserve disclosure state and do not duplicate links or listeners.
 
