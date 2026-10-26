@@ -17,22 +17,31 @@ const players = [
     player( 'f', 'Fenn', { server: 'Cedar', level: null, classes: [ 'Shadow Knight', 'Enchanter' ], totalTier: 30, aa: '', stats: { hp: 50, mp: '', useful_counter: 7 } } )
 ];
 const response = ( records = players, continuation ) => ( { eqlplayers: { players: records, maxLevel: 50, ...( continuation === undefined ? {} : { continue: continuation } ) } } );
+const defaultPolicy = { schemaVersion: 1, weights: { resources: 0.05, attributes: 1, resists: 2, ac: 1, atk: 5, haste: 10 }, attackSpeedBaseline: 100 };
+const configTitle = 'MediaWiki:PlayerListGearScore.json';
+const configResponse = ( policy = defaultPolicy, revision = 123 ) => ( { query: { pages: [ { pageid: 123, ns: 8, title: configTitle, revisions: [ { revid: revision, slots: { main: { contentmodel: 'json', content: JSON.stringify( policy ) } } } ] } ] } } );
 const turn = () => new Promise( resolve => setImmediate( resolve ) );
 async function until( predicate, label ) { for ( let i = 0; i < 40; i++ ) { if ( predicate() ) { return; } await turn(); } assert.fail( 'Did not settle: ' + label ); }
-function fixture( get = () => response(), getUrl = url ) {
+function fixture( get = () => response(), getUrl = url, getConfig = () => configResponse() ) {
     const dom = new JSDOM( '<head><style>' + css + '</style></head><body><main><div id="eql-player-list" class="eql-player-list"><noscript>Enable JavaScript.</noscript></div></main></body>', { url: 'https://wiki.example/Player_List', runScripts: 'outside-only' } );
-    const window = dom.window, document = window.document, calls = [], hooks = [];
-    window.mw = { hook: name => { assert.equal( name, 'wikipage.content' ); return { add: fn => hooks.push( fn ) }; }, util: { getUrl }, Api: function () { this.get = params => { calls.push( { ...params } ); return get( params, calls.length ); }; } };
+    const window = dom.window, document = window.document, calls = [], configCalls = [], configOptions = [], hooks = [];
+    window.mw = { hook: name => { assert.equal( name, 'wikipage.content' ); return { add: fn => hooks.push( fn ) }; }, util: { getUrl }, Api: function () { this.get = ( params, options ) => {
+        if ( params.action === 'query' ) { configCalls.push( { ...params } ); configOptions.push( { ...options } ); return getConfig( params, configCalls.length ); }
+        assert.equal( params.action, 'eqlplayers' ); calls.push( { ...params } ); return get( params, calls.length );
+    }; } };
     window.eval( source ); document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
     const root = () => document.getElementById( 'eql-player-list' );
     const rows = () => [ ...root().querySelectorAll( 'tbody tr' ) ];
     const ids = () => rows().map( row => row.dataset.playerId );
     const set = ( selector, value, event = 'change' ) => { const control = root().querySelector( selector ); assert( control, selector ); if ( control.type === 'checkbox' ) { control.checked = value; } else { control.value = value; } control.dispatchEvent( new window.Event( event, { bubbles: true } ) ); return control; };
     const loaded = () => until( () => root().getAttribute( 'aria-busy' ) === 'false', 'directory response' );
-    return { dom, window, document, root, rows, ids, calls, hooks, set, loaded, close: () => dom.window.close() };
+    return { dom, window, document, root, rows, ids, calls, configCalls, configOptions, hooks, set, loaded, close: () => dom.window.close() };
 }
 ( async () => {
     const f = fixture(); await f.loaded();
+    assert.equal( f.configCalls.length, 1, 'One settings read accompanies a complete directory load.' );
+    assert.deepEqual( f.configCalls[ 0 ], { action: 'query', prop: 'revisions', titles: configTitle, rvprop: 'ids|content|contentmodel', rvslots: 'main', rvlimit: 1, formatversion: 2, maxage: 0, smaxage: 0 }, 'Settings use the exact current revision and no API max-age cache.' );
+    assert.deepEqual( f.configOptions[ 0 ], { timeout: 10000 }, 'Settings reads have a finite native API timeout.' );
     assert.deepEqual( f.ids(), [ 'a', 'd', 'b', 'f', 'e', 'c' ], 'Complete default tier ranking, stable name ties, unknown last.' );
     assert.equal( f.root().querySelectorAll( '[data-player-class]' ).length, 16 );
     assert.equal( f.root().querySelector( '.eql-pl-class-grid input' ).dataset.filter, 'any-class', 'Any is the first class choice.' );
@@ -80,7 +89,7 @@ function fixture( get = () => response(), getUrl = url ) {
     assert.equal( f.root().querySelectorAll( 'script,img,b' ).length, 0, 'Untrusted names/server strings remain text, never markup.' );
     assert( f.root().textContent.includes( '<img src=x' ) ); assert( f.root().textContent.includes( '<b>Realm</b>' ) ); assert.equal( f.window.attacked, undefined );
     for ( const link of f.root().querySelectorAll( 'a' ) ) { assert.equal( new URL( link.href ).origin, 'https://wiki.example' ); assert.equal( new URL( link.href ).protocol, 'https:' ); }
-    const requests = f.calls.length; f.hooks.forEach( hook => { hook( [ f.root() ] ); hook( [ f.document.querySelector( 'main' ) ] ); } ); f.window.eval( source ); f.hooks.forEach( hook => hook( [ f.root() ] ) ); await turn(); assert.equal( f.calls.length, requests, 'Repeated content hooks/module evaluation do not duplicate requests or mounts.' ); assert.equal( f.root().querySelectorAll( '.eql-pl-hero' ).length, 1 );
+    const requests = f.calls.length; f.hooks.forEach( hook => { hook( [ f.root() ] ); hook( [ f.document.querySelector( 'main' ) ] ); } ); f.window.eval( source ); f.hooks.forEach( hook => hook( [ f.root() ] ) ); await turn(); assert.equal( f.calls.length, requests, 'Repeated content hooks/module evaluation do not duplicate requests or mounts.' ); assert.equal( f.configCalls.length, 1, 'Filtering, sorting and repeated hooks never poll scoring settings.' ); assert.equal( f.root().querySelectorAll( '.eql-pl-hero' ).length, 1 );
     f.close();
 
     const zeroStats = Object.fromEntries( [ 'hp', 'mp', 'end', 'str', 'sta', 'agi', 'dex', 'wis', 'int', 'cha', 'sv_magic', 'sv_fire', 'sv_cold', 'sv_poison', 'sv_disease', 'sv_corruption', 'ac_mitigation', 'ac_evasion', 'atk_offense', 'atk_accuracy', 'haste' ].map( key => [ key, 0 ] ) );
@@ -108,7 +117,7 @@ function fixture( get = () => response(), getUrl = url ) {
     assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, true );
     scored.set( '.eql-pl-ordering select', 'gearScore' );
     const scoreCell = id => scored.root().querySelector( '[data-player-id="' + id + '"] td:last-child' );
-    for ( const id of [ 'mixed', 'speed', 'legacy' ] ) { assert( scoreCell( id ).textContent.startsWith( '750' ), id + ': hand-calculated score is750.' ); }
+    for ( const id of [ 'mixed', 'speed', 'legacy' ] ) { assert( scoreCell( id ).textContent.startsWith( '960' ), id + ': hand-calculated score with resist weight2 is960.' ); }
     assert.match( scoreCell( 'legacy' ).textContent, /legacy totals/ );
     assert( scoreCell( 'aliases' ).textContent.startsWith( '0' ), 'Explicit haste0 and component pairs win; softcap/derived bonuses/aggregate aliases never double-count.' );
     assert( scoreCell( 'hp' ).textContent.startsWith( '1' ) && scoreCell( 'str' ).textContent.startsWith( '1' ), '20HP equals1attribute point.' );
@@ -116,14 +125,90 @@ function fixture( get = () => response(), getUrl = url ) {
     assert.match( scoreCell( 'speed' ).title, /Attack speed: \(115 − 100\) × 10 = 150/ );
     for ( const id of [ 'missing', 'partial', 'no-speed', 'conflict', 'string', 'overflow' ] ) { assert.equal( scoreCell( id ).parentNode.firstChild.textContent, '—', id + ': unknown stays unranked.' ); assert.match( scoreCell( id ).textContent, /Incomplete stats/ ); }
     assert.match( scoreCell( 'partial' ).title, /ATK accuracy/ ); assert.equal( scoreCell( 'conflict' ).title, 'Unranked: conflicting snapshots' );
-    assert( scoreCell( 'negative' ).textContent.startsWith( '-1' ), 'Signed resists retain negative contributions.' );
+    assert( scoreCell( 'negative' ).textContent.startsWith( '-8' ), 'Signed resists retain negative contributions at the configured weight2.' );
     assert( scored.ids().indexOf( 'tiny-high' ) < scored.ids().indexOf( 'tiny-low' ), 'Ranking uses full precision even when displayed scores round alike.' );
     assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, false );
-    assert.match( scored.root().querySelector( '.eql-pl-score-details' ).textContent, /provisional v1[\s\S]*Attack Speed − 100[\s\S]*not class-balanced/ );
+    assert.match( scored.root().querySelector( '.eql-pl-score-details' ).textContent, /provisional[\s\S]*revision 123[\s\S]*Attack Speed − 100[\s\S]*not class-balanced/ );
+    assert.match( scored.root().querySelector( '.eql-pl-score-details' ).textContent, /resists: × 2\b/ );
+    assert.match( scoreCell( 'mixed' ).title, /Fire resist: 20 × 2 = 40/ );
     scored.root().querySelector( '.eql-pl-direction' ).click(); assert.equal( scored.ids()[0], 'negative' );
     assert( scored.ids().slice( -6 ).every( id => [ 'missing', 'partial', 'no-speed', 'conflict', 'string', 'overflow' ].includes( id ) ), 'Incomplete records stay last in ascending order too.' );
     scored.set( '.eql-pl-ordering select', 'attack_speed' ); assert( scoreCell( 'speed' ).textContent.startsWith( '115' ), 'Scoring baseline never rewrites the original reported Attack Speed.' );
-    assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, true ); assert.equal( scored.calls.length, 1, 'Scoring adds no API requests.' ); scored.close();
+    assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, true ); assert.equal( scored.calls.length, 1, 'Scoring reuses the directory.' ); assert.equal( scored.configCalls.length, 1, 'Changing sort never rereads settings.' ); scored.close();
+
+    const editedPolicy = { schemaVersion: 1, weights: { resources: 0.1, attributes: 3, resists: 4, ac: 0.5, atk: 7, haste: 2 }, attackSpeedBaseline: 90 };
+    const editing = fixture( () => response( [ player( 'edited', 'Edited', { stats: mixedStats } ), player( 'speed', 'Speed', { stats: { ...mixedStats, haste: null, attack_speed: 115 } } ) ] ), url, ( params, index ) => configResponse( index === 2 ? editedPolicy : index === 3 ? { ...defaultPolicy, schemaVersion: 2 } : defaultPolicy, 122 + index ) );
+    await editing.loaded(); editing.set( '.eql-pl-ordering select', 'gearScore' );
+    const editingCell = id => editing.root().querySelector( '[data-player-id="' + id + '"] td:last-child' );
+    assert( editingCell( 'edited' ).textContent.startsWith( '960' ) );
+    editing.root().querySelector( '.eql-pl-ordering .eql-pl-quiet-button' ).click(); await editing.loaded();
+    assert.equal( editing.configCalls.length, 2, 'Explicit Refresh rereads the current wiki settings.' ); assert.equal( editing.calls.length, 2 );
+    assert( editingCell( 'edited' ).textContent.startsWith( '1,420' ), 'Fresh policy recomputes all six weighted groups.' );
+    assert( editingCell( 'speed' ).textContent.startsWith( '1,440' ), 'Edited speed baseline affects score only when explicit Haste is missing.' );
+    assert.match( editingCell( 'speed' ).title, /Attack speed: \(115 − 90\) × 2 = 50/ );
+    assert.match( editingCell( 'edited' ).title, /HP: 2,000 × 0\.1 = 200/ );
+    assert.match( editingCell( 'edited' ).title, /Fire resist: 20 × 4 = 80/ );
+    const editedExplanation = editing.root().querySelector( '.eql-pl-score-details' ).textContent;
+    for ( const pattern of [ /HP[\s\S]*0\.1/, /STR[\s\S]*3/, /resists[\s\S]*4/, /AC[\s\S]*0\.5/, /ATK[\s\S]*7/, /Haste[\s\S]*2/, /Attack Speed − 90/ ] ) { assert.match( editedExplanation, pattern, 'Visible formula reflects current settings.' ); }
+    editing.set( '.eql-pl-ordering select', 'attack_speed' ); assert( editingCell( 'speed' ).textContent.startsWith( '115' ), 'Config changes never rewrite reported stats.' );
+    editing.set( '.eql-pl-ordering select', 'gearScore' ); assert.equal( editing.configCalls.length, 2, 'Sort changes use the per-load frozen policy.' );
+    editing.root().querySelector( '.eql-pl-ordering .eql-pl-quiet-button' ).click(); await editing.loaded(); assert.equal( editing.rows()[ 0 ].firstChild.textContent, '—', 'Invalid refreshed settings cannot reuse an earlier valid policy.' );
+    editing.root().querySelector( '.eql-pl-ordering .eql-pl-quiet-button' ).click(); await editing.loaded(); assert( editingCell( 'edited' ).textContent.startsWith( '960' ), 'A later valid wiki revision restores current scores.' );
+    assert.equal( editing.configCalls.length, 4 ); assert.equal( editing.calls.length, 4 ); editing.close();
+
+    const zeroPolicy = { schemaVersion: 1, weights: { resources: 0, attributes: 1, resists: 0, ac: 0, atk: 0, haste: 0 }, attackSpeedBaseline: 0 };
+    const zeroWeighted = fixture( () => response( [ player( 'waived', 'Waived readings', { stats: { str: 1, sta: 1, agi: 1, dex: 1, wis: 1, int: 1, cha: 1 } } ) ] ), url, () => configResponse( zeroPolicy ) );
+    await zeroWeighted.loaded(); zeroWeighted.set( '.eql-pl-ordering select', 'gearScore' );
+    assert( zeroWeighted.rows()[ 0 ].lastChild.textContent.startsWith( '7' ), 'Zero-weight groups contribute no points and require no invented readings.' );
+    assert.equal( zeroWeighted.rows()[ 0 ].firstChild.textContent, '1' ); zeroWeighted.close();
+    const boundPolicy = { schemaVersion: 1, weights: { resources: 1000, attributes: 0, resists: 0, ac: 0, atk: 0, haste: 0 }, attackSpeedBaseline: 1000 };
+    const bounded = fixture( () => response( [ player( 'bound', 'Bound', { stats: { hp: 2, mp: 0, end: 0 } } ) ] ), url, () => configResponse( boundPolicy ) );
+    await bounded.loaded(); bounded.set( '.eql-pl-ordering select', 'gearScore' ); assert( bounded.rows()[ 0 ].lastChild.textContent.startsWith( '2,000' ), 'Inclusive weight and baseline bounds1000 are valid.' ); bounded.close();
+    const zeroBaseline = fixture( () => response( [ player( 'baseline', 'Baseline', { stats: { attack_speed: 42 } } ) ] ), url, () => configResponse( { schemaVersion: 1, weights: { resources: 0, attributes: 0, resists: 0, ac: 0, atk: 0, haste: 1 }, attackSpeedBaseline: 0 } ) );
+    await zeroBaseline.loaded(); zeroBaseline.set( '.eql-pl-ordering select', 'gearScore' ); assert( zeroBaseline.rows()[ 0 ].lastChild.textContent.startsWith( '42' ), 'Baseline0 is a valid policy rather than a missing default.' ); zeroBaseline.close();
+
+    const malformedPolicy = ( label, policy ) => [ label, () => configResponse( policy ) ];
+    const invalidSettings = [
+        malformedPolicy( 'wrong schema', { ...defaultPolicy, schemaVersion: 2 } ),
+        malformedPolicy( 'string body', JSON.stringify( defaultPolicy ) ),
+        malformedPolicy( 'array body', [ defaultPolicy ] ),
+        malformedPolicy( 'null body', null ),
+        malformedPolicy( 'unknown top-level key', { ...defaultPolicy, unexpected: 1 } ),
+        malformedPolicy( 'unknown weight key', { ...defaultPolicy, weights: { ...defaultPolicy.weights, extra: 1 } } ),
+        malformedPolicy( 'missing weight key', { ...defaultPolicy, weights: { resources: 0.05, attributes: 1, ac: 1, atk: 5, haste: 10 } } ),
+        malformedPolicy( 'string weight', { ...defaultPolicy, weights: { ...defaultPolicy.weights, resists: '2' } } ),
+        malformedPolicy( 'negative weight', { ...defaultPolicy, weights: { ...defaultPolicy.weights, resists: -1 } } ),
+        malformedPolicy( 'oversized weight', { ...defaultPolicy, weights: { ...defaultPolicy.weights, resists: 1001 } } ),
+        malformedPolicy( 'missing speed baseline', { schemaVersion: 1, weights: defaultPolicy.weights } ),
+        malformedPolicy( 'string speed baseline', { ...defaultPolicy, attackSpeedBaseline: '100' } ),
+        malformedPolicy( 'negative speed baseline', { ...defaultPolicy, attackSpeedBaseline: -1 } ),
+        malformedPolicy( 'oversized speed baseline', { ...defaultPolicy, attackSpeedBaseline: 1001 } ),
+        [ 'missing page', () => ( { query: { pages: [ { ns: 8, title: configTitle, missing: true } ] } } ) ],
+        [ 'read failure', () => Promise.reject( Error( 'private config backend detail' ) ) ]
+    ];
+    for ( const [ label, change ] of [
+        [ 'malformed JSON', result => { result.query.pages[ 0 ].revisions[ 0 ].slots.main.content = '{invalid'; } ],
+        [ 'nonfinite JSON number', result => { result.query.pages[ 0 ].revisions[ 0 ].slots.main.content = JSON.stringify( defaultPolicy ).replace( '"resists":2', '"resists":1e999' ); } ],
+        [ 'oversized valid JSON', result => { result.query.pages[ 0 ].revisions[ 0 ].slots.main.content += ' '.repeat( 8193 ); } ],
+        [ 'wrong content model', result => { result.query.pages[ 0 ].revisions[ 0 ].slots.main.contentmodel = 'wikitext'; } ],
+        [ 'wrong page identity', result => { result.query.pages[ 0 ].title = 'MediaWiki:OtherSettings.json'; } ],
+        [ 'wrong namespace', result => { result.query.pages[ 0 ].ns = 0; } ],
+        [ 'redirect page', result => { result.query.pages[ 0 ].redirect = true; } ],
+        [ 'hidden content', result => { result.query.pages[ 0 ].revisions[ 0 ].texthidden = true; } ],
+        [ 'invalid revision', result => { result.query.pages[ 0 ].revisions[ 0 ].revid = 0; } ],
+        [ 'multiple revisions', result => { result.query.pages[ 0 ].revisions.push( result.query.pages[ 0 ].revisions[ 0 ] ); } ]
+    ] ) { invalidSettings.push( [ label, () => { const result = configResponse(); change( result ); return result; } ] ); }
+    for ( const [ label, config ] of invalidSettings ) {
+        const unavailable = fixture( () => response( [ player( 'known', 'Known complete character', { stats: mixedStats } ) ] ), url, config );
+        await unavailable.loaded(); assert.equal( unavailable.rows().length, 1, label + ': directory still loads.' );
+        unavailable.set( '.eql-pl-ordering select', 'gearScore' );
+        assert.equal( unavailable.rows()[ 0 ].firstChild.textContent, '—', label + ': no fallback rank.' );
+        assert.match( unavailable.root().querySelector( '.eql-pl-score-details' ).textContent, /Gear Score is unavailable/i, label + ': reason is visible.' );
+        assert.doesNotMatch( unavailable.root().textContent, /private config backend detail/ );
+        assert( unavailable.root().querySelector( '.eql-pl-score-details a' ), label + ': settings link remains available.' );
+        unavailable.set( '.eql-pl-ordering select', 'hp' ); assert( unavailable.rows()[ 0 ].lastChild.textContent.startsWith( '2,000' ), label + ': original stats remain available.' ); assert.equal( unavailable.rows()[ 0 ].firstChild.textContent, '1' );
+        assert.equal( unavailable.configCalls.length, 1 ); assert.equal( unavailable.calls.length, 1 ); unavailable.close();
+    }
 
     const guides = fixture( () => response( [
         player( 'guide', 'Guide', { classes: [ 'ROG', 'Berserker', 'Monk' ] } ),
@@ -148,12 +233,13 @@ function fixture( get = () => response(), getUrl = url ) {
     let releaseLast;
     const paged = fixture( ( params, index ) => index === 1 ? response( players.slice( 0, 2 ), 'first' ) : index === 2 ? response( [], 'second' ) : new Promise( resolve => { releaseLast = resolve; } ) );
     await until( () => paged.calls.length === 3, 'all continuation pages requested' ); assert.equal( paged.rows().length, 0, 'A pending last page cannot expose partial rankings.' );
+    assert.equal( paged.configCalls.length, 1, 'Continuation pages share the single settings revision for this complete load.' );
     assert.equal( paged.calls[ 1 ].continue, 'first' ); assert.equal( paged.calls[ 2 ].continue, 'second' ); assert.equal( paged.calls[ 0 ].limit, 25 );
     releaseLast( response( [ ...players.slice( 2 ), { ...players[ 0 ], totalTier: 10000 } ] ) ); await paged.loaded(); assert.equal( paged.rows().length, 6, 'Overlap between pages never duplicates characters.' ); assert.deepEqual( paged.ids().slice( 0, 2 ), [ 'a', 'd' ] ); paged.close();
 
     const failure = fixture( ( params, index ) => index === 1 ? Promise.reject( Error( 'private backend detail' ) ) : response( [ players[ 1 ] ] ) ); await failure.loaded();
     assert.equal( failure.rows().length, 0 ); assert.equal( failure.root().querySelector( '.eql-pl-retry' ).hidden, false ); assert.doesNotMatch( failure.root().textContent, /private backend detail/ );
-    failure.root().querySelector( '.eql-pl-retry' ).click(); await failure.loaded(); assert.deepEqual( failure.ids(), [ 'b' ] ); assert.equal( failure.calls[ 1 ].continue, undefined ); failure.close();
+    failure.root().querySelector( '.eql-pl-retry' ).click(); await failure.loaded(); assert.deepEqual( failure.ids(), [ 'b' ] ); assert.equal( failure.calls[ 1 ].continue, undefined ); assert.equal( failure.configCalls.length, 2, 'Explicit retry reads one new settings revision.' ); failure.close();
 
     const partial = fixture( ( params, index ) => index === 1 ? response( players.slice( 0, 2 ), 'next' ) : index === 2 ? Promise.reject( Error( 'network' ) ) : response( [ players[ 3 ] ] ) ); await partial.loaded(); assert.equal( partial.rows().length, 0 ); assert.match( partial.root().querySelector( '.eql-pl-status' ).textContent, /No partial rankings/ ); partial.root().querySelector( '.eql-pl-retry' ).click(); await partial.loaded(); assert.deepEqual( partial.ids(), [ 'd' ], 'Retry starts a fresh list, without retaining partial previous results.' ); partial.close();
 
@@ -171,5 +257,5 @@ function fixture( get = () => response(), getUrl = url ) {
 
     assert.doesNotMatch( source, /innerHTML|localStorage|fetch\s*\(/, 'Directory uses secure DOM construction and only the registered read-only wiki API.' );
     assert.match( css, /\.eql-pl-table-scroll\{[^}]*overflow-x:auto/ ); assert.match( css, /@media\(max-width:700px\)/ ); assert.doesNotMatch( css, /@import|url\(/ );
-    console.log( 'Player List DOM passed: complete paginated rankings, all stats and distinct Accuracy fields, provisional Gear Score formula and unknown/alias/precision guards, Any/class-combination/server/name/user/max-level filters, scoped text-selection controls, canonical new-tab guide links, stable ties/null-last sorting, bounded result pages, secure local links, errors/retry, detached-response guards and dynamic idempotence.' );
+    console.log( 'Player List DOM passed: complete paginated rankings, wiki-editable Gear Score settings with strict schema/public revision/bounds, resist weight2, edited refresh and invalid-settings recovery, zero-weight exclusions, legacy/alias/precision guards, separate bounded nonpolling settings requests, all stats/filters/guide links, stable ties/null-last sorting, secure local links, errors/retry, detached-response guards and dynamic idempotence.' );
 } )().catch( error => { console.error( error ); process.exitCode = 1; } );

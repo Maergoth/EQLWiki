@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "weights": {
+    "resources": 0.05,
+    "attributes": 1,
+    "resists": 2,
+    "ac": 1,
+    "atk": 5,
+    "haste": 10
+  },
+  "attackSpeedBaseline": 100
+}
