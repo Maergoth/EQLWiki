@@ -192,15 +192,41 @@ async function main() {
 		input( window, wrapper.querySelector( '.ils-slider' ), 0 );
 		assert.equal( generated.textContent, '', `${test.title}: reset hides generated Void` );
 	}
-	for ( const label of [ 'SV VOID', 'SV Corruption' ] ) {
-		window.localStorage.clear();
-		window.document.body.innerHTML = card( 'Explicit Void resist', `STR: 5 DEX: 5<br>${label}: +3` );
-		window.eqlItemLevelSliderRefresh( window.document );
-		const explicitVoidWrapper = window.document.querySelector( '.ils-item-wrapper' );
-		input( window, explicitVoidWrapper.querySelector( '.ils-slider' ), 10000 );
-		assert.match( explicitVoidWrapper.querySelector( '.itemdata' ).textContent, new RegExp( `${label}: \\+3` ) );
-		assert.equal( explicitVoidWrapper.querySelector( '.ils-void-resist' ).textContent, '', 'explicit Void suppresses generated duplicate' );
+	const voidLabels = [ 'SV VOID', 'SV Corruption', 'SV_VOID', 'SV.Corruption', 'SVVoid',
+		'SVCorruption', 'Void', 'Corruption', 'ResistVoid', 'ResistCorruption' ];
+	for ( const label of voidLabels ) {
+		for ( const base of [ '+3', '20', '0', '+0', '-3' ] ) {
+			window.localStorage.setItem( 'ils-default-level-v2', '{"full":5,"fraction":4}' );
+			window.document.body.innerHTML = card( 'Explicit Void resist', `STR: 5 DEX: 5<br>${label}: ${base}` );
+			hooks[ 'wikipage.content' ]( window.jQuery( window.document.body ) );
+			const wrapper = window.document.querySelector( '.ils-item-wrapper' );
+			const stat = wrapper.querySelector( '.ils-stat[data-ils-stat="SV_CORRUPTION"]' );
+			const expected = Number( base ) > 0 ? Number( base ) + 5 : Number( base );
+			const sign = base.startsWith( '+' ) && Number( base ) > 0 ? '+' : '';
+			assert.ok( stat, `${label}: explicit field is instrumented` );
+			assert.equal( stat.textContent, sign + expected, `${label}/${base}: whole-tier intrinsic gain` );
+			assert.equal( stat.classList.contains( 'ils-modified' ), Number( base ) > 0 );
+			assert.equal( Number( stat.dataset.ilsBase ), Math.abs( Number( base ) ), 'listed base retained' );
+			window.eqlItemLevelSliderRefresh( wrapper );
+			assert.equal( stat.textContent, sign + expected, 'refresh never scales the current value again' );
+			assert.equal( wrapper.querySelectorAll( '[data-ils-stat="SV_CORRUPTION"]' ).length, 1 );
+			input( window, wrapper.querySelector( '.ils-slider' ), 10000 );
+			assert.equal( stat.textContent, sign + ( Number( base ) > 0 ? Number( base ) + 10 : Number( base ) ) );
+			assert.equal( wrapper.querySelector( '.ils-void-resist' ).textContent, '', 'explicit field suppresses duplicate' );
+			input( window, wrapper.querySelector( '.ils-slider' ), 0 );
+			assert.equal( stat.textContent, sign + Number( base ), `${label}/${base}: rank zero restores original value/sign` );
+			assert.equal( stat.classList.contains( 'ils-modified' ), false );
+		}
 	}
+	window.localStorage.setItem( 'ils-default-level-v2', '{"full":5,"fraction":4}' );
+	window.document.body.innerHTML = card( 'Intrinsic Void only', 'SV VOID: 20' ) +
+		card( 'Unknown explicit Void', 'STR: 5 DEX: 5<br>SV Void: ?' );
+	hooks[ 'wikipage.content' ]( window.jQuery( window.document.body ) );
+	assert.equal( window.document.querySelector( '[data-ils-stat="SV_CORRUPTION"]' ).textContent, '25',
+		'intrinsic Void alone does not require generated-Void qualifiers' );
+	assert.equal( window.document.querySelectorAll( '.ils-void-resist.ils-vr-active' ).length, 0,
+		'explicit unknown Void remains unknown rather than generating an assumed zero base' );
+	assert.match( window.document.body.textContent, /SV Void: \?/ );
 
 	// A dynamic card inherits the saved fractional rank, and refresh never scales twice.
 	window.localStorage.setItem( 'ils-default-level-v2', JSON.stringify( { full: 3, fraction: 5 } ) );

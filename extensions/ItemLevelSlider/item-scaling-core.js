@@ -15,7 +15,7 @@
 	'use strict';
 	var PRIMARY = [ 'AC', 'HP', 'MP', 'END', 'STR', 'STA', 'AGI', 'DEX', 'WIS', 'INT', 'CHA',
 		'SV_MAGIC', 'SV_FIRE', 'SV_COLD', 'SV_POISON', 'SV_DISEASE' ];
-	var FLAT = [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN', 'HASTE' ];
+	var FLAT = [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN', 'HASTE', 'SV_CORRUPTION' ];
 	var VOID_QUALIFIERS = PRIMARY.concat( [ 'HP_REGEN', 'MANA_REGEN', 'END_REGEN' ] );
 	var ALIASES = {
 		DAMAGE: 'DMG', BASE_DMG: 'DMG', MANA: 'MP', ENDURANCE: 'END', ENDUR: 'END',
@@ -25,7 +25,9 @@
 		MAGIC: 'SV_MAGIC', FIRE: 'SV_FIRE', COLD: 'SV_COLD', POISON: 'SV_POISON', DISEASE: 'SV_DISEASE',
 		RESISTMAGIC: 'SV_MAGIC', RESISTFIRE: 'SV_FIRE', RESISTCOLD: 'SV_COLD',
 		RESISTPOISON: 'SV_POISON', RESISTDISEASE: 'SV_DISEASE', RESISTCORRUPTION: 'SV_CORRUPTION',
-		SV_VOID: 'SV_CORRUPTION', HPREGEN: 'HP_REGEN', MANAREGEN: 'MANA_REGEN',
+		SV_VOID: 'SV_CORRUPTION', SVVOID: 'SV_CORRUPTION', SVCORRUPTION: 'SV_CORRUPTION',
+		VOID: 'SV_CORRUPTION', CORRUPTION: 'SV_CORRUPTION', RESISTVOID: 'SV_CORRUPTION',
+		HPREGEN: 'HP_REGEN', MANAREGEN: 'MANA_REGEN',
 		ENDURANCEREGEN: 'END_REGEN', ENDURANCE_REGEN: 'END_REGEN', ENDUR_REGEN: 'END_REGEN',
 		MP_REGEN: 'MANA_REGEN', HP_REGENERATION: 'HP_REGEN', MANA_REGENERATION: 'MANA_REGEN',
 		ENDURANCE_REGENERATION: 'END_REGEN'
@@ -188,7 +190,7 @@
 			} );
 			if ( normalizeRank( full, 0 ).full > 0 ) {
 				if ( weapon && !accuracyKey ) { result.ACCURACY = accuracyBonus( full, options.fraction ); }
-				// Existing explicit Void stays caller-owned; only generate a missing field.
+				// Explicit Void scales from its own base; only generate a missing field.
 				if ( !keys.some( function ( key ) { return canonicalStatKey( key ) === 'SV_CORRUPTION'; } ) && voidEligible( stats ) ) {
 					result.SV_CORRUPTION = voidBonus( stats, full );
 				}

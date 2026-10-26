@@ -182,7 +182,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Era controls | `node ops/test-era-controls.cjs` | No third-party package; excludes editor and page navigation controls |
 | Spell rank caps | `node ops/test-spell-level-slider.cjs` | jsdom; categories, cap shorthand, split markup, base restoration, pets, and dynamic cards |
 | Shared item scaling kernel | `node ops/test-item-scaling-core.cjs` | No dependencies; numeric boundaries, contextual fields, unknown values, JSON validation/versioning, immutable engines and identical browser/CommonJS execution |
-| Item ranks and weapon stat layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; loads the shared engine/rules and checks Backstab aliases and screenshot values, Accuracy eligibility/formatting, bows, throwing weapons, ammo, fractional ranks, base restoration, multiple/dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
+| Item ranks and weapon stat layout | `node ops/test-item-level-slider.cjs` | jsdom and bundled jQuery; loads the shared engine/rules and checks intrinsic/generated Void, Backstab aliases and screenshot values, Accuracy eligibility/formatting, bows, throwing weapons, ammo, fractional ranks, base restoration, multiple/dynamic cards, and DMG/bonus/Ratio ordering with generated and explicit values |
 | Itembox damage bonus | `php maintenance/run.php ./ops/test-itembox.php` | Configured local wiki with ParserFunctions string functions and Variables; supplies the reviewed template in memory, parses synthetic cards, and saves no pages. Covers handedness, level-50 rounding, delay cap, explicit/zero overrides, Backstab, excluded items, and per-card isolation |
 | Interactive Character sheets | `php maintenance/run.php ./ops/test-character-sheet.php`, `node ops/test-character-sheet.cjs` and `node ops/build-character-sheet-templates.cjs --check` | Configured local wiki for unsaved two-template parser checks, observed modifiers/unknowns and distinct accuracy fields; jsdom for collapsed/keyboard/dynamic behavior. No page/account/upload writes; [separate publication contract](CHARACTER_SHEETS.md) |
 | Client observations | `php ops/test-eoz-observations.php`, PHP/JSON lint | Pure payload and transactional repository/API doubles: attribution, CSRF/POST declaration, dedup/conflicts, quotas/rollback. No schema installation or real account login; [activation is separate](CLIENT_API.md) |
@@ -273,6 +273,13 @@ HP/Mana/End regen. Check base AC 2/HP 12/STR 3 and three regen fields of 2 each
 generate Void 5 at rank 5 and hide it on reset. One STR alongside DMG/Backstab,
 DMG/delay alone, and one AC alone must not generate Void. Distinct known zero
 primary fields still qualify, and explicit Void/Corruption suppresses duplicates.
+Revision 4 additionally scales positive intrinsic Void with the existing flat
+gain, independently of these qualifiers: base 3 at rank 5 is 8 and base 20 is
+25. Check explicit zero/negative unchanged, unknown still unknown, aliases,
+fractional progress with no extra Void, reset to the authored base, the tier 10
+cap and repeated/dynamic refresh with no second row. The shared core and DOM
+fixtures cover these cases without altering item pages. The consumer's default
+inverse must remain contextual; observed Void alone does not establish base zero.
 
 For ItemLevelSlider, check Backstab and Accuracy inside article and hover item
 frames at rank zero, a whole rank, and fractional progress. Backstab uses the
