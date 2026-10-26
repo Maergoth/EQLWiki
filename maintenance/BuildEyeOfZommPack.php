@@ -1327,6 +1327,10 @@ class BuildEyeOfZommPack extends Maintenance {
             'SV_MAGIC' => [ 'SV MAGIC' ], 'SV_FIRE' => [ 'SV FIRE' ],
             'SV_COLD' => [ 'SV COLD' ], 'SV_POISON' => [ 'SV POISON' ],
             'SV_DISEASE' => [ 'SV DISEASE' ],
+            'SV_CORRUPTION' => [ 'SV VOID', 'SV CORRUPTION', 'SV_VOID', 'SV_CORRUPTION',
+                'SV.VOID', 'SV.CORRUPTION', 'SV. VOID', 'SV. CORRUPTION',
+                'SV-VOID', 'SV-CORRUPTION', 'SVVOID', 'SVCORRUPTION',
+                'RESISTVOID', 'RESISTCORRUPTION', 'VOID', 'CORRUPTION' ],
             'HP_REGEN' => [ 'HP REGENERATION', 'HP REGEN' ],
             'MANA_REGEN' => [ 'MANA REGENERATION', 'MANA REGEN', 'MP REGEN' ],
             'END_REGEN' => [ 'ENDURANCE REGENERATION', 'ENDURANCE REGEN', 'ENDUR REGEN', 'END REGEN' ],
@@ -1344,6 +1348,9 @@ class BuildEyeOfZommPack extends Maintenance {
             'BANE_DMG' => [ 'BANE DMG', 'BANE DAMAGE' ],
         ];
         foreach ( $map as $key => $labels ) {
+            // Void needs literal field boundaries and alias-conflict checks;
+            // an incidental effect/note must not establish an intrinsic base.
+            if ( $key === 'SV_CORRUPTION' ) { continue; }
             foreach ( $labels as $label ) {
                 $pattern = '/\b' . str_replace( ' ', '\s+', preg_quote( $label, '/' ) ) . '\s*:\s*([+\-]?\d+(?:\.\d+)?)/i';
                 if ( preg_match( $pattern, $statsBlock, $m ) ) {
@@ -1357,7 +1364,53 @@ class BuildEyeOfZommPack extends Maintenance {
         if ( preg_match( '/(?:^|<br\s*\/?>|\R)\s*(?:DMG|DAMAGE)\s*:\s*([+\-]?\d+(?:\.\d+)?)/i', $statsBlock, $m ) ) {
             $stats['DMG'] = strpos( $m[1], '.' ) !== false ? (float)$m[1] : (int)$m[1];
         }
+        $stats += $this->parseIntrinsicVoidStat( $statsBlock, $map );
         return $stats;
+    }
+
+    private function parseIntrinsicVoidStat( string $statsBlock, array $fieldMap ): array {
+        $text = preg_replace( '/<!--(?:[\s\S]*?-->|[\s\S]*$)/', '', $statsBlock );
+        // Do not interpret template/protected content as a numeric base. The
+        // exporter never expands stats or borrows values from rendered effects.
+        if ( preg_match( '/\{\{|\}\}|<\/?(?:nowiki|pre|code|source|syntaxhighlight|ref)\b/i', $text ) ) { return []; }
+        $labels = array_merge( [ 'DMG', 'DAMAGE' ], ...array_values( $fieldMap ) );
+        usort( $labels, static fn ( $a, $b ) => strlen( $b ) <=> strlen( $a ) );
+        $pattern = implode( '|', array_unique( array_map( static function ( $label ) {
+            // Older articles also spell grouped saves as "SV. MAGIC". Only
+            // this literal-prefix parser normalizes their separator runs.
+            if ( preg_match( '/^SV[ ._-]*(MAGIC|FIRE|COLD|POISON|DISEASE|VOID|CORRUPTION)$/', $label, $save ) ) {
+                return 'SV[\s._-]*' . $save[1];
+            }
+            return str_replace( ' ', '\s+', preg_quote( $label, '/' ) );
+        }, $labels ) ) );
+        $voidLabels = array_fill_keys( [ 'SV_VOID', 'SV_CORRUPTION', 'SVVOID', 'SVCORRUPTION',
+            'RESISTVOID', 'RESISTCORRUPTION', 'VOID', 'CORRUPTION' ], true );
+        $seen = false; $value = null;
+        foreach ( preg_split( '/<br\s*\/?\s*>|\R/i', $text ) as $line ) {
+            $offset = 0;
+            // A field must start the line or follow only recognized numeric
+            // stat fields. Stop at metadata/prose instead of scanning its text.
+            while ( preg_match( '/\G\s*(' . $pattern . ')\s*:\s*/i', $line, $field, 0, $offset ) ) {
+                $offset += strlen( $field[0] );
+                $isVoid = isset( $voidLabels[strtoupper( preg_replace( '/[\s._-]+/', '_', $field[1] ) )] );
+                $literal = preg_match( '/\G([+\-]?\d+(?:\.\d+)?)(?=\s|$)/', $line, $number, 0, $offset ) === 1;
+                $next = $literal ? $offset + strlen( $number[0] ) : $offset;
+                $remainder = substr( $line, $next );
+                $literal = $literal && ( trim( $remainder ) === '' || preg_match( '/^\s*(?:' . $pattern . ')\s*:/i', $remainder ) );
+                if ( $isVoid ) {
+                    // The destination is JavaScript numeric data. Unsafe huge
+                    // literals must not saturate an integer cast into a base.
+                    $numeric = $literal && is_finite( (float)$number[1] ) && abs( (float)$number[1] ) <= 9007199254740991 ?
+                        ( strpos( $number[1], '.' ) !== false ? (float)$number[1] : (int)$number[1] ) : null;
+                    if ( !$seen ) { $value = $numeric; }
+                    elseif ( $value === null || $numeric === null || $value != $numeric ) { $value = null; }
+                    $seen = true;
+                }
+                if ( !$literal ) { break; }
+                $offset = $next;
+            }
+        }
+        return $seen ? [ 'SV_CORRUPTION' => $value ] : [];
     }
 
     private function parseDropSources( string $dropsFrom, bool $raidInstance = false, bool $explicit = false ): array {

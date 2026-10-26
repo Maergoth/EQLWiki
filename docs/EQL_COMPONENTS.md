@@ -527,7 +527,16 @@ export `BACKSTAB_DMG` for `BACKSTAB`/`Backstab DMG`/`Backstab Damage`, `DELAY`
 for `Delay`/`Atk Delay`/`Attack Delay`, and `DMG_BONUS` for the written damage
 bonus aliases. Explicit zero values survive; missing fields are not inferred
 from damage or tier. A filtered dataset rebuild is required to deliver these
-fields to clients. Its zone catalog resolves exact
+fields to clients. Intrinsic `SV Void`/`SV Corruption` and their explicit compact,
+dotted or underscored aliases export as `SV_CORRUPTION`, including written zero
+and negative values. Only standalone fields or consecutive recognized numeric
+stat fields establish a value; effect/note prose and unexpanded protected or
+template content do not. Conflicting aliases or an explicit unknown/malformed
+value retain `null`, while an absent field stays absent. The original display
+lines and item revision remain intact; the producer never generates a tier bonus.
+Grouped save prefixes accept normal `SV. MAGIC`/`SV. VOID` separator variants;
+unsafe huge numeric literals remain unknown instead of saturating an integer.
+Its zone catalog resolves exact
 wiki category, field, and title-suffix aliases while retaining existing canonical
 viewer names. Recognized explicit NPC template zones take precedence and retain
 all listed zones; categories are a fallback, then the article-title suffix.

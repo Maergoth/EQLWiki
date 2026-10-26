@@ -88,6 +88,12 @@ $fixtures['Synthetic various raid'] = [ 'text' => $npc( $zone, 10 ) . "\n= Raid 
 $fixtures['Synthetic contextual card'] = [ 'text' => str_replace( "\n}}", "\n|relatedquests=* [[Synthetic quest]]\n|foraged=* [[Synthetic Vale]]\n}}", $item( 'Synthetic contextual card', '' ) ) ];
 $fixtures['Synthetic omitted modifier'] = [ 'text' => str_replace( "\n}}", "\n|custom_modifier=Powerful\n}}", $item( 'Synthetic omitted modifier', '' ) ) ];
 $fixtures['Synthetic long card'] = [ 'text' => "{{Itempage\n|itemname=Synthetic long card\n|statsblock=" . implode( '<br>', array_fill( 0, 16, 'WT: 0.1' ) ) . "<br>Effect: Hidden at line seventeen\n|dropsfrom=\n}}" ];
+foreach ( [ 'Synthetic intrinsic Void' => 'SV MAGIC: +15 SV FIRE: +15 SV VOID: +30',
+    'Synthetic zero Void' => 'SV Corruption: 0',
+    'Synthetic conflicting Void' => 'SV Void: 30<br>SV_CORRUPTION: 31',
+    'Synthetic unknown Void' => 'SVVoid: ?' ] as $name => $stats ) {
+    $fixtures[$name] = [ 'text' => "{{Itempage\n|itemname={$name}\n|statsblock={$stats}\n|dropsfrom=\n}}" ];
+}
 $factory = new class {
     public function newFromTitle( $title ) {
         return new class( $GLOBALS['fixtures'][$title->getText()] ?? null ) {
@@ -163,6 +169,14 @@ $expect = static function ( $actual, $expected, string $label ) use ( &$checks )
     if ( $actual !== $expected ) { throw new RuntimeException( $label . ': ' . json_encode( $actual ) ); }
     $checks++;
 };
+foreach ( [ 'Synthetic intrinsic Void' => 30, 'Synthetic zero Void' => 0,
+    'Synthetic conflicting Void' => null, 'Synthetic unknown Void' => null ] as $name => $value ) {
+    $expect( property_exists( $items[$name]['stats'], 'SV_CORRUPTION' ), true, 'Actual rich item record exports authored Void field presence' );
+    $expect( $items[$name]['stats']->SV_CORRUPTION, $value, 'Actual rich item record preserves literal/unknown intrinsic Void' );
+    $expect( $items[$name]['revisionId'], 123, 'Typed Void retains the item source revision' );
+}
+$expect( $items['Synthetic intrinsic Void']['displayLines'], [ 'SV MAGIC: +15 SV FIRE: +15 SV VOID: +30' ], 'Typed Void does not rewrite the original display text' );
+$expect( property_exists( $items['Synthetic item']['stats'], 'SV_CORRUPTION' ), false, 'Rich item records never synthesize absent tier-zero Void' );
 $records = static fn ( string $name ) => array_values( array_filter( $npcs, static fn ( $record ) => $record['name'] === $name ) );
 $expect( $records( 'Synthetic fresh lake spawn' )[0]['zone'], 'Synthetic normal zone', 'A literal newly categorized public zone cannot disappear because it was absent from the curated map catalog' );
 $expect( $records( 'Synthetic fresh lake spawn' )[0]['categoryZones'], [ 'Synthetic normal zone' ], 'Independent category population proof survives for all public categorized zones' );
