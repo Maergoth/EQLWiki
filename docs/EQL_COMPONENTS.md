@@ -243,7 +243,9 @@ the module only for rendered schema-1 markup, including unsaved API previews.
 The skin also registers `<eqlplayers />` for the `Player_List` directory and
 its conditional `skins.EQLImmersive.playerList` module. EQLClientData's read-only
 `eqlplayers` API indexes current public User-page snapshots with class/server/
-max-level filters and numeric sorting in the browser. `eqlcharactereffects`
+max-level filters and numeric sorting in the browser. Any clears the class filter;
+selected classes require the complete selected combination. Valid three-class
+row combinations open the canonical build guide in a new tab. `eqlcharactereffects`
 fills missing effect metadata in existing character sheets; socketed Exaltations
 show only their name and effect. See [Player List](PLAYER_LIST.md) for public
 visibility, continuation, cache, producer and separate page-publication contracts.
