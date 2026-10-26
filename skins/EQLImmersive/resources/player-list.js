@@ -37,6 +37,15 @@
             return /^https?:$/.test( candidate.protocol ) && candidate.origin === canonical.origin && !candidate.username && !candidate.password && candidate.pathname === canonical.pathname && candidate.search === canonical.search ? candidate.href : canonical.href;
         } catch ( error ) { return null; }
     }
+    function buildGuideUrl( player ) {
+        if ( !player.hasClassCombination ) { return null; }
+        var names = player.classes.map( function ( code ) { return CLASSES.find( function ( pair ) { return pair[ 0 ] === code; } )[ 1 ]; } );
+        names.sort( function ( first, second ) { return first.localeCompare( second, 'en', { sensitivity: 'base' } ); } );
+        try {
+            var url = new URL( mw.util.getUrl( names.join( '_' ).replace( / /g, '_' ) + '_Guide' ), window.location.href );
+            return /^https?:$/.test( url.protocol ) && url.origin === window.location.origin && !url.username && !url.password ? url.href : null;
+        } catch ( error ) { return null; }
+    }
     function normalize( value ) {
         if ( !value || typeof value !== 'object' || !( typeof value.id === 'string' && value.id.length || typeof value.id === 'number' && Number.isFinite( value.id ) ) || typeof value.name !== 'string' || !value.name.trim() ) { throw new Error( 'Invalid player record' ); }
         var classes = [], stats = Object.create( null );
@@ -48,7 +57,7 @@
             Object.keys( value.stats ).slice( 0, 100 ).forEach( function ( key ) { if ( /^[a-z][a-z0-9_]{0,47}$/.test( key ) ) { stats[ key ] = number( value.stats[ key ] ); } } );
         }
         if ( String( value.id ).length > 1000 ) { throw new Error( 'Invalid player identity' ); }
-        return { id: String( value.id ), name: text( value.name ), server: text( value.server, 150 ), classes: classes,
+        return { id: String( value.id ), name: text( value.name ), server: text( value.server, 150 ), classes: classes, hasClassCombination: Array.isArray( value.classes ) && value.classes.length === 3 && classes.length === 3,
             level: number( value.level ), aa: number( value.aa ), totalTier: number( value.totalTier ), achievementCount: Number.isInteger( value.achievementCount ) && value.achievementCount >= 0 && value.achievementCount <= 1000000000 ? value.achievementCount : null, equippedSlots: number( value.equippedSlots ), tieredSlots: number( value.tieredSlots ), stats: stats,
             updated: text( value.updated, 80 ), pageTitle: text( value.pageTitle ), pageUrl: text( value.pageUrl, 2000 ), snapshotConflict: value.snapshotConflict === true };
     }
@@ -80,13 +89,14 @@
         maximum.type = 'checkbox'; maximum.dataset.filter = 'maximum'; var maximumLabel = element( 'label', undefined, 'eql-pl-check eql-pl-maximum' ); maximumLabel.append( maximum, maximumText );
         top.append( field( 'Search players', search ), field( 'Server', server ), maximumLabel );
         var classes = element( 'fieldset', undefined, 'eql-pl-class-filter' ), legend = element( 'legend', 'Classes' ), classGrid = element( 'div', undefined, 'eql-pl-class-grid' ), classControls = [];
+        var anyClass = element( 'input' ), anyLabel = element( 'label', undefined, 'eql-pl-class-choice' );
+        anyClass.type = 'checkbox'; anyClass.checked = true; anyClass.dataset.filter = 'any-class'; anyClass.setAttribute( 'aria-label', 'Any classes' );
+        anyLabel.append( anyClass, element( 'span', 'Any' ) ); classGrid.appendChild( anyLabel );
         CLASSES.forEach( function ( pair ) {
             var label = element( 'label', undefined, 'eql-pl-class-choice' ), input = element( 'input' ); input.type = 'checkbox'; input.value = pair[ 0 ]; input.dataset.playerClass = pair[ 0 ];
             label.append( input, element( 'span', pair[ 1 ] ), element( 'small', pair[ 0 ] ) ); classGrid.appendChild( label ); classControls.push( input );
         } );
-        var classActions = element( 'div', undefined, 'eql-pl-class-actions' ), matchAll = element( 'input' ), matchLabel = element( 'label', undefined, 'eql-pl-check' ), clearClasses = button( 'Clear classes', 'eql-pl-quiet-button' );
-        matchAll.type = 'checkbox'; matchAll.checked = true; matchAll.dataset.filter = 'match-all'; matchLabel.append( matchAll, element( 'span', 'Include every selected class' ) );
-        classActions.append( matchLabel, clearClasses ); classes.append( legend, classGrid, classActions ); filters.append( top, classes );
+        classes.append( legend, classGrid ); filters.append( top, classes );
         var resultsBar = element( 'div', undefined, 'eql-pl-results-bar' ), resultCount = element( 'p', '', 'eql-pl-result-count' ), order = element( 'select' ); order.id = prefix + '-order'; resultCount.setAttribute( 'role', 'status' ); resultCount.setAttribute( 'aria-live', 'polite' );
         function option( key, label, parent ) { var node = element( 'option', label ); node.value = key; parent.appendChild( node ); }
         var baseGroup = element( 'optgroup' ); baseGroup.label = 'Character'; [ 'totalTier', 'level', 'aa', 'achievementCount', 'name' ].forEach( function ( key ) { option( key, labels[ key ], baseGroup ); } ); order.appendChild( baseGroup );
@@ -126,7 +136,7 @@
             if ( !complete || loading ) { scroll.hidden = empty.hidden = navigation.hidden = true; return; }
             var query = search.value.trim().toLocaleLowerCase(), selected = classControls.filter( function ( input ) { return input.checked; } ).map( function ( input ) { return input.value; } );
             var filtered = players.filter( function ( player ) {
-                return ( !query || ( player.name + ' ' + player.pageTitle ).toLocaleLowerCase().indexOf( query ) >= 0 ) && ( !server.value || player.server === server.value ) && ( !maximum.checked || player.level === maxLevel ) && ( !selected.length || ( matchAll.checked ? selected.every( function ( code ) { return player.classes.indexOf( code ) >= 0; } ) : selected.some( function ( code ) { return player.classes.indexOf( code ) >= 0; } ) ) );
+                return ( !query || ( player.name + ' ' + player.pageTitle ).toLocaleLowerCase().indexOf( query ) >= 0 ) && ( !server.value || player.server === server.value ) && ( !maximum.checked || player.level === maxLevel ) && selected.every( function ( code ) { return player.classes.indexOf( code ) >= 0; } );
             } );
             filtered.sort( function ( first, second ) { var a = valueFor( first, sortKey ), b = valueFor( second, sortKey );
                 if ( a === null || b === null ) { return a === b ? compareName( first, second ) : a === null ? 1 : -1; }
@@ -147,7 +157,9 @@
                 if ( player.achievementCount !== null ) { identity.appendChild( element( 'small', format( player.achievementCount ) + ' achievements', 'eql-pl-achievement-count' ) ); }
                 if ( player.snapshotConflict ) { identity.appendChild( element( 'small', 'Conflicting snapshots · view profile', 'eql-pl-updated' ) ); }
                 var updated = dateLabel( player.updated ); if ( updated ) { identity.appendChild( element( 'small', 'Updated ' + updated, 'eql-pl-updated' ) ); } row.appendChild( identity );
-                var combinations = element( 'td', undefined, 'eql-pl-combination' ); if ( player.classes.length ) { player.classes.forEach( function ( code ) { var chip = element( 'abbr', code ); chip.title = CLASSES.find( function ( pair ) { return pair[ 0 ] === code; } )[ 1 ]; combinations.appendChild( chip ); } ); } else { combinations.textContent = 'Not specified'; } row.appendChild( combinations );
+                var combinations = element( 'td', undefined, 'eql-pl-combination' ), guideUrl = buildGuideUrl( player ), chips = combinations;
+                if ( guideUrl ) { chips = element( 'a', undefined, 'eql-pl-build-guide' ); chips.href = guideUrl; chips.target = '_blank'; chips.rel = 'noopener noreferrer'; chips.setAttribute( 'aria-label', player.classes.map( function ( code ) { return CLASSES.find( function ( pair ) { return pair[ 0 ] === code; } )[ 1 ]; } ).join( ', ' ) + ' build guide (opens in a new tab)' ); combinations.appendChild( chips ); }
+                if ( player.classes.length ) { player.classes.forEach( function ( code ) { var chip = element( 'abbr', code ); chip.title = CLASSES.find( function ( pair ) { return pair[ 0 ] === code; } )[ 1 ]; chips.appendChild( chip ); } ); } else { combinations.textContent = 'Not specified'; } row.appendChild( combinations );
                 numericCell( row, player.level ); numericCell( row, player.aa ); var tier = numericCell( row, player.totalTier, 'eql-pl-tier' );
                 tier.appendChild( element( 'small', format( player.equippedSlots ) + ' equipped · ' + format( player.tieredSlots ) + ' tiered' ) );
                 if ( fieldsStat() ) { numericCell( row, valueFor( player, sortKey ), 'eql-pl-number eql-pl-featured-stat' ); } body.appendChild( row );
@@ -158,10 +170,11 @@
         }
         function fieldsStat() { return [ 'name', 'level', 'aa', 'totalTier' ].indexOf( sortKey ) < 0; }
         function changed() { page = 0; render(); }
-        [ search, server, maximum, matchAll ].forEach( function ( control ) { control.addEventListener( control === search ? 'input' : 'change', changed ); } );
-        classControls.forEach( function ( control ) { control.addEventListener( 'change', changed ); } );
-        clearClasses.addEventListener( 'click', function () { classControls.forEach( function ( control ) { control.checked = false; } ); changed(); } );
-        reset.addEventListener( 'click', function () { search.value = ''; server.value = ''; maximum.checked = false; matchAll.checked = true; classControls.forEach( function ( control ) { control.checked = false; } ); changed(); search.focus(); } );
+        [ search, server, maximum ].forEach( function ( control ) { control.addEventListener( control === search ? 'input' : 'change', changed ); } );
+        classControls.forEach( function ( control ) { control.addEventListener( 'change', function () { anyClass.checked = !classControls.some( function ( input ) { return input.checked; } ); changed(); } ); } );
+        function clearClasses() { classControls.forEach( function ( control ) { control.checked = false; } ); anyClass.checked = true; changed(); }
+        anyClass.addEventListener( 'change', clearClasses );
+        reset.addEventListener( 'click', function () { search.value = ''; server.value = ''; maximum.checked = false; clearClasses(); search.focus(); } );
         order.addEventListener( 'change', function () { sort( order.value, false ); } ); direction.addEventListener( 'click', function () { descending = !descending; page = 0; render(); } );
         previous.addEventListener( 'click', function () { page--; render(); } ); next.addEventListener( 'click', function () { page++; render(); } );
         function load() {
