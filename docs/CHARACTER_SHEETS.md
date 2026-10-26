@@ -10,6 +10,11 @@ and clickable known Exaltations. Socketed Exaltations show their name and effect
 only; their numeric stats, tier and unrelated equipment metadata are omitted.
 The stylized **View Other Players** link below equipment opens `Player_List`.
 An optional achievement export appears below the equipment and statistics.
+The left side contains an optional public Character screenshot. Without one,
+the red **Add an image** box opens the normal wiki upload page with its PNG
+filename preselected. On narrow layouts it stacks above the existing totals and
+equipment instead of reserving an empty column. Neither the image nor its
+placeholder changes recorded statistics, tiers, sockets or achievements.
 Achievements and their categories have independent, initially collapsed
 disclosures. Each achievement and objective keeps its explicit Complete or
 Incomplete marker, including objective counters; completing every objective
@@ -54,6 +59,11 @@ when moving to the User page.
 - `resources/character-sheet.js/css` progressively enhance that markup. They do
   not reuse the base-item AjaxHoverHelper card, which could show a different
   item tier from the reviewed snapshot. Existing `span.ih` behavior is untouched.
+- The skin's read-only `CharacterScreenshot` parser tag handles the optional
+  image and is called by the main template. It validates a local File title and
+  delegates both present and missing images to the native File parser, retaining
+  ParserOutput media dependencies. A later upload to the default filename can
+  therefore invalidate the cached User page normally; no image polling occurs.
 
 The app preflights both template sources for `EQL_CHARACTER_SHEET_V1` and
 `EQL_CHARACTER_SHEET_ITEM_V1`, then uses an unsaved `action=parse` request with a
@@ -114,8 +124,63 @@ Identity fields are `name`, `server`, `level`, `classes`, `aa`, optional `race`,
 `updated` and `caption`. The app bounds caption to 2,000 characters. It escapes
 each text line before adding generated `<br>` separators. Public snapshots omit
 fractional progress, raw OCR evidence, account identifiers, screenshots and data
-URIs. Icons reuse existing numeric `File:item_ID.png` assets; no game artwork is
-uploaded by this flow.
+URIs. The separate optional screenshot feature references a reviewed public
+upload rather than embedding capture bytes in template source. Icons reuse
+existing numeric `File:item_ID.png` assets.
+
+## Optional Character screenshot (schema 1)
+
+The main template advertises `EQL_CHARACTER_SCREENSHOT_V1`. A client adding an
+image must also confirm that an unsaved parse retains
+`.eql-character-screenshot-v1`, so a marker alone cannot authorize a discarded
+image. Existing clients and shares without an image keep the schema-1 contract.
+
+`screenshot` is an optional **bare filename**, such as `Example portrait.png`;
+do not supply `File:`, a URL, HTML or a data URI. PNG, JPG/JPEG, GIF and WebP are
+accepted within native MediaWiki title rules and a 240-byte UTF-8 filename limit.
+Controls, wiki delimiters, fragments, backslashes, protocol/namespace prefixes
+and absolute-path prefixes are rejected. Interior slashes from a User subpage
+are only title characters and are never treated as filesystem paths. Native
+File-title normalization handles underscores, spaces, Unicode and initial case.
+Invalid or overlong input leaves the entire ordinary sheet intact, with a
+generic upload link explaining how to set a valid override.
+
+With `screenshot` missing or blank, the default is:
+
+```
+Character <PAGENAME> - <name> (<server>).png
+```
+
+`PAGENAME` is the full current page title without its namespace, including any
+subpage; it is not `ROOTPAGENAME`. For example, on `User:Example/Subpage`,
+`name=Reader` and `server=Test` select
+`File:Character Example/Subpage - Reader (Test).png`. Distinct page owners do not
+share a default accidentally. The app uses the canonical authenticated own
+User title and resolves the candidate with the wiki's native File-title API
+normalization before upload.
+
+An existing default file displays automatically even if no screenshot parameter
+was ever saved. The upload placeholder links to native `Special:Upload` with
+the exact encoded `wpDestFile` and current `eqlReturnTo`; the existing upload
+return/purge module supplements normal File dependency invalidation. The default
+prompt requests PNG. A manually uploaded JPEG under a different filename needs
+an explicit `screenshot=...jpg` override. Display uses a normal MediaWiki
+thumbnail/frameless File image linking to the full file page, with contain sizing
+and no external image element supplied by the client.
+
+New app reshares preserve an existing valid explicit override when no new photo
+is selected. Older released clients replace their whole managed template block
+and can remove a new explicit parameter they do not know. The deterministic
+default survives such a reshare; nondefault overrides may need to be restored
+after an older client reshares. The wiki does not intercept or rewrite those
+edits. Files remain normal public wiki uploads; no account, private capture,
+inventory or User-page writes are performed by this renderer.
+
+Deploy the parser helper/skin registration and CSS **before** the separately
+reviewed main-template update. This change does not require an item-helper
+revision. Recheck both current template revisions and back up their exact sources
+privately; publish only the changed main template with its expected-revision
+compare-and-swap guard. Never edit existing User pages to add this feature.
 
 Totals use `total_` plus a canonical lowercase key:
 
@@ -222,6 +287,7 @@ predates module installation.
 node ops/build-character-sheet-templates.cjs --check
 php ops/test-character-sheet-publisher.php
 php maintenance/run.php ./ops/test-character-sheet.php
+php maintenance/run.php ./ops/test-character-screenshot.php --existing-file=Item_500.png
 NODE_PATH=/private/jsdom/node_modules node ops/test-character-sheet.cjs
 ```
 
@@ -237,6 +303,11 @@ checks. The DOM test accepts that output via `--html`, checks independent
 collapsed sheets, pointer/keyboard inspect, dynamic hook idempotence and no-JS
 content, including the pointer gap and keyboard entry into socket links. These
 checks do not establish live deployment or authenticated editing.
+The screenshot check uses actual MediaWiki Title normalization and unsaved
+template parsing. It verifies safe fallback, entity/non-ASCII/subpage/default
+identity, overrides, unchanged totals/slots and native media dependencies for
+missing and present files. The optional existing-file argument must name a
+current public local image. This is not a live upload or deferred-job test.
 
 Publisher equality accepts CRLF normalization and one optional final LF removed
 by MediaWiki's pre-save transform. It preserves all other whitespace/content
