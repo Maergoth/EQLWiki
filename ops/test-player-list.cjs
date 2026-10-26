@@ -83,6 +83,48 @@ function fixture( get = () => response(), getUrl = url ) {
     const requests = f.calls.length; f.hooks.forEach( hook => { hook( [ f.root() ] ); hook( [ f.document.querySelector( 'main' ) ] ); } ); f.window.eval( source ); f.hooks.forEach( hook => hook( [ f.root() ] ) ); await turn(); assert.equal( f.calls.length, requests, 'Repeated content hooks/module evaluation do not duplicate requests or mounts.' ); assert.equal( f.root().querySelectorAll( '.eql-pl-hero' ).length, 1 );
     f.close();
 
+    const zeroStats = Object.fromEntries( [ 'hp', 'mp', 'end', 'str', 'sta', 'agi', 'dex', 'wis', 'int', 'cha', 'sv_magic', 'sv_fire', 'sv_cold', 'sv_poison', 'sv_disease', 'sv_corruption', 'ac_mitigation', 'ac_evasion', 'atk_offense', 'atk_accuracy', 'haste' ].map( key => [ key, 0 ] ) );
+    const mixedStats = { ...zeroStats, hp: 2000, mp: 400, end: 600, ...Object.fromEntries( [ 'str', 'sta', 'agi', 'dex', 'wis', 'int', 'cha' ].map( key => [ key, 10 ] ) ), ...Object.fromEntries( [ 'sv_magic', 'sv_fire', 'sv_cold', 'sv_poison', 'sv_disease', 'sv_corruption' ].map( key => [ key, 20 ] ) ), ac_mitigation: 40, ac_evasion: 60, atk_offense: 20, atk_accuracy: 30, haste: 15 };
+    const scored = fixture( () => response( [
+        player( 'mixed', 'Mixed', { stats: mixedStats } ),
+        player( 'speed', 'Speed', { stats: { ...mixedStats, haste: null, attack_speed: 115 } } ),
+        player( 'legacy', 'Legacy', { stats: { ...mixedStats, ac_mitigation: null, ac_evasion: null, ac: 100, atk_offense: null, atk_accuracy: null, atk: 50 } } ),
+        player( 'aliases', 'Aliases', { stats: { ...zeroStats, ac: 99999, atk: 99999, attack_speed: 99999, ac_mitigation_softcap: 99999, accuracy: 99999, hp_regen: 99999, primary_dps: 99999, sv_void: 99999 } } ),
+        player( 'hp', 'Twenty HP', { stats: { ...zeroStats, hp: 20 } } ),
+        player( 'str', 'One STR', { stats: { ...zeroStats, str: 1 } } ),
+        player( 'haste', 'One Haste', { stats: { ...zeroStats, haste: 1 } } ),
+        player( 'atk', 'One ATK', { stats: { ...zeroStats, atk_offense: 1 } } ),
+        player( 'missing', 'Missing', { stats: { ...mixedStats, hp: null } } ),
+        player( 'partial', 'Partial pair', { stats: { ...mixedStats, atk_accuracy: null, atk: 99999 } } ),
+        player( 'no-speed', 'No speed', { stats: { ...mixedStats, haste: null, attack_speed: null } } ),
+        player( 'conflict', 'Conflict', { snapshotConflict: true, stats: mixedStats } ),
+        player( 'string', 'String', { stats: { ...mixedStats, hp: '2000' } } ),
+        player( 'overflow', 'Overflow', { stats: { ...mixedStats, atk_offense: Number.MAX_VALUE } } ),
+        player( 'negative', 'Negative', { stats: { ...zeroStats, sv_fire: -4 } } ),
+        player( 'tiny-low', 'A tiny low', { stats: { ...zeroStats, hp: 0.02 } } ),
+        player( 'tiny-high', 'Z tiny high', { stats: { ...zeroStats, hp: 0.04 } } )
+    ] ) ); await scored.loaded();
+    assert.equal( scored.root().querySelectorAll( 'option[value=gearScore]' ).length, 1 );
+    assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, true );
+    scored.set( '.eql-pl-ordering select', 'gearScore' );
+    const scoreCell = id => scored.root().querySelector( '[data-player-id="' + id + '"] td:last-child' );
+    for ( const id of [ 'mixed', 'speed', 'legacy' ] ) { assert( scoreCell( id ).textContent.startsWith( '750' ), id + ': hand-calculated score is750.' ); }
+    assert.match( scoreCell( 'legacy' ).textContent, /legacy totals/ );
+    assert( scoreCell( 'aliases' ).textContent.startsWith( '0' ), 'Explicit haste0 and component pairs win; softcap/derived bonuses/aggregate aliases never double-count.' );
+    assert( scoreCell( 'hp' ).textContent.startsWith( '1' ) && scoreCell( 'str' ).textContent.startsWith( '1' ), '20HP equals1attribute point.' );
+    assert( scoreCell( 'haste' ).textContent.startsWith( '10' ) ); assert( scoreCell( 'atk' ).textContent.startsWith( '5' ) );
+    assert.match( scoreCell( 'speed' ).title, /Attack speed: \(115 − 100\) × 10 = 150/ );
+    for ( const id of [ 'missing', 'partial', 'no-speed', 'conflict', 'string', 'overflow' ] ) { assert.equal( scoreCell( id ).parentNode.firstChild.textContent, '—', id + ': unknown stays unranked.' ); assert.match( scoreCell( id ).textContent, /Incomplete stats/ ); }
+    assert.match( scoreCell( 'partial' ).title, /ATK accuracy/ ); assert.equal( scoreCell( 'conflict' ).title, 'Unranked: conflicting snapshots' );
+    assert( scoreCell( 'negative' ).textContent.startsWith( '-1' ), 'Signed resists retain negative contributions.' );
+    assert( scored.ids().indexOf( 'tiny-high' ) < scored.ids().indexOf( 'tiny-low' ), 'Ranking uses full precision even when displayed scores round alike.' );
+    assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, false );
+    assert.match( scored.root().querySelector( '.eql-pl-score-details' ).textContent, /provisional v1[\s\S]*Attack Speed − 100[\s\S]*not class-balanced/ );
+    scored.root().querySelector( '.eql-pl-direction' ).click(); assert.equal( scored.ids()[0], 'negative' );
+    assert( scored.ids().slice( -6 ).every( id => [ 'missing', 'partial', 'no-speed', 'conflict', 'string', 'overflow' ].includes( id ) ), 'Incomplete records stay last in ascending order too.' );
+    scored.set( '.eql-pl-ordering select', 'attack_speed' ); assert( scoreCell( 'speed' ).textContent.startsWith( '115' ), 'Scoring baseline never rewrites the original reported Attack Speed.' );
+    assert.equal( scored.root().querySelector( '.eql-pl-score-details' ).hidden, true ); assert.equal( scored.calls.length, 1, 'Scoring adds no API requests.' ); scored.close();
+
     const guides = fixture( () => response( [
         player( 'guide', 'Guide', { classes: [ 'ROG', 'Berserker', 'Monk' ] } ),
         player( 'aliases', 'Aliases', { classes: [ 'SK', 'BST', 'ENC' ] } ),
@@ -129,5 +171,5 @@ function fixture( get = () => response(), getUrl = url ) {
 
     assert.doesNotMatch( source, /innerHTML|localStorage|fetch\s*\(/, 'Directory uses secure DOM construction and only the registered read-only wiki API.' );
     assert.match( css, /\.eql-pl-table-scroll\{[^}]*overflow-x:auto/ ); assert.match( css, /@media\(max-width:700px\)/ ); assert.doesNotMatch( css, /@import|url\(/ );
-    console.log( 'Player List DOM passed: complete paginated rankings, all stats and distinct Accuracy fields, Any/class-combination/server/name/user/max-level filters, scoped text-selection controls, canonical new-tab guide links, stable ties/null-last sorting, bounded result pages, secure local links, errors/retry, detached-response guards and dynamic idempotence.' );
+    console.log( 'Player List DOM passed: complete paginated rankings, all stats and distinct Accuracy fields, provisional Gear Score formula and unknown/alias/precision guards, Any/class-combination/server/name/user/max-level filters, scoped text-selection controls, canonical new-tab guide links, stable ties/null-last sorting, bounded result pages, secure local links, errors/retry, detached-response guards and dynamic idempotence.' );
 } )().catch( error => { console.error( error ); process.exitCode = 1; } );
