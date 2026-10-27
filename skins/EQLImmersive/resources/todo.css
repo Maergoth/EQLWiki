@@ -1,10 +1,27 @@
 body.skin-eqlimmersive .eql-todo-toggle {
+	position: relative; display: inline-flex; align-items: center; justify-content: center;
 	flex: 0 0 2.25rem;
 	border: 0; background: transparent; color: var(--eql-gold, #d8b75c);
 	font-size: 1.5rem; cursor: pointer; min-height: 2.25rem; padding: .2rem;
-	width: 2.25rem; min-width: 2.25rem; max-width: 2.25rem;
+	width: 2.25rem; min-width: 2.25rem; max-width: 2.25rem; height: 2.25rem; box-sizing: border-box;
 }
+/* Core-loaded CSS paints the icon before scripts or icon fonts are available. */
+body.skin-eqlimmersive .eql-todo-toggle::before {
+	content: ''; width: 1.1rem; height: 1.1rem; border: 2px solid currentColor;
+	border-radius: .08rem; box-sizing: border-box;
+}
+body.skin-eqlimmersive .eql-todo-toggle::after {
+	content: ''; position: absolute; top: 50%; left: 50%;
+	width: .55rem; height: .3rem; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor;
+	transform: translate(-50%, -65%) rotate(-45deg);
+}
+/* Older cached templates contain the former font glyph. Avoid a second icon. */
+body.skin-eqlimmersive .eql-todo-toggle > span { display: none; }
+body.skin-eqlimmersive .eql-todo-toggle:disabled { opacity: 1 !important; cursor: default; }
 .eql-todo-toggle[hidden], .eql-todo-replaced-watchlist { display: none !important; }
+/* Match the existing JS replacement before it runs; retain the personal-menu link. */
+body.skin-eqlimmersive .vector-user-links-main #pt-watchlist,
+body.skin-eqlimmersive .vector-user-links-main #pt-watchlist-2 { display: none !important; }
 .eql-todo-heading { cursor: pointer; }
 .eql-todo-add {
 	position: relative; display: inline-flex; align-items: center; justify-content: center;
