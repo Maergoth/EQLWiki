@@ -60,6 +60,11 @@ or update both producer and consumer when changing database templates.
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
 
+The Main Page announcement title shares one header band with its Show/Hide button
+at narrow widths and on touch devices. `homepage-mobile.css` resets the desktop
+title translation and reserves space on both sides for the button; keep the
+existing collapse state and announcement-entry markup intact.
+
 NPC Known/Unique and Common Loot lists use stable CSS grid cells in `mobpage.css`,
 with a single column below 900px. Do not restore balanced CSS columns: opening an
 embedded item hover can rebalance them and move the item under the pointer.

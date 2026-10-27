@@ -43,6 +43,10 @@ Major custom skin behavior:
   styling. It preserves MediaWiki placement, labels, ARIA and collapse events
   across sections, tables and lists; custom toggles are outside its scope.
 
+- `resources/homepage-mobile.css` keeps the Main Page announcement title centered
+  in the Show/Hide button's header band at narrow and touch layouts, resetting
+  desktop title positioning without changing entry markup or collapse state.
+
 - [`HomepageCache.php`](../skins/EQLImmersive/includes/HomepageCache.php) bounds
   Main Page and main-namespace `News` parser output, conditional browser validation
   and CDN expiry to shared five-minute UTC windows, preserving private responses.
