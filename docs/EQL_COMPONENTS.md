@@ -47,6 +47,11 @@ Major custom skin behavior:
   in the Show/Hide button's header band at narrow and touch layouts, resetting
   desktop title positioning without changing entry markup or collapse state.
 
+- `resources/homepage.css` gives the existing direct `Player_List` link under
+  the Main Page logo a compact gold button treatment, hover feedback and keyboard
+  focus. It preserves the Character Database label, native link and logo artwork;
+  no database content or JavaScript changes are needed.
+
 - [`HomepageCache.php`](../skins/EQLImmersive/includes/HomepageCache.php) bounds
   Main Page and main-namespace `News` parser output, conditional browser validation
   and CDN expiry to shared five-minute UTC windows, preserving private responses.
