@@ -65,6 +65,12 @@ at narrow widths and on touch devices. `homepage-mobile.css` resets the desktop
 title translation and reserves space on both sides for the button; keep the
 existing collapse state and announcement-entry markup intact.
 
+`homepage.css` styles the existing direct `Player_List` link beneath the Main
+Page logo as a compact gold Character Database button, with hover and keyboard
+focus states. Its label, URL and native link behavior stay in the page content;
+the logo's separate file link is outside the selector. No database-page sync or
+JavaScript is required.
+
 NPC Known/Unique and Common Loot lists use stable CSS grid cells in `mobpage.css`,
 with a single column below 900px. Do not restore balanced CSS columns: opening an
 embedded item hover can rebalance them and move the item under the pointer.
