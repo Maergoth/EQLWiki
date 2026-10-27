@@ -92,7 +92,13 @@ after extension hooks so one `Edit` action opens source editing, including when
 VisualEditor loads later. Native editor switching and Verify2Edit remain.
 
 The todo icon replaces the direct header Watchlist shortcut; Watchlist remains
-in the personal menu, and page Watch/Unwatch actions are unchanged. Clicking an
+in the personal menu, and page Watch/Unwatch actions are unchanged. The server
+template reserves the icon's fixed header slot and core-loaded `todo.css` draws
+its checkbox without a font or script. It is visible but disabled until `todo.js`
+binds that existing button; no-JavaScript pages retain the same inert control.
+Binding enables it without changing its geometry or loading private list data.
+An older cached hidden button is still recognized, and repeated initialization
+does not create duplicate controls or dialogs. Clicking an
 article title or heading (or its keyboard-accessible plus button) asks for
 confirmation, then adds only the page name or `page > heading`, with its actual
 section anchor. Links and section-edit controls retain their normal action.
