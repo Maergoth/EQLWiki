@@ -12,6 +12,9 @@ const source = name => fs.readFileSync( path.join( root,
 const jquery = fs.readFileSync( path.join( root, 'resources/lib/jquery/jquery.js' ), 'utf8' );
 const KEY = 'eql-todo-v1:fixturewiki:anon';
 const TITLE = 'Synthetic_page';
+const template = fs.readFileSync( path.join( root,
+    'skins/EQLImmersive/includes/templates/skin.mustache' ), 'utf8' );
+const serverToggle = template.match( /<button id="eql-todo-toggle"[^>]*>[\s\S]*?<\/button>/ )[ 0 ];
 
 async function visit( options = {} ) {
     const errors = [];
@@ -22,7 +25,9 @@ async function visit( options = {} ) {
     virtualConsole.on( 'jsdomError', error => errors.push( error ) );
     const dom = new JSDOM( '<body class="skin-eqlimmersive">' +
         '<div class="vector-header-container"><header class="vector-header">' +
-        '<button id="eql-todo-toggle" type="button">To-do list</button></header></div>' +
+        ( options.legacyToggle || serverToggle ) +
+        '<div class="vector-user-links-main"><a id="pt-watchlist" href="/wiki/Special:Watchlist">Watchlist</a></div>' +
+        '</header></div><nav id="p-personal"><a href="/wiki/Special:Watchlist">Watchlist</a></nav>' +
         '<main id="content"><h1 id="firstHeading">Synthetic page</h1>' +
         '<div id="bodyContent"><div id="mw-content-text"><div class="mw-parser-output">' +
         '<div class="mw-heading mw-heading2"><h2 id="Alpha_&_Beta">Alpha &amp; Beta</h2>' +
@@ -97,7 +102,10 @@ async function visit( options = {} ) {
         Api: function () { throw new Error( 'Anonymous to-do UI must not request the account API' ); }
     };
     w.eval( jquery );
-    w.eval( source( 'todo-store.js' ) );
+    const initialToggle = w.document.getElementById( 'eql-todo-toggle' );
+    if ( options.beforeInit ) { options.beforeInit( w.document ); }
+    if ( options.noDialog ) { w.HTMLDialogElement = undefined; }
+    if ( !options.noStore ) { w.eval( source( 'todo-store.js' ) ); }
     w.eval( source( 'todo.js' ) );
     const tick = async () => {
         for ( let i = 0; i < 3; i++ ) { await new Promise( resolve => setTimeout( resolve, 0 ) ); }
@@ -105,7 +113,7 @@ async function visit( options = {} ) {
     await tick();
     return {
         w, config, notices, errors, confirmations, tick, commands, downloads,
-        doc: w.document, store: w.EQLTodoStore,
+        doc: w.document, store: w.EQLTodoStore, initialToggle,
         click( selector ) {
             const el = typeof selector === 'string' ? w.document.querySelector( selector ) : selector;
             assert.ok( el, 'Expected clickable element: ' + selector );
@@ -134,11 +142,38 @@ async function visit( options = {} ) {
 }
 
 async function main() {
-    let page = await visit();
+    const registration = JSON.parse( fs.readFileSync( path.join( root,
+        'skins/EQLImmersive/skin.json' ), 'utf8' ) );
+    assert.ok( registration.ResourceModules[ 'skins.EQLImmersive.core' ].styles.includes( 'resources/todo.css' ),
+        'Todo icon and fixed slot styles are in the first-paint core CSS' );
+    let page = await visit( { beforeInit( doc ) {
+        const control = doc.getElementById( 'eql-todo-toggle' );
+        assert.equal( control.hidden, false, 'The actual server template exposes the control before JS' );
+        assert.equal( control.disabled, true, 'Before binding, the native button is visibly inert' );
+        assert.equal( control.textContent.trim(), '', 'The header icon does not wait for a font glyph' );
+        assert.equal( control.getAttribute( 'aria-label' ), 'Todo list' );
+        assert.equal( control.getAttribute( 'aria-haspopup' ), 'dialog' );
+        assert.equal( doc.querySelector( '#eql-todo-panel' ), null );
+    } } );
+    assert.equal( page.doc.getElementById( 'eql-todo-toggle' ), page.initialToggle, 'JS binds the original server node' );
+    assert.equal( page.initialToggle.disabled, false );
+    assert.equal( page.initialToggle.hidden, false );
+    assert.equal( page.initialToggle.getAttribute( 'aria-controls' ), 'eql-todo-panel' );
+    assert.equal( page.store.getStatus().ready, false, 'Binding the header does not load list data' );
+    assert.equal( page.doc.querySelector( '#pt-watchlist' ).hidden, true );
+    assert.equal( page.doc.querySelector( '#p-personal a' ).hidden, false, 'The personal-menu Watchlist remains available' );
+    page.w.eval( source( 'todo.js' ) ); await page.tick(); page.content(); page.content();
+    assert.equal( page.doc.querySelectorAll( '#eql-todo-toggle' ).length, 1 );
+    assert.equal( page.doc.querySelectorAll( '#eql-todo-panel' ).length, 1, 'Repeated initialization does not duplicate the dialog' );
+    page.initialToggle.focus();
     page.click( '#eql-todo-toggle' );
     await page.tick();
     await page.store.ready();
     assert.ok( page.doc.querySelector( '#eql-todo-panel' ), 'Header icon opens the to-do panel' );
+    page.doc.querySelector( '#eql-todo-panel' ).close();
+    assert.equal( page.doc.activeElement, page.initialToggle, 'Closing returns focus to the original header control' );
+    assert.equal( page.initialToggle.getAttribute( 'aria-expanded' ), 'false' );
+    page.click( '#eql-todo-toggle' ); await page.tick();
     assert.equal( page.store.getItems().length, 0 );
     page.click( '#firstHeading' ); await page.tick();
     assert.equal( page.confirmations.length, 1, 'Page title requires confirmation' );
@@ -190,6 +225,21 @@ async function main() {
         'Checkbox completion updates progress' );
     await page.store.flush();
     const persisted = page.snapshot(); page.close();
+
+    for ( const options of [ { noDialog: true }, { noStore: true } ] ) {
+        const unavailable = await visit( options );
+        assert.equal( unavailable.initialToggle.hidden, false );
+        assert.equal( unavailable.initialToggle.disabled, true, 'Missing support leaves the prepaint control inert' );
+        assert.equal( unavailable.doc.querySelector( '#eql-todo-panel' ), null );
+        unavailable.close();
+    }
+    const legacy = await visit( { legacyToggle: '<button id="eql-todo-toggle" class="eql-todo-toggle" hidden><span aria-hidden="true">☑</span></button>' } );
+    assert.equal( legacy.doc.getElementById( 'eql-todo-toggle' ), legacy.initialToggle );
+    assert.equal( legacy.initialToggle.hidden, false, 'An older cached template is still activated without creating a second control' );
+    legacy.click( '#eql-todo-toggle' ); await legacy.tick();
+    assert.equal( legacy.doc.querySelectorAll( '#eql-todo-panel[open]' ).length, 1 );
+    legacy.close();
+
     page = await visit( { local: persisted } );
     page.click( '#eql-todo-toggle' ); await page.tick();
     await page.store.ready();
