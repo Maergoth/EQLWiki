@@ -253,8 +253,7 @@
 
 	function init() {
 		toggle = document.getElementById( 'eql-todo-toggle' );
-		if ( !store || !toggle || typeof HTMLDialogElement === 'undefined' ) { return; }
-		toggle.hidden = false;
+		if ( !store || !toggle || toggle.dataset.eqlTodoBound || typeof HTMLDialogElement === 'undefined' ) { return; }
 		// Replace only the direct header shortcut; the personal menu retains Watchlist.
 		document.querySelectorAll( '.vector-user-links-main #pt-watchlist, .vector-user-links-main #pt-watchlist-2' ).forEach( function ( node ) { node.hidden = true; node.classList.add( 'eql-todo-replaced-watchlist' ); } );
 		panel = element( 'dialog', 'eql-todo-panel' ); panel.id = 'eql-todo-panel'; panel.setAttribute( 'aria-labelledby', 'eql-todo-title' );
@@ -276,6 +275,7 @@
 		} );
 		list = element( 'ul', 'eql-todo-items' ); list.id = 'eql-todo-items';
 		panel.append( header, help, count, status, retry, exportDraft, list ); document.body.appendChild( panel );
+		toggle.setAttribute( 'aria-controls', panel.id );
 		panel.addEventListener( 'close', function () { toggle.setAttribute( 'aria-expanded', 'false' ); if ( opener && opener.isConnected ) { opener.focus(); } } );
 		toggle.addEventListener( 'click', function () { open( toggle ); } );
 		store.subscribe( function () {
@@ -289,6 +289,10 @@
 			if ( Object.keys( drafts ).length ) { event.preventDefault(); event.returnValue = ''; }
 		} );
 		bindHeadings(); mw.hook( 'wikipage.content' ).add( bindHeadings );
+		toggle.dataset.eqlTodoBound = '1';
+		toggle.title = 'Todo list';
+		toggle.hidden = false; // Compatibility with an older cached server template.
+		toggle.disabled = false;
 	}
 	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', init ); } else { init(); }
 }() );

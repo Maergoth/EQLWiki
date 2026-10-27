@@ -101,7 +101,9 @@ Major custom skin behavior:
   header and enabled class before rendering, preventing native scroll behavior
   from taking over the original header. Final navigation processing after extension hooks
   exposes one source-first Edit action while retaining editor switching and
-  Verify2Edit. `todo.js/css` supplies the header todo icon and confirmed title/
+  Verify2Edit. The server template and core `todo.css` reserve and paint the
+  header todo control before JS; it is disabled until `todo.js` binds the same
+  node, without loading list data or shifting the toolbar. `todo.js/css` supplies confirmed title/
   heading capture, source links, collapsible entries, sanitized rich-text notes,
   nested note checklists and optional progress. `todo-store.js` owns the global
   `userjs-eql-todo-v1` account option and separate wiki-scoped anonymous storage;

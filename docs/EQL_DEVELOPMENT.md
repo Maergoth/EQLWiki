@@ -165,7 +165,7 @@ it does **not** automatically run JavaScript syntax or custom regression tests.
 | Locked header inheritance | `php ops/test-locked-header.php` | Source-only stub parent; omits inherited duplicate markup and enabled class while preserving original header data |
 | Locked header | `node ops/test-locked-header.cjs` | Synthetic DOM plus bundled Vector observer; prevents duplicate takeover, measured offsets, menu bounds, VisualEditor toolbar and source-action handling |
 | Todo persistence | `node ops/test-todo-store.cjs` | Synthetic API/storage; lazy load, account isolation, failures, limits, concurrent baselines, progress and navigation warnings |
-| Todo UI | `node ops/test-todo-ui.cjs` | jsdom; confirmation, page/section identities, deduplication, sanitized notes, progress, collapse, reload and editor retention |
+| Todo UI | `node ops/test-todo-ui.cjs` | jsdom; actual server control, deferred/idempotent binding, lazy data, legacy markup, confirmation, page/section identities, sanitized notes, progress, collapse, reload and editor retention; real first-paint geometry needs a browser |
 | Selected-text search | `node ops/test-selection-search.cjs` | jsdom; article-only selection, URL/label safety, bounds, dismissal and frame scheduling |
 | PHP syntax | `php -l path/to/changed.php` | PHP; syntax only |
 | Eye of Zomm producer | `php ops/test-eoz-exporter.php` and `php ops/test-eoz-raid-exporter.php` | Source-only synthetic class/zone/location, literal Backstab/delay/damage-bonus aliases and zero overrides, section-scoped raid variants, legacy last-wins NPC projection, source provenance, and complete wiki-presence contracts; no MediaWiki bootstrap, settings, database access, pack writes, or dataset publication |
