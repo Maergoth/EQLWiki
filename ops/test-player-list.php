@@ -69,8 +69,35 @@ namespace MediaWiki\Revision {
 	}
 }
 namespace MediaWiki\Title {
+	// Small native-boundary doubles; execute the actual screenshot helper's
+	// validation below. Real Title/parser behavior has its separate integration fixture.
+	class Title {
+		public function __construct( private int $namespace, private string $text, private string $fragment = '' ) {}
+		public static function newFromText( $text ) {
+			if ( !str_starts_with( $text, 'File:' ) || preg_match( '/[\x00-\x1f\x7f<>\[\]{}|]/', $text ) || str_contains( $text, '/../' ) || str_starts_with( substr( $text, 5 ), '../' ) ) { return null; }
+			$parts = explode( '#', substr( $text, 5 ), 2 );
+			$name = trim( str_replace( '_', ' ', $parts[0] ) );
+			return $name === '' ? null : new self( 6, ucfirst( $name ), $parts[1] ?? '' );
+		}
+		public function getNamespace() { return $this->namespace; }
+		public function getText() { return $this->text; }
+		public function getPrefixedText() { return 'File:' . $this->text; }
+		public function getFragment() { return $this->fragment; }
+		public function isExternal() { return false; }
+	}
 	class TitleFactory {
 		public function newFromPageIdentity( $page ) { return new \FixtureTitle( $page->namespace, $page->title ); }
+	}
+}
+namespace MediaWiki\Hook { interface ParserFirstCallInitHook {} }
+namespace MediaWiki\SpecialPage {
+	class SpecialPage {
+		public static function getTitleFor( $name ) {
+			\check( $name === 'Upload', 'Photo actions use the fixed native Upload special page.' );
+			return new class {
+				public function getLocalURL( $query = [] ) { return '/wiki/Special:Upload?' . http_build_query( $query, '', '&', PHP_QUERY_RFC3986 ); }
+			};
+		}
 	}
 }
 namespace MediaWiki\Permissions {
@@ -117,7 +144,8 @@ namespace {
 	use EQLClientData\CharacterSheetSnapshot as Snapshot;
 	use EQLClientData\PlayerListRepository as Repository;
 	use MediaWiki\Revision\RevisionRecord;
-	define( 'NS_USER', 2 ); define( 'NS_TEMPLATE', 10 );
+	define( 'NS_USER', 2 ); define( 'NS_TEMPLATE', 10 ); define( 'NS_FILE', 6 );
+	require __DIR__ . '/../skins/EQLImmersive/includes/CharacterScreenshot.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/CharacterSheetSnapshot.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/CharacterSheetDetail.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/PlayerListRepository.php';
@@ -369,6 +397,7 @@ namespace {
 	check( $item['tier'] === 0 && $item['icon']['url'] === '/images/item_500.png' && $item['statLines'] === [ 'HP: 42', 'STR: ?' ] && $detail['equipment'][2]['item'] === null, 'Item-specific direct tier, icon and published lines stay distinct from nested tooltip/socket tiers.' );
 	check( $item['details'][0][1]['href'] === '/Canonical_Effect' && $item['details'][0][1]['text'] === 'Visible Effect' && $item['augments'][0]['effects'][0][1]['href'] === '/Canonical_Rune', 'Typed rich text preserves visible aliases, canonical local effect links and Worn suffixes.' );
 	check( $detail['screenshot']['fileTitle'] === 'File:Fixture.png' && $detail['screenshot']['url'] === '/images/Fixture.png' && $detail['achievementCount'] === 4, 'Only optional public photo info and the existing achievement count are included.' );
+	check( $detail['screenshotPlaceholder'] === null, 'A present photo never offers an overwrite/upload action.' );
 	$detailJson = json_encode( $detail );
 	check( !str_contains( $detailJson, 'UNRELATED_' ) && !str_contains( $detailJson, '999' ) && !array_intersect( [ 'html', 'modules', 'config', 'achievements' ], array_keys( $detail ) ), 'No whole-page prose, socket numbers, HTML, executable modules/config or achievement objectives enter details.' );
 	$calls = $parser->calls; $repo->getDetail( $summary['id'], $summary['snapshotToken'] );
@@ -409,6 +438,62 @@ namespace {
 	rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-unavailable' );
 
 	$identity = substr( hash( 'sha256', "Fixture Hero\0Test Realm" ), 0, 16 );
+	// The missing-photo action is already authored by the native helper, not
+	// guessed from leaderboard names, aliases or browser-side profile URLs.
+	function missingPhoto( ?string $file, string $owner = 'User:Fixture 10', string $hint = 'Upload a PNG screenshot to this filename. It will appear here automatically.' ): string {
+		$query = [ 'eqlReturnTo' => $owner ]; if ( $file !== null ) { $query['wpDestFile'] = substr( $file, 5 ); }
+		$href = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'Upload' )->getLocalURL( $query );
+		return '<div class="eql-character-screenshot eql-character-screenshot-v1 is-missing"' . ( $file !== null ? ' data-file-title="' . htmlspecialchars( $file, ENT_QUOTES ) . '"' : '' ) .
+			'><a class="eql-character-screenshot-add" href="' . htmlspecialchars( $href, ENT_QUOTES ) . '"><span>+</span><strong>Add an image</strong></a>' .
+			'<p class="eql-character-screenshot-hint">' . htmlspecialchars( $hint ) . '</p></div>';
+	}
+	function sheetPhoto( string $photo, array $options = [] ): string {
+		return str_replace( '<div class="eql-character-layout">', '<div class="eql-character-layout">' . $photo, sheet( $options ) );
+	}
+	$defaultPhoto = 'File:Character Fixture 10 - Fixture Hero (Test Realm).png';
+	foreach ( [ $defaultPhoto, 'File:My custom portrait & friend.JPG', 'File:' . str_repeat( 'A', 236 ) . '.png' ] as $file ) {
+		$photoHtml = sheetPhoto( missingPhoto( $file ) );
+		$photoDetail = \EQLClientData\CharacterSheetDetail::extract( $photoHtml, $identity, 50, 'https://eqlwiki.test', 'User:Fixture 10' );
+		$action = $photoDetail['screenshotPlaceholder']; $query = []; parse_str( parse_url( $action['href'], PHP_URL_QUERY ) ?? '', $query );
+		check( $photoDetail['screenshot'] === null && $action['fileTitle'] === $file && $query['wpDestFile'] === substr( $file, 5 ) && $query['eqlReturnTo'] === 'User:Fixture 10', 'Missing default/custom/max240-byte filename keeps exact native destination and User return flow.' );
+		check( $action['hint'] === 'Upload a PNG screenshot to this filename. It will appear here automatically.' && $photoDetail['stats']['mp'] === 0 && count( $photoDetail['equipment'] ) === 24, 'Native hint and original zero/stats/equipment survive placeholder projection.' );
+	}
+	$genericHint = 'Upload an image, then set screenshot to its local filename when editing this sheet.';
+	$generic = \EQLClientData\CharacterSheetDetail::extract( sheetPhoto( missingPhoto( null, 'User:Fixture 10', $genericHint ) ), $identity, 50, 'https://eqlwiki.test', 'User:Fixture 10' );
+	check( $generic['screenshotPlaceholder']['fileTitle'] === null && $generic['screenshotPlaceholder']['hint'] === $genericHint && !str_contains( $generic['screenshotPlaceholder']['href'], 'wpDestFile' ), 'Native invalid/overlong-target fallback remains generic manual guidance, not a fabricated automatic filename.' );
+	$missingHtml = sheetPhoto( missingPhoto( $defaultPhoto ) );
+	$noOwner = \EQLClientData\CharacterSheetDetail::extract( $missingHtml, $identity, 50, 'https://eqlwiki.test' );
+	check( $noOwner['screenshotPlaceholder'] === null, 'Without authoritative current User page identity no upload action is projected.' );
+	$badPhotos = [
+		missingPhoto( $defaultPhoto, 'User:Other owner' ),
+		str_replace( 'wpDestFile=', 'wrongDest=', missingPhoto( $defaultPhoto ) ),
+		str_replace( 'Special:Upload?', 'Special:UserLogin?', missingPhoto( $defaultPhoto ) ),
+		str_replace( '/wiki/Special:Upload?', 'https://outside.invalid/wiki/Special:Upload?', missingPhoto( $defaultPhoto ) ),
+		str_replace( '/wiki/Special:Upload?', '//outside.invalid/wiki/Special:Upload?', missingPhoto( $defaultPhoto ) ),
+		str_replace( '/wiki/Special:Upload?', 'javascript:alert(1)?', missingPhoto( $defaultPhoto ) ),
+		missingPhoto( 'File:Wrong.svg' ), missingPhoto( 'File:My_custom.png' ), missingPhoto( 'File:https://outside.invalid/a.png' ),
+		missingPhoto( 'File:' . str_repeat( 'A', 237 ) . '.png' ),
+		str_replace( '</a>', '</a><img src="/images/unexpected.png">', missingPhoto( $defaultPhoto ) ),
+		str_replace( '</a>', '</a><a class="eql-character-screenshot-add" href="/wiki/Special:Upload">duplicate</a>', missingPhoto( $defaultPhoto ) )
+	];
+	foreach ( $badPhotos as $photo ) {
+		$blocked = \EQLClientData\CharacterSheetDetail::extract( sheetPhoto( $photo ), $identity, 50, 'https://eqlwiki.test', 'User:Fixture 10' );
+		check( $blocked['screenshot'] === null && $blocked['screenshotPlaceholder'] === null && $blocked['stats']['hp'] === 1234, 'Unsafe, conflicting, noncanonical or wrong-owner native photo actions are omitted without blocking public stats.' );
+	}
+	$otherIdentity = substr( hash( 'sha256', "Other Hero\0Other Realm" ), 0, 16 );
+	$otherPhoto = 'File:Character Fixture 10 - Other Hero (Other Realm).png';
+	$multiPhotos = $missingHtml . sheetPhoto( missingPhoto( $otherPhoto ), [ 'name' => 'Other Hero', 'server' => 'Other Realm' ] );
+	$selectedPhoto = \EQLClientData\CharacterSheetDetail::extract( $multiPhotos, $otherIdentity, 50, 'https://eqlwiki.test', 'User:Fixture 10' );
+	check( $selectedPhoto['screenshotPlaceholder']['fileTitle'] === $otherPhoto, 'Multiple characters on one User page retain their exact selected native photo target.' );
+	[ $photoRepo, $photoDb, $photoPages, $photoLookup, $photoPermissions, $photoParser, $photoCache ] = fixtures();
+	$photoParser->outputs[10]->html = $missingHtml;
+	$photoSummary = $photoRepo->getBatch( null, 1 )['players'][0];
+	$photoCache->data['eqlplayerdetail:schema1-v1:' . $photoSummary['id'] . ':' . $photoSummary['snapshotToken']] = [ 'legacyCacheSentinel' => true ];
+	$cachedPhoto = $photoRepo->getDetail( $photoSummary['id'], $photoSummary['snapshotToken'] );
+	check( isset( $cachedPhoto['screenshotPlaceholder']['href'] ) && !isset( $cachedPhoto['legacyCacheSentinel'] ) && !array_key_exists( 'screenshotPlaceholder', $photoSummary ), 'New detail cache version cannot return the prior DTO; directory summaries stay image-free.' );
+	$photoPermissions->denied[] = 'User:Fixture 10'; rejects( fn () => $photoRepo->getDetail( $photoSummary['id'], $photoSummary['snapshotToken'] ), 'eqlplayers-detail-unavailable' );
+	$photoPermissions->denied = []; $photoLookup->revisions[110]->public = false;
+	rejects( fn () => $photoRepo->getDetail( $photoSummary['id'], $photoSummary['snapshotToken'] ), 'eqlplayers-detail-unavailable' );
 	$external = str_replace( [ '/Canonical_Effect', '/Canonical_Rune', '/images/Fixture.png', '/images/item_500.png' ], [ 'javascript:alert(1)', '//evil.example/rune', 'https://evil.example/image.png', 'data:image/png;base64,evil' ], $publicSheet );
 	$safe = \EQLClientData\CharacterSheetDetail::extract( $external, $identity, 50, 'https://eqlwiki.test' );
 	check( $safe['screenshot'] === null && $safe['equipment'][0]['item']['icon'] === null && !str_contains( json_encode( $safe ), 'javascript:' ) && !str_contains( json_encode( $safe ), 'evil.example' ), 'Unsafe/external link and image targets are omitted without accepting arbitrary protocols or third-party content.' );

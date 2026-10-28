@@ -139,6 +139,11 @@
     function detailImage( image ) {
         if ( !image || !localDetailUrl( image.url ) || [ image.width, image.height ].some( function ( dimension ) { return dimension !== null && ( !Number.isInteger( dimension ) || dimension < 1 || dimension > 8192 ); } ) ) { throw new Error( 'Invalid detail image' ); }
     }
+    function detailFileTitle( value ) {
+        if ( typeof value !== 'string' || value.indexOf( 'File:' ) !== 0 ) { return false; }
+        var name = value.slice( 5 );
+        return name.length > 0 && new Blob( [ name ] ).size <= 240 && !/[\u0000-\u001f\u007f|{}\[\]<>#\\]/.test( name ) && !/^(?:[a-z][a-z0-9+.-]*:|\/)/i.test( name ) && /\.(?:png|jpe?g|gif|webp)$/i.test( name );
+    }
     function validateDetail( result, player ) {
         var data = result && result.eqlplayers && result.eqlplayers.detail;
         if ( !data || data.schemaVersion !== 1 || data.id !== player.id || data.snapshotToken !== player.snapshotToken || data.revision !== player.pageRevision || data.pageTitle !== player.pageTitle || data.name !== player.name || data.server !== player.server ) { throw new Error( 'Invalid detail identity' ); }
@@ -161,7 +166,12 @@
                 sockets.add( augment.socket ); detailText( augment.title, 300 ); detailLines( augment.effects );
             } );
         } );
-        if ( data.screenshot !== null ) { detailImage( data.screenshot ); if ( !/^File:[^\r\n<>]{1,240}$/.test( data.screenshot.fileTitle ) || data.screenshot.href !== null && !localDetailUrl( data.screenshot.href ) ) { throw new Error( 'Invalid detail screenshot' ); } }
+        if ( data.screenshot !== null ) { detailImage( data.screenshot ); if ( !detailFileTitle( data.screenshot.fileTitle ) || data.screenshot.href !== null && !localDetailUrl( data.screenshot.href ) ) { throw new Error( 'Invalid detail screenshot' ); } }
+        var placeholder = data.screenshotPlaceholder;
+        if ( placeholder !== undefined && placeholder !== null ) {
+            if ( !placeholder || typeof placeholder !== 'object' || placeholder.fileTitle !== null && !detailFileTitle( placeholder.fileTitle ) || !localDetailUrl( placeholder.href ) ) { throw new Error( 'Invalid screenshot placeholder' ); }
+            detailText( placeholder.hint, 1000 );
+        }
         return { data: data, bytes: bytes };
     }
     function inlineLines( container, lines ) {
@@ -170,10 +180,26 @@
         } ); } );
     }
     function detailLink( title, href ) { var node = element( href ? 'a' : 'span', title ); if ( href ) { node.href = localDetailUrl( href ); } return node; }
+    function screenshotArea( data ) {
+        if ( !data.screenshot && !data.screenshotPlaceholder ) { return null; }
+        var section = element( 'section', undefined, 'eql-pl-preview-photo-area' ); section.setAttribute( 'aria-label', 'Character screenshot' );
+        if ( data.screenshot ) {
+            var photo = element( data.screenshot.href ? 'a' : 'span', undefined, 'eql-pl-preview-photo' ), image = element( 'img' );
+            if ( data.screenshot.href ) { photo.href = localDetailUrl( data.screenshot.href ); }
+            image.src = localDetailUrl( data.screenshot.url ); image.alt = data.name + ' screenshot'; image.loading = 'lazy';
+            if ( data.screenshot.width !== null ) { image.width = data.screenshot.width; } if ( data.screenshot.height !== null ) { image.height = data.screenshot.height; }
+            photo.appendChild( image ); section.appendChild( photo ); section.dataset.fileTitle = data.screenshot.fileTitle;
+        } else {
+            var action = data.screenshotPlaceholder, link = element( 'a', undefined, 'eql-pl-preview-add-image' ), plus = element( 'span', '+' );
+            plus.setAttribute( 'aria-hidden', 'true' ); link.href = localDetailUrl( action.href ); link.append( plus, element( 'strong', 'Add an image' ) );
+            section.classList.add( 'is-missing' ); section.append( link, element( 'p', action.hint, 'eql-pl-preview-photo-hint' ) );
+            if ( action.fileTitle ) { section.dataset.fileTitle = action.fileTitle; }
+        }
+        return section;
+    }
     function detailView( data ) {
         var sheet = element( 'div', undefined, 'eql-character-sheet-v1 eql-pl-preview' ); sheet.dataset.eqlPlayerPreview = '1'; sheet.classList.add( 'is-enhanced' );
         var body = element( 'div', undefined, 'eql-character-body' ), layout = element( 'div', undefined, 'eql-character-layout' ); sheet.appendChild( body ); body.appendChild( layout );
-        if ( data.screenshot ) { var photo = element( data.screenshot.href ? 'a' : 'span', undefined, 'eql-pl-preview-photo' ), image = element( 'img' ); if ( data.screenshot.href ) { photo.href = localDetailUrl( data.screenshot.href ); } image.src = localDetailUrl( data.screenshot.url ); image.alt = data.name + ' screenshot'; image.loading = 'lazy'; if ( data.screenshot.width !== null ) { image.width = data.screenshot.width; } if ( data.screenshot.height !== null ) { image.height = data.screenshot.height; } photo.appendChild( image ); layout.appendChild( photo ); layout.classList.add( 'eql-pl-preview-with-photo' ); }
         var totals = element( 'section', undefined, 'eql-character-totals' ); totals.append( element( 'div', 'Published stats', 'eql-character-group-heading' ), element( 'p', data.metadataText, 'eql-pl-preview-metadata' ) ); var list = element( 'dl' );
         data.totals.forEach( function ( stat ) { var pair = element( 'div' ); pair.append( element( 'dt', stat.label ), element( 'dd', stat.text ) ); list.appendChild( pair ); } ); totals.appendChild( list ); layout.appendChild( totals );
         var equipment = element( 'section', undefined, 'eql-character-equipment' ); equipment.setAttribute( 'aria-label', 'Published equipment' ); layout.appendChild( equipment );
@@ -192,6 +218,7 @@
             if ( item.augments.length ) { var augments = element( 'div', undefined, 'eql-character-augments' ), sockets = element( 'ul' ); augments.append( element( 'strong', 'Exaltations' ), sockets ); item.augments.forEach( function ( augment ) { var socket = element( 'li' ), name = element( 'strong' ); socket.dataset.eqlSocket = String( augment.socket + 1 ); name.appendChild( detailLink( augment.title, augment.href ) ); socket.appendChild( name ); var effects = element( 'span', undefined, 'eql-character-augment-effects' ); inlineLines( effects, augment.effects ); socket.appendChild( effects ); socket.classList.add( 'is-simplified' ); sockets.appendChild( socket ); } ); inspect.appendChild( augments ); }
             card.appendChild( inspect );
         } ); } );
+        var screenshot = screenshotArea( data ); if ( screenshot ) { equipment.appendChild( screenshot ); }
         body.appendChild( element( 'p', 'Player-reported snapshot. ? Unknown · * Estimate. Equipment does not recalculate published totals.', 'eql-character-note' ) ); return sheet;
     }
     function mount( root ) {
