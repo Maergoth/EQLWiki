@@ -1,6 +1,5 @@
-/* EQLImmersive: Upload image normalizer.
- * Re-encodes uploaded images via canvas before MediaWiki receives them.
- * Fixes PNGs that display in browsers but fail ImageMagick server-side. */
+/* EQLImmersive: native upload return/cache tracking.
+ * This is navigation context, never evidence of file ownership or permission. */
 (function () {
 	'use strict';
 
@@ -43,40 +42,73 @@
 		return normalizeTitle( mw.config.get( 'wgPageName' ) );
 	}
 
+	function currentIdentity() {
+		return JSON.stringify( [ window.location.origin, mw.config.get( 'wgDBname' ) || '',
+			Number( mw.config.get( 'wgUserId' ) ) || 0 ] );
+	}
+
+	function validTitle( title ) {
+		return typeof title === 'string' && title.length > 0 && title.length <= 512 &&
+			!/[\x00-\x1f\x7f|]/.test( title );
+	}
+
 	function storePendingPurge( returnTo, destFile, alsoPurge ) {
-		if ( !returnTo || !destFile ) {
+		returnTo = normalizeTitle( returnTo );
+		destFile = normalizeTitle( destFile );
+		alsoPurge = normalizeTitleList( alsoPurge );
+		if ( !validTitle( returnTo ) || !validTitle( destFile ) || alsoPurge.length > 20 ||
+			!alsoPurge.every( validTitle )
+		) {
+			clearPendingPurge();
 			return;
 		}
 
-		sessionStorage.setItem( STORAGE_KEY, JSON.stringify( {
-			returnTo: normalizeTitle( returnTo ),
-			destFile: normalizeTitle( destFile ),
-			alsoPurge: normalizeTitleList( alsoPurge ),
-			timestamp: Date.now()
-		} ) );
+		try {
+			sessionStorage.setItem( STORAGE_KEY, JSON.stringify( {
+				returnTo: returnTo, destFile: destFile, alsoPurge: alsoPurge,
+				identity: currentIdentity(), timestamp: Date.now()
+			} ) );
+		} catch ( e ) {
+			// Storage denial must not stop MediaWiki's native upload submission.
+		}
 	}
 
 	function readPendingPurge() {
-		var raw = sessionStorage.getItem( STORAGE_KEY );
-
-		if ( !raw ) {
-			return null;
-		}
+		var raw;
+		var pending;
 
 		try {
-			return JSON.parse( raw );
+			raw = sessionStorage.getItem( STORAGE_KEY );
+			if ( !raw ) {
+				return null;
+			}
+			pending = raw.length <= 16384 ? JSON.parse( raw ) : null;
 		} catch ( e ) {
-			sessionStorage.removeItem( STORAGE_KEY );
+			clearPendingPurge();
 			return null;
 		}
+		if ( !pending || pending.identity !== currentIdentity() || isExpired( pending ) ||
+			!validTitle( pending.returnTo ) || !validTitle( pending.destFile ) ||
+			!Array.isArray( pending.alsoPurge ) || pending.alsoPurge.length > 20 ||
+			!pending.alsoPurge.every( validTitle )
+		) {
+			clearPendingPurge();
+			return null;
+		}
+		return pending;
 	}
 
 	function clearPendingPurge() {
-		sessionStorage.removeItem( STORAGE_KEY );
+		try {
+			sessionStorage.removeItem( STORAGE_KEY );
+		} catch ( e ) {
+			// The optional return step must remain harmless without browser storage.
+		}
 	}
 
 	function isExpired( pending ) {
-		return !pending || !pending.timestamp || Date.now() - pending.timestamp > 15 * 60 * 1000;
+		return !pending || !Number.isFinite( pending.timestamp ) || pending.timestamp <= 0 ||
+			Date.now() < pending.timestamp || Date.now() - pending.timestamp > 15 * 60 * 1000;
 	}
 
 	function buildPageUrl( title, extraParams ) {
@@ -102,31 +134,75 @@
 
 	function initUploadPageTracker() {
 		var returnTo;
-		var destFile;
 		var alsoPurge;
 		var form;
+		var pending;
+		var identity;
 
 		if ( mw.config.get( 'wgCanonicalSpecialPageName' ) !== 'Upload' ) {
 			return;
 		}
 
 		returnTo = getParam( 'eqlReturnTo' );
-		destFile = getParam( 'wpDestFile' );
 		alsoPurge = getParam( 'eqlAlsoPurge' );
-
-		if ( !returnTo || !destFile ) {
+		form = document.getElementById( 'mw-upload-form' );
+		if ( !form || form.dataset.eqlUploadReturnBound === '1' ) {
+			return;
+		}
+		// Core warning/stash forms can lose the original GET query. Reuse only
+		// this account's recent context, and still snapshot the new destination.
+		if ( !returnTo && form.querySelector( '[name="wpUploadIgnoreWarning"],[name="wpSessionKey"]' ) ) {
+			pending = readPendingPurge();
+			if ( pending ) {
+				returnTo = pending.returnTo;
+				alsoPurge = pending.alsoPurge.join( '|' );
+			}
+		}
+		if ( !returnTo ) {
 			return;
 		}
 
-		form = document.querySelector( 'form' );
-
-		if ( !form ) {
-			return;
-		}
-
-		form.addEventListener( 'submit', function () {
-			storePendingPurge( returnTo, destFile, alsoPurge );
+		form.dataset.eqlUploadReturnBound = '1';
+		identity = currentIdentity();
+		form.addEventListener( 'submit', function ( event ) {
+			var destination;
+			if ( identity !== currentIdentity() || event.defaultPrevented ||
+				event.submitter && event.submitter.name === 'wpCancelUpload'
+			) {
+				clearPendingPurge();
+				return;
+			}
+			destination = form.elements.namedItem( 'wpDestFile' );
+			if ( !destination || destination.disabled || typeof destination.value !== 'string' ) {
+				clearPendingPurge();
+				return;
+			}
+			storePendingPurge( returnTo, destination.value, alsoPurge );
 		}, true );
+		// Native form.submit() bypasses submit handlers, but still constructs the
+		// final form data. Observe that destination without altering any field,
+		// File/FileList, conversion handler, FormData entry or submission method.
+		form.addEventListener( 'formdata', function ( event ) {
+			var data = event.formData;
+			// Supplement capture after script-driven FormData handlers. This is
+			// best-effort navigation context, not server/file authority, and it
+			// never delays or intercepts native submission.
+			Promise.resolve().then( function () {
+				var destinations;
+				if ( identity !== currentIdentity() || !data || typeof data.getAll !== 'function' ||
+					typeof data.has !== 'function' || data.has( 'wpCancelUpload' )
+				) {
+					clearPendingPurge();
+					return;
+				}
+				destinations = data.getAll( 'wpDestFile' );
+				if ( destinations.length !== 1 || typeof destinations[ 0 ] !== 'string' ) {
+					clearPendingPurge();
+					return;
+				}
+				storePendingPurge( returnTo, destinations[ 0 ], alsoPurge );
+			} );
+		}, { passive: true } );
 	}
 
 	function initPostUploadPurge() {
@@ -163,6 +239,9 @@
 			clearPendingPurge();
 			return;
 		}
+		if ( currentTitle !== normalizeTitle( fileTitle ) && currentTitle !== returnTo ) {
+			return;
+		}
 
 		titlesToPurge = uniqueTitles(
 			[ returnTo, fileTitle ].concat( pending.alsoPurge || [] )
@@ -170,6 +249,9 @@
 
 		purgeTitles( titlesToPurge )
 			.then( function () {
+				if ( pending.identity !== currentIdentity() || getCurrentTitle() !== currentTitle ) {
+					return;
+				}
 				clearPendingPurge();
 
 				if ( /^File:/i.test( currentTitle ) ) {
@@ -188,6 +270,9 @@
 				}
 			} )
 			.catch( function () {
+				if ( pending.identity !== currentIdentity() || getCurrentTitle() !== currentTitle ) {
+					return;
+				}
 				clearPendingPurge();
 
 				if ( /^File:/i.test( currentTitle ) ) {
@@ -199,8 +284,15 @@
 	}
 
 	mw.loader.using( [ 'mediawiki.api', 'mediawiki.util' ] ).then( function () {
-		initUploadPageTracker();
-		initPostUploadPurge();
+		function initialize() {
+			initUploadPageTracker();
+			initPostUploadPurge();
+		}
+		if ( document.readyState === 'loading' ) {
+			document.addEventListener( 'DOMContentLoaded', initialize, { once: true } );
+		} else {
+			initialize();
+		}
 	} );
 }() );
 

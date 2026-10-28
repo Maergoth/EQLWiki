@@ -46,6 +46,7 @@ jobs:
         run: |
           php ops/test-player-list.php
           php ops/test-character-effects.php
+          php ops/test-character-screenshot-ownership.php
           node ops/build-character-sheet-templates.cjs --check
           node --check skins/EQLImmersive/resources/player-list.js
           node --check skins/EQLImmersive/resources/character-sheet.js
@@ -55,11 +56,17 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-player-list.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-player-list-details.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-character-sheet.cjs
+          NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-upload-return.cjs
+          node --check skins/EQLImmersive/resources/upload-converter.js
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-item-level-slider.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-store.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-ui.cjs
       - name: Check Eye of Zomm refresh wrapper
         run: bash ops/test-eoz-refresh-wrapper.sh
+      - name: Check bounded native job runner
+        run: |
+          bash -n ops/host-bin/eqlwiki-run-jobs.sh
+          python3 ops/test-jobrunner.py
       - name: Check client API and guarded activation contracts
         run: |
           php ops/test-eoz-observations.php
