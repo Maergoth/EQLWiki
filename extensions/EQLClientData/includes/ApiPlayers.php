@@ -22,10 +22,20 @@ final class ApiPlayers extends ApiBase {
 		$this->getMain()->setCacheMode( 'private' );
 		$this->getMain()->setCacheMaxAge( 0 );
 		try {
-			$result = $this->repository->getBatch( $params['continue'] ?? null, (int)$params['limit'] );
+			if ( isset( $params['detail'] ) ) {
+				if ( !isset( $params['snapshot'] ) || isset( $params['continue'] ) ) { throw new InvalidArgumentException( 'badvalue' ); }
+				$result = [ 'detail' => $this->repository->getDetail( $params['detail'], $params['snapshot'] ) ];
+			} else {
+				if ( isset( $params['snapshot'] ) ) { throw new InvalidArgumentException( 'badvalue' ); }
+				$result = $this->repository->getBatch( $params['continue'] ?? null, (int)$params['limit'] );
+			}
 		} catch ( InvalidArgumentException $error ) {
-			$this->dieWithError( 'apierror-badcontinue', 'badcontinue' );
+			$this->dieWithError( isset( $params['detail'] ) || isset( $params['snapshot'] ) ? 'apierror-eqlplayers-detail-invalid' : 'apierror-badcontinue', isset( $params['detail'] ) || isset( $params['snapshot'] ) ? 'badvalue' : 'badcontinue' );
 		} catch ( RuntimeException $error ) {
+			if ( isset( $params['detail'] ) ) {
+				$code = in_array( $error->getMessage(), [ 'eqlplayers-detail-stale', 'eqlplayers-detail-conflict' ], true ) ? $error->getMessage() : 'eqlplayers-detail-unavailable';
+				$this->dieWithError( 'apierror-' . $code, $code );
+			}
 			$this->dieWithError( 'apierror-eqlplayers-unavailable', 'eqlplayers-unavailable' );
 		}
 		$this->getResult()->addValue( null, $this->getModuleName(), $result );
@@ -33,6 +43,8 @@ final class ApiPlayers extends ApiBase {
 
 	public function getAllowedParams(): array {
 		return [
+			'detail' => [ ParamValidator::PARAM_TYPE => 'string' ],
+			'snapshot' => [ ParamValidator::PARAM_TYPE => 'string' ],
 			'continue' => [ ParamValidator::PARAM_TYPE => 'string' ],
 			'limit' => [ ParamValidator::PARAM_TYPE => 'integer', ParamValidator::PARAM_DEFAULT => 10,
 				IntegerDef::PARAM_MIN => 1, IntegerDef::PARAM_MAX => 25 ]

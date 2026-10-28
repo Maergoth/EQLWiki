@@ -31,7 +31,7 @@ function fixture( get = () => response(), getUrl = url, getConfig = () => config
     }; } };
     window.eval( source ); document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
     const root = () => document.getElementById( 'eql-player-list' );
-    const rows = () => [ ...root().querySelectorAll( 'tbody tr' ) ];
+    const rows = () => [ ...root().querySelectorAll( 'tbody tr[data-player-id]' ) ];
     const ids = () => rows().map( row => row.dataset.playerId );
     const set = ( selector, value, event = 'change' ) => { const control = root().querySelector( selector ); assert( control, selector ); if ( control.type === 'checkbox' ) { control.checked = value; } else { control.value = value; } control.dispatchEvent( new window.Event( event, { bubbles: true } ) ); return control; };
     const loaded = () => until( () => root().getAttribute( 'aria-busy' ) === 'false', 'directory response' );

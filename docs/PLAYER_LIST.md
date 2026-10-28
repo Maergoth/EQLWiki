@@ -28,6 +28,49 @@ replace spaces with underscores, join with underscores and append `_Guide`.
 The displayed class order is preserved. Incomplete or malformed combinations stay
 plain text; links use the wiki's local URL builder without per-row API requests.
 
+## Expand a character without leaving the list
+
+Click a non-link area of an entry to expand that character's published totals,
+equipped items, Exaltations and optional portrait below the comparison row.
+Keyboard users can focus the row and press Enter or Space. Profile and
+build-guide links retain their normal navigation. This is the equipment already
+shared on the wiki; it never reads a
+player's private inventory, bags or local Eye of Zomm profile. Achievement
+completion remains a summary here; the complete achievement list stays on the
+profile.
+
+Details are requested only after expansion. Reopening an entry reuses its
+in-memory details, and sorting, filtering and moving between results pages do
+not request every character's equipment. A bounded cache and request queue keep
+rapid browsing from creating an unbounded set of requests or retained profiles.
+Failed reads show an explicit retry. Refresh list discards the previous detail
+snapshot, and detached or superseded responses cannot fill a different entry.
+At most two detail reads run concurrently, each with a ten-second deadline.
+The memory cache holds at most 50 responses or 8 MiB and is never persisted.
+
+The directory still follows every summary continuation before showing rankings,
+filters and sorts the complete result, then displays pages of 50. Expansion adds
+a detail row; it does not count as another character or change a rank. Detail
+reads are bound to the public snapshot used by the list. If a profile or its
+template dependencies changed, the directory renews that snapshot in place
+before opening the newer details. It keeps the active filters and ordering,
+without a page reload or a notification asking the visitor to refresh.
+
+The detail API returns bounded typed values, not the complete User page,
+arbitrary HTML, executable modules or private content. The browser constructs
+the component with DOM APIs and uses the fixed Character-sheet tooltip module.
+Inline details do not add another outer Character collapse, a link back to this
+same directory, or per-item effect requests. Normal profile pages retain their
+existing disclosures and effect enrichment.
+
+`action=eqlplayers&detail=<id>&snapshot=<snapshotToken>` reads one exact
+directory record. Summaries include the page revision and a token covering the
+rendered snapshot and its checked dependencies. The response contains bounded
+typed fields, with a 1 MiB response limit and a short server cache; anonymous
+visibility and current revisions are checked again before returning cached data.
+A stale token triggers one silent directory renewal per expansion attempt.
+Repeated changes cannot start a refresh loop.
+
 ## Editable provisional Gear Score
 
 This browser-only benchmark weights published whole-character totals. It does
@@ -175,6 +218,7 @@ php ops/test-player-list.php
 php ops/test-character-effects.php
 node ops/build-character-sheet-templates.cjs --check
 NODE_PATH=/private/jsdom/node_modules node ops/test-player-list.cjs
+NODE_PATH=/private/jsdom/node_modules node ops/test-player-list-details.cjs
 NODE_PATH=/private/jsdom/node_modules node ops/test-character-sheet.cjs
 php maintenance/run.php ./ops/test-character-sheet.php
 ```

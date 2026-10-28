@@ -53,6 +53,7 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/eql-player-dom" --no-save --ignore-scripts --package-lock=false jsdom@27.0.0
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-player-list.cjs
+          NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-player-list-details.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-character-sheet.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-item-level-slider.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-store.cjs
