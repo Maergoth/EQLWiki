@@ -151,14 +151,15 @@ network/module inspector, and the actual database script to verify ownership.
 ## Checks by component
 
 Run the checks relevant to your change and report results and limitations.
-CI currently lints changed PHP/shell files and checks release packaging;
-it does **not** automatically run JavaScript syntax or custom regression tests.
+CI lints changed PHP/shell files, checks release packaging and runs the registered
+component regressions, including the Player List API and DOM checks. Rendered
+layout and native keyboard behavior still need a browser check.
 
 | Check | Command from repository root | Prerequisites / coverage |
 | --- | --- | --- |
 | JS syntax | `node --check path/to/changed.js` | Node; syntax only |
-| Public Player List and effect metadata | `php ops/test-player-list.php` and `php ops/test-character-effects.php` | Synthetic current public-read, snapshot parsing, continuation, cache and literal effect extraction; no database or page writes |
-| Player List interactions | `node ops/test-player-list.cjs` | jsdom; class combinations, server/max level/search, numeric and null sorting, continuation, retry, hostile text and dynamic mounts |
+| Public Player List and effect metadata | `php ops/test-player-list.php` and `php ops/test-character-effects.php` | Synthetic current public-read, snapshot parsing, continuation, cache, exact-snapshot lazy details and literal effect extraction; no database or page writes |
+| Player List interactions | `node ops/test-player-list.cjs` and `node ops/test-player-list-details.cjs` | jsdom; class combinations, server/max level/search, global numeric/null sorting before pagination, on-demand inline equipment, bounded requests/cache, retry, hostile text, stale responses and dynamic mounts. Layout and native keyboard interaction need a browser. |
 | Main Page/News freshness | `php ops/test-homepage-cache.php` | Source-only shared five-minute boundary, cache-cap, conditional-validation and News-save purge fixtures; no wiki/database writes |
 | Waypoint copying | `node ops/test-copy-waypoints.cjs` | jsdom; coordinate recognition, excluded content, dynamic refresh, clipboard success/failure and feedback restoration |
 | Header editing policy | `php ops/test-header-editing.php` | Synthetic navigation fixtures; source Edit, extension ordering, permissions and Verify2Edit |
