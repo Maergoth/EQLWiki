@@ -107,14 +107,14 @@ final class PlayerListRepository {
 		$rows = array_values( array_filter( $snapshot['rows'], static fn ( $row ) => substr( hash( 'sha256', $row['name'] . "\0" . $row['server'] ), 0, 16 ) === $match[2] ) );
 		if ( count( $rows ) !== 1 ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
 		if ( !empty( $rows[0]['snapshotConflict'] ) ) { throw new RuntimeException( 'eqlplayers-detail-conflict' ); }
-		$key = $this->cache->makeKey( 'eqlplayerdetail', 'schema1-v1', $id, $token );
+		$key = $this->cache->makeKey( 'eqlplayerdetail', 'schema1-v2', $id, $token );
 		$detail = $this->cache->get( $key );
 		if ( !is_array( $detail ) ) {
 			$rendered = $this->snapshots( $page, $maxLevel, true );
 			if ( !hash_equals( $rendered['snapshotToken'], $token ) ) { throw new RuntimeException( 'eqlplayers-detail-stale' ); }
-			$fields = CharacterSheetDetail::extract( $rendered['html'], $match[2], $maxLevel, (string)$this->config->get( 'Server' ) );
-			if ( !$fields ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
 			$title = $this->titleFactory->newFromPageIdentity( $page );
+			$fields = CharacterSheetDetail::extract( $rendered['html'], $match[2], $maxLevel, (string)$this->config->get( 'Server' ), $title->getPrefixedText() );
+			if ( !$fields ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
 			$detail = [ 'schemaVersion' => 1, 'id' => $id, 'pageTitle' => $title->getPrefixedText(),
 				'pageUrl' => $title->getLocalURL(), 'revision' => $page->getLatest(), 'snapshotToken' => $token ] + $fields;
 			if ( strlen( json_encode( $detail, JSON_THROW_ON_ERROR ) ) > CharacterSheetDetail::MAX_BYTES ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
