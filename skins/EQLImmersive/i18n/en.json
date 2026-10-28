@@ -5,5 +5,9 @@
 	"skinname-eqlimmersive": "EQL Immersive",
 	"eqlimmersive-skin-desc": "Immersive dark-fantasy theme for EverQuest Legends Wiki.",
 	"eql-talk-unread-label": "$1 unseen Talk {{PLURAL:$1|change|changes}}",
-	"eql-talk-unread-label-more": "More than 99 unseen Talk changes"
+	"eql-talk-unread-label-more": "More than 99 unseen Talk changes",
+	"eql-character-screenshot-owner-required": "Only the account owner or a moderator may change files in this reserved Character image name. Unresolved or ambiguous account names require moderator review.",
+	"eql-character-screenshot-change-override": "This screenshot override is not an image owned by this User page. Clear or change the screenshot parameter to an account-owned Character filename before uploading here; a new upload alone will not fix the override.",
+	"eql-character-screenshot-unowned-target": "The selected image resolves to a shared or foreign target rather than this page's owned portrait. Upload an owned image and clear or repair the screenshot override or file redirect.",
+	"eql-character-screenshot-unavailable-target": "An unambiguous account-owned Character filename could not be selected. Review the User page and screenshot parameter, or ask a moderator for help."
 }

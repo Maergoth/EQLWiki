@@ -49,12 +49,12 @@ or update both producer and consumer when changing database templates.
 | Era/verification | `era-filter.js/css`, `verified-pages.js`, EQLClientData and database PageEra/VerifiedPages configuration |
 | Item/spell hovers | `item-hover.js`, `spell-effect-hover.js`, `merchant-spell-hover.js`, AjaxHoverHelper and compatible template HTML |
 | Interactive Character sheets | `character-sheet.js/css`, ParserAfterParse and the separately published schema-1 templates; [contract and tests](../../docs/CHARACTER_SHEETS.md) |
-| Optional Character screenshots | `includes/CharacterScreenshot.php` registered on ParserFirstCallInit, main-template `#tag:eqlcharacterscreenshot`, Character CSS; native File rendering or upload placeholder, no upload/page writes |
+| Optional Character screenshots | `includes/CharacterScreenshot.php` registered on ParserFirstCallInit, main-template `#tag:eqlcharacterscreenshot`, Character CSS; native owned File rendering or upload placeholder, no renderer content writes. `CharacterScreenshotOwnership` separately guards File mutations and invalidates bounded same-owner pages after upload. |
 | Spell sections | `checkbox-lists.js` currently performs Category:Spells lazy loading; `spell-lazy-loader.js` stabilizes item hovers |
 | Game-page layouts | `mobpage.css`, `factionpage.css`, `spellpage.css`, `magelo.css`, item/spell/table styles |
 | Icon List | `icon-list.js/css`, database Icon List container, lightweight generated catalog |
 | Waypoint copying | `copy-waypoints.js/css`, inline coordinate buttons in rendered articles; copies `/way` commands and refreshes with `wikipage.content` |
-| Upload workflow | `upload-purge.js`, `upload-converter.js`: return/purge tracking; no image re-encoding implementation |
+| Upload workflow | `upload-purge.js`, `upload-converter.js`: passive native upload-form/return tracking with guarded account-bound storage; no filename assignment, file replacement or image re-encoding implementation. Existing image matching and conversion stay with their original handlers. |
 | Smaller controls | Announcements, Spellblade indicators, missing-image prompts, diagnostics and contribution links |
 
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
