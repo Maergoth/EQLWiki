@@ -118,6 +118,45 @@ Repository secrets: `CPANEL_DEPLOY_KEY`, `CPANEL_KNOWN_HOSTS`.
 Keep the host fingerprint pinned; verify any host-key change through cPanel or
 the hosting provider before replacing it.
 
+## Dependency cache maintenance
+
+Production web requests do not execute the background queue (`JobRunRate = 0`).
+The owner-installed `ops/host-bin/eqlwiki-run-jobs.sh` is invoked by the existing
+minute cron. Native HTML invalidation jobs advance dependent pages' freshness
+after template/File changes; link-refresh jobs may parse pages and enqueue more
+work. An edited page's own core invalidation is a separate path. A large queue
+can therefore leave dependent pages stale even when browser responses require
+revalidation. Do not compensate with a whole-wiki purge or periodic rebuild.
+
+The reviewed wrapper prioritizes `htmlCacheUpdate` (at most 100 jobs/10 seconds),
+then gives `refreshLinks` and `refreshLinksDynamic` ten jobs/five seconds each,
+and all other native work five jobs/five seconds. These are job limits, not page
+counts or a recovery ETA: native recursive jobs can fan out. One inherited flock
+covers every phase and child process. Native throttling remains enabled, memory
+is 192 MiB, CPU priority is nice 15 and idle I/O priority is used when available.
+Per-phase hard deadlines total 38 seconds; the whole invocation has a 48-second
+deadline and a two-second kill grace. No additional overlapping worker is needed.
+
+The wrapper validates native JSON results, including failed jobs, exceptions,
+memory stops and timeouts; shell exit zero alone is insufficient. It writes an
+atomic private `eql-jobrunner-status.json` and at most 64 KiB of sanitized history
+under `$HOME/private-cache/mediawiki`. Status includes actual phase counts,
+termination reason and elapsed time, without job titles, parameters or native
+error text. Interrupted work reports unknown counts. A successful bounded pass
+does not mean the queue is empty; native backoff can report no ready jobs.
+
+`ops/` is excluded from normal application releases. Install only the reviewed
+canonical Git blob separately at `$HOME/bin/eqlwiki-run-jobs.sh`, retaining the
+current cron line. Before atomic replacement, verify the current installed hash,
+deployment and cron entry; hold the shared deploy lock and exclusive existing
+runner lock; save a fresh private, fsynced backup. Preserve owner/executable mode,
+verify syntax and installed bytes, then observe one bounded run or cron result.
+Use read-only queue counts/oldest age plus phase status to assess catch-up;
+do not start repeated manual drains. Roll back only to the verified backup if
+the new wrapper fails. Source push alone is not proof of installation or queue
+progress. Standard queue mechanics are documented in MediaWiki's
+[job queue manual](https://www.mediawiki.org/wiki/Manual:Job_queue).
+
 ## Local Windows development
 
 For the already configured private Windows installation, run

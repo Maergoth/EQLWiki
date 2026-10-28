@@ -256,6 +256,12 @@ public File image or **Add an image** upload placeholder. Its account/page-scope
 default and optional local filename override retain native media dependencies;
 no upload, user-page write or statistic inference occurs during rendering. The
 helper/CSS deploy precedes the guarded database main-template publication.
+Registered server hooks also reserve Character-image mutations to the owning
+wiki account or the existing `editalluserpages` maintenance right, independently
+of User-page protection. They cover upload/replacement/stash publication,
+File-description edits, reverts and move endpoints; ordinary artwork retains
+its permissions. A shared override or redirect cannot claim ownership. See
+[the ownership contract](CHARACTER_SHEETS.md#image-ownership-and-upload-completion).
 The skin also registers `<eqlplayers />` for the `Player_List` directory and
 its conditional `skins.EQLImmersive.playerList` module. EQLClientData's read-only
 `eqlplayers` API indexes current public User-page snapshots with class/server/
@@ -760,6 +766,11 @@ that variable existing.
 - `upload-purge.js` adds `eqlReturnTo`/`eqlAlsoPurge` to NPC upload links.
   Despite its old header, `upload-converter.js` currently tracks purge/return
   state (15-minute sessionStorage expiry); it does not re-encode image pixels.
+  It binds the native `#mw-upload-form`, passively observes the `formdata` destination,
+  preserves warning/stash retries and guards account-bound session storage.
+  It never assigns filenames or file bytes and preserves existing matching and
+  conversion handlers. This is best-effort supplementary navigation/cache
+  handling, not upload authorization; the server uses the committed File title.
 - `spellblade-indicator.js` uses rendered cast/reuse values to mark eligible
   spell rows, excluding Bard songs and zero-cast spells. Keep tooltip field
   semantics aligned with the templates.

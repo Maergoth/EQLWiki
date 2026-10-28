@@ -43,12 +43,26 @@ final class CharacterScreenshot implements ParserFirstCallInitHook {
 		$name = trim( (string)( $args['name'] ?? '' ) );
 		$server = trim( (string)( $args['server'] ?? '' ) );
 		// Parser title is authoritative: this is PAGENAME, including any subpage.
-		$owner = $parser->getTitle()->getText();
-		$candidate = $override !== '' ? $override :
-			'Character ' . $owner . ' - ' . ( $name !== '' ? $name : 'Unnamed character' ) .
+		$page = $parser->getTitle(); $owner = $page->getText();
+		$policy = new CharacterScreenshotOwnership();
+		$default = 'Character ' . $owner . ' - ' . ( $name !== '' ? $name : 'Unnamed character' ) .
 			' (' . ( $server !== '' ? $server : 'Unknown server' ) . ').png';
-		$title = trim( (string)$input ) === '' && !array_diff( array_keys( $args ), [ 'name', 'server', 'screenshot' ] ) ?
-			self::fileTitle( $candidate ) : null;
+		$defaultTitle = self::fileTitle( $default );
+		if ( $defaultTitle && !$policy->belongsToPage( $defaultTitle, $page ) ) { $defaultTitle = null; }
+		$title = $override !== '' ? self::fileTitle( $override ) : $defaultTitle;
+		$refusedOverride = $override !== '' && ( !$title || !$policy->belongsToPage( $title, $page ) );
+		if ( $refusedOverride ) { $title = $defaultTitle; }
+		if ( trim( (string)$input ) !== '' || array_diff( array_keys( $args ), [ 'name', 'server', 'screenshot' ] ) ) { $title = null; }
+		$refusedTarget = false; $file = null;
+		if ( $title ) {
+			$file = MediaWikiServices::getInstance()->getRepoGroup()->findFile( $title, [ 'latest' => true ] );
+			if ( $file && ( !$file->getRepo()->isLocal() || !self::fileTitle( $file->getTitle()->getText() ) ||
+				!$policy->belongsToPage( $file->getTitle(), $page ) ) ) {
+				// A local owned alias must not lend protection to a shared/foreign
+				// binary. Core still records native image dependencies below.
+				$refusedTarget = true; $title = $defaultTitle; $file = null;
+			}
+		}
 		$uploadQuery = [ 'eqlReturnTo' => $parser->getTitle()->getPrefixedText() ];
 		$attributes = [ 'class' => 'eql-character-screenshot eql-character-screenshot-v1', 'aria-label' => 'Character screenshot' ];
 		if ( $title ) {
@@ -60,17 +74,18 @@ final class CharacterScreenshot implements ParserFirstCallInitHook {
 			$image = $parser->recursiveTagParse(
 				'[[File:' . wfEscapeWikiText( $title->getText() ) . '|frameless|260x520px|alt=Character screenshot]]', $frame
 			);
-			$file = MediaWikiServices::getInstance()->getRepoGroup()->findFile( $title );
-			if ( $file ) {
+			if ( $file && !$refusedOverride && !$refusedTarget ) {
 				return Html::rawElement( 'div', $attributes,
 					Html::rawElement( 'div', [ 'class' => 'eql-character-screenshot-image' ], $image )
 				);
 			}
 		}
 		$attributes['class'] .= ' is-missing';
-		$hint = !$title ? 'Upload an image, then set screenshot to its local filename when editing this sheet.' :
-			( $override === '' ? 'Upload a PNG screenshot to this filename. It will appear here automatically.' :
-				'Upload a screenshot with this filename. It will appear here automatically.' );
+		$hint = $refusedOverride ? wfMessage( 'eql-character-screenshot-change-override' )->text() :
+			( $refusedTarget ? wfMessage( 'eql-character-screenshot-unowned-target' )->text() :
+				( !$title ? wfMessage( 'eql-character-screenshot-unavailable-target' )->text() :
+					( $override === '' ? 'Upload a PNG screenshot to this filename. It will appear here automatically.' :
+						'Upload a screenshot with this filename. It will appear here automatically.' ) ) );
 		return Html::rawElement( 'div', $attributes,
 			Html::rawElement( 'a', [
 				'class' => 'eql-character-screenshot-add',
