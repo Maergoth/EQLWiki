@@ -16,10 +16,10 @@ final class CharacterSheetDetail {
 	public const MAX_BYTES = 1048576;
 	private int $visited = 0;
 
-	private function __construct( private readonly string $server ) {
+	private function __construct( private readonly string $server, private readonly ?string $pageTitle ) {
 	}
 
-	public static function extract( string $html, string $identity, int $maxLevel, string $server ): ?array {
+	public static function extract( string $html, string $identity, int $maxLevel, string $server, ?string $pageTitle = null ): ?array {
 		if ( strlen( $html ) > CharacterSheetSnapshot::MAX_HTML_BYTES ) {
 			throw new RuntimeException( 'eqlplayers-detail-unavailable' );
 		}
@@ -35,7 +35,7 @@ final class CharacterSheetDetail {
 		$sheets = $xpath->query( '//*[' . self::hasClass( 'eql-character-sheet' ) . ' and ' .
 			self::hasClass( 'eql-character-sheet-v1' ) . ' and not(ancestor::*[' . self::hasClass( 'eql-character-sheet' ) . '])]' );
 		if ( $sheets->length > CharacterSheetSnapshot::MAX_SHEETS ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
-		$reader = new self( $server ); $selected = null;
+		$reader = new self( $server, $pageTitle ); $selected = null;
 		foreach ( $sheets as $sheet ) {
 			// Reuse the exact directory identity/metadata rules, including public
 			// unknown values. A matching class name alone is insufficient.
@@ -85,20 +85,42 @@ final class CharacterSheetDetail {
 		}
 		if ( count( $equipment ) !== count( CharacterSheetSnapshot::SLOT_LABELS ) ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
 		$photo = $layout ? self::one( $xpath, './div[' . self::hasClass( 'eql-character-screenshot-v1' ) . ']', $layout ) : null;
-		$screenshot = null;
+		$screenshot = null; $placeholder = null;
 		if ( $photo ) {
 			$images = $xpath->query( './/img', $photo );
-			if ( $images->length === 1 && ( $image = $this->image( $images[0] ) ) ) {
-				$title = $photo->getAttribute( 'data-file-title' );
-				if ( preg_match( '/^File:[^\x00-\x1f\x7f|{}\[\]<>#]{1,235}$/uD', $title ) && strlen( $title ) <= 240 ) {
-					$link = $xpath->query( './/a[@href]', $photo )->item( 0 );
-					$screenshot = [ 'fileTitle' => $title, 'href' => $link ? $this->localUrl( $link->getAttribute( 'href' ) ) : null ] + $image;
+			$title = $this->screenshotTitle( $photo->getAttribute( 'data-file-title' ) );
+			$missing = $xpath->query( 'self::*[' . self::hasClass( 'is-missing' ) . ']', $photo )->length === 1;
+			if ( !$missing && $title && $images->length === 1 && ( $image = $this->image( $images[0] ) ) ) {
+				$link = $xpath->query( './/a[@href]', $photo )->item( 0 );
+				$screenshot = [ 'fileTitle' => $title['prefixed'], 'href' => $link ? $this->localUrl( $link->getAttribute( 'href' ) ) : null ] + $image;
+			}
+			if ( $missing && $images->length === 0 && $this->pageTitle !== null &&
+				class_exists( \EQLImmersive\CharacterScreenshot::class ) && class_exists( \MediaWiki\SpecialPage\SpecialPage::class ) ) {
+				$anchor = self::one( $xpath, './a[' . self::hasClass( 'eql-character-screenshot-add' ) . ']', $photo );
+				$hint = self::one( $xpath, './p[' . self::hasClass( 'eql-character-screenshot-hint' ) . ']', $photo );
+				// Keep the helper's own target and native return flow. Never derive a
+				// filename from directory display text, or accept arbitrary local links.
+				$query = [ 'eqlReturnTo' => $this->pageTitle ];
+				if ( $title ) { $query['wpDestFile'] = $title['bare']; }
+				$expected = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'Upload' )->getLocalURL( $query );
+				$href = $anchor ? $this->localUrl( $anchor->getAttribute( 'href' ) ) : null;
+				if ( $anchor && $hint && $href !== null && $href === $this->localUrl( $expected ) &&
+					( $title || !$photo->hasAttribute( 'data-file-title' ) ) ) {
+					$placeholder = [ 'fileTitle' => $title['prefixed'] ?? null, 'href' => $href, 'hint' => self::text( $hint, 1000 ) ];
 				}
 			}
 		}
 		return [ 'name' => $row['name'], 'server' => $row['server'], 'metadataText' => self::text( $metadata, 1000 ),
 			'stats' => $row['stats'], 'totals' => $totals, 'equipment' => array_map( static fn ( $slot ) => $equipment[$slot], CharacterSheetSnapshot::SLOT_LABELS ),
-			'screenshot' => $screenshot, 'achievementCount' => $row['achievementCount'], 'updated' => $row['updated'] ];
+			'screenshot' => $screenshot, 'screenshotPlaceholder' => $placeholder,
+			'achievementCount' => $row['achievementCount'], 'updated' => $row['updated'] ];
+	}
+
+	/** The native helper caps the BARE filename at 240 bytes, not File:+filename. */
+	private function screenshotTitle( string $value ): ?array {
+		if ( !str_starts_with( $value, 'File:' ) || strlen( $value ) > 245 || !class_exists( \EQLImmersive\CharacterScreenshot::class ) ) { return null; }
+		$title = \EQLImmersive\CharacterScreenshot::fileTitle( substr( $value, 5 ) );
+		return $title && $title->getPrefixedText() === $value ? [ 'bare' => $title->getText(), 'prefixed' => $value ] : null;
 	}
 
 	private function item( DOMXPath $xpath, DOMElement $card ): array {
