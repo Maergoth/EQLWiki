@@ -72,16 +72,17 @@ final class PlayerListRepository {
 			if ( !$this->isRootUserPage( $page ) ) {
 				continue;
 			}
-			$rows = $this->snapshots( $page, $maxLevel );
+			$snapshot = $this->snapshots( $page, $maxLevel );
 			// Do not let a concurrent move, deletion, edit or suppression publish stale cached rows.
 			$current = $this->pageStore->getPageById( $id, IDBAccessObject::READ_LATEST );
 			if ( !$this->isRootUserPage( $current ) || !$this->samePageVersion( $page, $current ) || !$this->publicRevision( $current ) ) {
 				continue;
 			}
 			$title = $this->titleFactory->newFromPageIdentity( $current );
-			foreach ( $rows as $row ) {
+			foreach ( $snapshot['rows'] as $row ) {
 				$players[] = [ 'id' => $id . ':' . substr( hash( 'sha256', $row['name'] . "\0" . $row['server'] ), 0, 16 ) ] + $row + [
-					'pageTitle' => $title->getPrefixedText(), 'pageUrl' => $title->getLocalURL()
+					'pageTitle' => $title->getPrefixedText(), 'pageUrl' => $title->getLocalURL(),
+					'pageRevision' => $page->getLatest(), 'snapshotToken' => $snapshot['snapshotToken']
 				];
 			}
 		}
@@ -92,16 +93,51 @@ final class PlayerListRepository {
 		return $result;
 	}
 
-	private function snapshots( PageRecord $page, int $maxLevel ): array {
+	/** Direct lookup only: never traverse the directory or parse caller-supplied source. */
+	public function getDetail( string $id, string $token ): array {
+		if ( !preg_match( '/^([1-9][0-9]{0,9}):([a-f0-9]{16})$/D', $id, $match ) ||
+			!preg_match( '/^[a-f0-9]{64}$/D', $token ) ) {
+			throw new InvalidArgumentException( 'badvalue' );
+		}
+		$page = $this->pageStore->getPageById( (int)$match[1], IDBAccessObject::READ_LATEST );
+		if ( !$this->isRootUserPage( $page ) || !$this->publicRevision( $page ) ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
+		$maxLevel = max( 1, min( 1000, (int)$this->config->get( 'EQLClientDataPlayerMaxLevel' ) ) );
+		$snapshot = $this->snapshots( $page, $maxLevel );
+		if ( !hash_equals( $snapshot['snapshotToken'], $token ) ) { throw new RuntimeException( 'eqlplayers-detail-stale' ); }
+		$rows = array_values( array_filter( $snapshot['rows'], static fn ( $row ) => substr( hash( 'sha256', $row['name'] . "\0" . $row['server'] ), 0, 16 ) === $match[2] ) );
+		if ( count( $rows ) !== 1 ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
+		if ( !empty( $rows[0]['snapshotConflict'] ) ) { throw new RuntimeException( 'eqlplayers-detail-conflict' ); }
+		$key = $this->cache->makeKey( 'eqlplayerdetail', 'schema1-v1', $id, $token );
+		$detail = $this->cache->get( $key );
+		if ( !is_array( $detail ) ) {
+			$rendered = $this->snapshots( $page, $maxLevel, true );
+			if ( !hash_equals( $rendered['snapshotToken'], $token ) ) { throw new RuntimeException( 'eqlplayers-detail-stale' ); }
+			$fields = CharacterSheetDetail::extract( $rendered['html'], $match[2], $maxLevel, (string)$this->config->get( 'Server' ) );
+			if ( !$fields ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
+			$title = $this->titleFactory->newFromPageIdentity( $page );
+			$detail = [ 'schemaVersion' => 1, 'id' => $id, 'pageTitle' => $title->getPrefixedText(),
+				'pageUrl' => $title->getLocalURL(), 'revision' => $page->getLatest(), 'snapshotToken' => $token ] + $fields;
+			if ( strlen( json_encode( $detail, JSON_THROW_ON_ERROR ) ) > CharacterSheetDetail::MAX_BYTES ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
+		}
+		// Visibility is never cached. Catch suppression, moves, deletion and
+		// dependency edits which happen while reading either cache or parser.
+		$current = $this->pageStore->getPageById( $page->getId(), IDBAccessObject::READ_LATEST );
+		if ( !$this->isRootUserPage( $current ) || !$this->publicRevision( $current ) ) { throw new RuntimeException( 'eqlplayers-detail-unavailable' ); }
+		if ( !$this->samePageVersion( $page, $current ) || !$this->dependenciesCurrent( $snapshot['dependencies'] ) ) { throw new RuntimeException( 'eqlplayers-detail-stale' ); }
+		$this->cache->set( $key, $detail, 30 );
+		return $detail;
+	}
+
+	private function snapshots( PageRecord $page, int $maxLevel, bool $withHtml = false ): array {
 		$revision = $this->publicRevision( $page );
 		if ( !$revision ) {
-			return [];
+			return [ 'rows' => [], 'dependencies' => [], 'snapshotToken' => '' ];
 		}
-		$key = $this->cache->makeKey( 'eqlplayers', 'schema1-v2', $page->getId(), $page->getLatest(), $page->getTouched(), $maxLevel );
+		$key = $this->cache->makeKey( 'eqlplayers', 'schema1-v3', $page->getId(), $page->getLatest(), $page->getTouched(), $maxLevel );
 		$cached = $this->cache->get( $key );
-		if ( is_array( $cached ) && isset( $cached['rows'], $cached['dependencies'] ) &&
+		if ( !$withHtml && is_array( $cached ) && isset( $cached['rows'], $cached['dependencies'], $cached['snapshotToken'] ) &&
 			$this->dependenciesCurrent( $cached['dependencies'] ) ) {
-			return $cached['rows'];
+			return $cached;
 		}
 		$options = ParserOptions::newFromAnon();
 		// A dependency may have changed before an asynchronous parser-cache purge completes.
@@ -132,9 +168,13 @@ final class PlayerListRepository {
 			if ( !$this->dependenciesCurrent( $dependencies ) ) {
 				continue;
 			}
-			$rows = $hasSheetTemplate ? CharacterSheetSnapshot::extract( $output->getContentHolderText(), $maxLevel ) : [];
-			$this->cache->set( $key, [ 'rows' => $rows, 'dependencies' => $dependencies ], 30 );
-			return $rows;
+			$html = $output->getContentHolderText();
+			$rows = $hasSheetTemplate ? CharacterSheetSnapshot::extract( $html, $maxLevel ) : [];
+			usort( $dependencies, static fn ( $first, $second ) => [ $first['namespace'], $first['title'], $first['id'], $first['revision'] ] <=> [ $second['namespace'], $second['title'], $second['id'], $second['revision'] ] );
+			$token = hash( 'sha256', json_encode( [ $page->getId(), $page->getDBkey(), $page->getLatest(), $page->getTouched(), $maxLevel, $dependencies, hash( 'sha256', $html ) ], JSON_THROW_ON_ERROR ) );
+			$value = [ 'rows' => $rows, 'dependencies' => $dependencies, 'snapshotToken' => $token ];
+			$this->cache->set( $key, $value, 30 );
+			return $withHtml ? $value + [ 'html' => $html ] : $value;
 		}
 		// Fail the batch visibly rather than make an apparently complete partial leaderboard.
 		throw new RuntimeException( 'player-list-dependencies-unavailable' );

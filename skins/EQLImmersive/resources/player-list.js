@@ -2,7 +2,9 @@
 ( function () {
     'use strict';
     var mounted = new WeakSet(), serial = 0, PAGE_SIZE = 50;
-    var SCORE_SETTINGS_TITLE = 'MediaWiki:PlayerListGearScore.json', scoreSettingsFlight = null;
+    var SCORE_SETTINGS_TITLE = 'MediaWiki:PlayerListGearScore.json', scoreSettingsFlight = null, previewModuleFlight = null;
+    var DETAIL_BYTES = 1048576, CACHE_BYTES = 8388608;
+    var SLOT_ROWS = [ [ 'Left ear', 'Neck', 'Face', 'Head', 'Right ear' ], [ 'Left finger', 'Left wrist', 'Arms', 'Hands', 'Right wrist', 'Right finger' ], [ 'Shoulders', 'Chest', 'Back', 'Waist', 'Legs', 'Feet' ], [ 'Primary', 'Secondary', 'Range', 'Ammo', 'Charm' ], [ 'Any 1', 'Any 2' ] ];
     var CLASSES = [ [ 'WAR', 'Warrior' ], [ 'CLR', 'Cleric' ], [ 'PAL', 'Paladin' ], [ 'RNG', 'Ranger' ],
         [ 'SHD', 'Shadow Knight' ], [ 'DRU', 'Druid' ], [ 'MNK', 'Monk' ], [ 'BRD', 'Bard' ],
         [ 'ROG', 'Rogue' ], [ 'SHM', 'Shaman' ], [ 'NEC', 'Necromancer' ], [ 'WIZ', 'Wizard' ],
@@ -108,7 +110,8 @@
         if ( String( value.id ).length > 1000 ) { throw new Error( 'Invalid player identity' ); }
         return { id: String( value.id ), name: text( value.name ), server: text( value.server, 150 ), classes: classes, hasClassCombination: Array.isArray( value.classes ) && value.classes.length === 3 && classes.length === 3,
             level: number( value.level ), aa: number( value.aa ), totalTier: number( value.totalTier ), gearScore: value.snapshotConflict === true ? { value: null, missing: [ 'conflicting snapshots' ], parts: [], legacy: false } : gearScore( stats, policy ), achievementCount: Number.isInteger( value.achievementCount ) && value.achievementCount >= 0 && value.achievementCount <= 1000000000 ? value.achievementCount : null, equippedSlots: number( value.equippedSlots ), tieredSlots: number( value.tieredSlots ), stats: stats,
-            updated: text( value.updated, 80 ), pageTitle: text( value.pageTitle ), pageUrl: text( value.pageUrl, 2000 ), snapshotConflict: value.snapshotConflict === true };
+            updated: text( value.updated, 80 ), pageTitle: text( value.pageTitle ), pageUrl: text( value.pageUrl, 2000 ), snapshotConflict: value.snapshotConflict === true,
+            snapshotToken: typeof value.snapshotToken === 'string' && /^[a-f0-9]{64}$/.test( value.snapshotToken ) ? value.snapshotToken : null, pageRevision: Number.isSafeInteger( value.pageRevision ) && value.pageRevision > 0 ? value.pageRevision : null };
     }
     function compareName( first, second ) {
         return first.name.localeCompare( second.name, undefined, { sensitivity: 'base', numeric: true } ) || first.server.localeCompare( second.server ) || first.pageTitle.localeCompare( second.pageTitle ) || first.id.localeCompare( second.id );
@@ -120,13 +123,168 @@
         var at = Date.parse( value );
         return Number.isFinite( at ) ? new Date( at ).toLocaleDateString( undefined, { year: 'numeric', month: 'short', day: 'numeric' } ) : null;
     }
+    function localDetailUrl( value ) {
+        if ( typeof value !== 'string' || !value || value.length > 2048 ) { return null; }
+        try { var url = new URL( value, window.location.href ); return /^https?:$/.test( url.protocol ) && url.origin === window.location.origin && !url.username && !url.password ? url.href : null; } catch ( error ) { return null; }
+    }
+    function detailText( value, limit ) { if ( typeof value !== 'string' || value.length > limit ) { throw new Error( 'Invalid detail text' ); } return value; }
+    function detailArray( value, limit ) { if ( !Array.isArray( value ) || value.length > limit ) { throw new Error( 'Invalid detail collection' ); } return value; }
+    function detailLines( lines ) {
+        detailArray( lines, 64 ).forEach( function ( line ) { detailArray( line, 64 ).forEach( function ( part ) {
+            if ( !part || typeof part !== 'object' ) { throw new Error( 'Invalid detail part' ); }
+            detailText( part.text, 8192 ); if ( part.title !== undefined ) { detailText( part.title, 300 ); }
+            if ( part.href !== undefined && !localDetailUrl( part.href ) ) { throw new Error( 'Invalid detail link' ); }
+        } ); } );
+    }
+    function detailImage( image ) {
+        if ( !image || !localDetailUrl( image.url ) || [ image.width, image.height ].some( function ( dimension ) { return dimension !== null && ( !Number.isInteger( dimension ) || dimension < 1 || dimension > 8192 ); } ) ) { throw new Error( 'Invalid detail image' ); }
+    }
+    function validateDetail( result, player ) {
+        var data = result && result.eqlplayers && result.eqlplayers.detail;
+        if ( !data || data.schemaVersion !== 1 || data.id !== player.id || data.snapshotToken !== player.snapshotToken || data.revision !== player.pageRevision || data.pageTitle !== player.pageTitle || data.name !== player.name || data.server !== player.server ) { throw new Error( 'Invalid detail identity' ); }
+        var bytes = new Blob( [ JSON.stringify( data ) ] ).size;
+        if ( bytes > DETAIL_BYTES ) { throw new Error( 'Detail limit' ); }
+        detailText( data.metadataText, 1000 );
+        var totals = new Set(); detailArray( data.totals, 64 ).forEach( function ( stat ) {
+            if ( !stat || !Object.prototype.hasOwnProperty.call( labels, stat.key ) || totals.has( stat.key ) || stat.value !== null && number( stat.value ) === null ) { throw new Error( 'Invalid detail total' ); }
+            totals.add( stat.key ); detailText( stat.label, 100 ); detailText( stat.text, 160 );
+        } );
+        var slots = new Set(), known = SLOT_ROWS.reduce( function ( all, row ) { return all.concat( row ); }, [] );
+        detailArray( data.equipment, 24 ).forEach( function ( slot ) {
+            if ( !slot || known.indexOf( slot.slot ) < 0 || slots.has( slot.slot ) ) { throw new Error( 'Invalid detail slot' ); } slots.add( slot.slot );
+            var item = slot.item; if ( item === null ) { return; }
+            if ( !item || item.tier !== null && ( !Number.isInteger( item.tier ) || item.tier < 0 || item.tier > 10 ) || item.href !== null && !localDetailUrl( item.href ) ) { throw new Error( 'Invalid detail item' ); }
+            detailText( item.title, 300 ); detailArray( item.statLines, 64 ).forEach( function ( line ) { detailText( line, 8192 ); } ); detailLines( item.details );
+            if ( item.icon !== null ) { detailImage( item.icon ); detailText( item.icon.alt, 300 ); }
+            var sockets = new Set(); detailArray( item.augments, 8 ).forEach( function ( augment ) {
+                if ( !augment || !Number.isInteger( augment.socket ) || augment.socket < 0 || augment.socket > 7 || sockets.has( augment.socket ) || augment.href !== null && !localDetailUrl( augment.href ) ) { throw new Error( 'Invalid detail socket' ); }
+                sockets.add( augment.socket ); detailText( augment.title, 300 ); detailLines( augment.effects );
+            } );
+        } );
+        if ( data.screenshot !== null ) { detailImage( data.screenshot ); if ( !/^File:[^\r\n<>]{1,240}$/.test( data.screenshot.fileTitle ) || data.screenshot.href !== null && !localDetailUrl( data.screenshot.href ) ) { throw new Error( 'Invalid detail screenshot' ); } }
+        return { data: data, bytes: bytes };
+    }
+    function inlineLines( container, lines ) {
+        lines.forEach( function ( line, index ) { if ( index ) { container.appendChild( element( 'br' ) ); } line.forEach( function ( part ) {
+            var node = element( part.href ? 'a' : 'span', part.text ); if ( part.href ) { node.href = localDetailUrl( part.href ); } if ( part.title ) { node.title = part.title; } container.appendChild( node );
+        } ); } );
+    }
+    function detailLink( title, href ) { var node = element( href ? 'a' : 'span', title ); if ( href ) { node.href = localDetailUrl( href ); } return node; }
+    function detailView( data ) {
+        var sheet = element( 'div', undefined, 'eql-character-sheet-v1 eql-pl-preview' ); sheet.dataset.eqlPlayerPreview = '1'; sheet.classList.add( 'is-enhanced' );
+        var body = element( 'div', undefined, 'eql-character-body' ), layout = element( 'div', undefined, 'eql-character-layout' ); sheet.appendChild( body ); body.appendChild( layout );
+        if ( data.screenshot ) { var photo = element( data.screenshot.href ? 'a' : 'span', undefined, 'eql-pl-preview-photo' ), image = element( 'img' ); if ( data.screenshot.href ) { photo.href = localDetailUrl( data.screenshot.href ); } image.src = localDetailUrl( data.screenshot.url ); image.alt = data.name + ' screenshot'; image.loading = 'lazy'; if ( data.screenshot.width !== null ) { image.width = data.screenshot.width; } if ( data.screenshot.height !== null ) { image.height = data.screenshot.height; } photo.appendChild( image ); layout.appendChild( photo ); layout.classList.add( 'eql-pl-preview-with-photo' ); }
+        var totals = element( 'section', undefined, 'eql-character-totals' ); totals.append( element( 'div', 'Published stats', 'eql-character-group-heading' ), element( 'p', data.metadataText, 'eql-pl-preview-metadata' ) ); var list = element( 'dl' );
+        data.totals.forEach( function ( stat ) { var pair = element( 'div' ); pair.append( element( 'dt', stat.label ), element( 'dd', stat.text ) ); list.appendChild( pair ); } ); totals.appendChild( list ); layout.appendChild( totals );
+        var equipment = element( 'section', undefined, 'eql-character-equipment' ); equipment.setAttribute( 'aria-label', 'Published equipment' ); layout.appendChild( equipment );
+        SLOT_ROWS.forEach( function ( labels ) { var row = element( 'div', undefined, 'eql-character-equipment-row' ); equipment.appendChild( row ); labels.forEach( function ( label ) {
+            var record = data.equipment.find( function ( slot ) { return slot.slot === label; } ); if ( !record ) { return; }
+            var slot = element( 'div', undefined, 'eql-character-slot' ); slot.appendChild( element( 'span', label, 'eql-character-slot-label' ) ); row.appendChild( slot );
+            if ( !record.item ) { var empty = element( 'span', '—', 'eql-character-empty' ); empty.setAttribute( 'aria-label', label + ': empty' ); slot.appendChild( empty ); return; }
+            var item = record.item, card = element( 'div', undefined, 'eql-character-item' ), icon = element( 'span', undefined, 'eql-character-item-icon' ), link = detailLink( item.title, item.href );
+            link.setAttribute( 'aria-label', label + ': ' + item.title ); link.title = item.title; if ( !item.href ) { card.tabIndex = 0; }
+            if ( item.icon ) { var img = element( 'img' ); img.src = localDetailUrl( item.icon.url ); img.alt = item.icon.alt; img.width = 48; img.height = 48; img.loading = 'lazy'; link.replaceChildren( img ); } else { link.textContent = '◇'; }
+            icon.appendChild( link ); card.appendChild( icon ); slot.appendChild( card );
+            function addTier( target ) { if ( item.tier !== null ) { target.appendChild( element( 'span', '+' + item.tier, 'eql-character-tier' ) ); } } addTier( card );
+            var inspect = element( 'div', undefined, 'eql-character-inspect-v1' ), title = element( 'strong' ); title.appendChild( detailLink( item.title, item.href ) ); inspect.appendChild( title ); addTier( inspect );
+            var stats = element( 'div', undefined, 'eql-character-item-stats' ); item.statLines.forEach( function ( line, index ) { if ( index ) { stats.appendChild( element( 'br' ) ); } stats.appendChild( document.createTextNode( line ) ); } ); inspect.appendChild( stats );
+            var details = element( 'div', undefined, 'eql-character-item-details' ); inlineLines( details, item.details ); inspect.appendChild( details );
+            if ( item.augments.length ) { var augments = element( 'div', undefined, 'eql-character-augments' ), sockets = element( 'ul' ); augments.append( element( 'strong', 'Exaltations' ), sockets ); item.augments.forEach( function ( augment ) { var socket = element( 'li' ), name = element( 'strong' ); socket.dataset.eqlSocket = String( augment.socket + 1 ); name.appendChild( detailLink( augment.title, augment.href ) ); socket.appendChild( name ); var effects = element( 'span', undefined, 'eql-character-augment-effects' ); inlineLines( effects, augment.effects ); socket.appendChild( effects ); socket.classList.add( 'is-simplified' ); sockets.appendChild( socket ); } ); inspect.appendChild( augments ); }
+            card.appendChild( inspect );
+        } ); } );
+        body.appendChild( element( 'p', 'Player-reported snapshot. ? Unknown · * Estimate. Equipment does not recalculate published totals.', 'eql-character-note' ) ); return sheet;
+    }
     function mount( root ) {
         if ( mounted.has( root ) || root.dataset.eqlPlayerListMounted === '1' ) { return; }
         mounted.add( root ); root.dataset.eqlPlayerListMounted = '1';
         var prefix = 'eql-pl-' + ( ++serial ), players = [], maxLevel = null, loading = false, complete = false, generation = 0, page = 0, sortKey = 'totalTier', descending = true, columnsKey = '', policy = null;
+        var detailCache = new Map(), detailBytes = 0, detailViews = new Map(), openDetails = new Set(), detailQueue = [], detailActive = 0, detailSerial = 0, visibleOrder = [];
+        function detailKey( player ) { return JSON.stringify( [ generation, player.id, player.snapshotToken, player.pageRevision ] ); }
+        function closeInspect() { document.dispatchEvent( new Event( 'eql-character-preview-close' ) ); }
+        function retireDetails( clear ) {
+            detailViews.forEach( function ( view ) { view.retired = true; if ( view.cancel ) { view.cancel(); } } ); detailViews.clear(); detailQueue = [];
+            if ( clear ) { detailCache.clear(); detailBytes = 0; openDetails.clear(); }
+            else { openDetails.forEach( function ( key ) { if ( !detailCache.has( key ) ) { openDetails.delete( key ); } } ); } closeInspect();
+        }
+        function detailCurrent( view ) { return !view.retired && view.owner === generation && root.isConnected && view.panel.isConnected && !view.row.hidden && detailViews.get( view.key ) === view; }
+        function rememberDetail( key, entry ) {
+            if ( detailCache.has( key ) ) { detailBytes -= detailCache.get( key ).bytes; detailCache.delete( key ); }
+            while ( detailCache.size >= 50 || detailBytes + entry.bytes > CACHE_BYTES ) { var oldest = detailCache.keys().next().value; detailBytes -= detailCache.get( oldest ).bytes; detailCache.delete( oldest ); openDetails.delete( oldest ); }
+            detailCache.set( key, entry ); detailBytes += entry.bytes;
+        }
+        function detailFailure( view, error ) {
+            if ( !detailCurrent( view ) ) { return; }
+            view.panel.removeAttribute( 'aria-busy' );
+            var stale = error && ( error.code === 'eqlplayers-detail-stale' || error.code === 'eqlplayers-detail-conflict' );
+            if ( stale ) {
+                if ( !view.renewed ) { load( { id: view.player.id, renewed: true, focusRow: document.activeElement === view.control } ); }
+                else { view.row.hidden = true; view.control.setAttribute( 'aria-expanded', 'false' ); openDetails.delete( view.key ); }
+                return;
+            }
+            view.panel.replaceChildren( element( 'p', 'Stats and equipment could not be loaded. Your directory rankings have not changed.', 'eql-pl-detail-error' ) );
+            var again = button( 'Retry details', 'eql-pl-quiet-button' ); again.addEventListener( 'click', function () { enqueueDetail( view ); } ); view.panel.appendChild( again );
+        }
+        function drainDetails() {
+            while ( detailActive < 2 && detailQueue.length ) {
+                var job = detailQueue.shift(), view = job.view; if ( !detailCurrent( view ) || view.attempt !== job.attempt || !view.pending ) { continue; }
+                detailActive++; startDetail( view, job.attempt );
+            }
+        }
+        function startDetail( view, attempt ) {
+            var request, timer, ended = false, cancel;
+            function current() { return detailCurrent( view ) && view.attempt === attempt; }
+            var deadline = new Promise( function ( resolve, reject ) { timer = window.setTimeout( function () { if ( request && typeof request.abort === 'function' ) { request.abort(); } reject( new Error( 'Detail timeout' ) ); }, 10000 ); cancel = function () { if ( request && typeof request.abort === 'function' ) { request.abort(); } reject( new Error( 'Detail canceled' ) ); }; } );
+            view.cancel = cancel;
+            var work = Promise.resolve().then( function () {
+                if ( !current() ) { throw new Error( 'Retired detail' ); }
+                if ( !previewModuleFlight ) {
+                    previewModuleFlight = Promise.resolve().then( function () { return mw.loader.using( 'skins.EQLImmersive.characterSheet' ); } ).catch( function ( error ) { previewModuleFlight = null; throw error; } );
+                }
+                request = new mw.Api().get( { action: 'eqlplayers', detail: view.player.id, snapshot: view.player.snapshotToken, formatversion: 2 }, { timeout: 10000 } );
+                return Promise.all( [ request, previewModuleFlight ] );
+            } );
+            Promise.race( [ work, deadline ] ).then( function ( results ) {
+                if ( !current() ) { return; }
+                var response = results[ 0 ]; if ( response && response.error ) { var failure = new Error( 'Details unavailable' ); failure.code = response.error.code; throw failure; }
+                var entry = validateDetail( response, view.player ); rememberDetail( view.key, entry ); view.panel.removeAttribute( 'aria-busy' ); view.panel.replaceChildren( detailView( entry.data ) );
+            } ).catch( function ( error ) { if ( current() ) { detailFailure( view, typeof error === 'string' ? { code: error } : error ); } } ).then( function () {
+                if ( ended ) { return; } ended = true; window.clearTimeout( timer ); if ( view.attempt === attempt ) { view.cancel = null; view.pending = false; } detailActive--; drainDetails();
+            } );
+        }
+        function enqueueDetail( view ) {
+            if ( !detailCurrent( view ) || view.pending ) { return; }
+            view.pending = true; view.attempt++; view.panel.setAttribute( 'aria-busy', 'true' ); view.panel.replaceChildren( element( 'p', 'Loading public stats and equipment…', 'eql-pl-detail-loading' ) );
+            detailQueue = detailQueue.filter( function ( job ) { return detailCurrent( job.view ) && job.view.pending && job.view.attempt === job.attempt; } );
+            detailQueue.push( { view: view, attempt: view.attempt } ); drainDetails();
+        }
+        function expansion( player, summary ) {
+            var control = summary;
+            var key = detailKey( player ), row = element( 'tr', undefined, 'eql-pl-detail-row' ), cell = element( 'td' ), panel = element( 'div', undefined, 'eql-pl-detail-panel' );
+            cell.colSpan = summary.children.length; row.appendChild( cell ); cell.appendChild( panel ); panel.id = prefix + '-detail-' + ( ++detailSerial ); panel.setAttribute( 'role', 'region' ); panel.setAttribute( 'aria-label', player.name + ': published stats and equipment' );
+            control.setAttribute( 'aria-controls', panel.id ); control.setAttribute( 'aria-expanded', 'false' ); row.hidden = true; body.appendChild( row );
+            var view = { player: player, key: key, owner: generation, row: row, panel: panel, control: control, retired: false, pending: false, attempt: 0, renewed: false }; detailViews.set( key, view );
+            function open( cachedOnly ) {
+                row.hidden = false; control.setAttribute( 'aria-expanded', 'true' ); openDetails.add( key ); var cached = detailCache.get( key );
+                if ( cached ) { detailCache.delete( key ); detailCache.set( key, cached ); panel.replaceChildren( detailView( cached.data ) ); }
+                else if ( !cachedOnly ) { enqueueDetail( view ); }
+            }
+            view.open = function ( renewed ) { view.renewed = renewed === true; open( false ); };
+            function toggle() {
+                if ( !row.hidden ) { row.hidden = true; control.setAttribute( 'aria-expanded', 'false' ); openDetails.delete( key ); view.attempt++; view.pending = false; if ( view.cancel ) { view.cancel(); view.cancel = null; } panel.removeAttribute( 'aria-busy' ); closeInspect(); }
+                else { view.open( false ); }
+            }
+            control.tabIndex = 0; control.classList.add( 'eql-pl-expandable' );
+            control.addEventListener( 'click', function ( event ) {
+                var target = event.target.nodeType === 1 ? event.target : event.target.parentElement;
+                if ( event.button !== 0 || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey || !target || target.closest( 'a,button,input,select,textarea,label,summary,[contenteditable],[role=button],[role=link]' ) || window.getSelection && String( window.getSelection() ) ) { return; }
+                toggle();
+            } );
+            control.addEventListener( 'keydown', function ( event ) { if ( event.target === control && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && !event.repeat && ( event.key === 'Enter' || event.key === ' ' ) ) { event.preventDefault(); toggle(); } } );
+            if ( openDetails.has( key ) && detailCache.has( key ) ) { open( true ); }
+        }
         root.classList.add( 'eql-player-list' );
         var hero = element( 'header', undefined, 'eql-pl-hero' ), intro = element( 'div' ), summary = element( 'div', undefined, 'eql-pl-summary' );
-        intro.append( element( 'span', 'THE ADVENTURERS’ REGISTER', 'eql-pl-eyebrow' ), element( 'h2', 'Discover the players of Legends' ), element( 'p', 'Browse public character snapshots shared by players. Find a class combination, compare published stats, and open a profile to explore its equipment.' ) );
+        intro.append( element( 'span', 'THE ADVENTURERS’ REGISTER', 'eql-pl-eyebrow' ), element( 'h2', 'Discover the players of Legends' ), element( 'p', 'Browse public character snapshots shared by players. Select a character row to explore its stats and equipment, or follow its name to the public profile.' ) );
         var total = element( 'strong', '—' ), serversTotal = element( 'strong', '—' );
         [ [ total, 'characters' ], [ serversTotal, 'servers' ] ].forEach( function ( pair ) { var tile = element( 'div' ); tile.append( pair[ 0 ], element( 'span', pair[ 1 ] ) ); summary.appendChild( tile ); } );
         hero.append( intro, summary );
@@ -209,9 +367,11 @@
                 var difference = typeof a === 'string' ? a.localeCompare( b, undefined, { sensitivity: 'base', numeric: true } ) : a - b;
                 return difference ? descending ? -difference : difference : compareName( first, second );
             } );
+            visibleOrder = filtered;
             var pages = Math.max( 1, Math.ceil( filtered.length / PAGE_SIZE ) ); page = Math.max( 0, Math.min( page, pages - 1 ) );
             direction.textContent = sortKey === 'name' ? descending ? 'Z–A ↓' : 'A–Z ↑' : descending ? 'Highest first ↓' : 'Lowest first ↑';
             caption.textContent = 'Public character snapshots · ' + ( labels[ sortKey ] || sortKey.replace( /_/g, ' ' ) ) + ( descending ? ', highest first' : ', lowest first' );
+            retireDetails( false );
             resultCount.textContent = filtered.length.toLocaleString() + ' of ' + players.length.toLocaleString() + ' characters'; headers(); body.replaceChildren();
             filtered.slice( page * PAGE_SIZE, ( page + 1 ) * PAGE_SIZE ).forEach( function ( player, index ) {
                 var row = element( 'tr' ), unranked = sortKey !== 'name' && valueFor( player, sortKey ) === null;
@@ -232,6 +392,7 @@
                     var featured = numericCell( row, valueFor( player, sortKey ), 'eql-pl-number eql-pl-featured-stat' );
                     if ( sortKey === 'gearScore' ) { featured.title = player.gearScore.value === null ? 'Unranked: ' + ( player.snapshotConflict ? 'conflicting snapshots' : !policy ? 'score settings unavailable' : player.gearScore.missing.length ? 'missing ' + player.gearScore.missing.join( ', ' ) : 'invalid score total' ) : 'Provisional Gear Score · settings revision ' + policy.revision + '\n' + gearScore( player.stats, policy, true ).parts.join( '\n' ); featured.appendChild( element( 'small', player.gearScore.value === null ? !policy ? 'Settings unavailable' : 'Incomplete stats' : player.gearScore.legacy ? 'Provisional · legacy totals' : 'Provisional' ) ); }
                 } body.appendChild( row );
+                if ( !player.snapshotConflict && player.snapshotToken && player.pageRevision ) { expansion( player, row ); }
             } );
             scroll.hidden = filtered.length === 0; empty.hidden = filtered.length !== 0; navigation.hidden = filtered.length <= PAGE_SIZE;
             if ( !players.length ) { empty.firstChild.textContent = 'No public character snapshots yet.'; empty.querySelector( 'p' ).textContent = 'Characters will appear here when players publish their snapshots to the wiki.'; } else { empty.firstChild.textContent = 'No characters match these filters.'; empty.querySelector( 'p' ).textContent = 'Try another server or class combination, or clear the filters.'; }
@@ -246,9 +407,10 @@
         reset.addEventListener( 'click', function () { search.value = ''; server.value = ''; maximum.checked = false; clearClasses(); search.focus(); } );
         order.addEventListener( 'change', function () { sort( order.value, false ); } ); direction.addEventListener( 'click', function () { descending = !descending; page = 0; render(); } );
         previous.addEventListener( 'click', function () { page--; render(); } ); next.addEventListener( 'click', function () { page++; render(); } );
-        function load() {
+        function load( reopenIntent ) {
             if ( loading ) { return; }
             var owner = ++generation, loaded = [], ids = new Set(), tokens = new Set(), pages = 0, reportedMax = null, api;
+            retireDetails( true );
             function current() { if ( owner === generation && !root.isConnected ) { generation++; loading = false; mounted.delete( root ); delete root.dataset.eqlPlayerListMounted; } return owner === generation && root.isConnected; }
             complete = false; setBusy( true ); total.textContent = serversTotal.textContent = '—'; resultCount.textContent = 'Loading directory…'; retry.hidden = true; status.hidden = false; status.classList.remove( 'is-error' ); status.textContent = 'Gathering public character snapshots…'; render();
             function read( continuation ) {
@@ -273,11 +435,15 @@
                     if ( extra.size ) { var group = element( 'optgroup' ); group.label = 'Other published stats'; group.dataset.extraStats = '1'; Array.from( extra ).sort().forEach( function ( key ) { option( key, key.replace( /_/g, ' ' ), group ); } ); order.appendChild( group ); }
                     order.value = sortKey; if ( order.value !== sortKey ) { sortKey = 'totalTier'; descending = true; order.value = sortKey; }
                     setBusy( false ); status.hidden = true; render();
+                    if ( reopenIntent && reopenIntent.renewed === true ) {
+                        var at = visibleOrder.findIndex( function ( player ) { return player.id === reopenIntent.id; } );
+                        if ( at >= 0 ) { page = Math.floor( at / PAGE_SIZE ); render(); var view = detailViews.get( detailKey( visibleOrder[ at ] ) ); if ( view ) { view.open( true ); if ( reopenIntent.focusRow ) { view.control.focus(); } } }
+                    }
                 } );
             }
             Promise.resolve().then( function () { api = new mw.Api(); return readScorePolicy( api ); } ).then( function ( settings ) { if ( !current() ) { return; } policy = settings; showScorePolicy(); return read(); } ).catch( function () { if ( !current() ) { return; } setBusy( false ); status.classList.add( 'is-error' ); status.textContent = 'The complete player list could not be loaded. No partial rankings are shown.'; retry.hidden = false; scroll.hidden = empty.hidden = navigation.hidden = true; } );
         }
-        refresh.addEventListener( 'click', load ); retry.addEventListener( 'click', load ); load();
+        refresh.addEventListener( 'click', function () { load(); } ); retry.addEventListener( 'click', function () { load(); } ); load();
     }
     function initialize( root ) {
         root = root && root.querySelectorAll ? root : document;
