@@ -312,10 +312,13 @@
         if ( parentSheet && sheets.indexOf( parentSheet ) === -1 ) { sheets.unshift( parentSheet ); }
         // A refreshed fragment may contain one sheet on a page with several.
         // Include detached previews too, without changing initialized disclosures.
-        var pageSheets = Array.from( document.querySelectorAll( '.eql-character-sheet-v1' ) );
-        sheets.forEach( function ( sheet ) { if ( pageSheets.indexOf( sheet ) === -1 ) { pageSheets.push( sheet ); } } );
+        var pageSheets = Array.from( document.querySelectorAll( '.eql-character-sheet-v1:not([data-eql-player-preview="1"])' ) );
+        sheets.forEach( function ( sheet ) { if ( sheet.dataset.eqlPlayerPreview !== '1' && pageSheets.indexOf( sheet ) === -1 ) { pageSheets.push( sheet ); } } );
         var initiallyExpanded = pageSheets.length === 1;
         sheets.forEach( function ( sheet ) {
+            // Typed directory previews share item inspection only, not profile disclosures,
+            // directory links or per-item effect requests. They have their own lazy lifecycle.
+            if ( sheet.dataset.eqlPlayerPreview === '1' ) { return; }
             simplifyAugments( sheet );
             addPlayerLink( sheet );
             hydrateEffects( sheet );
@@ -369,6 +372,7 @@
         if ( !flyout || !flyout.contains( event.target ) ) { hideInspect(); }
     }, true );
     window.addEventListener( 'resize', hideInspect );
+    document.addEventListener( 'eql-character-preview-close', hideInspect );
     if ( typeof mw !== 'undefined' && mw.hook ) {
         mw.hook( 'wikipage.content' ).add( function ( content ) { initialize( content && content[ 0 ] || content ); } );
     }

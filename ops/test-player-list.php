@@ -119,6 +119,7 @@ namespace {
 	use MediaWiki\Revision\RevisionRecord;
 	define( 'NS_USER', 2 ); define( 'NS_TEMPLATE', 10 );
 	require __DIR__ . '/../extensions/EQLClientData/includes/CharacterSheetSnapshot.php';
+	require __DIR__ . '/../extensions/EQLClientData/includes/CharacterSheetDetail.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/PlayerListRepository.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/ApiPlayers.php';
 	$checks = 0;
@@ -187,7 +188,7 @@ namespace {
 	}
 	class FixtureConfig extends \MediaWiki\Config\Config {
 		public int $maxLevel = 50;
-		public function get( $key ) { check( $key === 'EQLClientDataPlayerMaxLevel', 'Use only public player configuration.' ); return $this->maxLevel; }
+		public function get( $key ) { check( in_array( $key, [ 'EQLClientDataPlayerMaxLevel', 'Server' ], true ), 'Use only public player/site configuration.' ); return $key === 'Server' ? 'https://eqlwiki.test' : $this->maxLevel; }
 	}
 	class FixtureDB {
 		public array $ids = [ 10, 20, 30, 40, 50, 60 ];
@@ -346,6 +347,80 @@ namespace {
 	[ $repo, $db, $pages, $lookup, $permissions, $parser ] = fixtures();
 	$parser->outputs[10]->dependencies = [];
 	check( $repo->getBatch( null, 1 )['players'] === [], 'A stale link-index candidate without current canonical template provenance cannot return handmade DOM lookalikes.' );
+
+	// Lazy details use the same public boundary and exact identity, without a
+	// directory traversal, account lookup, arbitrary source or whole User HTML.
+	[ $repo, $db, $pages, $lookup, $permissions, $parser, $cache ] = fixtures();
+	$publicSheet = sheet( [ 'totals' => [ 'HP' => '1234', 'Mana' => '0', 'STR' => '?', 'Fire resist' => '12 *' ], 'achievementSummary' => '4 / 20 achievements complete' ] );
+	$publicSheet = str_replace( '<a>Fixture Relic</a>', '<a href="/Fixture_Relic" title="Fixture Relic">Fixture Relic</a>', $publicSheet );
+	$publicSheet = str_replace( '<div class="eql-character-item">', '<div class="eql-character-item"><span class="eql-character-item-icon"><a href="/Fixture_Relic"><img src="/images/item_500.png" width="48" height="48" alt="Fixture Relic"></a></span>', $publicSheet );
+	$publicSheet = str_replace( '<div class="eql-character-augments"><span class="eql-character-tier">+9</span></div>',
+		'<div class="eql-character-item-stats">HP: 42<br>STR: ?</div><div class="eql-character-item-details">Focus Effect: <a href="/Canonical_Effect" title="Canonical Effect">Visible Effect</a> (Worn)</div>' .
+		'<div class="eql-character-augments"><strong>Exaltations</strong><ul><li><strong><a href="/Fixture_Rune">Fixture Rune</a></strong><span class="eql-character-item-details">HP: 999<br>Focus Effect: <a href="/Canonical_Rune">Visible Rune</a> (Worn)</span><span class="eql-character-tier">+9</span></li></ul></div>', $publicSheet );
+	$publicSheet = str_replace( '<div class="eql-character-layout">', '<div class="eql-character-layout"><div class="eql-character-screenshot eql-character-screenshot-v1" data-file-title="File:Fixture.png"><a href="/File:Fixture.png"><img src="/images/Fixture.png" width="200" height="300" alt="Fixture"></a></div>', $publicSheet );
+	$parser->outputs[10]->html = '<p>UNRELATED_USER_BIOGRAPHY</p>' . $publicSheet . '<p>UNRELATED_PRIVATE_INVENTORY</p>';
+	$summary = $repo->getBatch( null, 1 )['players'][0];
+	check( preg_match( '/^[a-f0-9]{64}$/D', $summary['snapshotToken'] ) === 1 && $summary['pageRevision'] === 110 && !isset( $summary['equipment'] ), 'Summaries carry a bound token/revision without eagerly loading typed details.' );
+	$db->ids = []; // Detail must not depend on the directory SQL query.
+	$detail = $repo->getDetail( $summary['id'], $summary['snapshotToken'] );
+	check( $detail['id'] === $summary['id'] && $detail['revision'] === 110 && $detail['snapshotToken'] === $summary['snapshotToken'] && count( $detail['equipment'] ) === 24, 'Direct detail binds one exact page+character and returns the 24 published slots.' );
+	check( $detail['stats']['mp'] === 0 && $detail['stats']['str'] === null && $detail['stats']['sv_fire'] === null && array_column( $detail['totals'], 'text' ) === [ '1234', '0', '?', '12 *' ], 'Public zero, unknown and estimate text survives without deriving game values.' );
+	$item = $detail['equipment'][0]['item'];
+	check( $item['tier'] === 0 && $item['icon']['url'] === '/images/item_500.png' && $item['statLines'] === [ 'HP: 42', 'STR: ?' ] && $detail['equipment'][2]['item'] === null, 'Item-specific direct tier, icon and published lines stay distinct from nested tooltip/socket tiers.' );
+	check( $item['details'][0][1]['href'] === '/Canonical_Effect' && $item['details'][0][1]['text'] === 'Visible Effect' && $item['augments'][0]['effects'][0][1]['href'] === '/Canonical_Rune', 'Typed rich text preserves visible aliases, canonical local effect links and Worn suffixes.' );
+	check( $detail['screenshot']['fileTitle'] === 'File:Fixture.png' && $detail['screenshot']['url'] === '/images/Fixture.png' && $detail['achievementCount'] === 4, 'Only optional public photo info and the existing achievement count are included.' );
+	$detailJson = json_encode( $detail );
+	check( !str_contains( $detailJson, 'UNRELATED_' ) && !str_contains( $detailJson, '999' ) && !array_intersect( [ 'html', 'modules', 'config', 'achievements' ], array_keys( $detail ) ), 'No whole-page prose, socket numbers, HTML, executable modules/config or achievement objectives enter details.' );
+	$calls = $parser->calls; $repo->getDetail( $summary['id'], $summary['snapshotToken'] );
+	check( $parser->calls === $calls, 'Repeated detail reuses the short cache after current visibility/dependency validation.' );
+	$permissions->denied[] = 'User:Fixture 10'; rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-unavailable' ); $permissions->denied = [];
+	$lookup->revisions[110]->public = false; rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-unavailable' ); $lookup->revisions[110]->public = true;
+	foreach ( [ [ 'namespace', 3 ], [ 'title', 'Fixture_10/Subpage' ], [ 'redirect', true ] ] as [ $field, $value ] ) {
+		$old = $pages->pages[10]->$field; $pages->pages[10]->$field = $value; rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-unavailable' ); $pages->pages[10]->$field = $old;
+	}
+	rejects( fn () => $repo->getDetail( '999:' . substr( $summary['id'], 3 ), $summary['snapshotToken'] ), 'eqlplayers-detail-unavailable' );
+	rejects( fn () => $repo->getDetail( '10:' . str_repeat( 'a', 16 ), $summary['snapshotToken'] ), 'eqlplayers-detail-unavailable' );
+	foreach ( [ [ 'User:Fixture 10', $summary['snapshotToken'] ], [ $summary['id'], 'bad' ], [ '0:' . str_repeat( 'a', 16 ), str_repeat( 'b', 64 ) ] ] as [ $id, $token ] ) { rejects( fn () => $repo->getDetail( $id, $token ), 'badvalue' ); }
+	$pages->pages[10] = new FixturePage( 10, 'Fixture_10', 2, 111 ); $lookup->revisions[111] = new RevisionRecord( 111, 10 );
+	rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-stale' );
+
+	[ $repo, $db, $pages, $lookup, $permissions, $parser ] = fixtures();
+	$summary = $repo->getBatch( null, 1 )['players'][0];
+	$pages->pages[100]->latest = 1001; $lookup->revisions[1001] = new RevisionRecord( 1001, 100 );
+	$parser->outputs[10]->dependencies[0]['revid'] = 1001;
+	rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-stale' );
+	$changed = $repo->getBatch( null, 1 )['players'][0];
+	check( $changed['snapshotToken'] !== $summary['snapshotToken'] && $changed['stats'] === $summary['stats'], 'A template-only change invalidates the token even when the summary readings are unchanged.' );
+	$permissions->denied[] = 'Template:Character sheet'; rejects( fn () => $repo->getDetail( $changed['id'], $changed['snapshotToken'] ), 'player-list-dependencies-unavailable' );
+
+	foreach ( [ false, true ] as $identical ) {
+		[ $repo, $db, $pages, $lookup, $permissions, $parser ] = fixtures();
+		$second = $identical ? $publicSheet : str_replace( 'Fixture Relic', 'Other Relic', $publicSheet );
+		$parser->outputs[10]->html = $publicSheet . $second;
+		$summary = $repo->getBatch( null, 1 )['players'][0];
+		check( !isset( $summary['snapshotConflict'] ), 'Equal scalar summaries can still have different equipped item names.' );
+		if ( $identical ) { check( $repo->getDetail( $summary['id'], $summary['snapshotToken'] )['name'] === 'Fixture Hero', 'Identical repeated sheets collapse without choosing an arbitrary gear variant.' ); }
+		else { rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-conflict' ); }
+	}
+	[ $repo, $db, $pages, $lookup, $permissions, $parser ] = fixtures();
+	$summary = $repo->getBatch( null, 1 )['players'][0]; $parser->fail = true;
+	rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'player-list-parser-unavailable' );
+	$parser->fail = false; $parser->onParse = static function ( $page ) use ( $lookup ) { $lookup->revisions[$page->latest]->public = false; };
+	rejects( fn () => $repo->getDetail( $summary['id'], $summary['snapshotToken'] ), 'eqlplayers-detail-unavailable' );
+
+	$identity = substr( hash( 'sha256', "Fixture Hero\0Test Realm" ), 0, 16 );
+	$external = str_replace( [ '/Canonical_Effect', '/Canonical_Rune', '/images/Fixture.png', '/images/item_500.png' ], [ 'javascript:alert(1)', '//evil.example/rune', 'https://evil.example/image.png', 'data:image/png;base64,evil' ], $publicSheet );
+	$safe = \EQLClientData\CharacterSheetDetail::extract( $external, $identity, 50, 'https://eqlwiki.test' );
+	check( $safe['screenshot'] === null && $safe['equipment'][0]['item']['icon'] === null && !str_contains( json_encode( $safe ), 'javascript:' ) && !str_contains( json_encode( $safe ), 'evil.example' ), 'Unsafe/external link and image targets are omitted without accepting arbitrary protocols or third-party content.' );
+	rejects( fn () => \EQLClientData\CharacterSheetDetail::extract( str_replace( 'HP: 42', '<script>bad</script>', $publicSheet ), $identity, 50, 'https://eqlwiki.test' ), 'eqlplayers-detail-unavailable' );
+	rejects( fn () => \EQLClientData\CharacterSheetDetail::extract( str_replace( 'HP: 42', str_repeat( 'x', 8193 ), $publicSheet ), $identity, 50, 'https://eqlwiki.test' ), 'eqlplayers-detail-unavailable' );
+
+	[ $repo, $db, $pages, $lookup, $permissions, $parser ] = fixtures(); $summary = $repo->getBatch( null, 1 )['players'][0];
+	$main = new \MediaWiki\Api\ApiMain(); $api = new \EQLClientData\ApiPlayers( $main, 'eqlplayers', $repo );
+	$api->params = [ 'detail' => $summary['id'], 'snapshot' => $summary['snapshotToken'], 'limit' => 10 ]; $api->execute();
+	check( isset( $main->data['eqlplayers']['detail']['equipment'] ) && !isset( $main->data['eqlplayers']['players'] ), 'Existing API dispatch returns one typed detail only, not a second directory load.' );
+	$api->params['snapshot'] = str_repeat( 'f', 64 ); rejects( fn () => $api->execute(), 'eqlplayers-detail-stale' );
+	foreach ( [ [ 'detail' => $summary['id'] ], [ 'snapshot' => $summary['snapshotToken'] ], [ 'detail' => $summary['id'], 'snapshot' => $summary['snapshotToken'], 'continue' => 'anything' ] ] as $params ) { $api->params = $params; rejects( fn () => $api->execute(), 'badvalue' ); }
 	if ( ( $argv[1] ?? '' ) === '--rendered' && isset( $argv[2] ) ) {
 		$actual = Snapshot::extract( file_get_contents( $argv[2] ) );
 		check( count( $actual ) === 2 && $actual[0]['server'] !== $actual[1]['server'], 'Actual unsaved MediaWiki template output yields both independent synthetic sheets.' );

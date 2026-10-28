@@ -265,6 +265,13 @@ row combinations open the canonical build guide in a new tab. `eqlcharactereffec
 fills missing effect metadata in existing character sheets; socketed Exaltations
 show only their name and effect. See [Player List](PLAYER_LIST.md) for public
 visibility, continuation, cache, producer and separate page-publication contracts.
+Each directory entry can also expand its public stats/equipment in place. The
+read-only `eqlplayers` detail mode returns one bounded typed snapshot after
+anonymous visibility, exact identity and snapshot checks. Details load on demand
+and reuse the fixed Character-sheet presentation without inserting arbitrary
+User-page HTML. Sorting/filtering still use the complete summary directory before
+50-character display pagination; expansion does not change ranks or expose
+private bags/inventory. Profile disclosures remain independent of inline details.
 The browser's provisional Gear Score weights reported total stats under one
 validated revision of the protected JSON page `MediaWiki:PlayerListGearScore.json`.
 Its initial reviewed source is `ops/player-gear-score.json` (resists ×2). A bounded
