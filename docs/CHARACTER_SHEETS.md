@@ -33,8 +33,9 @@ resize or collapsing a character dismisses it. Without enhancement, all item
 equipped statistics and socket name links stay visible in the static sheet.
 
 This uses the already loaded EQLImmersive skin, not the historical Magelo PHP
-extension. No new extension, namespace, database schema or authentication policy
-is enabled. The browser module makes no account-state or storage writes. A
+extension. No new extension, namespace or database schema is enabled. The
+server enforces the Character-image ownership policy described below; the
+browser module makes no account-state or storage writes. A
 memoized, bounded public effect-metadata lookup fills absent effects in old
 snapshots without changing supplied values. See [Player List](PLAYER_LIST.md)
 for its directory, effect-enrichment and public-read safeguards.
@@ -135,15 +136,18 @@ image must also confirm that an unsaved parse retains
 `.eql-character-screenshot-v1`, so a marker alone cannot authorize a discarded
 image. Existing clients and shares without an image keep the schema-1 contract.
 
-`screenshot` is an optional **bare filename**, such as `Example portrait.png`;
+`screenshot` is an optional **bare filename**, such as
+`Character Example - Example portrait.png` on `User:Example`;
 do not supply `File:`, a URL, HTML or a data URI. PNG, JPG/JPEG, GIF and WebP are
 accepted within native MediaWiki title rules and a 240-byte UTF-8 filename limit.
 Controls, wiki delimiters, fragments, backslashes, protocol/namespace prefixes
 and absolute-path prefixes are rejected. Interior slashes from a User subpage
 are only title characters and are never treated as filesystem paths. Native
 File-title normalization handles underscores, spaces, Unicode and initial case.
-Invalid or overlong input leaves the entire ordinary sheet intact, with a
-generic upload link explaining how to set a valid override.
+Invalid or overlong input leaves the entire ordinary sheet intact. Portrait
+names must also belong to the page owner's reserved Character-image prefix.
+An arbitrary shared filename cannot become private to an account merely by
+being placed in `screenshot`; use a dedicated owned portrait instead.
 
 With `screenshot` missing or blank, the default is:
 
@@ -175,6 +179,47 @@ default survives such a reshare; nondefault overrides may need to be restored
 after an older client reshares. The wiki does not intercept or rewrite those
 edits. Files remain normal public wiki uploads; no account, private capture,
 inventory or User-page writes are performed by this renderer.
+
+### Image ownership and upload completion
+
+User-page edit protection does not extend to `File:` pages. The registered skin
+hooks separately reserve `Character <owner> - ...` filenames to the named wiki
+account, including first uploads before a character sheet exists. User subpages
+belong to their root account. Native title and account normalization apply;
+ambiguous owner prefixes are refused rather than assigned by guessing where a
+name ends. The existing `editalluserpages` maintenance right permits repairs.
+Ordinary upload, block, protection and email requirements still apply.
+
+The server checks new uploads, replacement uploads, publication from a stash,
+file-description edits, binary reverts and both endpoints of file moves.
+Removing or forging `eqlReturnTo` does not change ownership. Ordinary item/NPC
+artwork keeps its existing permissions. A shared filename override or redirect
+to an unowned/shared target cannot be used as an owned Character portrait;
+the sheet keeps its totals and equipment and explains how to use an owned
+filename. No existing file is renamed or copied by rendering.
+
+Successful Character uploads invalidate the validated owner's affected page
+through native cache mechanisms. The browser's supplementary return tracker
+binds `#mw-upload-form`, reads its submitted destination and preserves native
+warning/stash retries. A passive `formdata` listener observes submitted names
+even when a delayed handler calls native `form.submit()` directly. It never
+assigns a filename, replaces the selected files, prevents submission or encodes
+image bytes; existing name matching and format conversion remain with their
+original handlers. This is best-effort navigation context; arbitrary external
+listener ordering is not an authorization or cache-correctness dependency. The
+server's completion hook uses the actual committed File title. The tracker's
+short-lived session record is account-bound and
+storage failures do not prevent the upload. Return parameters and browser
+storage are navigation hints, never proof of ownership.
+
+Use the focused ownership and upload-return checks listed in the development
+guide. Native permission/parser integration checks inspect synthetic titles
+and unsaved parses without uploading images or editing User pages. Deployment
+registers these hooks normally; no database schema, template publication,
+historical File ownership migration or general artwork permission change is
+required. See MediaWiki's [User-page protection extension](https://www.mediawiki.org/wiki/Extension:UserPageEditProtection)
+and [upload verification hook](https://www.mediawiki.org/wiki/Manual:Hooks/UploadVerifyUpload)
+for the standard platform interfaces.
 
 Deploy the parser helper/skin registration and CSS **before** the separately
 reviewed main-template update. This change does not require an item-helper

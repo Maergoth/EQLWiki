@@ -44,7 +44,11 @@ appears there; otherwise **Add an image** opens the normal wiki upload page.
 Its destination comes from the existing Character screenshot helper, including
 any explicit filename override and the native return to the character's User
 page. The directory does not invent a filename in the browser or upload a file
-on the visitor's behalf. Normal wiki sign-in and upload permissions still apply.
+on the visitor's behalf. Normal wiki sign-in and upload permissions still apply,
+and server-side Character-image ownership checks restrict the destination to
+the character's wiki account (with the existing maintenance-right exception).
+Shared artwork cannot be claimed through a filename override; see
+[Character screenshots](CHARACTER_SHEETS.md#image-ownership-and-upload-completion).
 At very narrow inline widths, equipment rows wrap while keeping readable labels
 and the existing item target sizes. Ordinary profile layouts are unchanged.
 

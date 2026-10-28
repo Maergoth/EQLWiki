@@ -111,9 +111,15 @@
         },
         "EQLCharacterScreenshot": {
             "class": "EQLImmersive\\CharacterScreenshot"
+        },
+        "EQLCharacterScreenshotOwnership": {
+            "class": "EQLImmersive\\CharacterScreenshotOwnership"
         }
     },
     "Hooks": {
+        "getUserPermissionsErrors": "EQLCharacterScreenshotOwnership",
+        "UploadVerifyUpload": "EQLCharacterScreenshotOwnership",
+        "UploadComplete": "EQLCharacterScreenshotOwnership",
         "ParserFirstCallInit": [ "EQLPlayerList", "EQLCharacterScreenshot" ],
         "OutputPageCheckLastModified": [ "EQLDeploymentAssets", "EQLHomepageCache" ],
         "SkinTemplateNavigation::Universal": "EQLImmersiveHooks",

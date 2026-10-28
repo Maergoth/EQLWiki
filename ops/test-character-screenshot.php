@@ -19,6 +19,7 @@ class EQLTestCharacterScreenshot extends Maintenance {
 		$this->addDescription( 'Parse reviewed Character screenshots in memory; never save pages or uploads.' );
 		$this->addOption( 'output', 'Optional private synthetic HTML for visual review.', false, true );
 		$this->addOption( 'existing-file', 'Optional existing local public image filename for a native present-file check.', false, true );
+		$this->addOption( 'existing-page', 'Exact User page for an optional own-prefix existing-file check; no account or page is created.', false, true );
 	}
 	private function check( bool $ok, string $message ): void {
 		if ( !$ok ) { throw new RuntimeException( $message ); }
@@ -86,20 +87,30 @@ class EQLTestCharacterScreenshot extends Maintenance {
 		[ , , $unicodeXpath ] = $this->parse( "{{Character_sheet|name=O&#39;Brien &amp; Éowyn|server=Realm:One|total_hp=0}}", "User:Éowyn's owner/Sub_page" );
 		$unicode = $unicodeXpath->query( '//*[@data-file-title]' )[0];
 		$this->check( $unicode && $unicode->getAttribute( 'data-file-title' ) === "File:Character Éowyn's owner/Sub page - O'Brien & Éowyn (Realm:One).png", 'Real parser arguments, entities, apostrophes, Unicode, subpages and interior colon use the same native File normalization.' );
-		[ $custom, , $customXpath ] = $this->parse( str_replace( '}}', '|screenshot=Explicit_photo.jpg}}', $sheet ) );
-		$this->check( $customXpath->query( '//*[@data-file-title="File:Explicit photo.jpg"]' )->length === 1 && in_array( 'Explicit_photo.jpg', $this->images( $custom ), true ), 'Explicit local filename overrides default and remains a normal image dependency.' );
+		$customName = 'Character Synthetic owner/Subpage - Explicit photo.jpg';
+		[ $custom, , $customXpath ] = $this->parse( str_replace( '}}', '|screenshot=' . wfEscapeWikiText( $customName ) . '}}', $sheet ) );
+		$this->check( $customXpath->query( '//*[@data-file-title]' )[0]->getAttribute( 'data-file-title' ) === 'File:' . $customName && in_array( str_replace( ' ', '_', $customName ), $this->images( $custom ), true ), 'Explicit own-page filename overrides default and remains a normal image dependency.' );
 		foreach ( [ 'https://outside.invalid/photo.png', '&lt;img src=x onerror=alert(1)&gt;.png', str_repeat( 'a', 237 ) . '.png' ] as $invalid ) {
 			[ $bad, $badHtml, $badXpath ] = $this->parse( str_replace( '}}', '|screenshot=' . $invalid . '}}', $sheet ) );
 			$box = $badXpath->query( '//*[contains(concat(" ",normalize-space(@class)," ")," eql-character-screenshot-v1 ")]' )[0];
-			$this->check( !$box->hasAttribute( 'data-file-title' ) && $badXpath->query( './/img', $box )->length === 0, 'Invalid explicit filename becomes a generic safe placeholder.' );
+			$this->check( $box->getAttribute( 'data-file-title' ) === 'File:' . $expected && $badXpath->query( './/img', $box )->length === 0 && str_contains( $box->textContent, 'Clear or change' ), 'Invalid explicit filename becomes an honest own-default placeholder requiring override repair.' );
 			$this->check( !str_contains( $badHtml, 'outside.invalid' ) && $badXpath->query( '//dt[text()="HP"]/following-sibling::dd[text()="1234"]' )->length === 1, 'Invalid image must neither leak an external target nor block the ordinary sheet.' );
 		}
+		foreach ( [ 'Item_500.png', 'Character Other owner - Portrait.png', 'Character Synthetic owner/Other - Portrait.png' ] as $borrowed ) {
+			[ , , $blockedXpath ] = $this->parse( str_replace( '}}', '|screenshot=' . wfEscapeWikiText( $borrowed ) . '}}', $sheet ) );
+			$box = $blockedXpath->query( '//*[contains(@class,"eql-character-screenshot-v1")]' )[0];
+			$this->check( $box->getAttribute( 'data-file-title' ) === 'File:' . $expected && $blockedXpath->query( './/img', $box )->length === 0 && str_contains( $box->textContent, 'Clear or change' ), 'Borrowed, foreign and cross-subpage overrides cannot claim ordinary artwork.' );
+		}
+		[ , , $unsupported ] = $this->parse( $sheet, 'Synthetic proof outside User namespace' );
+		$this->check( $unsupported->query( '//*[@data-file-title]' )->length === 0, 'An unsupported namespace cannot synthesize an account-owned target.' );
 		[ , , $longXpath ] = $this->parse( str_replace( 'name=A &amp; B', 'name=' . str_repeat( 'a', 240 ), $sheet ) );
 		$this->check( $longXpath->query( '//*[@data-file-title]' )->length === 0 && $longXpath->query( '//dt[text()="HP"]/following-sibling::dd' )->length === 1, 'Overlong default uses safe upload guidance while keeping the sheet.' );
 		if ( $this->hasOption( 'existing-file' ) ) {
 			$title = CharacterScreenshot::fileTitle( $this->getOption( 'existing-file' ) );
-			$this->check( $title && $services->getRepoGroup()->findFile( $title ), 'Explicit native present-file check requires a known existing public file.' );
-			[ $present, $presentHtml, $presentXpath ] = $this->parse( str_replace( '}}', '|screenshot=' . wfEscapeWikiText( $title->getText() ) . '}}', $sheet ) );
+			$page = Title::newFromText( $this->getOption( 'existing-page', 'User:Synthetic owner/Subpage' ) );
+			$policy = new \EQLImmersive\CharacterScreenshotOwnership();
+			$this->check( $title && $page && $policy->belongsToPage( $title, $page ) && $services->getRepoGroup()->findFile( $title ), 'Explicit native present-file check requires its exact own-prefix User page and known local file; no upload occurs.' );
+			[ $present, $presentHtml, $presentXpath ] = $this->parse( str_replace( '}}', '|screenshot=' . wfEscapeWikiText( $title->getText() ) . '}}', $sheet ), $page->getPrefixedText() );
 			$this->check( $presentXpath->query( '//*[contains(concat(" ",normalize-space(@class)," ")," eql-character-screenshot-image ")]//img' )->length === 1, 'Existing local file must render with native image markup.' );
 			$this->check( in_array( $title->getDBkey(), $this->images( $present ), true ), 'Existing file stays a native image dependency.' );
 			$this->check( CharacterSheetSnapshot::extract( $presentHtml ) === $rows, 'Present image and missing placeholder produce exactly the same Player List snapshot.' );
