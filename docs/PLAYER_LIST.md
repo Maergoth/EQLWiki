@@ -39,6 +39,15 @@ player's private inventory, bags or local Eye of Zomm profile. Achievement
 completion remains a summary here; the complete achievement list stays on the
 profile.
 
+The Character screenshot area sits below the equipment. A published image
+appears there; otherwise **Add an image** opens the normal wiki upload page.
+Its destination comes from the existing Character screenshot helper, including
+any explicit filename override and the native return to the character's User
+page. The directory does not invent a filename in the browser or upload a file
+on the visitor's behalf. Normal wiki sign-in and upload permissions still apply.
+At very narrow inline widths, equipment rows wrap while keeping readable labels
+and the existing item target sizes. Ordinary profile layouts are unchanged.
+
 Details are requested only after expansion. Reopening an entry reuses its
 in-memory details, and sorting, filtering and moving between results pages do
 not request every character's equipment. A bounded cache and request queue keep

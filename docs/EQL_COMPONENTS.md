@@ -272,6 +272,9 @@ and reuse the fixed Character-sheet presentation without inserting arbitrary
 User-page HTML. Sorting/filtering still use the complete summary directory before
 50-character display pagination; expansion does not change ranks or expose
 private bags/inventory. Profile disclosures remain independent of inline details.
+  The inline screenshot area appears below equipment, with the existing public
+  image or an Add an image link using the native helper's validated upload target
+  and User-page return. This does not introduce an upload service or edit pages.
 The browser's provisional Gear Score weights reported total stats under one
 validated revision of the protected JSON page `MediaWiki:PlayerListGearScore.json`.
 Its initial reviewed source is `ops/player-gear-score.json` (resists ×2). A bounded
