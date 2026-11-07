@@ -338,6 +338,8 @@ For canonical URLs, robots, sitemap and item-description changes, run the focuse
 checks in the [SEO guide](EQL_SEO.md#checks-and-release). Verify both environments:
 staging must retain its hostname, access gate, `noindex` policy and disabled
 sitemap. Source fixtures do not establish web-server redirects or live access.
+Include `php ops/test-ajax-hover.php` when checking item previews; its synthetic
+execution test does not replace a live tooltip request.
 
 - Contributions target `staging`; the owner separately approves `main` releases.
   Promote specific reviewed changes, not the entire staging branch.
