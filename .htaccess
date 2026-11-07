@@ -3,8 +3,35 @@
 # Short Wiki URL setup
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteCond %{HTTP_HOST} ^www\.eqlwiki\.com$ [NC]
-RewriteRule ^(.*)$ https://eqlwiki.com/$1 [R=301,L]
+# EQL_SEO_ROUTING_BEGIN
+# Keep redirects restricted to deployed hosts. A staging URL must stay on
+# staging; local development and other virtual hosts keep their own URLs.
+# 308 retains POST bodies for wiki/forum authentication and uploads.
+# THE_REQUEST retains the raw escaped path; REQUEST_URI is already decoded.
+# Capture only the path so the original query string carries over once.
+# Leave HTTP certificate challenges available for the hosting provider.
+RewriteCond %{HTTP_HOST} ^www\.eqlwiki\.com(?::(?:80|443))?$ [NC]
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+RewriteCond %{THE_REQUEST} \s(/[^\s?]*)
+RewriteRule ^ https://eqlwiki.com%1 [R=308,L,NE]
+
+RewriteCond %{HTTP_HOST} ^eqlwiki\.com(?::(?:80|443))?$ [NC]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+RewriteCond %{THE_REQUEST} \s(/[^\s?]*)
+RewriteRule ^ https://eqlwiki.com%1 [R=308,L,NE]
+
+RewriteCond %{HTTP_HOST} ^test\.eqlwiki\.com(?::(?:80|443))?$ [NC]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+RewriteCond %{THE_REQUEST} \s(/[^\s?]*)
+RewriteRule ^ https://test.eqlwiki.com%1 [R=308,L,NE]
+
+RewriteRule ^robots\.txt$ robots.php [L]
+RewriteCond %{HTTP_HOST} ^eqlwiki\.com(?::(?:80|443))?$ [NC]
+RewriteRule ^sitemap\.xml$ /rest.php/site/v1/sitemap/0 [R=302,L]
+# EQL_SEO_ROUTING_END
+
 RewriteRule ^/(/.*)?$ %{DOCUMENT_ROOT}/index.php [L]
 
 # Release-specific URLs share MediaWiki's native loader. Keep old release paths
@@ -30,6 +57,7 @@ RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-f
 RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-d
 RewriteRule ^(.*)$ %{DOCUMENT_ROOT}/index.php [L]
 # Short Wiki URL 
+</IfModule>
 
 # BEGIN cPanel-generated php ini directives, do not edit
 # Manual editing of this file may result in unexpected behavior.

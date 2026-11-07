@@ -24,6 +24,11 @@ class SkinEQLImmersive extends SkinVector22 {
 		parent::__construct( $languageConverterFactory, $featureManagerFactory, $options );
 	}
 
+	/** Let core emit one zoomable mobile viewport for EQL's responsive layout. */
+	public function isResponsive() {
+		return true;
+	}
+
 	/** EQL follows the actual header, so Vector must not initialize a duplicate. */
 	public function getTemplateData(): array {
 		$data = parent::getTemplateData();

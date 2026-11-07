@@ -57,6 +57,13 @@ The built-in local PHP server uses `ops/local-router.php` instead.
 
 ## Deployment implementation
 
+SEO routing, canonical links and the production article sitemap are application
+files; see [the SEO release guide](docs/EQL_SEO.md). The separate private staging
+`.htaccess` prefix must be installed explicitly when its source changes, with a
+fresh private recovery copy and the existing access-rule renderer. Keep staging
+login and `X-Robots-Tag` protections intact. Do not copy production settings to
+staging or promote all of `staging` to enable search discovery.
+
 GitHub Actions reads the actual installed commit through the private receiver's
 `status` command, packages only changed tracked application files plus the
 generated deployment asset marker, and streams it to the cPanel hosting account.

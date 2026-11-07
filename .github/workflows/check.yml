@@ -42,6 +42,12 @@ jobs:
         run: node ops/test-item-scaling-core.cjs
       - name: Check Main Page and News freshness
         run: php ops/test-homepage-cache.php
+      - name: Check SEO metadata and environment isolation
+        run: |
+          python3 ops/test-seo-routing.py
+          php ops/test-seo-config.php
+          php ops/test-item-seo.php
+          php ops/test-ajax-hover.php
       - name: Check public character directory and effect metadata
         run: |
           php ops/test-player-list.php

@@ -1,5 +1,7 @@
 <?php
 
+use MediaWiki\Title\Title;
+
 /*************************************************
 
 eqlwiki - extensions (AjaxHoverHelper)
