@@ -45,19 +45,22 @@ class Hooks implements
 		$out->addInlineStyle(
 			'html, body { background-color: #0c1425 !important; color-scheme: dark; }'
 		);
-		$viewport = 'width=device-width, initial-scale=1, viewport-fit=cover';
-
-		if ( method_exists( $out, 'addHeadItem' ) ) {
-			$out->addHeadItem(
-				'viewport',
-				'<meta name="viewport" content="' . htmlspecialchars( $viewport, ENT_QUOTES ) . '">'
-			);
-		} else {
-			$out->addMeta( 'viewport', $viewport );
-		}
-
+		$this->addItemSummary( $out );
 		$this->addConditionalResourceModules( $out, $skin );
 		$this->addTalkActivityModule( $out, $skin );
+	}
+
+	private function addItemSummary( $out ): void {
+		$title = $out->getTitle();
+		if ( !$title || $title->getNamespace() !== NS_MAIN ) {
+			return;
+		}
+
+		$services = MediaWikiServices::getInstance();
+		$publicRead = $services->getPermissionManager()->quickUserCan(
+			'read', $services->getUserFactory()->newAnonymous(), $title
+		);
+		ItemSeo::addToOutput( $out, $publicRead );
 	}
 
 	/** Provide authoritative Talk pairing and the timestamp of rendered content. */

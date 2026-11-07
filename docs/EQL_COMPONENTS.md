@@ -38,6 +38,14 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
+  canonical links and a production-only article sitemap after private settings
+  load. Root routing and `robots.php` preserve separate production/staging hosts.
+  [`ItemSeo.php`](../skins/EQLImmersive/includes/ItemSeo.php) adds factual item
+  introductions/descriptions at display time without rewriting database pages.
+  The skin emits one native responsive viewport. See the
+  [SEO ownership and release guide](EQL_SEO.md), including staging protections.
+
 - `resources/collapsible.css`, loaded by the core skin styles, gives native
   article Expand/Collapse buttons gold text, a state chevron and keyboard focus
   styling. It preserves MediaWiki placement, labels, ARIA and collapse events

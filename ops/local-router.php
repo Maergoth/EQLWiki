@@ -7,6 +7,10 @@ if (preg_match('#(?:^|/)[.]local(?:/|$)#i', str_replace('\\', '/', $path))) {
     http_response_code(404);
     return;
 }
+if ($path === '/robots.txt') {
+    require $root . '/robots.php';
+    return;
+}
 if (preg_match('#^/eql-assets/[a-f0-9]{40}/load[.]php$#D', $path)) {
     $_SERVER['SCRIPT_NAME'] = '/load.php';
     $_SERVER['SCRIPT_FILENAME'] = $root . '/load.php';
