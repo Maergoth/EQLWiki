@@ -239,6 +239,10 @@ When renaming the spell override page, keep both
 
 ## Equipment, dynamic lists, and tooltips
 
+AjaxHoverHelper resolves titles through the namespaced MediaWiki 1.45 Title API.
+Run `php ops/test-ajax-hover.php` for the synthetic endpoint execution regression;
+verify real item/spell/mob hover responses on staging after changes.
+
 These extensions use legacy PHP registration (`require_once`) rather than
 `wfLoadExtension()`. Their `*_body.php` implementations parse real wiki
 content; historical template fields and rendered structures are contracts.
