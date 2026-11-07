@@ -11,6 +11,7 @@ final class DeploymentAssets implements OutputPageCheckLastModifiedHook {
 	private static ?string $activationTimestamp = null;
 
 	public static function onRegistration( array $info, SettingsBuilder $settings ): void {
+		SeoConfig::onRegistration( $info, $settings );
 		self::configure( $settings, __DIR__ . '/../deployment-version.txt' );
 	}
 

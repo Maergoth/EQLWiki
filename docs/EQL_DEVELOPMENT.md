@@ -334,6 +334,11 @@ extension; see the extension guide for safe rollback ordering.
 
 ## Staging and release quirks
 
+For canonical URLs, robots, sitemap and item-description changes, run the focused
+checks in the [SEO guide](EQL_SEO.md#checks-and-release). Verify both environments:
+staging must retain its hostname, access gate, `noindex` policy and disabled
+sitemap. Source fixtures do not establish web-server redirects or live access.
+
 - Contributions target `staging`; the owner separately approves `main` releases.
   Promote specific reviewed changes, not the entire staging branch.
 - Every push to either deployment branch runs a file deployment, even docs-only
