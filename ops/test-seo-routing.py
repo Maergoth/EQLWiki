@@ -45,7 +45,7 @@ def rules(source):
                 raise AssertionError(f"Unsupported SEO rewrite flag: {flag}")
         if "L" not in flags:
             raise AssertionError("SEO routes must stop before the wiki catchall")
-        if "%{REQUEST_URI}" in target and "NE" not in flags:
+        if ("%{REQUEST_URI}" in target or "%1" in target) and "NE" not in flags:
             raise AssertionError("Escaped article paths must not be double-encoded")
         result.append((pending, pattern, target, flags))
         pending = []
@@ -54,12 +54,19 @@ def rules(source):
     return result
 
 
-def route(source, host, uri="/Bone_Bladed_Claymore", https=False):
+def route(source, host, uri="/Bone_Bladed_Claymore", https=False, method="GET"):
     """Return (HTTP status or 0 for internal rewrite, target), or no SEO rule."""
     path, separator, query = uri.partition("?")
-    variables = {"HTTP_HOST": host, "REQUEST_URI": path, "HTTPS": "on" if https else "off"}
+    # mod_rewrite REQUEST_URI is decoded, unlike the raw THE_REQUEST line.
+    variables = {
+        "HTTP_HOST": host,
+        "REQUEST_URI": unquote(path),
+        "THE_REQUEST": f"{method} {uri} HTTP/1.1",
+        "HTTPS": "on" if https else "off",
+    }
     for conditions, pattern, target, flags in rules(source):
         matches = True
+        backrefs = ()
         for variable, expected, nocase in conditions:
             value = variables[variable]
             if expected.startswith("!="):
@@ -69,11 +76,18 @@ def route(source, host, uri="/Bone_Bladed_Claymore", https=False):
             else:
                 negate = expected.startswith("!")
                 regex = expected[1:] if negate else expected
-                passed = bool(re.search(regex, value, re.I if nocase else 0)) != negate
+                match = re.search(regex, value, re.I if nocase else 0)
+                passed = bool(match) != negate
+                if match and not negate:
+                    backrefs = match.groups()
             matches = matches and passed
         if not matches or not re.search(pattern, unquote(path).lstrip("/")):
             continue
-        target = re.sub(r"%\{([A-Z_]+)\}", lambda match: variables[match[1]], target)
+        target = re.sub(
+            r"%\{([A-Z_]+)\}|%([1-9])",
+            lambda match: variables[match[1]] if match[1] else backrefs[int(match[2]) - 1],
+            target,
+        )
         status = next((int(flag[2:]) for flag in flags if flag.startswith("R=")), 0)
         if status and target.startswith("/"):
             target = f"{'https' if https else 'http'}://{host}{target}"
@@ -116,15 +130,23 @@ class SeoRoutingTest(unittest.TestCase):
                 self.assertIsNone(route(source, host, "/.well-known/acme-challenge/synthetic-token"))
 
     def test_escaped_paths_and_queries_are_preserved(self):
-        uri = "/Staff_of_Elemental_Mastery%3A_Water%27s?oldid=42&returnto=Foo%26Bar"
-        for host in ("eqlwiki.com", "test.eqlwiki.com"):
-            self.assertEqual(route(SEO, host, uri), (308, f"https://{host}{uri}"))
+        for source in (SEO, STAGING_REDIRECT + SEO):
+            for host, canonical in (("eqlwiki.com", "eqlwiki.com"), ("www.eqlwiki.com", "eqlwiki.com"), ("test.eqlwiki.com", "test.eqlwiki.com")):
+                for uri in (
+                    "/Staff_of_Elemental_Mastery%3A_Water%27s?oldid=42&returnto=Foo%26Bar",
+                    "/__seo_probe%23name?sentinel=1",
+                    "/__seo_probe%3Fname?sentinel=Foo%23Bar",
+                    "/__seo_probe%25name%20space?sentinel=Foo%26Bar",
+                ):
+                    for method in ("HEAD", "POST"):
+                        with self.subTest(host=host, uri=uri, method=method):
+                            self.assertEqual(route(source, host, uri, method=method), (308, f"https://{canonical}{uri}"))
 
     def test_wiki_forum_and_bridge_posts_use_method_preserving_status(self):
         # 308 is the protocol's permanent redirect that retains method/body.
         for host in ("eqlwiki.com", "www.eqlwiki.com", "test.eqlwiki.com"):
             for uri in ("/index.php?title=Special:UserLogin", "/bb/index.php?action=post2", "/wiki_session_bridge.php", "/bb/eql_inline_image_upload.php"):
-                self.assertEqual(route(SEO, host, uri)[0], 308)
+                self.assertEqual(route(SEO, host, uri, method="POST")[0], 308)
 
     def test_robots_routes_in_each_environment(self):
         for host in ("eqlwiki.com", "test.eqlwiki.com", "localhost"):

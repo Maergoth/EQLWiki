@@ -11,6 +11,8 @@ Google Search Console evidence.
   hosts to their own HTTPS origins. `www.eqlwiki.com` uses the production apex.
   Permanent 308 redirects preserve request methods, paths and queries, including
   wiki/forum POSTs. Local/unknown hosts and HTTP certificate challenges are exempt.
+  Redirect paths come from the raw request line: rewrite `REQUEST_URI` is decoded,
+  which would otherwise turn an escaped `#` in an article name into a fragment.
 - `SeoConfig.php` runs from the existing EQLImmersive registration callback after
   private environment settings load. It enables MediaWiki's native canonical
   links. Canonicals use configured wiki URLs, never an incoming Host header;
@@ -65,6 +67,9 @@ source with a fresh private recovery copy, then rebuild the staging access rules
 using the existing host access helper. Preserve the login allowlist and
 `X-Robots-Tag`. The shared application rules independently retain the staging
 hostname; never redirect staging to production or relax its indexing policy.
+Keep cPanel's separate **Force HTTPS Redirect** toggle off for these two hosts:
+its earlier 301 takes precedence over the reviewed method-preserving rules.
+The `.htaccess` rules continue to enforce HTTPS with that toggle off.
 
 After owner-approved promotion of the specific feature commits, verify production
 HTTP redirects, canonical links, descriptions and sitemap XML, and recheck staging
