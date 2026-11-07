@@ -3,7 +3,8 @@ RewriteEngine On
 RewriteCond %{HTTP_HOST} ^test\.eqlwiki\.com(?::(?:80|443))?$ [NC]
 RewriteCond %{HTTPS} !=on
 RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
-RewriteRule ^ https://test.eqlwiki.com%{REQUEST_URI} [R=308,L,NE]
+RewriteCond %{THE_REQUEST} \s(/[^\s?]*)
+RewriteRule ^ https://test.eqlwiki.com%1 [R=308,L,NE]
 
 AuthType Basic
 AuthName "EQLWiki Staging"
