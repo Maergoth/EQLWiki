@@ -34,18 +34,20 @@ save failure to establish a retained preference.
 
 `resources/ads.js` owns the preference and Google loader. No Google advertising
 script, iframe, or ad request is created until the effective preference is On
-**and** the server publishes valid production ad configuration. Without provider
-configuration, an On preference creates no empty production ad area.
+**and** the server publishes valid ad configuration for that exact environment.
+Without provider configuration, an On preference creates no empty production ad area.
 Unchecking removes the local preview immediately. When Google's script has been
 requested and Off can be retained, it reloads the page to end that document's
 advertising runtime. A change in another tab is also observed. Browser ad blockers
 are respected.
 
-The future production integration uses Google's supported regular bottom anchor
+The provider integration uses Google's supported regular bottom anchor
 format. It does not fix a normal display ad to the screen or create a manual ad
-unit. There are no real ads on login/account/special pages,
-talk pages, editing/history/diff/old-revision views, missing or nonpublic articles,
-staging, or local clones. `includes/Ads.php` checks the actual environment, title
+unit. There are no real ads on login/account/special pages, talk pages,
+editing/history/diff/old-revision views, missing articles, or local clones.
+Production also excludes nonpublic and noindex articles. Staging can load the
+provider only through its separate explicit settings described below, preserving
+its existing authentication and noindex. `includes/Ads.php` checks the actual environment, title
 and view before exposing configuration. Google code is not unconditionally added
 to the footer, database `MediaWiki:` scripts, or page head.
 
@@ -53,8 +55,9 @@ to the footer, database `MediaWiki:` scripts, or page head.
 
 ## Review the footer dock on staging
 
-Placement review is limited to **https://test.eqlwiki.com**. On a current existing
-main-namespace article, including the Main Page, an On **Ads** preference displays
+Placement review is limited to **https://test.eqlwiki.com**. With its separate
+provider settings blank or invalid, an On **Ads** preference on a current existing
+main-namespace article, including the Main Page, displays
 a synthetic bottom dock. It stays visible while scrolling, immediately
 above the fixed Donate/Ads utility bar. Its creative area is 90px tall on desktop
 and 50px at widths up to 900px, with a separate label and close button. The offset
@@ -70,18 +73,71 @@ and checkbox opt-outs show the exact login notice above. Focus, visibility and
 back/forward restoration re-read the appropriate session/account state. Failed
 persistence retains the document-only Off behavior described above.
 
-This preview contains no Google script, iframe, live creative, tracking call, or
-ad impression. It illustrates space and controls; it does not predict Google's
-creative, visibility, or actual anchor placement. Publisher and format settings
-stay empty until the owner separately approves production activation.
+The synthetic preview contains no Google script, iframe, live creative, tracking
+call, or ad impression. It illustrates space and controls; it does not predict Google's
+creative, visibility, or actual anchor placement. Production publisher and format
+settings stay empty until the owner separately approves production activation.
 
-The server publishes only `{preview:true}` when its trusted `Server` and
-`CanonicalServer` are both exactly `https://test.eqlwiki.com`; the browser also
-requires that exact origin. Even copied publisher IDs cannot activate Google in
-this mode. Existing staging login and noindex policies remain intact. A harmless
+The server selects staging only when its trusted `Server` and `CanonicalServer`
+are both exactly `https://test.eqlwiki.com`; the browser also requires that exact
+origin. With staging provider settings blank or invalid it publishes only
+`{preview:true}`. Copied production publisher settings cannot activate Google on
+staging. Existing staging login and noindex policies remain intact. A harmless
 preview can appear to an already authorized staging reader when anonymous wiki
 reading is disabled; it grants no access and exposes no publisher configuration.
 Special/talk/edit/history/diff/old-revision and missing-page views have no preview.
+
+## Configure the native provider on staging
+
+Staging has independent `$wgEQLAdSenseStagingClient` and
+`$wgEQLAdSenseStagingFormat` settings. Both default to empty strings. To configure
+the native integration, set the issued `ca-pub-` publisher identifier and exactly
+`'anchor'` in the separate private, mode-0600 file
+`/home/eqlwikdq/deploy/EQLWiki-staging/ads-settings.php` only. This file contains
+only `$wgEQLAdSenseStagingClient` and `$wgEQLAdSenseStagingFormat`; it must not
+contain production settings or account credentials. Do not reuse the independent
+Talk policy file. Keep both production settings blank.
+
+The reviewed refresh generator conditionally includes this optional file after
+the existing Talk policy include at the end of staging `LocalSettings.php`,
+following its isolation settings. An absent file leaves the synthetic preview.
+The generator replaces both `LocalSettings.php` and `EQLStaging.php` on refresh;
+putting a manual include only in either generated file will not persist.
+Deploy the staging provider source before activation, then separately install the
+reviewed generator, matching include in current staging `LocalSettings.php`, and
+private ad settings file under `deploy.lock`, with no `refresh-in-progress`
+marker. Take fresh private backups of the installed generator, current settings
+and any existing ad settings file first. Application deployment excludes `ops/`
+and installs neither the private host generator nor ignored settings. Verify
+syntax, staging isolation and credentialed API health without running a database
+refresh as a test; see [host installation and rollback](../PROJECT.md#staging-and-contributions).
+
+Valid staging settings replace the synthetic dock with Google's native loader on
+eligible current main-namespace article views, through the same effective Ads
+preference. The server marks that configuration `environment: 'staging'`; the
+browser accepts it only at the exact staging origin. Production configuration is
+marked `environment: 'production'` and accepted only at its exact production
+origin. Neither environment uses the other's publisher settings as a fallback.
+The real provider does not open the local preview dock or apply its fixed CSS or
+reserved page padding to Google's ads. Google owns its actual anchor and close UI.
+
+This explicit staging path preserves its existing authentication and noindex
+policies; it does not require anonymous public reading as the production path
+does. It grants no access to the wiki or to Google crawlers. AdSense site
+approval, applicable consent setup, anchor-only account formats and Google's
+ability to assess protected content remain separate requirements. A configured
+loader is not proof of site approval, an ad fill, an impression, or earnings.
+Do not remove the staging gate, expose private content, or supply administrator
+credentials to a crawler as part of this configuration. Root `ads.txt` publication
+and AdSense verification/review are separate from loading the staging code.
+Do not generate artificial impressions or clicks as a test.
+
+Verify that all other Auto ads formats and automatic optimization are off before
+loading the provider; `data-overlays="collapsed-bottom"` does not disable those
+formats. Before activation where required, use Google's supported consent flow
+linked below. If approval or crawler access prevents serving, report that blocker
+instead of weakening staging isolation. Clear either staging provider setting to
+return to the synthetic preview, then reload any open provider document.
 
 Keep `includes/Ads.php` and `resources/ads.js` outside the explicit production-URL
 substitution list in `ops/staging-prepare.php`. Those files must retain their
@@ -90,6 +146,13 @@ private host-script change; review the installed preparation script separately
 if its rewrite list changes.
 
 ## Future production activation
+
+The current feature review is staging-only; full source promotion to production
+is not authorized. Publish `ads.txt` separately if production verification is
+needed, keeping the public wiki UI unchanged. Blank provider settings disable
+Google loading, but do **not** hide the existing Ads checkbox or stop its
+preference lifecycle if these feature files are later promoted. Review that UI
+boundary before any separately approved full production release.
 
 Source deployment alone does not activate advertising. After separate owner
 approval, the production site must be approved in AdSense and configured for
@@ -102,10 +165,9 @@ dashboard position; it does **not** turn off other Auto ads formats. See Google'
 Only then set the issued public publisher identifier in `$wgEQLAdSenseClient` and
 explicitly set `$wgEQLAdSenseFormat = 'anchor'` in ignored production settings.
 Both default to empty strings in `skin.json` and the sanitized example and remain
-empty during staging review. A display-unit slot is not used or required by this
+empty during staging-only review. A display-unit slot is not used or required by this
 anchor integration. Existing display units need no deletion or account changes
-for the staging preview. Never invent live IDs, commit account/payment data, or
-enable real ad serving on staging.
+for staging setup. Never invent live IDs or commit account/payment data.
 
 Google controls its actual anchor and dismissal UI. The local preview's placement
 above Donate/Ads does not establish that Google's anchor will leave those controls
@@ -159,7 +221,8 @@ Run `node ops/test-ads.cjs` with the development guide's jsdom runtime and
 `php ops/test-ads-config.php`. These cover synthetic storage/network lifecycles
 and server eligibility, including anonymous session defaults, asserted account
 reads/gesture-only writes, queue and identity races, staging-only dock dismissal, footer breakpoint/
-reserve contracts, anchor-only loader attributes and copied-ID isolation; they do not request real ads or prove live AdSense
+reserve contracts, independent staging/production configuration, anchor-only loader
+attributes and copied-origin isolation; they do not request real ads or prove live AdSense
 approval, impressions, payment, or browser layout. Run JS/PHP syntax checks on
 changed sources as well.
 
@@ -172,15 +235,19 @@ confirm named-account saves survive a fresh browser without importing anonymous 
 Inspect network requests: Off must make no Google ad request. Use synthetic
 provider responses for local lifecycle tests; never generate artificial clicks
 or impressions against a live publisher as routine verification.
-On staging, scroll a long article to its final links, check both sides of the
-900px breakpoint plus 320px/375px widths, keyboard dismissal and reopening, and
+In staging's synthetic preview mode, scroll a long article to its final links,
+check both sides of the 900px breakpoint plus 320px/375px widths, keyboard dismissal and reopening, and
 the unobstructed utility footer. Verify there is no Google script, iframe,
-request, or `adsbygoogle` unit. Synthetic CSS/DOM checks do not prove rendered
+request, or `adsbygoogle` unit. With explicit staging provider configuration,
+confirm the synthetic dock stays hidden and an Off preference makes no provider
+request; verify actual Google placement separately when approval and access allow
+serving. Synthetic CSS/DOM checks do not prove rendered
 browser geometry or Google's eventual anchor behavior.
 
 Deploy the source through a feature PR to staging, preserving the staging login
-gate and disabled real-ad configuration. Review placement with the synthetic box
-there; source changes do not activate production ads. Promote only reviewed
+gate and separate blank-by-default provider configuration. Review placement with
+the synthetic box before separately configuring the staging provider; source
+changes do not activate production ads. Promote only reviewed
 feature commits after owner approval. Production identifiers, AdSense account setup and
 consent configuration are separate activation steps; Git deployment does not
 perform them. No schema migration or database-page synchronization is needed.

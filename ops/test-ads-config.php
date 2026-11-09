@@ -11,6 +11,7 @@ function fixture( array $options = [] ): object {
 		public function getConfig(): object {
 			$values = array_replace( [
 				'EQLAdSenseClient' => 'ca-pub-1234567890123456', 'EQLAdSenseFormat' => 'anchor',
+				'EQLAdSenseStagingClient' => '', 'EQLAdSenseStagingFormat' => '',
 				'Server' => 'https://eqlwiki.com', 'CanonicalServer' => 'https://eqlwiki.com',
 				'DefaultRobotPolicy' => 'index,follow'
 			], $this->options['config'] ?? [] );
@@ -47,7 +48,7 @@ function fixture( array $options = [] ): object {
 }
 
 $checks = 0;
-$valid = [ 'client' => 'ca-pub-1234567890123456', 'format' => 'anchor' ];
+$valid = [ 'client' => 'ca-pub-1234567890123456', 'format' => 'anchor', 'environment' => 'production' ];
 $check = static function ( array $options, bool $public, ?array $expected ) use ( &$checks ): void {
 	$actual = EQLImmersive\Ads::configurationForOutput( fixture( $options ), $public );
 	$checks++;
@@ -89,19 +90,50 @@ $check( [ 'config' => $staging ], true, $preview );
 $check( [ 'config' => array_replace( $staging, [
 	'EQLAdSenseClient' => $valid['client'], 'EQLAdSenseFormat' => $valid['format']
 ] ) ], false, $preview );
+$stagingProvider = [ 'client' => 'ca-pub-9876543210987654', 'format' => 'anchor', 'environment' => 'staging' ];
+$stagingSettings = [
+	'EQLAdSenseStagingClient' => $stagingProvider['client'], 'EQLAdSenseStagingFormat' => 'anchor'
+];
+$configuredStaging = array_replace( $staging, $stagingSettings );
+// Explicit staging provider settings do not open the existing access gate or
+// remove noindex. Only the authorized rendered article receives this config.
+$check( [ 'config' => $configuredStaging, 'policy' => 'noindex,nofollow' ], false, $stagingProvider );
+$check( [ 'config' => array_replace( $configuredStaging, [
+	'EQLAdSenseClient' => $valid['client'], 'EQLAdSenseFormat' => 'anchor'
+] ) ], true, $stagingProvider );
+// Staging settings cannot configure production, even when copied there.
+$check( [ 'config' => array_replace( $stagingSettings, [
+	'EQLAdSenseClient' => '', 'EQLAdSenseFormat' => ''
+] ) ], true, null );
+$check( [ 'config' => $stagingSettings ], true, $valid );
+foreach ( [
+	[ 'EQLAdSenseStagingClient' => '' ], [ 'EQLAdSenseStagingFormat' => '' ],
+	[ 'EQLAdSenseStagingClient' => 123 ], [ 'EQLAdSenseStagingClient' => 'ca-pub-123' ],
+	[ 'EQLAdSenseStagingClient' => $stagingProvider['client'] . "\n" ],
+	[ 'EQLAdSenseStagingFormat' => 'display' ], [ 'EQLAdSenseStagingFormat' => true ],
+	[ 'EQLAdSenseStagingFormat' => 'anchor' . "\n" ]
+] as $values ) {
+	$check( [ 'config' => array_replace( $configuredStaging, $values ) ], false, $preview );
+}
 foreach ( [
 	[ 'missingTitle' => true ], [ 'namespace' => 1 ], [ 'namespace' => -1 ], [ 'namespace' => 2 ],
 	[ 'exists' => false ], [ 'redirect' => true ], [ 'article' => false ], [ 'current' => false ],
 	[ 'action' => 'edit' ], [ 'action' => 'history' ], [ 'action' => 'raw' ], [ 'action' => 'submit' ],
 	[ 'query' => [ 'oldid' => '123' ] ], [ 'query' => [ 'diff' => '' ] ],
 	[ 'query' => [ 'veaction' => 'edit' ] ]
-] as $options ) { $check( array_replace( $options, [ 'config' => $staging ] ), false, null ); }
+] as $options ) {
+	$check( array_replace( $options, [ 'config' => $staging ] ), false, null );
+	$check( array_replace( $options, [ 'config' => $configuredStaging ] ), false, null );
+}
 foreach ( [
 	[ 'Server' => 'http://test.eqlwiki.com' ], [ 'Server' => 'https://test.eqlwiki.com:443' ],
 	[ 'Server' => 'https://www.test.eqlwiki.com' ], [ 'Server' => 'https://test.eqlwiki.com.evil.example' ],
 	[ 'CanonicalServer' => 'https://eqlwiki.com' ], [ 'Server' => 'https://eqlwiki.com' ],
 	[ 'CanonicalServer' => 'http://test.eqlwiki.com' ]
-] as $values ) { $check( [ 'config' => array_replace( $staging, $values ) ], true, null ); }
+] as $values ) {
+	$check( [ 'config' => array_replace( $staging, $values ) ], true, null );
+	$check( [ 'config' => array_replace( $configuredStaging, $values ) ], true, null );
+}
 
 // Staging's explicit URL rewrite list must not rewrite production allowlists.
 $prepare = file_get_contents( __DIR__ . '/staging-prepare.php' );
@@ -110,8 +142,21 @@ if ( !preg_match( '/\$files\s*=\s*\[(.*?)\];/s', $prepare, $matches ) ||
 ) { throw new RuntimeException( 'Advertising environment guards must stay outside staging URL substitution.' ); }
 $checks++;
 
+// Refresh must retain a separate optional private ads include after the existing
+// Talk policy and before writing generated LocalSettings. Never run a refresh here.
+$refresh = file_get_contents( __DIR__ . '/staging-refresh.php' );
+$talkInclude = strpos( $refresh, '$talkSettings = var_export(' );
+$adsInclude = strpos( $refresh, '$adsSettings = var_export("$state/ads-settings.php", true);' );
+$settingsWrite = strpos( $refresh, 'file_put_contents("$root/LocalSettings.php", $wiki);' );
+if ( $talkInclude === false || $adsInclude === false || $settingsWrite === false ||
+	$talkInclude >= $adsInclude || $adsInclude >= $settingsWrite ||
+	!str_contains( substr( $refresh, $adsInclude, $settingsWrite - $adsInclude ),
+		'if (is_file($adsSettings)) { require_once $adsSettings; }' )
+) { throw new RuntimeException( 'Staging refresh must preserve the separate optional private ads settings.' ); }
+$checks++;
+
 $manifest = json_decode( file_get_contents( __DIR__ . '/../skins/EQLImmersive/skin.json' ), true, 512, JSON_THROW_ON_ERROR );
-foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseFormat' ] as $setting ) {
+foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseFormat', 'EQLAdSenseStagingClient', 'EQLAdSenseStagingFormat' ] as $setting ) {
 	if ( $manifest['config'][$setting]['value'] !== '' ) { throw new RuntimeException( 'Advertising must default unconfigured.' ); }
 	$checks++;
 }

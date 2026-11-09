@@ -141,10 +141,15 @@ wfLoadSkin( 'Vector' );
 # Optional AdSense bottom anchor. Leave both empty until separate production
 # approval and anchor-only Auto ads setup. The only supported format is 'anchor'.
 # Anonymous readers default On; named accounts default Off until they save On.
-# Staging uses a local synthetic dock only.
 # See docs/ADS.md; never add an unconditional Google script to Common.js.
 $wgEQLAdSenseClient = '';
 $wgEQLAdSenseFormat = '';
+
+# Independent staging integration, recognized only on exact test.eqlwiki.com.
+# Leave blank for the synthetic dock. Configure in ignored staging settings only.
+# Site approval, consent setup and crawler access remain separate requirements.
+$wgEQLAdSenseStagingClient = '';
+$wgEQLAdSenseStagingFormat = '';
 
 # Hide legacy Vector from user skin preferences.
 # This leaves only EQLImmersive and Vector 2022 selectable.

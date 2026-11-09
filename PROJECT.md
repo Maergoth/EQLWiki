@@ -491,6 +491,29 @@ the prior rights/settings before disabling the policy hook, following the
 and restore the generator/include if required. Keep staging login and isolation
 overrides intact; these changes do not apply to production settings.
 
+Staging's optional [native ad provider](docs/ADS.md#configure-the-native-provider-on-staging)
+uses its own private, mode-0600 file
+`/home/eqlwikdq/deploy/EQLWiki-staging/ads-settings.php`, independent of the Talk
+policy file. It contains only `$wgEQLAdSenseStagingClient` and
+`$wgEQLAdSenseStagingFormat`, never production ad settings or account credentials.
+The refresh generator conditionally includes it after the Talk policy include at
+the end of staging `LocalSettings.php`; if absent, the synthetic preview remains.
+Do not put this include in generated `EQLStaging.php`, which refresh replaces.
+
+Deploy the reviewed staging ad source before provider activation. Separately
+install the reviewed `staging-refresh.php` host copy, the matching optional include
+in current staging `LocalSettings.php`, and the private ad settings file under
+`deploy.lock`, with no `refresh-in-progress` marker. Take fresh private backups of
+the installed generator, current staging settings, and any existing ad settings
+file first. Application deployment excludes `ops/` and does not install these
+host or ignored files. Verify PHP syntax, staging gate/noindex, credentialed API
+health, and the intended environment configuration after installation; do not run
+a database refresh as an installation test. For rollback, restore the previous
+private files/includes and generator, clear the staging provider settings if
+needed, and reload open provider documents. Production settings and UI remain
+unchanged. AdSense approval, consent setup and protected-content crawler access
+remain separate from installing the loader configuration.
+
 Deployment keys are scoped to GitHub environments. `production` accepts only
 `main`; `staging` accepts `staging` and `main` (for manual/scheduled refreshes).
 Each host SSH key has a forced command and cannot run arbitrary shell commands.
