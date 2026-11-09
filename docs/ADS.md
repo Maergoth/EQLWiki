@@ -167,6 +167,14 @@ its content. Keep original-page backups private rather than committing them as
 policy source. The 9 November 2026 publication used live revision **200533** and
 staging revision **200530**, with fresh private backups and native conflict protection.
 
+The forum's [`bb/agreement.txt`](../bb/agreement.txt) has a matching cookie
+disclosure and canonical policy link in its final paragraph. Deploy that reviewed
+file change normally, preserving every preceding terms paragraph. Do not use the
+native SMF admin agreement editor for this disclosure correction: it writes
+`agreement_updated` and can require users to accept the terms again. This file-only
+change does not alter registration settings, acceptance timestamps or reacceptance
+prompts.
+
 Google's CMP privacy policy URL is the public canonical
 `https://eqlwiki.com/EQLWiki:Privacy_policy`. The account-side URL was separately
 saved and published on 9 November 2026; the existing test message's branding,

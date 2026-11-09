@@ -28,7 +28,7 @@
   <main>
     <section aria-labelledby="data">
       <h2 id="data">Advertising data and cookies</h2>
-      <p>When you enable advertising, Google and the ad providers identified in the consent message
+      <p>When advertising is enabled, Google and the ad providers identified in the consent message
         may receive information such as your IP address, the page URL and browser information.
         They may use cookies or similar storage for ad delivery, measurement, fraud prevention and,
         subject to your consent choices where required, personalization. Advertising cookies may use
@@ -40,10 +40,15 @@
     <section aria-labelledby="choices">
       <h2 id="choices">Your ad and consent choices</h2>
       <p>The wiki's <strong>Ads</strong> checkbox controls whether this integration loads advertising.
-        Logged-out choices last for the browser session; signed-in choices are saved to the wiki account.
+        Logged-out visitors start with Ads on; their choice lasts for the browser session.
+        Signed-in accounts start with Ads off unless they have saved an On preference.
+        That account preference applies while signed in and is saved for future visits.
+        Logged-out and account choices remain separate.
         This preference is separate from consent to cookies, data use or personalized ads.</p>
       <p>Choose <strong>Ads off</strong> to stop future ad loads through this integration.
         If ad code is already running, the page reloads when your Off choice can be saved.
+        Other already-open tabs may continue until they recheck the preference; reload or close them
+        to end their loaded ad code.
         If the choice cannot be saved, close the tab to end its loaded ad code.</p>
       <p>Where the Google consent message is available, use <strong>Consent</strong>,
         <strong>Manage options</strong> or <strong>Do not consent</strong> to make your data choices.
