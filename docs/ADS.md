@@ -145,6 +145,24 @@ separate production and staging allowlists. Git deployment does not install a
 private host-script change; review the installed preparation script separately
 if its rewrite list changes.
 
+## Staging ad privacy disclosure
+
+[`eql-ads-test-privacy.html`](../eql-ads-test-privacy.html) is a standalone disclosure
+for authorized readers of **test.eqlwiki.com** only. It contains no JavaScript,
+ad/CMP tags or external resources and retains the existing staging access gate.
+Deploy it to staging and verify the link before using
+`https://test.eqlwiki.com/eql-ads-test-privacy.html` as Google's CMP privacy policy URL.
+It supplements the normal wiki policy for test advertising; no database policy
+page or production release is changed. Do not promote this test-only page to `main`.
+
+Google requires disclosure pages to contain neither consent-requiring scripts nor
+the consent-message tag; see its [privacy policy URL instructions](https://support.google.com/adsense/answer/10961370).
+Prepare the three-choice message with consent optimization off, then verify its
+actual display and revocation control when serving is available. A message assigned
+to the root domain also [applies to its subsites](https://support.google.com/adsense/answer/14113511);
+the staging-only Google loader remains the deployment boundary. Publishing a
+message does not establish site approval, ad fill or legal compliance.
+
 ## Future production activation
 
 The current feature review is staging-only; full source promotion to production

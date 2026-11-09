@@ -55,7 +55,11 @@ Major custom skin behavior:
   loader setup. Only this ad option is saved on an explicit named-user gesture; no
   analytics collection or unrelated account state is changed. Root
   [`ads.txt`](../ads.txt) supplies the owner's public Google seller record. The
-  [ads guide](ADS.md) covers preview, future footer acceptance, activation and traffic limits.
+  standalone [`eql-ads-test-privacy.html`](../eql-ads-test-privacy.html) supplies
+  staging-only ad disclosures without scripts or external resources; it does not
+  update the wiki's database privacy policy and must not be promoted to production.
+  The [ads guide](ADS.md) covers preview, privacy messaging, future footer acceptance,
+  activation and traffic limits.
 
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings
