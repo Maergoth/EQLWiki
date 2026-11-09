@@ -45,10 +45,14 @@ Major custom skin behavior:
   `https://test.eqlwiki.com` offers a dismissible synthetic bottom dock above the
   fixed Donate/Ads bar, without Google calls or impressions, behind the existing
   staging gate. Its body class reserves the full responsive dock height at page
-  end; closing saves Ads Off. Google's supported regular bottom anchor requires
-  separate anchor-only configuration and an On preference on a
-  current public production article; provider IDs remain blank during placement
-  review. Only this ad option is saved on an explicit named-user gesture; no
+  end; closing saves Ads Off. Independent blank-by-default
+  `EQLAdSenseStagingClient`/`EQLAdSenseStagingFormat` settings can replace that dock
+  with Google's supported regular bottom anchor only on the exact staging host,
+  preserving login/noindex. Provider objects identify their environment and the
+  browser rejects a mismatched origin. Production uses its own settings and
+  current public article checks; neither copies the other's configuration.
+  Approval, consent and protected-content crawler access remain separate from
+  loader setup. Only this ad option is saved on an explicit named-user gesture; no
   analytics collection or unrelated account state is changed. Root
   [`ads.txt`](../ads.txt) supplies the owner's public Google seller record. The
   [ads guide](ADS.md) covers preview, future footer acceptance, activation and traffic limits.

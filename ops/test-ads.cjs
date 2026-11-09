@@ -16,7 +16,8 @@ const wiki = 'fixturewiki';
 const cookieName = 'eql_ads_session_v1_' + encodeURIComponent( wiki );
 const sessionKey = 'eql-ads-session-v1:' + encodeURIComponent( wiki );
 const legacyKey = 'eql-ads-v1:' + encodeURIComponent( wiki );
-const config = { client: 'ca-pub-1234567890123456', format: 'anchor' };
+const config = { client: 'ca-pub-1234567890123456', format: 'anchor', environment: 'production' };
+const stagingConfig = { client: 'ca-pub-9876543210987654', format: 'anchor', environment: 'staging' };
 const offNotice = 'Ads disabled. Log in to save your preference';
 const staging = { url: 'https://test.eqlwiki.com/Article', config: { preview: true } };
 const cases = [];
@@ -386,11 +387,46 @@ test( 'Absent and invalid publisher formats never request Google or leave a dock
         noProvider( page ); assert.equal( page.hidden(), true ); assert.equal( page.previewOpen(), false ); page.close();
     }
 } );
-test( 'Copied IDs cannot load a provider outside production or override preview isolation', async () => {
+test( 'Copied production IDs cannot load on staging or override preview isolation', async () => {
     for ( const options of [ { url: 'https://test.eqlwiki.com/Article', config }, { url: 'http://127.0.0.1:8080/Article', config },
         { url: 'https://other.example/Article', config }, { url: 'https://eqlwiki.com/Article', config: { ...config, preview: true } },
         { ...staging, config: { ...config, preview: true } } ] ) {
         const page = visit( options ); await settle(); noProvider( page ); page.close();
+    }
+} );
+test( 'Explicit staging anchors use the native loader without a local preview or reserved footer space', async () => {
+    const page = visit( { ...staging, config: stagingConfig } ); await settle();
+    assert.equal( page.scripts().length, 1 );
+    const script = page.scripts()[ 0 ];
+    assert.equal( script.src, 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + stagingConfig.client );
+    assert.equal( script.async, true ); assert.equal( script.crossOrigin, 'anonymous' );
+    assert.equal( script.dataset.overlays, 'collapsed-bottom' );
+    assert.equal( page.hidden(), true ); assert.equal( page.previewOpen(), false );
+    assert.equal( page.w.document.querySelector( '.eql-ad-preview, ins, iframe' ), null );
+    page.pageshow(); page.focus(); page.visible(); page.w.eval( source ); await settle();
+    assert.equal( page.scripts().length, 1 );
+    page.choose( false ); await settle(); assert.equal( page.reloads(), 1 ); assertOffNotice( page ); page.close();
+} );
+test( 'Staging provider respects anonymous session OFF and verified account OFF before any request', async () => {
+    const anonymous = visit( { ...staging, config: stagingConfig, cookie: cookieName + '=off' } ); await settle();
+    noProvider( anonymous ); assert.equal( anonymous.toggle.checked, false ); anonymous.close();
+    const account = visit( { ...staging, config: stagingConfig, user: 42, option: 'off', deferSaves: true } ); await settle();
+    noProvider( account ); assert.equal( account.toggle.checked, false );
+    account.choose( true ); await settle(); noProvider( account );
+    account.saves[ 0 ].resolve(); await settle(); assert.equal( account.scripts().length, 1 );
+    assert.equal( account.previewOpen(), false ); account.close();
+} );
+test( 'Provider configuration requires its exact environment and matching browser origin', async () => {
+    const invalidConfigurations = [ { ...config, environment: undefined }, { ...config, environment: 'test' },
+        { ...config, environment: true }, { ...stagingConfig, environment: 'staging\n' } ];
+    for ( const invalid of invalidConfigurations ) {
+        const page = visit( { config: invalid } ); await settle(); noProvider( page ); page.close();
+    }
+    for ( const url of [ 'https://eqlwiki.com/Article', 'http://test.eqlwiki.com/Article',
+        'https://www.test.eqlwiki.com/Article', 'https://test.eqlwiki.com.evil.example/Article',
+        'http://127.0.0.1:8080/Article' ] ) {
+        const page = visit( { url, config: stagingConfig } ); await settle();
+        noProvider( page ); assert.equal( page.previewOpen(), false ); page.close();
     }
 } );
 test( 'Staging dock leaves article DOM intact and closes to temporary OFF with keyboard focus', async () => {

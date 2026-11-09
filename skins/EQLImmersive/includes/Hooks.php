@@ -52,9 +52,9 @@ class Hooks implements
 	}
 
 	private function addAdvertising( $out ): void {
-		$preview = Ads::isPreviewEnvironment( $out->getConfig() );
-		// Only staging has a local preview without provider configuration.
-		if ( !$preview && ( $out->getConfig()->get( 'EQLAdSenseClient' ) === '' ||
+		$staging = Ads::isStagingEnvironment( $out->getConfig() );
+		// Staging has separate provider settings and a local preview fallback.
+		if ( !$staging && ( $out->getConfig()->get( 'EQLAdSenseClient' ) === '' ||
 			$out->getConfig()->get( 'EQLAdSenseFormat' ) === '' ) ) {
 			return;
 		}
@@ -63,7 +63,7 @@ class Hooks implements
 			return;
 		}
 		$publicRead = false;
-		if ( !$preview ) {
+		if ( !$staging ) {
 			$services = MediaWikiServices::getInstance();
 			$publicRead = $services->getPermissionManager()->userCan(
 				'read', $services->getUserFactory()->newAnonymous(), $title

@@ -36,10 +36,12 @@
 		var rawConfig = mw.config.get( 'wgEQLAdSense' );
 		var preview = rawConfig && rawConfig.preview === true &&
 			window.location.origin === 'https://test.eqlwiki.com';
+		var providerOrigin = rawConfig && rawConfig.environment === 'staging' ? 'https://test.eqlwiki.com' :
+			rawConfig && rawConfig.environment === 'production' ? 'https://eqlwiki.com' : null;
 		var config = rawConfig && rawConfig.preview !== true && typeof rawConfig.client === 'string' &&
 			/^ca-pub-[0-9]{16}$/.test( rawConfig.client ) && rawConfig.client.length === 23 &&
 			rawConfig.format === 'anchor' &&
-			window.location.origin === 'https://eqlwiki.com' ? rawConfig : null;
+			window.location.origin === providerOrigin ? rawConfig : null;
 
 		function notify( message, error ) {
 			label.title = message;
