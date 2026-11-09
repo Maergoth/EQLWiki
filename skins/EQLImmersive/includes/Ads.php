@@ -2,14 +2,14 @@
 
 namespace EQLImmersive;
 
-/** Publishes real production units or a synthetic staging placement preview. */
+/** Publishes a supported production anchor or a synthetic staging dock preview. */
 final class Ads {
 	public static function isPreviewEnvironment( $config ): bool {
 		return $config->get( 'Server' ) === 'https://test.eqlwiki.com' &&
 			$config->get( 'CanonicalServer' ) === 'https://test.eqlwiki.com';
 	}
 
-	/** @return array{client:string,slot:string}|array{preview:true}|null */
+	/** @return array{client:string,format:string}|array{preview:true}|null */
 	public static function configurationForOutput( $out, bool $publicRead ): ?array {
 		$config = $out->getConfig();
 		$server = $config->get( 'Server' );
@@ -35,15 +35,15 @@ final class Ads {
 			return [ 'preview' => true ];
 		}
 		$client = $config->get( 'EQLAdSenseClient' );
-		$slot = $config->get( 'EQLAdSenseSlot' );
+		$format = $config->get( 'EQLAdSenseFormat' );
 		$policy = $config->get( 'DefaultRobotPolicy' );
 		$policy = is_array( $policy ) ? implode( ',', $policy ) : (string)$policy;
 		if ( !$publicRead || !is_string( $client ) || !preg_match( '/\Aca-pub-[0-9]{16}\z/', $client ) ||
-			!is_string( $slot ) || !preg_match( '/\A[0-9]{1,20}\z/', $slot ) ||
+			$format !== 'anchor' ||
 			preg_match( '/\bnoindex\b/i', $policy . ',' . $out->getRobotPolicy() )
 		) {
 			return null;
 		}
-		return [ 'client' => $client, 'slot' => $slot ];
+		return [ 'client' => $client, 'format' => $format ];
 	}
 }

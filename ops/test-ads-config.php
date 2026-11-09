@@ -10,7 +10,7 @@ function fixture( array $options = [] ): object {
 		public function __construct( private array $options ) {}
 		public function getConfig(): object {
 			$values = array_replace( [
-				'EQLAdSenseClient' => 'ca-pub-1234567890123456', 'EQLAdSenseSlot' => '1234567890',
+				'EQLAdSenseClient' => 'ca-pub-1234567890123456', 'EQLAdSenseFormat' => 'anchor',
 				'Server' => 'https://eqlwiki.com', 'CanonicalServer' => 'https://eqlwiki.com',
 				'DefaultRobotPolicy' => 'index,follow'
 			], $this->options['config'] ?? [] );
@@ -47,7 +47,7 @@ function fixture( array $options = [] ): object {
 }
 
 $checks = 0;
-$valid = [ 'client' => 'ca-pub-1234567890123456', 'slot' => '1234567890' ];
+$valid = [ 'client' => 'ca-pub-1234567890123456', 'format' => 'anchor' ];
 $check = static function ( array $options, bool $public, ?array $expected ) use ( &$checks ): void {
 	$actual = EQLImmersive\Ads::configurationForOutput( fixture( $options ), $public );
 	$checks++;
@@ -66,10 +66,11 @@ foreach ( [
 	[ 'policy' => 'noindex,follow' ], [ 'policy' => 'NOINDEX,nofollow' ]
 ] as $options ) { $check( $options, true, null ); }
 foreach ( [
-	[ 'EQLAdSenseClient' => '' ], [ 'EQLAdSenseSlot' => '' ], [ 'EQLAdSenseSlot' => 123 ],
+	[ 'EQLAdSenseClient' => '' ], [ 'EQLAdSenseFormat' => '' ], [ 'EQLAdSenseFormat' => 123 ],
 	[ 'EQLAdSenseClient' => 'ca-pub-1234567890123456' . "\n" ],
-	[ 'EQLAdSenseClient' => 'ca-pub-123' ], [ 'EQLAdSenseSlot' => '123<script>' ],
-	[ 'EQLAdSenseSlot' => '123' . "\n" ], [ 'EQLAdSenseSlot' => str_repeat( '1', 21 ) ],
+	[ 'EQLAdSenseClient' => 'ca-pub-123' ], [ 'EQLAdSenseFormat' => 'display' ],
+	[ 'EQLAdSenseFormat' => 'anchor' . "\n" ], [ 'EQLAdSenseFormat' => true ],
+	[ 'EQLAdSenseFormat' => '', 'EQLAdSenseSlot' => '1234567890' ],
 	[ 'Server' => 'https://test.eqlwiki.com' ], [ 'CanonicalServer' => 'https://test.eqlwiki.com' ],
 	[ 'Server' => 'http://eqlwiki.com' ], [ 'Server' => 'http://127.0.0.1:8080' ],
 	[ 'Server' => 'https://other.example' ], [ 'DefaultRobotPolicy' => 'noindex,follow' ],
@@ -78,7 +79,7 @@ foreach ( [
 
 $staging = [
 	'Server' => 'https://test.eqlwiki.com', 'CanonicalServer' => 'https://test.eqlwiki.com',
-	'EQLAdSenseClient' => '', 'EQLAdSenseSlot' => '', 'DefaultRobotPolicy' => 'noindex,nofollow'
+	'EQLAdSenseClient' => '', 'EQLAdSenseFormat' => '', 'DefaultRobotPolicy' => 'noindex,nofollow'
 ];
 $preview = [ 'preview' => true ];
 // Existing staging access policy remains authoritative: only an already rendered
@@ -86,7 +87,7 @@ $preview = [ 'preview' => true ];
 $check( [ 'config' => $staging, 'policy' => 'noindex,nofollow' ], false, $preview );
 $check( [ 'config' => $staging ], true, $preview );
 $check( [ 'config' => array_replace( $staging, [
-	'EQLAdSenseClient' => $valid['client'], 'EQLAdSenseSlot' => $valid['slot']
+	'EQLAdSenseClient' => $valid['client'], 'EQLAdSenseFormat' => $valid['format']
 ] ) ], false, $preview );
 foreach ( [
 	[ 'missingTitle' => true ], [ 'namespace' => 1 ], [ 'namespace' => -1 ], [ 'namespace' => 2 ],
@@ -110,7 +111,7 @@ if ( !preg_match( '/\$files\s*=\s*\[(.*?)\];/s', $prepare, $matches ) ||
 $checks++;
 
 $manifest = json_decode( file_get_contents( __DIR__ . '/../skins/EQLImmersive/skin.json' ), true, 512, JSON_THROW_ON_ERROR );
-foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseSlot' ] as $setting ) {
+foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseFormat' ] as $setting ) {
 	if ( $manifest['config'][$setting]['value'] !== '' ) { throw new RuntimeException( 'Advertising must default unconfigured.' ); }
 	$checks++;
 }
