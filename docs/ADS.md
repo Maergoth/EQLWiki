@@ -54,8 +54,13 @@ permission for personalized advertising. Configure Google's supported consent
 flow where required before serving ads; see its
 [CMP requirements](https://support.google.com/adsense/answer/13554116) and
 [consent setup](https://support.google.com/adsense/answer/7670013).
-Use the account's actual instructions for site verification and `ads.txt`; do
-not publish a fabricated seller record.
+The root [`ads.txt`](../ads.txt) contains the owner-supplied Google seller record
+for publisher `pub-6539165037996565`. Once published on production, confirm
+`https://eqlwiki.com/ads.txt` serves that record, then follow Google's
+[verification and review steps](https://support.google.com/adsense/answer/12169212).
+This public record authorizes the seller and can verify site ownership; it does
+not load ads, supply an ad unit's slot ID, or establish site approval. Ad-serving
+configuration remains empty until the separate activation steps above.
 
 ## Check traffic and estimate revenue
 
