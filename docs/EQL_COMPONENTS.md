@@ -38,6 +38,16 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- `resources/ads.js`, the footer checkbox, and `includes/Ads.php` provide
+  browser-persistent, default-off optional ads. Exact configured/runtime
+  `https://test.eqlwiki.com` offers a synthetic Before/After article placement
+  preview without Google calls or impressions, behind the existing staging gate.
+  Google AdSense requires separate valid configuration and explicit opt-in on a
+  current public production article; provider IDs remain blank during placement
+  review. No account preferences or analytics collection are changed. Root
+  [`ads.txt`](../ads.txt) supplies the owner's public Google seller record. The
+  [ads guide](ADS.md) covers preview, separate activation and traffic limits.
+
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings
   load. Root routing and `robots.php` preserve separate production/staging hosts.

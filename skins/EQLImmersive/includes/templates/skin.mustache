@@ -236,6 +236,10 @@
 						{{#data-lang-dropdown}}{{>LanguageDropdown}}{{/data-lang-dropdown}}
 					{{/is-language-in-content-bottom}}
 				</div>
+				<aside id="eql-advertisement" class="eql-advertisement" aria-label="Advertisement" hidden>
+					<div class="eql-advertisement-label">Advertisement</div>
+					<div id="eql-advertisement-unit"></div>
+				</aside>
 			</main>
 
 			{{{html-after-content}}}
@@ -259,6 +263,10 @@
 	>
 		Donate
 	</button>
+	<label class="eql-ads-choice" title="Optional ads. Your choice is saved in this browser; no login needed.">
+		<input id="eql-ads-toggle" type="checkbox" disabled>
+		<span>Ads</span>
+	</label>
 
 	{{#data-footer}}{{>Footer}}{{/data-footer}}
 </div>

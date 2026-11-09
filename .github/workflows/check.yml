@@ -48,6 +48,7 @@ jobs:
           php ops/test-seo-config.php
           php ops/test-item-seo.php
           php ops/test-ajax-hover.php
+          php ops/test-ads-config.php
       - name: Check public character directory and effect metadata
         run: |
           php ops/test-player-list.php
@@ -67,6 +68,8 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-item-level-slider.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-store.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-ui.cjs
+          NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-ads.cjs
+          node --check skins/EQLImmersive/resources/ads.js
       - name: Check Eye of Zomm refresh wrapper
         run: bash ops/test-eoz-refresh-wrapper.sh
       - name: Check bounded native job runner

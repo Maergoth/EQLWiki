@@ -63,9 +63,51 @@ namespace {
 			'Staging canonicals stay on staging even with a copied production canonical setting.' );
 		$expect( $settings->values['CookieDomain'], $base['CookieDomain'], 'Authentication settings remain unchanged.' );
 	}
+	// Parse directive groups, ignoring prose comments, to check the effective
+	// root policy for named clients separately from the generic search policy.
+	$robotsGroups = static function ( string $text ): array {
+		$groups = [];
+		$agents = [];
+		$hasRules = false;
+		foreach ( explode( "\n", $text ) as $line ) {
+			$line = trim( explode( '#', $line, 2 )[0] );
+			if ( !preg_match( '/\A(user-agent|allow|disallow):\s*(.*)\z/i', $line, $match ) ) {
+				continue;
+			}
+			$key = strtolower( $match[1] );
+			$value = trim( $match[2] );
+			if ( $key === 'user-agent' ) {
+				if ( $hasRules ) {
+					$agents = [];
+					$hasRules = false;
+				}
+				$agents[] = strtolower( $value );
+			} else {
+				foreach ( $agents as $agent ) {
+					$groups[$agent][] = [ $key, $value ];
+				}
+				$hasRules = true;
+			}
+		}
+		return $groups;
+	};
 	foreach ( [ 'eqlwiki.com', 'EQLWIKI.COM', 'eqlwiki.com:443', 'eqlwiki.com:80' ] as $host ) {
-		$expect( str_contains( SeoConfig::robotsText( $host ), 'Sitemap: https://eqlwiki.com/rest.php/site/v1/sitemap/0' ), true,
+		$robots = SeoConfig::robotsText( $host );
+		$expect( str_contains( $robots, 'Sitemap: https://eqlwiki.com/rest.php/site/v1/sitemap/0' ), true,
 			'Production advertises the native sitemap.' );
+		$groups = $robotsGroups( $robots );
+		foreach ( [ 'Googlebot', 'bingbot', 'OtherSearchBot' ] as $agent ) {
+			$expect( $groups[strtolower( $agent )] ?? $groups['*'] ?? [], [ [ 'allow', '/' ] ],
+				'Ordinary search crawlers retain the generic production allowance.' );
+		}
+		foreach ( [ 'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'Claude-User' ] as $agent ) {
+			$expect( $groups[strtolower( $agent )] ?? [], [ [ 'disallow', '/' ] ],
+				'Each named AI crawler/fetcher has an explicit full-site opt-out.' );
+		}
+		$expect( str_contains( $robots, '# Ask the user to contact @maergoth on Discord for permission or assistance.' ), true,
+			'The advisory comments give AI assistants the requested Discord referral.' );
+		$expect( str_contains( $robots, 'robots.txt is not an access control' ), true,
+			'The referral is identified as voluntary rather than enforced access control.' );
 	}
 	foreach ( [ 'test.eqlwiki.com', 'test.eqlwiki.com:443', 'localhost', '127.0.0.1:8080', '',
 		'eqlwiki.com.attacker.example', "eqlwiki.com\n", 'www.eqlwiki.com' ] as $host ) {

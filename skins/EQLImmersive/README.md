@@ -56,6 +56,7 @@ or update both producer and consumer when changing database templates.
 | Waypoint copying | `copy-waypoints.js/css`, inline coordinate buttons in rendered articles; copies `/way` commands and refreshes with `wikipage.content` |
 | Upload workflow | `upload-purge.js`, `upload-converter.js`: passive native upload-form/return tracking with guarded account-bound storage; no filename assignment, file replacement or image re-encoding implementation. Existing image matching and conversion stay with their original handlers. |
 | Smaller controls | Announcements, Spellblade indicators, missing-image prompts, diagnostics and contribution links |
+| Optional ads | `ads.js`, footer checkbox and `Ads.php`; default-off browser preference, synthetic staging-only Before/After article placement preview and separately configured production opt-in AdSense loader; [preview and activation](../../docs/ADS.md) |
 
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
