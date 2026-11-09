@@ -55,7 +55,7 @@ class Hooks implements
 		$preview = Ads::isPreviewEnvironment( $out->getConfig() );
 		// Only staging has a local preview without provider configuration.
 		if ( !$preview && ( $out->getConfig()->get( 'EQLAdSenseClient' ) === '' ||
-			$out->getConfig()->get( 'EQLAdSenseSlot' ) === '' ) ) {
+			$out->getConfig()->get( 'EQLAdSenseFormat' ) === '' ) ) {
 			return;
 		}
 		$title = $out->getTitle();

@@ -39,14 +39,19 @@ the custom layout and conditional resources. See the
 Major custom skin behavior:
 
 - `resources/ads.js`, the footer checkbox, and `includes/Ads.php` provide
-  browser-persistent, default-off optional ads. Exact configured/runtime
-  `https://test.eqlwiki.com` offers a synthetic Before/After article placement
-  preview without Google calls or impressions, behind the existing staging gate.
-  Google AdSense requires separate valid configuration and explicit opt-in on a
+  optional ads with anonymous default On for the browser session and named-account
+  default Off using the native `userjs-eql-ads` option. Session choices and account
+  state remain separate; legacy browser choices are ignored. Exact configured/runtime
+  `https://test.eqlwiki.com` offers a dismissible synthetic bottom dock above the
+  fixed Donate/Ads bar, without Google calls or impressions, behind the existing
+  staging gate. Its body class reserves the full responsive dock height at page
+  end; closing saves Ads Off. Google's supported regular bottom anchor requires
+  separate anchor-only configuration and an On preference on a
   current public production article; provider IDs remain blank during placement
-  review. No account preferences or analytics collection are changed. Root
+  review. Only this ad option is saved on an explicit named-user gesture; no
+  analytics collection or unrelated account state is changed. Root
   [`ads.txt`](../ads.txt) supplies the owner's public Google seller record. The
-  [ads guide](ADS.md) covers preview, separate activation and traffic limits.
+  [ads guide](ADS.md) covers preview, future footer acceptance, activation and traffic limits.
 
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings

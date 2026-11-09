@@ -132,7 +132,7 @@
     },
     "config": {
         "EQLAdSenseClient": { "value": "" },
-        "EQLAdSenseSlot": { "value": "" }
+        "EQLAdSenseFormat": { "value": "" }
     },
     "ResourceModules": {
         "skins.EQLImmersive.waypoints": {

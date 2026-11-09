@@ -138,11 +138,13 @@ $wgDefaultSkin = "eqlimmersive";
 wfLoadSkin( 'EQLImmersive' );
 wfLoadSkin( 'Vector' );
 
-# Optional responsive AdSense unit. Leave both empty until the production site
-# and ad unit are approved/configured. Readers must explicitly enable Ads.
+# Optional AdSense bottom anchor. Leave both empty until separate production
+# approval and anchor-only Auto ads setup. The only supported format is 'anchor'.
+# Anonymous readers default On; named accounts default Off until they save On.
+# Staging uses a local synthetic dock only.
 # See docs/ADS.md; never add an unconditional Google script to Common.js.
 $wgEQLAdSenseClient = '';
-$wgEQLAdSenseSlot = '';
+$wgEQLAdSenseFormat = '';
 
 # Hide legacy Vector from user skin preferences.
 # This leaves only EQLImmersive and Vector 2022 selectable.
