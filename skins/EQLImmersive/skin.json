@@ -130,6 +130,10 @@
         "HTMLFileCache::useFileCache": "EQLHomepageCache",
         "PageSaveComplete": "EQLHomepageCache"
     },
+    "config": {
+        "EQLAdSenseClient": { "value": "" },
+        "EQLAdSenseSlot": { "value": "" }
+    },
     "ResourceModules": {
         "skins.EQLImmersive.waypoints": {
             "scripts": [ "resources/copy-waypoints.js" ],
@@ -244,6 +248,7 @@
                 "resources/main.js",
                 "resources/announcements.js",
                 "resources/contribute.js",
+                "resources/ads.js",
                 "resources/item-hover.js",
                 "resources/missing-image.js",
                 "resources/sidebar-cleanup.js",

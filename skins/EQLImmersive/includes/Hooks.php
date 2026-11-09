@@ -48,6 +48,28 @@ class Hooks implements
 		$this->addItemSummary( $out );
 		$this->addConditionalResourceModules( $out, $skin );
 		$this->addTalkActivityModule( $out, $skin );
+		$this->addAdvertising( $out );
+	}
+
+	private function addAdvertising( $out ): void {
+		// An unconfigured provider needs no additional permission/database work.
+		if ( $out->getConfig()->get( 'EQLAdSenseClient' ) === '' ||
+			$out->getConfig()->get( 'EQLAdSenseSlot' ) === ''
+		) {
+			return;
+		}
+		$title = $out->getTitle();
+		if ( !$title || $title->getNamespace() !== NS_MAIN ) {
+			return;
+		}
+		$services = MediaWikiServices::getInstance();
+		$publicRead = $services->getPermissionManager()->userCan(
+			'read', $services->getUserFactory()->newAnonymous(), $title
+		);
+		$config = Ads::configurationForOutput( $out, $publicRead );
+		if ( $config !== null ) {
+			$out->addJsConfigVars( 'wgEQLAdSense', $config );
+		}
 	}
 
 	private function addItemSummary( $out ): void {

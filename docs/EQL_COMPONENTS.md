@@ -38,6 +38,12 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- `resources/ads.js`, the footer checkbox, and `includes/Ads.php` provide
+  browser-persistent, default-off optional ads. Google AdSense is loaded only
+  after explicit opt-in and valid configuration for a current public production
+  article. No account preferences or analytics collection are changed. The
+  [ads guide](ADS.md) describes separate provider activation and traffic limits.
+
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings
   load. Root routing and `robots.php` preserve separate production/staging hosts.
