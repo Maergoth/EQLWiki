@@ -145,15 +145,39 @@ separate production and staging allowlists. Git deployment does not install a
 private host-script change; review the installed preparation script separately
 if its rewrite list changes.
 
-## Staging ad privacy disclosure
+## Privacy and cookie disclosures
 
-[`eql-ads-test-privacy.html`](../eql-ads-test-privacy.html) is a standalone disclosure
-for authorized readers of **test.eqlwiki.com** only. It contains no JavaScript,
-ad/CMP tags or external resources and retains the existing staging access gate.
-Deploy it to staging and verify the link before using
-`https://test.eqlwiki.com/eql-ads-test-privacy.html` as Google's CMP privacy policy URL.
-It supplements the normal wiki policy for test advertising; no database policy
-page or production release is changed. Do not promote this test-only page to `main`.
+[`ops/privacy-policy.wiki`](../ops/privacy-policy.wiki) is the reviewed authored
+source for the public [EQLWiki Privacy and Cookie Policy](https://eqlwiki.com/EQLWiki:Privacy_policy).
+It covers site operation, public contributions, browser storage, separate
+anonymous/account ad preferences, conditional Google advertising, consent choices
+and privacy requests. It explicitly states that advertising is not currently
+enabled on the public wiki. Disclosure publication does not activate ads, change
+consent controls or publish an announcement.
+
+The policy is a database page. Git deployment does not publish this source.
+For an approved update, read the target's current revision, take a fresh private
+backup and open the [native source editor](https://www.mediawiki.org/wiki/Help:Editing_pages)
+from that revision. Preview and review the changes; stop on an edit conflict and
+review the newer revision rather than replacing it with a stale draft. After
+saving, record the resulting revision and verify the source, rendered policy,
+footer link and absence of Google ad/CMP tags and frames on the disclosure page.
+Publish and verify staging independently; a staging database refresh can replace
+its content. Keep original-page backups private rather than committing them as
+policy source. The 9 November 2026 publication used live revision **200533** and
+staging revision **200530**, with fresh private backups and native conflict protection.
+
+Google's CMP privacy policy URL is the public canonical
+`https://eqlwiki.com/EQLWiki:Privacy_policy`. The account-side URL was separately
+saved and published on 9 November 2026; the existing test message's branding,
+consent choices and optimization settings were unchanged. Publishing the wiki
+policy or deploying its source does not update that account setting.
+
+[`eql-ads-test-privacy.html`](../eql-ads-test-privacy.html) remains a standalone
+supplement for authorized readers of **test.eqlwiki.com** only. It contains no
+JavaScript, ad/CMP tags or external resources, links to the canonical policy and
+retains the existing staging access gate. Keep it as a test supplement; do not
+promote this test-only page to `main`.
 
 Google requires disclosure pages to contain neither consent-requiring scripts nor
 the consent-message tag; see its [privacy policy URL instructions](https://support.google.com/adsense/answer/10961370).

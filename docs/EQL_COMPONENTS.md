@@ -55,9 +55,14 @@ Major custom skin behavior:
   loader setup. Only this ad option is saved on an explicit named-user gesture; no
   analytics collection or unrelated account state is changed. Root
   [`ads.txt`](../ads.txt) supplies the owner's public Google seller record. The
-  standalone [`eql-ads-test-privacy.html`](../eql-ads-test-privacy.html) supplies
-  staging-only ad disclosures without scripts or external resources; it does not
-  update the wiki's database privacy policy and must not be promoted to production.
+  reviewed [`ops/privacy-policy.wiki`](../ops/privacy-policy.wiki) supplies authored
+  source for the public [privacy and cookie policy](https://eqlwiki.com/EQLWiki:Privacy_policy),
+  published separately to its database page through the native editor with a
+  current revision, fresh private backup and edit-conflict protection. Git
+  deployment does not publish that page or change Google's account-side CMP URL.
+  The standalone [`eql-ads-test-privacy.html`](../eql-ads-test-privacy.html) remains
+  a staging-only supplement without scripts or external resources; it links to
+  the canonical policy and must not be promoted to production.
   The [ads guide](ADS.md) covers preview, privacy messaging, future footer acceptance,
   activation and traffic limits.
 
