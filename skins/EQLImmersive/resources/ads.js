@@ -22,7 +22,10 @@
 		var script = null;
 		var reloading = false;
 		var rawConfig = mw.config.get( 'wgEQLAdSense' );
-		var config = rawConfig && typeof rawConfig.client === 'string' &&
+		var preview = rawConfig && rawConfig.preview === true &&
+			window.location.origin === 'https://test.eqlwiki.com';
+		var previewPosition = 'bottom';
+		var config = rawConfig && rawConfig.preview !== true && typeof rawConfig.client === 'string' &&
 			/^ca-pub-[0-9]{16}$/.test( rawConfig.client ) && rawConfig.client.length === 23 &&
 			typeof rawConfig.slot === 'string' && /^[0-9]{1,20}$/.test( rawConfig.slot ) &&
 			rawConfig.slot === rawConfig.slot.trim() &&
@@ -146,10 +149,53 @@
 			}
 		}
 
+		function placePreview() {
+			var content = document.querySelector( 'main#content #bodyContent > #mw-content-text.mw-body-content' );
+			if ( !content || !content.parentNode || !advertisement ) { return false; }
+			if ( previewPosition === 'top' ) {
+				content.parentNode.insertBefore( advertisement, content );
+			} else {
+				content.parentNode.insertBefore( advertisement, content.nextSibling );
+			}
+			return true;
+		}
+
+		function showPreview() {
+			if ( !placePreview() ) { hide(); return; }
+			if ( !unit.querySelector( '.eql-ad-preview' ) ) {
+				var placeholder = document.createElement( 'div' );
+				placeholder.className = 'eql-ad-preview';
+				var heading = document.createElement( 'strong' );
+				heading.textContent = 'Ad placement preview';
+				var description = document.createElement( 'p' );
+				description.textContent = 'Staging only. No live ad, Google request, or impression.';
+				var positionLabel = document.createElement( 'label' );
+				positionLabel.textContent = 'Preview position: ';
+				var position = document.createElement( 'select' );
+				[ [ 'bottom', 'After article' ], [ 'top', 'Before article' ] ].forEach( function ( choice ) {
+					var option = document.createElement( 'option' );
+					option.value = choice[ 0 ]; option.textContent = choice[ 1 ]; position.appendChild( option );
+				} );
+				position.value = previewPosition;
+				position.addEventListener( 'change', function () {
+					var hadFocus = document.activeElement === position;
+					previewPosition = position.value === 'top' ? 'top' : 'bottom';
+					placePreview();
+					if ( hadFocus ) { position.focus(); }
+				} );
+				positionLabel.appendChild( position );
+				placeholder.append( heading, description, positionLabel );
+				unit.appendChild( placeholder );
+			}
+			advertisement.hidden = false;
+		}
+
 		function load() {
-			if ( !enabled || !config || !advertisement || !unit || requested || reloading ) {
+			if ( !enabled || !advertisement || !unit || reloading ) {
 				return;
 			}
+			if ( preview ) { showPreview(); return; }
+			if ( !config || requested ) { return; }
 			var ad = document.createElement( 'ins' );
 			ad.className = 'adsbygoogle';
 			ad.style.display = 'block';

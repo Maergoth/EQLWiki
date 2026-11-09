@@ -52,20 +52,23 @@ class Hooks implements
 	}
 
 	private function addAdvertising( $out ): void {
-		// An unconfigured provider needs no additional permission/database work.
-		if ( $out->getConfig()->get( 'EQLAdSenseClient' ) === '' ||
-			$out->getConfig()->get( 'EQLAdSenseSlot' ) === ''
-		) {
+		$preview = Ads::isPreviewEnvironment( $out->getConfig() );
+		// Only staging has a local preview without provider configuration.
+		if ( !$preview && ( $out->getConfig()->get( 'EQLAdSenseClient' ) === '' ||
+			$out->getConfig()->get( 'EQLAdSenseSlot' ) === '' ) ) {
 			return;
 		}
 		$title = $out->getTitle();
 		if ( !$title || $title->getNamespace() !== NS_MAIN ) {
 			return;
 		}
-		$services = MediaWikiServices::getInstance();
-		$publicRead = $services->getPermissionManager()->userCan(
-			'read', $services->getUserFactory()->newAnonymous(), $title
-		);
+		$publicRead = false;
+		if ( !$preview ) {
+			$services = MediaWikiServices::getInstance();
+			$publicRead = $services->getPermissionManager()->userCan(
+				'read', $services->getUserFactory()->newAnonymous(), $title
+			);
+		}
 		$config = Ads::configurationForOutput( $out, $publicRead );
 		if ( $config !== null ) {
 			$out->addJsConfigVars( 'wgEQLAdSense', $config );

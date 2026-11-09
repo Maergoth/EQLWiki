@@ -21,19 +21,48 @@ server publishes valid production ad configuration. The checkbox can remember
 an opt-in before a provider is configured, without creating an empty ad area.
 Unchecking hides the unit immediately and, when Off can be retained, reloads the
 page if the Google script has been requested, ending that document's advertising
-runtime. A change
-in another tab is also observed. Browser ad blockers are respected.
+runtime. A change in another tab is also observed. Browser ad blockers are respected.
 
-The first integration is one labelled, responsive Google AdSense display unit
-after the article. There are no ads on login/account/special pages, talk pages,
-editing/history/diff/old-revision views, missing or nonpublic articles, staging,
-or local clones. `includes/Ads.php` checks the actual environment, title and
-view before exposing configuration. Google code is not placed in the footer,
+The production integration is one labelled, responsive Google AdSense display
+unit after the article. There are no real ads on login/account/special pages,
+talk pages, editing/history/diff/old-revision views, missing or nonpublic articles,
+staging, or local clones. `includes/Ads.php` checks the actual environment, title
+and view before exposing configuration. Google code is not placed in the footer,
 database `MediaWiki:` scripts, or a global page head.
 
 ![Synthetic preview of the Ads checkbox beside Donate](images/ads-footer-preview.png)
 
-## Activate an approved ad unit
+## Choose placement on staging
+
+Placement review is limited to **https://test.eqlwiki.com**. On a current existing
+main-namespace article, check **Ads** beside Donate to display a synthetic box.
+It starts just after the article text, before categories. Its **Preview position**
+selector moves that box before or after the article text without moving the
+article, notices, title, categories, or menus. Keyboard focus follows the selector.
+The position is local to the current document and starts after the article again
+on a new page; the Ads preference retains its normal browser persistence.
+Unchecking Ads removes the preview immediately without a provider reload.
+
+This preview contains no Google script, iframe, live creative, tracking call, or
+ad impression. Its minimum-height placeholder illustrates space and placement;
+it does not predict the size or appearance of a real responsive ad. Both provider
+settings stay empty until the owner separately approves production activation.
+
+The server publishes only `{preview:true}` when its trusted `Server` and
+`CanonicalServer` are both exactly `https://test.eqlwiki.com`; the browser also
+requires that exact origin. Even copied publisher IDs cannot activate Google in
+this mode. Existing staging login and noindex policies remain intact. A harmless
+preview can appear to an already authorized staging reader when anonymous wiki
+reading is disabled; it grants no access and exposes no publisher configuration.
+Special/talk/edit/history/diff/old-revision and missing-page views have no preview.
+
+Keep `includes/Ads.php` and `resources/ads.js` outside the explicit production-URL
+substitution list in `ops/staging-prepare.php`. Those files must retain their
+separate production and staging allowlists. Git deployment does not install a
+private host-script change; review the installed preparation script separately
+if its rewrite list changes.
+
+## Future production activation
 
 Source deployment alone does not activate advertising. The site needs an approved
 AdSense account/site and an owner-configured responsive display ad unit. See
@@ -41,8 +70,9 @@ Google's [display unit setup](https://support.google.com/adsense/answer/9274025/
 and [responsive parameters](https://support.google.com/adsense/answer/9183460).
 Add the issued public publisher and slot identifiers to ignored production
 settings using `$wgEQLAdSenseClient` and `$wgEQLAdSenseSlot`. Both default to empty
-strings in `skin.json` and the sanitized settings example. Never invent live IDs,
-commit account/payment data, or enable the configuration on staging.
+strings in `skin.json` and the sanitized settings example. Keep them empty during
+staging placement review. Never invent live IDs, commit account/payment data, or
+enable real ad serving on staging.
 
 Keep AdSense Auto ads disabled for this site so placements remain limited to the
 explicit unit. Remove or route any independently installed ad loader through the
@@ -90,7 +120,8 @@ traffic alone cannot establish this site's RPM or future opt-in rate.
 
 Run `node ops/test-ads.cjs` with the development guide's jsdom runtime and
 `php ops/test-ads-config.php`. These cover synthetic storage/network lifecycles
-and server eligibility; they do not request real ads or prove live AdSense
+and server eligibility, including staging-only placeholder placement and copied-ID
+isolation; they do not request real ads or prove live AdSense
 approval, impressions, payment, or browser layout. Run JS/PHP syntax checks on
 changed sources as well.
 
@@ -100,9 +131,12 @@ signed-out readers, no provider configuration, and a clean-storage Off visit.
 Inspect network requests: Off must make no Google ad request. Use synthetic
 provider responses for local lifecycle tests; never generate artificial clicks
 or impressions against a live publisher as routine verification.
+On staging, check Before/After placement with the keyboard and narrow layouts,
+then verify there is no Google script, iframe, request, or `adsbygoogle` unit.
 
 Deploy the source through a feature PR to staging, preserving the staging login
-gate and disabled ad configuration. Promote only reviewed feature commits after
-owner approval. The private production identifiers, AdSense account setup and
+gate and disabled real-ad configuration. Review placement with the synthetic box
+there; source changes do not activate production ads. Promote only reviewed
+feature commits after owner approval. Production identifiers, AdSense account setup and
 consent configuration are separate activation steps; Git deployment does not
 perform them. No schema migration or database-page synchronization is needed.

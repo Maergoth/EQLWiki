@@ -21,7 +21,10 @@ function visit( options = {} ) {
     const virtualConsole = new VirtualConsole();
     virtualConsole.on( 'jsdomError', error => errors.push( error ) );
     const dom = new JSDOM( '<!doctype html><html><head></head><body>' +
-        '<main><div class="mw-parser-output">Synthetic article</div>' +
+        '<main id="content"><h1>Synthetic article</h1><div id="bodyContent">' +
+        ( options.articleAnchor === false ? '<div class="mw-parser-output">Synthetic article</div>' :
+            '<div id="mw-content-text" class="mw-body-content"><div class="mw-parser-output">Synthetic article</div></div>' ) +
+        '<div id="catlinks">Synthetic categories</div></div>' +
         adMarkup + '</main>' + toggleMarkup + '</body></html>', {
         url: options.url || 'https://eqlwiki.com/Synthetic_article', runScripts: 'outside-only', virtualConsole
     } );
@@ -276,6 +279,56 @@ test( 'Absent or invalid publisher configuration never requests Google or leaves
 test( 'Clones never load ads even with copied publisher configuration', () => {
     for ( const url of [ 'https://test.eqlwiki.com/Article', 'http://127.0.0.1:8080/Article', 'https://other.example/Article' ] ) {
         const page = visit( { url, local: { [ key ]: 'on' } } ); assert.equal( page.scripts().length, 0 ); page.close();
+    }
+} );
+test( 'Staging synthetic placement remains hidden by default with no provider elements', () => {
+    const page = visit( { url: 'https://test.eqlwiki.com/Article', config: { preview: true } } );
+    assert.equal( page.toggle.checked, false ); assert.equal( page.hidden(), true );
+    assert.equal( page.scripts().length, 0 ); assert.equal( page.w.document.querySelector( '.eql-ad-preview' ), null );
+    assert.equal( page.w.document.querySelector( 'ins, iframe' ), null ); page.close();
+} );
+test( 'Opted-in staging preview switches article placement without Google, reloads, or lost keyboard focus', () => {
+    const page = visit( { url: 'https://test.eqlwiki.com/Article', config: { ...config, preview: true }, local: { [ key ]: 'on' } } );
+    const doc = page.w.document;
+    const article = doc.getElementById( 'mw-content-text' );
+    const ad = doc.getElementById( 'eql-advertisement' );
+    assert.equal( article.nextElementSibling, ad );
+    assert.equal( doc.getElementById( 'catlinks' ).previousElementSibling, ad );
+    assert.match( ad.textContent, /Staging only.*No live ad, Google request, or impression/ );
+    const position = ad.querySelector( 'select' ); position.focus(); position.value = 'top';
+    position.dispatchEvent( new page.w.Event( 'change' ) );
+    assert.equal( article.previousElementSibling, ad ); assert.equal( doc.activeElement, position );
+    assert.equal( doc.querySelectorAll( '.mw-parser-output' ).length, 1 );
+    assert.equal( article.parentNode.id, 'bodyContent' ); assert.equal( doc.querySelector( 'main > h1' ).textContent, 'Synthetic article' );
+    page.choose( false ); assert.equal( page.hidden(), true ); assert.equal( page.reloads(), 0 );
+    page.choose( true ); assert.equal( page.hidden(), false );
+    assert.equal( article.previousElementSibling, ad ); assert.equal( ad.querySelector( 'select' ).value, 'top' );
+    page.w.eval( source ); page.w.dispatchEvent( new page.w.PageTransitionEvent( 'pageshow', { persisted: true } ) );
+    assert.equal( doc.querySelectorAll( '.eql-ad-preview' ).length, 1 ); assert.equal( page.scripts().length, 0 );
+    assert.equal( doc.querySelector( 'ins, iframe' ), null ); assert.equal( page.w.adsbygoogle, undefined );
+    assert.equal( page.accountWrites(), 0 ); assert.equal( page.reloads(), 0 ); page.close();
+} );
+test( 'Staging preview honors cross-tab and restored OFF preferences without a provider reload', () => {
+    const page = visit( { url: 'https://test.eqlwiki.com/Article', config: { preview: true }, local: { [ key ]: 'on' } } );
+    page.storage( 'off' ); assert.equal( page.hidden(), true );
+    page.storage( 'on' ); assert.equal( page.hidden(), false );
+    page.local.set( key, 'off' ); page.w.dispatchEvent( new page.w.PageTransitionEvent( 'pageshow', { persisted: true } ) );
+    assert.equal( page.hidden(), true ); assert.equal( page.toggle.checked, false );
+    assert.equal( page.scripts().length, 0 ); assert.equal( page.reloads(), 0 ); page.close();
+} );
+test( 'Preview requires the staging flag, exact origin, and the actual article anchor', () => {
+    for ( const options of [
+        { url: 'https://eqlwiki.com/Article', config: { ...config, preview: true } },
+        { url: 'https://other.example/Article', config: { ...config, preview: true } },
+        { url: 'http://test.eqlwiki.com/Article', config: { preview: true } },
+        { url: 'https://test.eqlwiki.com.evil.example/Article', config: { preview: true } },
+        { url: 'https://test.eqlwiki.com/Article', config },
+        { url: 'https://test.eqlwiki.com/Article', config: { preview: 'true' } },
+        { url: 'https://test.eqlwiki.com/Article', config: { preview: true }, articleAnchor: false }
+    ] ) {
+        const page = visit( { ...options, local: { [ key ]: 'on' } } );
+        assert.equal( page.hidden(), true ); assert.equal( page.scripts().length, 0 );
+        assert.equal( page.w.document.querySelector( '.eql-ad-preview, ins, iframe' ), null ); page.close();
     }
 } );
 test( 'A blocked provider collapses the unit', () => {

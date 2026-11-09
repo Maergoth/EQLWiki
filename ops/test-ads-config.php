@@ -76,6 +76,39 @@ foreach ( [
 	[ 'DefaultRobotPolicy' => [ 'index' => 'noindex', 'follow' => 'follow' ] ]
 ] as $values ) { $check( [ 'config' => $values ], true, null ); }
 
+$staging = [
+	'Server' => 'https://test.eqlwiki.com', 'CanonicalServer' => 'https://test.eqlwiki.com',
+	'EQLAdSenseClient' => '', 'EQLAdSenseSlot' => '', 'DefaultRobotPolicy' => 'noindex,nofollow'
+];
+$preview = [ 'preview' => true ];
+// Existing staging access policy remains authoritative: only an already rendered
+// article receives a harmless preview, even if anonymous reading is disabled.
+$check( [ 'config' => $staging, 'policy' => 'noindex,nofollow' ], false, $preview );
+$check( [ 'config' => $staging ], true, $preview );
+$check( [ 'config' => array_replace( $staging, [
+	'EQLAdSenseClient' => $valid['client'], 'EQLAdSenseSlot' => $valid['slot']
+] ) ], false, $preview );
+foreach ( [
+	[ 'missingTitle' => true ], [ 'namespace' => 1 ], [ 'namespace' => -1 ], [ 'namespace' => 2 ],
+	[ 'exists' => false ], [ 'redirect' => true ], [ 'article' => false ], [ 'current' => false ],
+	[ 'action' => 'edit' ], [ 'action' => 'history' ], [ 'action' => 'raw' ], [ 'action' => 'submit' ],
+	[ 'query' => [ 'oldid' => '123' ] ], [ 'query' => [ 'diff' => '' ] ],
+	[ 'query' => [ 'veaction' => 'edit' ] ]
+] as $options ) { $check( array_replace( $options, [ 'config' => $staging ] ), false, null ); }
+foreach ( [
+	[ 'Server' => 'http://test.eqlwiki.com' ], [ 'Server' => 'https://test.eqlwiki.com:443' ],
+	[ 'Server' => 'https://www.test.eqlwiki.com' ], [ 'Server' => 'https://test.eqlwiki.com.evil.example' ],
+	[ 'CanonicalServer' => 'https://eqlwiki.com' ], [ 'Server' => 'https://eqlwiki.com' ],
+	[ 'CanonicalServer' => 'http://test.eqlwiki.com' ]
+] as $values ) { $check( [ 'config' => array_replace( $staging, $values ) ], true, null ); }
+
+// Staging's explicit URL rewrite list must not rewrite production allowlists.
+$prepare = file_get_contents( __DIR__ . '/staging-prepare.php' );
+if ( !preg_match( '/\$files\s*=\s*\[(.*?)\];/s', $prepare, $matches ) ||
+	str_contains( $matches[1], 'includes/Ads.php' ) || str_contains( $matches[1], 'resources/ads.js' )
+) { throw new RuntimeException( 'Advertising environment guards must stay outside staging URL substitution.' ); }
+$checks++;
+
 $manifest = json_decode( file_get_contents( __DIR__ . '/../skins/EQLImmersive/skin.json' ), true, 512, JSON_THROW_ON_ERROR );
 foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseSlot' ] as $setting ) {
 	if ( $manifest['config'][$setting]['value'] !== '' ) { throw new RuntimeException( 'Advertising must default unconfigured.' ); }
