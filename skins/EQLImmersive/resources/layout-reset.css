@@ -19,6 +19,19 @@ body.skin-eqlimmersive {
 	padding-bottom: calc(2.55rem + var(--eql-ad-anchor-clearance, 0px)) !important;
 }
 
+/* Continue the footer's dark surface beside a centered native anchor.
+   This decorative layer never receives clicks or changes Google's ad. */
+body.skin-eqlimmersive #eql-ad-anchor-backdrop {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: var(--eql-ad-anchor-clearance, 0px);
+	background: #080c12;
+	pointer-events: none;
+	z-index: 4999;
+}
+
 
 /* =====================================================
    Fixed footer — bottom-left
