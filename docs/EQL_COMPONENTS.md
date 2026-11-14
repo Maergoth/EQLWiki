@@ -51,6 +51,10 @@ Major custom skin behavior:
   preserving login/noindex. Provider objects identify their environment and the
   browser rejects a mismatched origin. Production uses its own settings and
   current public article checks; neither copies the other's configuration.
+  For native bottom anchors, `ads.js` observes the provider's outer geometry and
+  `layout-reset.css` raises the wiki footer and reserves page-end space using
+  `--eql-ad-anchor-clearance`, including collapse-tab clearance. Google elements
+  and ad dimensions are untouched; hiding/removal restores the footer position.
   Approval, consent and protected-content crawler access remain separate from
   loader setup. Only this ad option is saved on an explicit named-user gesture; no
   analytics collection or unrelated account state is changed. Root

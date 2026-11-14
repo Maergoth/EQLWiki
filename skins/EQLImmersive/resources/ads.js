@@ -2,6 +2,90 @@
 (function () {
 	'use strict';
 
+	// Google owns the anchor. Move only our footer and reserve its space, never
+	// resize, clip, restyle or inspect the contents of the provider's ad frames.
+	function followAnchor() {
+		var root = document.documentElement;
+		var selector = 'ins.adsbygoogle[data-anchor-status]';
+		var property = '--eql-ad-anchor-clearance';
+		var anchors = [];
+		var frame = null;
+		var active = true;
+		var resize = typeof ResizeObserver === 'function' ? new ResizeObserver( schedule ) : null;
+		var requestFrame = window.requestAnimationFrame || function ( callback ) { return window.setTimeout( callback, 16 ); };
+		var cancelFrame = window.cancelAnimationFrame || window.clearTimeout;
+
+		function measure() {
+			frame = null;
+			var next = Array.from( document.querySelectorAll( selector ) );
+			if ( next.length !== anchors.length || next.some( function ( el, i ) { return el !== anchors[ i ]; } ) ) {
+				anchors = next;
+				if ( resize ) {
+					resize.disconnect();
+					anchors.forEach( function ( el ) { resize.observe( el ); } );
+				}
+			}
+			var height = root.clientHeight || window.innerHeight;
+			var clearance = 0;
+			anchors.forEach( function ( el ) {
+				var style = window.getComputedStyle( el );
+				var box = el.getBoundingClientRect();
+				if ( style.position !== 'fixed' || style.bottom === 'auto' ||
+					style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' ||
+					box.width <= 0 || box.height <= 0 || box.right <= 0 || box.left >= window.innerWidth ||
+					box.top < 0 || box.bottom < height - 1 ) { return; }
+				// The collapse tab extends outside the anchor's box in Google's
+				// closed shadow root. Allow 40px for that tab plus a 12px gap.
+				var top = box.top - ( el.querySelector( '.grippy-host' ) ? 40 : 0 );
+				if ( top < height ) { clearance = Math.max( clearance, Math.ceil( height - top + 12 ) ); }
+			} );
+			var value = clearance + 'px';
+			if ( clearance === 0 ) {
+				if ( root.style.getPropertyValue( property ) ) { root.style.removeProperty( property ); }
+			} else if ( root.style.getPropertyValue( property ) !== value ) {
+				root.style.setProperty( property, value );
+			}
+		}
+
+		function schedule() {
+			if ( active && frame === null ) { frame = requestFrame( measure ); }
+		}
+
+		function related( node ) {
+			return node.nodeType === 1 && ( node.matches( 'ins.adsbygoogle' ) ||
+				node.closest( selector ) || node.querySelector( selector ) );
+		}
+
+		var changes = new MutationObserver( function ( records ) {
+			if ( records.some( function ( record ) {
+				return ( record.type === 'attributes' && ( anchors.indexOf( record.target ) !== -1 ||
+					record.target.matches( 'ins.adsbygoogle' ) || record.target.closest( selector ) ) ) ||
+					( record.type === 'childList' && ( record.target.closest( selector ) ||
+						Array.from( record.addedNodes ).some( related ) || Array.from( record.removedNodes ).some( related ) ) );
+			} ) ) { schedule(); }
+		} );
+
+		function start() {
+			active = true;
+			changes.observe( root, { subtree: true, childList: true, attributes: true,
+				attributeFilter: [ 'style', 'class', 'hidden', 'data-anchor-status' ] } );
+			anchors = [];
+			schedule();
+		}
+		window.addEventListener( 'resize', schedule );
+		window.addEventListener( 'scroll', schedule, { passive: true } );
+		if ( window.visualViewport ) { window.visualViewport.addEventListener( 'resize', schedule ); }
+		document.addEventListener( 'transitionend', function ( event ) { if ( related( event.target ) ) { schedule(); } }, true );
+		window.addEventListener( 'pagehide', function () {
+			active = false;
+			changes.disconnect();
+			if ( resize ) { resize.disconnect(); }
+			if ( frame !== null ) { cancelFrame( frame ); frame = null; }
+		} );
+		window.addEventListener( 'pageshow', function ( event ) { if ( event.persisted ) { start(); } } );
+		start();
+	}
+
 	function init() {
 		var toggle = document.getElementById( 'eql-ads-toggle' );
 		if ( !toggle || toggle.dataset.eqlAdsBound === '1' ) { return; }
@@ -160,6 +244,7 @@
 				encodeURIComponent( config.client );
 			script.addEventListener( 'error', hide );
 			requested = true;
+			followAnchor();
 			document.head.appendChild( script );
 		}
 

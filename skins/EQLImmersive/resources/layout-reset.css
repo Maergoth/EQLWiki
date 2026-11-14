@@ -16,7 +16,7 @@
    ===================================================== */
 
 body.skin-eqlimmersive {
-	padding-bottom: 2.55rem !important;
+	padding-bottom: calc(2.55rem + var(--eql-ad-anchor-clearance, 0px)) !important;
 }
 
 
@@ -29,7 +29,7 @@ body.skin-eqlimmersive .mw-footer-container {
 
 	left: 0 !important;
 	right: 0 !important;
-	bottom: 0 !important;
+	bottom: var(--eql-ad-anchor-clearance, 0px) !important;
 
 	width: 100% !important;
 	max-width: none !important;
@@ -217,7 +217,7 @@ html.eql-main-menu-pinned-initial body.skin-eqlimmersive .mw-footer-container {
 
 @media ( max-width: 900px ) {
 	body.skin-eqlimmersive {
-		padding-bottom: 3.25rem !important;
+		padding-bottom: calc(3.25rem + var(--eql-ad-anchor-clearance, 0px)) !important;
 	}
 
 	body.skin-eqlimmersive .mw-footer-container {
