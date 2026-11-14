@@ -248,6 +248,13 @@ body.skin-eqlimmersive.page-Main_Page .mw-content-container.eql-ad-side-wide {
 body.skin-eqlimmersive .eql-ad-side-wide > main#content { grid-column: 1; grid-row: 1; min-width: 0; width: auto !important; }
 body.skin-eqlimmersive .eql-ad-side-wide > #eql-ad-sidebar { grid-column: 2; grid-row: 1; margin: 24px 0 0; }
 body.skin-eqlimmersive .eql-ad-side-wide > :not(main):not(#eql-ad-sidebar) { grid-column: 1 / -1; }
+/* Pending or cosmetically blocked Multiplex units remain measurable below the
+   article. Only our empty chrome is removed; never hide or clip Google's unit. */
+body.skin-eqlimmersive #eql-ad-sidebar.eql-ad-awaiting-result,
+body.skin-eqlimmersive #eql-ad-banner.eql-ad-awaiting-result { margin: 0 auto; }
+body.skin-eqlimmersive #eql-ad-sidebar.eql-ad-awaiting-result .eql-advertisement-label,
+body.skin-eqlimmersive #eql-ad-banner.eql-ad-awaiting-result .eql-advertisement-label { display: none; }
+body.skin-eqlimmersive #eql-ad-banner.eql-ad-awaiting-result #eql-ad-banner-unit { margin-top: 0; }
 @media (hover: hover) and (pointer: fine) and (min-height: 560px) {
 	body.skin-eqlimmersive .eql-ad-side-wide > #eql-ad-sidebar:not(.eql-ad-multiplex) .eql-ad-sidebar-inner {
 		position: sticky; top: calc(var(--eql-header-height, 60px) + 24px);
