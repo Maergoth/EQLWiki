@@ -130,8 +130,20 @@ body.skin-eqlimmersive .eql-ads-choice {
 	color: #e0d3b3;
 	cursor: pointer;
 }
-body.skin-eqlimmersive .eql-ads-choice input { margin: 0; accent-color: #d8b75c; }
-body.skin-eqlimmersive .eql-ads-choice:focus-within { outline: 2px solid #e8d08b; outline-offset: 3px; }
+body.skin-eqlimmersive .eql-ads-choice > span { margin-right: .15rem; }
+body.skin-eqlimmersive .eql-ads-choice label { position: relative; cursor: pointer; }
+body.skin-eqlimmersive .eql-ads-choice input {
+	position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer;
+}
+body.skin-eqlimmersive .eql-ads-choice label span {
+	display: inline-flex; align-items: center; justify-content: center;
+	min-width: 24px; height: 26px; box-sizing: border-box;
+	border: 1px solid #756641; border-radius: 4px; background: #111923; color: #e0d3b3;
+}
+body.skin-eqlimmersive .eql-ads-choice input:checked + span { background: #d8b75c; color: #16180e; border-color: #e8d08b; }
+body.skin-eqlimmersive .eql-ads-choice input:focus-visible + span { outline: 2px solid #e8d08b; outline-offset: 2px; }
+body.skin-eqlimmersive .eql-ads-choice input:disabled + span { opacity: .5; }
+body.skin-eqlimmersive .eql-ads-choice[aria-busy="true"] { opacity: .7; }
 body.skin-eqlimmersive .eql-advertisement[hidden] { display: none !important; }
 body.skin-eqlimmersive {
 	--eql-fixed-footer-height: 2.25rem;
@@ -189,6 +201,32 @@ body.skin-eqlimmersive .eql-ad-preview {
 }
 body.skin-eqlimmersive .eql-ad-preview p { margin: .2rem 0 0; }
 
+/* One display unit in normal document flow. Wide desktop layouts may reserve
+   a separate column; the actual Google unit remains 300x250 in either layout. */
+body.skin-eqlimmersive #eql-ad-sidebar[hidden] { display: none !important; }
+body.skin-eqlimmersive #eql-ad-sidebar {
+	box-sizing: border-box; width: 300px; margin: 2rem auto 1rem;
+	text-align: center; min-width: 0; align-self: stretch;
+}
+body.skin-eqlimmersive .eql-ad-sidebar-inner { width: 300px; }
+body.skin-eqlimmersive #eql-ad-sidebar-unit { width: 300px; min-height: 250px; }
+body.skin-eqlimmersive #eql-ad-sidebar .eql-advertisement-label { display: block; margin-bottom: 12px; }
+body.skin-eqlimmersive #eql-ad-sidebar .eql-ad-preview {
+	height: 250px; border: 1px solid #657087; background: #142138;
+}
+body.skin-eqlimmersive .mw-content-container.eql-ad-side-wide {
+	display: grid !important; grid-template-columns: minmax(0, 1fr) 300px;
+	column-gap: 32px; align-items: start;
+}
+body.skin-eqlimmersive .eql-ad-side-wide > main#content { grid-column: 1; grid-row: 1; min-width: 0; width: auto !important; }
+body.skin-eqlimmersive .eql-ad-side-wide > #eql-ad-sidebar { grid-column: 2; grid-row: 1; margin: 24px 0 0; }
+body.skin-eqlimmersive .eql-ad-side-wide > :not(main):not(#eql-ad-sidebar) { grid-column: 1 / -1; }
+@media (hover: hover) and (pointer: fine) and (min-height: 560px) {
+	body.skin-eqlimmersive .eql-ad-side-wide .eql-ad-sidebar-inner {
+		position: sticky; top: calc(var(--eql-header-height, 60px) + 24px);
+	}
+}
+
 @media (max-width: 900px) {
 	body.skin-eqlimmersive {
 		--eql-fixed-footer-height: 3rem;
@@ -200,4 +238,12 @@ body.skin-eqlimmersive .eql-ad-preview p { margin: .2rem 0 0; }
 	body.skin-eqlimmersive #eql-contribute-button,
 	body.skin-eqlimmersive #eql-support-button { min-width: 0; padding-inline: .4rem; margin-right: .35rem; font-size: .65rem; letter-spacing: 0; }
 	body.skin-eqlimmersive .eql-ads-choice { font-size: .65rem; margin-right: .4rem; }
+}
+
+@media (max-width: 360px) {
+	/* Keep all three ad choices reachable alongside the existing actions. */
+	body.skin-eqlimmersive #eql-contribute-button {
+		width: 7rem; height: 2rem; box-sizing: border-box;
+		white-space: normal; line-height: 1.15;
+	}
 }

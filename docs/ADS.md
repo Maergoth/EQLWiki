@@ -1,25 +1,31 @@
-# Optional ads and staging footer preview
+# Optional ad layouts and staging previews
 
-EQLImmersive places an **Ads** checkbox immediately after **Donate** in the
-fixed footer. **Logged-out readers start with Ads on.** Turning them off says
-exactly **“Ads disabled. Log in to save your preference”**. The choice is remembered
-for the browser session, so readers do not have to repeat it on every page.
-A first-party, wiki-scoped, host-only session cookie carries only `on` or `off`,
-with `Path=/`, `SameSite=Lax` and `Secure` on HTTPS. It has no expiry or Max-Age and
-is shared across this site's tabs. Normal session-cookie lifetime applies;
-browsers that restore sessions can restore session cookies too. If cookies cannot
-store a usable choice, sessionStorage can retain it in that tab. A valid cookie
-is authoritative over an older tab fallback. Neither anonymous choice uses
-localStorage or a long-lived cookie, and anonymous visitors make no preference API writes.
+EQLImmersive places an **Ads X / 1 / 2** radio group immediately after **Donate**.
+X is Off, 1 is Side (wide desktop), and 2 is Bottom (tall/narrow windows).
+The controls have individual accessible names, native radio-keyboard behavior,
+visible focus/selection states and descriptive tooltips.
 
-**Named accounts start with Ads off** unless their saved `userjs-eql-ads` option is
-`on`. Their preference is saved to the wiki account, independently of the anonymous
-browser session, and follows the account on future visits/devices. No anonymous
-or legacy browser preference is imported or copied into an account. Existing
-account/anonymous state for other features is untouched.
+**New logged-out readers start with Side only on a landscape desktop with at
+least 1280 CSS pixels of content-container width and 560 pixels of viewport
+height, a fine hover pointer and no touch points. Otherwise they start with
+Bottom.** The initial default is computed once, not changed while resizing.
+An explicit choice wins. Turning ads off says exactly **“Ads disabled. Log in
+to save your preference”**. The choice lasts for the browser session through a
+first-party host-only session cookie (`Path=/`, `SameSite=Lax`, Secure on HTTPS),
+with sessionStorage as a per-tab fallback if cookies cannot retain it. Cookies
+have no expiry/Max-Age; browser session restoration can restore them. A present
+cookie is authoritative; malformed/unreadable values fail Off. No localStorage,
+long-lived cookie, or anonymous preference API write is used.
+
+**Named accounts start with Off** unless their native `userjs-eql-ads` option
+selects Side or Bottom. New writes use `off`, `side` or `anchor`. The current
+boolean-era `on` value reads as Bottom without a background migration write;
+`off` remains Off, both for accounts and current anonymous session storage.
+Superseded long-lived browser preferences are still ignored. Anonymous and
+account choices are never copied across login boundaries.
 
 The account read verifies the current server identity using asserted
-`userinfo` options before honoring On. Only a checkbox or close-button gesture
+`userinfo` options before honoring On. Only a radio-selection or preview close-button gesture
 can save through native `mw.Api.saveOption`, with CSRF and the captured account's
 `assert=user` / `assertuser` checks. Writes are serialized and the latest choice
 wins; stale responses cannot enable ads. Startup, focus and page restoration
@@ -27,7 +33,7 @@ perform reads only. Failed or uncertain writes are not automatically retried.
 Missing/malformed account values default Off; failed reads also stay Off.
 
 If the browser or account cannot retain an opt-out, the current document keeps
-the checkbox and local preview Off and explains the failure. It does not reload
+the selection and local preview Off and explains the failure. It does not reload
 into a stale saved On. Close that tab to end an already loaded provider; Google's
 own anchor may remain until the tab closes. Retry or reload after resolving a
 save failure to establish a retained preference.
@@ -36,14 +42,16 @@ save failure to establish a retained preference.
 script, iframe, or ad request is created until the effective preference is On
 **and** the server publishes valid ad configuration for that exact environment.
 Without provider configuration, an On preference creates no empty production ad area.
-Unchecking removes the local preview immediately. When Google's script has been
-requested and Off can be retained, it reloads the page to end that document's
-advertising runtime. A change in another tab is also observed. Browser ad blockers
+Selecting X removes synthetic previews immediately. When Google's script has been
+requested and a changed mode can be retained, it reloads the page once to end that document's
+advertising runtime. A one-use, page-bound sessionStorage record restores the
+scroll offset on reload (60-second lifetime); it contains no account data or ad
+preference. Restoration is best effort when layout height changes. A change in
+another tab is also observed. Browser ad blockers
 are respected.
 
-The provider integration uses Google's supported regular bottom anchor
-format. It does not fix a normal display ad to the screen or create a manual ad
-unit. There are no real ads on login/account/special pages, talk pages,
+Bottom uses Google's supported regular bottom anchor format. Side uses an
+issued display-unit slot with explicit 300x250 dimensions in its own column. Side is sticky only within its desktop article column, never a custom fixed footer. There are no real ads on login/account/special pages, talk pages,
 editing/history/diff/old-revision views, missing articles, or local clones.
 Production also excludes nonpublic and noindex articles. Staging can load the
 provider only through its separate explicit settings described below, preserving
@@ -51,12 +59,10 @@ its existing authentication and noindex. `includes/Ads.php` checks the actual en
 and view before exposing configuration. Google code is not unconditionally added
 to the footer, database `MediaWiki:` scripts, or page head.
 
-![Synthetic preview of the Ads checkbox beside Donate](images/ads-footer-preview.png)
-
 ## Review the footer dock on staging
 
 Placement review is limited to **https://test.eqlwiki.com**. With its separate
-provider settings blank or invalid, an On **Ads** preference on a current existing
+provider settings blank or invalid, the **2 / Bottom** preference on a current existing
 main-namespace article, including the Main Page, displays
 a synthetic bottom dock. It stays visible while scrolling, immediately
 above the fixed Donate/Ads utility bar. Its creative area is 90px tall on desktop
@@ -68,8 +74,8 @@ move article content or change unrelated account state.
 
 Closing the dock sets Ads Off, retains it for the anonymous browser session or
 saves it to the named account, removes the dock and reserved space, and returns
-keyboard focus to the Ads checkbox. Unchecking Ads does the same. Anonymous close
-and checkbox opt-outs show the exact login notice above. Focus, visibility and
+keyboard focus to the X radio. Selecting X does the same. Anonymous close
+and X opt-outs show the exact login notice above. Focus, visibility and
 back/forward restoration re-read the appropriate session/account state. Failed
 persistence retains the document-only Off behavior described above.
 
@@ -87,14 +93,54 @@ preview can appear to an already authorized staging reader when anonymous wiki
 reading is disabled; it grants no access and exposes no publisher configuration.
 Special/talk/edit/history/diff/old-revision and missing-page views have no preview.
 
+## Side layout and per-reader provider selection
+
+Side's inert aside is a sibling of `main#content` inside `.mw-content-container`.
+On eligible wide desktops that container reserves a 300px column plus 32px gap,
+leaving at least 948px for the main column before its own padding. The inner
+unit is sticky below the measured header with 24px clearance. On narrow,
+portrait, short, touch/tablet or coarse-pointer layouts it remains an ordinary
+in-flow block after the article. The same unit stays in the DOM during resizing;
+there is no ad refresh, second request, cloned creative, clipping or forced
+Google iframe sizing. The native anchor and side unit are never requested
+in the same document. A failed Off/style save leaves an already-requested real
+unit intact and warns the reader to close the tab, rather than hiding an ad.
+
+With no provider configuration, Side has a synthetic 300x250 preview and Bottom
+uses the existing synthetic dock. Neither preview requests Google. Exact
+staging origin and eligible article checks remain mandatory.
+
+To serve both modes, independently install staging format `layouts` and a valid
+issued `EQLAdSenseStagingSidebarSlot` (10 decimal digits). The previously installed
+`anchor` format remains compatible with Bottom; Side makes no request until its
+configuration is ready. Production continues accepting only its existing
+explicit `anchor` configuration; staging layout/slot settings cannot activate
+production.
+
+Google account prerequisite: leave Auto ads enabled but disable every default
+format (including anchors), automatic optimization and automatic winner
+application. This is a shared root-domain/subdomain setting and needs explicit
+approval beyond staging-only activation. Google may present an all-formats-off
+warning. Bottom alone supplies the documented `data-overlays="collapsed-bottom"`
+override, which enables regular bottom anchors despite the dashboard anchor
+setting. Side supplies no overlay override and requests only the issued display
+unit. Verify a real fill for each after propagation; if modes are mixed, leave
+Side unconfigured and investigate rather than hiding an unwanted Google ad.
+
+References: [Google's supported per-page anchor override](https://support.google.com/adsense/answer/7478225),
+[manual sticky restrictions](https://support.google.com/adsense/answer/10734935),
+and [supported display sizing](https://support.google.com/adsense/answer/9183363).
+
 ## Configure the native provider on staging
 
 Staging has independent `$wgEQLAdSenseStagingClient` and
-`$wgEQLAdSenseStagingFormat` settings. Both default to empty strings. To configure
-the native integration, set the issued `ca-pub-` publisher identifier and exactly
-`'anchor'` in the separate private, mode-0600 file
+`$wgEQLAdSenseStagingFormat` settings. All staging provider settings default to empty strings. To configure
+the native integration, set the issued `ca-pub-` publisher identifier and format
+`'anchor'` for Bottom alone, or `'layouts'` plus the issued sidebar slot for both
+styles after the shared Google settings approval described above, in the private, mode-0600 file
 `/home/eqlwikdq/deploy/EQLWiki-staging/ads-settings.php` only. This file contains
-only `$wgEQLAdSenseStagingClient` and `$wgEQLAdSenseStagingFormat`; it must not
+only `$wgEQLAdSenseStagingClient`, `$wgEQLAdSenseStagingFormat` and, for
+the two-layout configuration, `$wgEQLAdSenseStagingSidebarSlot`; it must not
 contain production settings or account credentials. Do not reuse the independent
 Talk policy file. Keep both production settings blank.
 
@@ -152,7 +198,7 @@ handling, not a guarantee about future Google creatives.
 This explicit staging path preserves its existing authentication and noindex
 policies; it does not require anonymous public reading as the production path
 does. It grants no access to the wiki or to Google crawlers. AdSense site
-approval, applicable consent setup, anchor-only account formats and Google's
+approval, applicable consent setup, the mode-appropriate account formats and Google's
 ability to assess protected content remain separate requirements. A configured
 loader is not proof of site approval, an ad fill, an impression, or earnings.
 Do not remove the staging gate, expose private content, or supply administrator
@@ -228,7 +274,7 @@ message does not establish site approval, ad fill or legal compliance.
 The current feature review is staging-only; full source promotion to production
 is not authorized. Publish `ads.txt` separately if production verification is
 needed, keeping the public wiki UI unchanged. Blank provider settings disable
-Google loading, but do **not** hide the existing Ads checkbox or stop its
+Google loading, but do **not** hide the existing Ads selector or stop its
 preference lifecycle if these feature files are later promoted. Review that UI
 boundary before any separately approved full production release.
 
@@ -253,10 +299,10 @@ uncovered. Verify supported-format placement and footer usability before owner
 acceptance of production activation; local end padding alone cannot guarantee it.
 No custom fixed-position styling is applied to Google's ads. Remove or route any
 independently installed loader through the same effective-preference gate before activation; the
-checkbox cannot stop code another extension, database script, tag manager or proxy
+selector cannot stop code another extension, database script, tag manager or proxy
 independently injects.
 
-The Ads checkbox controls display. It is not a consent management platform or
+The Ads selector controls layout/display. It is not a consent management platform or
 permission for personalized advertising. Configure Google's supported consent
 flow where required before serving ads; see its
 [CMP requirements](https://support.google.com/adsense/answer/13554116) and
@@ -284,7 +330,7 @@ analytics collection is added by this feature. Exclude API/resource requests,
 test traffic and staging. Unknown automation and measurement blockers still
 make human counts estimates.
 
-Only views whose effective Ads preference is On can earn revenue. Forecast from
+Only views whose effective Ads preference is Side or Bottom can earn revenue. Forecast from
 anonymous human article pageviews, the fraction with Ads on, the fraction delivering
 ads, and measured earnings per thousand of those monetized pageviews. Google
 [page RPM](https://support.google.com/adsense/answer/112030) uses AdSense-counted
@@ -299,8 +345,9 @@ Run `node ops/test-ads.cjs` with the development guide's jsdom runtime and
 `php ops/test-ads-config.php`. These cover synthetic storage/network lifecycles
 and server eligibility, including anonymous session defaults, asserted account
 reads/gesture-only writes, queue and identity races, staging-only dock dismissal, footer breakpoint/
-reserve contracts, independent staging/production configuration, anchor-only loader
-attributes and copied-origin isolation; they do not request real ads or prove live AdSense
+reserve contracts, independent staging/production configuration, one-provider-style
+loading, responsive Side fallback, migration from the old On value, scroll restoration
+records and copied-origin isolation; they do not request real ads or prove live AdSense
 approval, impressions, payment, or browser layout. Run JS/PHP syntax checks on
 changed sources as well.
 

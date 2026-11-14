@@ -38,9 +38,9 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
-- `resources/ads.js`, the footer checkbox, and `includes/Ads.php` provide
-  optional ads with anonymous default On for the browser session and named-account
-  default Off using the native `userjs-eql-ads` option. Session choices and account
+- `resources/ads.js`, the footer X/1/2 radio group, and `includes/Ads.php` provide
+  optional Side/Bottom layouts with a width-aware anonymous default for the browser
+  session and named-account default Off using the native `userjs-eql-ads` option. Session choices and account
   state remain separate; legacy browser choices are ignored. Exact configured/runtime
   `https://test.eqlwiki.com` offers a dismissible synthetic bottom dock above the
   fixed Donate/Ads bar, without Google calls or impressions, behind the existing
@@ -51,6 +51,13 @@ Major custom skin behavior:
   preserving login/noindex. Provider objects identify their environment and the
   browser rejects a mismatched origin. Production uses its own settings and
   current public article checks; neither copies the other's configuration.
+  Staging format `layouts` additionally requires an issued `EQLAdSenseStagingSidebarSlot`.
+  Side uses one 300x250 unit in a reserved wide-desktop column, falling back to
+  normal document flow elsewhere; resizing does not request another ad. Current
+  saved `on` choices read as Bottom, `off` stays Off; new values are `side`, `anchor`
+  and `off`. Confirmed mode changes reload an already loaded provider once and
+  restore the scroll offset with a short-lived, page-bound session record.
+  Shared Google account format settings need separate approval before activation.
   For native bottom anchors, `ads.js` observes the provider's outer geometry and
   `layout-reset.css` raises the wiki footer and reserves page-end space using
   `--eql-ad-anchor-clearance`. The footer meets the ad body without a gap; only
