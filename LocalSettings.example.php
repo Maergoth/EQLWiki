@@ -138,6 +138,32 @@ $wgDefaultSkin = "eqlimmersive";
 wfLoadSkin( 'EQLImmersive' );
 wfLoadSkin( 'Vector' );
 
+# Optional AdSense trial. Leave blank until the reviewed production activation.
+# Format 'multiplex-layouts' requires separately issued Multiplex units; keep
+# shared Auto ads and Auto optimize off. Historical 'anchor' remains supported.
+# Anonymous readers default Right in landscape and Bottom in portrait/square;
+# named accounts default Off unless they have saved a layout. Anonymous choices
+# last 24 hours from selection; signed-in choices are stored in the account.
+# See docs/ADS.md; never add an unconditional Google script to Common.js.
+$wgEQLAdSenseClient = '';
+$wgEQLAdSenseFormat = '';
+$wgEQLAdSenseMultiplexSidebarSlot = '';
+$wgEQLAdSenseMultiplexBottomSlot = '';
+
+# Independent staging integration, recognized only on exact test.eqlwiki.com.
+# Leave blank for the synthetic dock. Configure in ignored staging settings only.
+# Site approval, consent setup and crawler access remain separate requirements.
+$wgEQLAdSenseStagingClient = '';
+$wgEQLAdSenseStagingFormat = '';
+# Set staging format to 'manual-layouts' with two issued display-unit slots only after
+# disabling competing default Auto ad formats. Never copy these to production.
+$wgEQLAdSenseStagingSidebarSlot = '';
+$wgEQLAdSenseStagingBannerSlot = '';
+# Multiplex grids require their own issued Multiplex units, not display-unit IDs.
+# Set staging format to 'multiplex-layouts' after configuring both units.
+$wgEQLAdSenseStagingMultiplexSidebarSlot = '';
+$wgEQLAdSenseStagingMultiplexBottomSlot = '';
+
 # Hide legacy Vector from user skin preferences.
 # This leaves only EQLImmersive and Vector 2022 selectable.
 $wgSkipSkins = $wgSkipSkins ?? [];

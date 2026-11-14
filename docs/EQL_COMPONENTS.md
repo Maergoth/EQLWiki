@@ -38,6 +38,32 @@ the custom layout and conditional resources. See the
 
 Major custom skin behavior:
 
+- `resources/ads.js`, the footer X/1/2 radio group, and `includes/Ads.php` own
+  optional ad layouts: X Off, 1 horizontal Multiplex grid after the complete
+  content card, 2 vertical grid on the right. Both scroll normally outside
+  `main#content`; the 300px right column plus 32px gap needs 1000px of content
+  width and falls below the article on narrower windows. Google controls the
+  real tile count and height; one selected unit is requested per document.
+  Fresh anonymous readers default to Right in landscape and Bottom in portrait
+  or square windows. Explicit anonymous choices last 24 hours from selection in
+  a host-only cookie, with a timestamped per-tab fallback; reads do not renew it.
+  Named accounts default Off and keep their independent native saved option.
+  Mode changes save first, reload once after Google loading, and restore scroll
+  when possible. Production and staging require independent explicit publisher
+  and Multiplex slot settings with exact-origin and article eligibility checks.
+  Production excludes nonpublic/noindex views; blank staging settings retain
+  synthetic previews without changing staging access. The hidden template control
+  is revealed only for valid configuration or staging preview, with no ad-option
+  API read on blank/ineligible views; eligible Off readers retain the control.
+  Auto ads and Auto optimize
+  stay Off. Only the ad choice is saved by this feature; no analytics is added.
+  The [ads guide](ADS.md) covers configuration, preference failures, consent and
+  rollback. [`ads.txt`](../ads.txt) is the public seller record.
+  [`ops/privacy-policy.wiki`](../ops/privacy-policy.wiki) is authored policy source;
+  publishing its database page and News requires separate current-revision,
+  private-backup and edit-conflict checks. Git deployment does not publish those
+  pages or update Google's account-side consent settings.
+
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings
   load. Root routing and `robots.php` preserve separate production/staging hosts.
