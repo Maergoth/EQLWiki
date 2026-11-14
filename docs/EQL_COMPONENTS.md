@@ -44,6 +44,10 @@ Major custom skin behavior:
   `main#content`; the 300px right column plus 32px gap needs 1000px of content
   width and falls below the article on narrower windows. Google controls the
   real tile count and height; one selected unit is requested per document.
+  In-page units explicitly reported `unfilled` by Google collapse their complete
+  wrapper/label and release the sidebar column; pending, filled and optimized
+  units stay visible. The scoped observer resumes after BFCache restoration;
+  it does not inspect frames, refresh ads or change saved preferences.
   Fresh anonymous readers default to Right in landscape and Bottom in portrait
   or square windows. Explicit anonymous choices last 24 hours from selection in
   a host-only cookie, with a timestamped per-tab fallback; reads do not renew it.

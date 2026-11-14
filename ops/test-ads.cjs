@@ -1002,6 +1002,76 @@ test( 'Multiplex synthetic grids sit outside cards and switch to Off without pro
     page.close();
 } );
 
+test( 'Only confirmed unfilled manual units collapse their entire wrapper and sidebar reservation', async () => {
+    for ( const provider of [ manualVisit, multiplexVisit ] ) {
+        for ( const mode of [ 'side', 'anchor' ] ) {
+            const page = visit( { ...provider, cookie: cookieName + '=' + preference( mode ),
+                viewport: { width: 1920, height: 1080 } } );
+            await settle();
+            const d = page.w.document, ad = d.querySelector( 'ins.adsbygoogle' ), host = ad.closest( 'aside' );
+            const content = d.querySelector( '.mw-content-container' );
+            const wide = () => content.classList.contains( 'eql-ad-side-wide' );
+            const frame = d.createElement( 'iframe' ); frame.title = 'Synthetic creative'; ad.appendChild( frame );
+            const creative = ad.innerHTML;
+            assert.equal( host.hidden, false, 'An unreported/pending request remains visible.' );
+            ad.setAttribute( 'data-adsbygoogle-status', 'done' ); await settle();
+            assert.equal( host.hidden, false, 'Processing completion is not a fill result.' );
+            const unrelated = d.createElement( 'ins' ); unrelated.className = 'adsbygoogle';
+            unrelated.setAttribute( 'data-ad-status', 'unfilled' ); d.body.appendChild( unrelated ); await settle();
+            assert.equal( host.hidden, false, 'Other provider slots cannot collapse this wrapper.' );
+            for ( const status of [ 'unfilled', 'filled', 'unfilled', 'unfill-optimized', 'unfilled', null, 'unknown' ] ) {
+                if ( status === null ) { ad.removeAttribute( 'data-ad-status' ); }
+                else { ad.setAttribute( 'data-ad-status', status ); }
+                await settle();
+                assert.equal( host.hidden, status === 'unfilled', 'Only the exact confirmed empty result hides the wrapper and label.' );
+                assert.equal( wide(), mode === 'side' && status !== 'unfilled' );
+                assert.equal( ad.innerHTML, creative, 'The provider frame remains untouched.' );
+            }
+            ad.setAttribute( 'data-ad-status', 'unfilled' ); await settle();
+            page.w.innerWidth = 375; page.w.dispatchEvent( new page.w.Event( 'resize' ) );
+            page.w.innerWidth = 1920; page.w.dispatchEvent( new page.w.Event( 'resize' ) );
+            page.focus(); page.pageshow(); await settle();
+            assert.equal( host.hidden, true ); assert.equal( wide(), false, 'Resizing and preference refresh cannot reserve an empty column.' );
+            assert.equal( page.selected(), mode ); assert.equal( page.cookieWrites.length, 0 );
+            assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( page.scripts().length, 1 );
+            assert.equal( page.reloads(), 0 ); page.close();
+        }
+    }
+} );
+test( 'Fill observation pauses off-page and rechecks the same slot on BFCache restoration', async () => {
+    for ( const mode of [ 'side', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, cookie: cookieName + '=' + preference( mode ),
+            viewport: { width: 1920, height: 1080 } } ); await settle();
+        const ad = page.w.document.querySelector( 'ins.adsbygoogle' ), host = ad.closest( 'aside' );
+        page.w.dispatchEvent( new page.w.PageTransitionEvent( 'pagehide', { persisted: true } ) );
+        ad.setAttribute( 'data-ad-status', 'unfilled' ); await settle();
+        assert.equal( host.hidden, false, 'A disconnected observer cannot change layout off-page.' );
+        page.pageshow(); await settle(); assert.equal( host.hidden, true );
+        page.w.dispatchEvent( new page.w.PageTransitionEvent( 'pagehide', { persisted: true } ) );
+        ad.setAttribute( 'data-ad-status', 'filled' ); await settle(); assert.equal( host.hidden, true );
+        page.pageshow(); await settle(); assert.equal( host.hidden, false );
+        ad.setAttribute( 'data-ad-status', 'unfilled' ); ad.setAttribute( 'data-ad-status', 'filled' );
+        await settle(); assert.equal( host.hidden, false, 'A late fill wins over an earlier empty mutation.' );
+        assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( page.cookieWrites.length, 0 );
+        assert.equal( page.scripts().length, 1 ); assert.equal( page.reloads(), 0 ); page.close();
+    }
+} );
+test( 'Fill updates preserve live creatives and the warning after an unsuccessful account opt-out', async () => {
+    for ( const mode of [ 'side', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, user: 42, option: mode, saveError: true } ); await settle();
+        const ad = page.w.document.querySelector( 'ins.adsbygoogle' ), host = ad.closest( 'aside' );
+        ad.setAttribute( 'data-ad-status', 'filled' ); await settle();
+        const creative = ad.outerHTML;
+        page.choose( 'off' ); await settle();
+        assert.equal( host.hidden, false ); assert.equal( ad.outerHTML, creative );
+        assert.match( page.control.title, /Close this tab/ );
+        ad.setAttribute( 'data-ad-status', 'unfilled' ); await settle(); assert.equal( host.hidden, true );
+        ad.setAttribute( 'data-ad-status', 'filled' ); await settle(); assert.equal( host.hidden, false );
+        assert.match( page.control.title, /Close this tab/, 'The fill result does not falsely report a saved opt-out.' );
+        assert.equal( page.reloads(), 0 ); assert.equal( page.w.adsbygoogle.length, 1 ); page.close();
+    }
+} );
+
 ( async () => {
     for ( const { name, run } of cases ) {
         try { await run(); console.log( 'PASS ' + name ); }
