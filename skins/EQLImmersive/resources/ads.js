@@ -34,10 +34,9 @@
 					style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' ||
 					box.width <= 0 || box.height <= 0 || box.right <= 0 || box.left >= window.innerWidth ||
 					box.top < 0 || box.bottom < height - 1 ) { return; }
-				// The collapse tab extends outside the anchor's box in Google's
-				// closed shadow root. Allow 40px for that tab plus a 12px gap.
-				var top = box.top - ( el.querySelector( '.grippy-host' ) ? 40 : 0 );
-				if ( top < height ) { clearance = Math.max( clearance, Math.ceil( height - top + 12 ) ); }
+				// Meet the ad container's top edge. Google's collapse tab may
+				// overlap the footer; it must not add a blank band above the ad.
+				if ( box.top < height ) { clearance = Math.max( clearance, Math.ceil( height - box.top ) ); }
 			} );
 			var value = clearance + 'px';
 			if ( clearance === 0 ) {
