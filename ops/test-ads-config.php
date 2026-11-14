@@ -11,7 +11,7 @@ function fixture( array $options = [] ): object {
 		public function getConfig(): object {
 			$values = array_replace( [
 				'EQLAdSenseClient' => 'ca-pub-1234567890123456', 'EQLAdSenseFormat' => 'anchor',
-				'EQLAdSenseStagingClient' => '', 'EQLAdSenseStagingFormat' => '',
+				'EQLAdSenseStagingClient' => '', 'EQLAdSenseStagingFormat' => '', 'EQLAdSenseStagingSidebarSlot' => '',
 				'Server' => 'https://eqlwiki.com', 'CanonicalServer' => 'https://eqlwiki.com',
 				'DefaultRobotPolicy' => 'index,follow'
 			], $this->options['config'] ?? [] );
@@ -135,6 +135,17 @@ foreach ( [
 	$check( [ 'config' => array_replace( $configuredStaging, $values ) ], true, null );
 }
 
+// Layout serving is an independent explicit staging setting, never a production fallback.
+$layoutSettings = array_replace( $configuredStaging, [ 'EQLAdSenseStagingFormat' => 'layouts', 'EQLAdSenseStagingSidebarSlot' => '1234567890' ] );
+$layoutProvider = array_replace( $stagingProvider, [ 'format' => 'layouts', 'sidebarSlot' => '1234567890' ] );
+$check( [ 'config' => $layoutSettings ], false, $layoutProvider );
+foreach ( [ '', '123', '1234567890' . "\n", 1234567890, false ] as $invalid ) {
+    $check( [ 'config' => array_replace( $layoutSettings, [ 'EQLAdSenseStagingSidebarSlot' => $invalid ] ) ], false, $preview );
+}
+$check( [ 'config' => [ 'EQLAdSenseFormat' => 'layouts', 'EQLAdSenseStagingSidebarSlot' => '1234567890' ] ], true, null );
+$check( [ 'config' => $layoutSettings, 'namespace' => 1 ], false, null );
+$check( [ 'config' => $layoutSettings, 'action' => 'edit' ], false, null );
+
 // Staging's explicit URL rewrite list must not rewrite production allowlists.
 $prepare = file_get_contents( __DIR__ . '/staging-prepare.php' );
 if ( !preg_match( '/\$files\s*=\s*\[(.*?)\];/s', $prepare, $matches ) ||
@@ -156,7 +167,7 @@ if ( $talkInclude === false || $adsInclude === false || $settingsWrite === false
 $checks++;
 
 $manifest = json_decode( file_get_contents( __DIR__ . '/../skins/EQLImmersive/skin.json' ), true, 512, JSON_THROW_ON_ERROR );
-foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseFormat', 'EQLAdSenseStagingClient', 'EQLAdSenseStagingFormat' ] as $setting ) {
+foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseFormat', 'EQLAdSenseStagingClient', 'EQLAdSenseStagingFormat', 'EQLAdSenseStagingSidebarSlot' ] as $setting ) {
 	if ( $manifest['config'][$setting]['value'] !== '' ) { throw new RuntimeException( 'Advertising must default unconfigured.' ); }
 	$checks++;
 }

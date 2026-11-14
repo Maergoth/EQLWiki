@@ -8,9 +8,10 @@ const path = require( 'node:path' );
 const { JSDOM, VirtualConsole } = require( 'jsdom' );
 const source = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/resources/ads.js' ), 'utf8' );
 const template = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/includes/templates/skin.mustache' ), 'utf8' );
-const toggleMarkup = template.match( /<label class="eql-ads-choice"[\s\S]*?<\/label>/ )?.[ 0 ];
+const toggleMarkup = template.match( /<div id="eql-ads-toggle"[\s\S]*?<\/div>/ )?.[ 0 ];
+const sidebarMarkup = template.match( /<aside id="eql-ad-sidebar"[\s\S]*?<\/aside>/ )?.[ 0 ];
 const adMarkup = template.match( /<aside id="eql-advertisement"[\s\S]*?<\/aside>/ )?.[ 0 ];
-assert.ok( toggleMarkup && adMarkup, 'The active skin must render the control and inert unit.' );
+assert.ok( toggleMarkup && adMarkup && sidebarMarkup, 'The active skin must render the control and inert unit.' );
 const OPTION = 'userjs-eql-ads';
 const wiki = 'fixturewiki';
 const cookieName = 'eql_ads_session_v1_' + encodeURIComponent( wiki );
@@ -34,10 +35,10 @@ function visit( options = {} ) {
     const virtualConsole = new VirtualConsole();
     virtualConsole.on( 'jsdomError', error => errors.push( error ) );
     const dom = new JSDOM( '<!doctype html><html><head></head><body class="skin-eqlimmersive"><div class="mw-page-container-inner">' +
-        '<main id="content"><h1>Synthetic article</h1><div id="bodyContent"><div id="contentSub">Synthetic subtitle</div>' +
+        '<div class="mw-content-container"><main id="content"><h1>Synthetic article</h1><div id="bodyContent"><div id="contentSub">Synthetic subtitle</div>' +
         ( options.articleAnchor === false ? '<div class="mw-parser-output">Synthetic article</div>' :
             '<div id="mw-content-text" class="mw-body-content"><div class="mw-parser-output">Synthetic article</div></div>' ) +
-        '<div id="catlinks">Synthetic categories</div></div></main>' + adMarkup +
+        '<div id="catlinks">Synthetic categories</div></div></main>' + sidebarMarkup + '</div>' + adMarkup +
         ( options.footer === false ? toggleMarkup : '<div class="mw-footer-container"><button id="eql-support-button">Donate</button>' +
             toggleMarkup + '</div>' ) + '</div></body></html>', {
         url: options.url || 'https://eqlwiki.com/Synthetic_article', runScripts: 'outside-only', virtualConsole
@@ -54,6 +55,12 @@ function visit( options = {} ) {
             observe( node ) { this.targets.add( node ); }
             disconnect() { this.targets.clear(); }
         };
+    }
+    if ( options.viewport ) {
+        Object.defineProperties( w, { innerWidth: { value: options.viewport.width, writable: true }, innerHeight: { value: options.viewport.height, writable: true } } );
+        w.matchMedia = () => ( { matches: options.viewport.fine !== false } );
+        Object.defineProperty( w.navigator, 'maxTouchPoints', { value: options.viewport.touch || 0 } );
+        w.document.querySelector( '.mw-content-container' ).getBoundingClientRect = () => ( { width: options.viewport.contentWidth ?? w.innerWidth - 32 } );
     }
     const scope = options.wiki === undefined ? wiki : options.wiki;
     const scopedSessionKey = 'eql-ads-session-v1:' + encodeURIComponent( scope || w.location.host + ( options.scriptPath || '' ) );
@@ -125,10 +132,12 @@ function visit( options = {} ) {
     };
     if ( options.apiMissing ) { delete w.mw.Api; }
     w.eval( source ); w.document.dispatchEvent( new w.Event( 'DOMContentLoaded' ) );
-    const toggle = w.document.getElementById( 'eql-ads-toggle' );
+    const control = w.document.getElementById( 'eql-ads-toggle' );
+    const toggle = control.querySelector( '[value="anchor"]' );
     return {
-        w, toggle, reads, saves, notifications, cacheWrites, cookieWrites, session, local, storageCalls,
-        choose( next ) { toggle.checked = next; toggle.dispatchEvent( new w.Event( 'change' ) ); },
+        w, toggle, control, reads, saves, notifications, cacheWrites, cookieWrites, session, local, storageCalls,
+        choose( next ) { const input = control.querySelector( '[value="' + ( next === true ? 'anchor' : next === false ? 'off' : next ) + '"]' ); input.checked = true; input.dispatchEvent( new w.Event( 'change' ) ); },
+        selected: () => control.querySelector( ':checked' ).value,
         scripts: () => [ ...w.document.querySelectorAll( 'script[src]' ) ],
         hidden: () => w.document.getElementById( 'eql-advertisement' ).hidden,
         previewOpen: () => w.document.body.classList.contains( 'eql-ad-preview-open' ),
@@ -151,17 +160,17 @@ function visit( options = {} ) {
         close() {
             try {
                 assert.equal( localAccesses, 0, 'Ads must never access localStorage or its legacy preferences.' );
-                assert.ok( storageCalls.every( call => call.store === 'session' && call.key === scopedSessionKey ), 'Only the new scoped session fallback is accessed.' );
+                assert.ok( storageCalls.every( call => call.store === 'session' && [ scopedSessionKey, 'eql-ads-scroll-v1:' + encodeURIComponent( scope || w.location.host + ( options.scriptPath || '' ) ) ].includes( call.key ) ), 'Only the new scoped session fallback is accessed.' );
                 if ( user && !options.temporary ) {
                     assert.equal( cookieWrites.length, 0, 'Account state must not migrate into anonymous cookies.' );
-                    assert.equal( storageCalls.filter( call => call.method !== 'get' ).length, 0, 'Account state must not migrate into session storage.' );
+                    assert.equal( storageCalls.filter( call => call.method !== 'get' && !call.key.startsWith( 'eql-ads-scroll-v1:' ) ).length, 0, 'Account state must not migrate into session storage.' );
                     for ( const read of reads ) {
                         assert.equal( read.parameters.action, 'query' ); assert.equal( read.parameters.meta, 'userinfo' );
                         assert.ok( read.parameters.uiprop.split( '|' ).includes( 'options' ) );
                         assert.equal( read.parameters.assert, 'user' ); assert.equal( read.parameters.assertuser, name );
                     }
                     for ( const save of saves ) {
-                        assert.equal( save.option, OPTION ); assert.ok( [ 'on', 'off' ].includes( save.value ) );
+                        assert.equal( save.option, OPTION ); assert.ok( [ 'side', 'anchor', 'off' ].includes( save.value ) );
                         assert.equal( save.parameters.assert, 'user' ); assert.equal( save.parameters.assertuser, name );
                     }
                 } else { assert.equal( reads.length + saves.length, 0, 'Anonymous choices must not use account APIs.' ); }
@@ -176,16 +185,19 @@ function noProvider( page ) {
     assert.equal( page.w.adsbygoogle, undefined );
 }
 function assertOffNotice( page ) {
-    assert.equal( page.toggle.closest( 'label' ).title, offNotice );
+    assert.equal( page.control.title, offNotice );
     assert.ok( page.notifications.some( notice => notice.message === offNotice ) );
 }
 
 test( 'The skin renders an inert Ads control beside Donate and an accessible external preview dock', () => {
     const dom = new JSDOM( template );
-    const toggle = dom.window.document.getElementById( 'eql-ads-toggle' );
-    assert.equal( toggle.type, 'checkbox' ); assert.equal( toggle.checked, false ); assert.equal( toggle.disabled, true );
-    assert.equal( toggle.closest( 'label' ).textContent.trim(), 'Ads' );
-    assert.equal( toggle.closest( 'label' ).previousElementSibling.id, 'eql-support-button' );
+    const group = dom.window.document.getElementById( 'eql-ads-toggle' );
+    assert.equal( group.getAttribute( 'role' ), 'radiogroup' );
+    assert.equal( group.previousElementSibling.id, 'eql-support-button' );
+    const radios = [ ...group.querySelectorAll( 'input' ) ];
+    assert.deepEqual( radios.map( input => input.value ), [ 'off', 'side', 'anchor' ] );
+    assert.ok( radios.every( input => input.type === 'radio' && input.disabled && input.getAttribute( 'aria-label' ) ) );
+    assert.equal( group.querySelector( ':checked' ).value, 'off' );
     const ad = dom.window.document.getElementById( 'eql-advertisement' );
     assert.equal( ad.hidden, true ); assert.equal( ad.nextElementSibling.className, 'mw-footer-container' );
     const close = dom.window.document.getElementById( 'eql-ad-preview-close' );
@@ -210,13 +222,13 @@ test( 'Anonymous OFF uses a verified host-only session cookie and the exact logi
     assert.ok( page.cookieWrites.every( value => !/;\s*(Domain|Max-Age|Expires)=/i.test( value ) ), 'Preference cookies must remain host-only session cookies.' );
     const next = visit( { ...staging, cookie: page.cookie() } ); await settle();
     assert.equal( next.toggle.checked, false );
-    assert.equal( next.toggle.closest( 'label' ).title, offNotice, 'A later OFF visit describes the effective preference.' );
+    assert.equal( next.control.title, offNotice, 'A later OFF visit describes the effective preference.' );
     assert.equal( next.notifications.length, 0, 'Reading an existing OFF preference must not toast on page load.' );
     noProvider( next ); next.close(); page.close();
 } );
 test( 'A later anonymous ON and navigation retain only the temporary session choice', async () => {
     const page = visit( { ...staging, cookie: cookieName + '=off' } ); await settle(); page.choose( true ); await settle();
-    assert.equal( page.toggle.checked, true ); assert.equal( page.cookie(), cookieName + '=on' );
+    assert.equal( page.toggle.checked, true ); assert.equal( page.cookie(), cookieName + '=anchor' );
     const next = visit( { ...staging, cookie: page.cookie() } ); await settle(); assert.equal( next.previewOpen(), true );
     const fresh = visit( staging ); await settle(); assert.equal( fresh.previewOpen(), true ); next.close(); fresh.close(); page.close();
 } );
@@ -238,7 +250,7 @@ test( 'Blocked anonymous cookies use only a verified scoped session fallback acr
     assert.equal( page.session.get( sessionKey ), 'off' ); assertOffNotice( page );
     const next = visit( { ...staging, cookieBlocked: true, session: page.session } ); await settle();
     assert.equal( next.toggle.checked, false ); next.choose( true ); await settle();
-    assert.equal( next.session.get( sessionKey ), 'on' ); assert.equal( next.previewOpen(), true ); next.close(); page.close();
+    assert.equal( next.session.get( sessionKey ), 'anchor' ); assert.equal( next.previewOpen(), true ); next.close(); page.close();
 } );
 test( 'An immutable readable cookie ON cannot be overridden by a fallback OFF and reload', async () => {
     const page = visit( { cookie: cookieName + '=on', cookieBlocked: true } ); await settle();
@@ -305,7 +317,7 @@ test( 'Account reads reject switched IDs/names, anonymous sessions, errors, and 
 test( 'Account ON saves only on a gesture and activates after a successful asserted response', async () => {
     const page = visit( { ...staging, user: 42, deferSaves: true } ); await settle();
     assert.equal( page.saves.length, 0 ); page.choose( true ); assert.equal( page.previewOpen(), false ); await settle();
-    assert.equal( page.saves.length, 1 ); assert.equal( page.saves[ 0 ].value, 'on' );
+    assert.equal( page.saves.length, 1 ); assert.equal( page.saves[ 0 ].value, 'anchor' );
     page.saves[ 0 ].resolve(); await settle(); assert.equal( page.toggle.checked, true ); assert.equal( page.previewOpen(), true ); page.close();
 } );
 test( 'A newer OFF gesture prevents a stale ON save from activating and serializes the final save', async () => {
@@ -313,7 +325,7 @@ test( 'A newer OFF gesture prevents a stale ON save from activating and serializ
     assert.equal( page.previewOpen(), false ); assert.equal( page.saves.length, 1 );
     page.saves[ 0 ].resolve(); await settle(); assert.equal( page.previewOpen(), false );
     assert.equal( page.saves.length, 2 ); assert.equal( page.saves[ 1 ].value, 'off' );
-    assert.equal( page.cacheWrites.some( write => write.value === 'on' ), false, 'Stale ON must not enter the API option cache.' );
+    assert.equal( page.cacheWrites.some( write => write.value === 'anchor' ), false, 'Stale ON must not enter the API option cache.' );
     page.saves[ 1 ].resolve(); await settle(); assert.equal( page.toggle.checked, false );
     assert.equal( page.previewOpen(), false ); assert.equal( page.maximumSaves(), 1 ); page.close();
 } );
@@ -321,7 +333,7 @@ test( 'Queued gestures coalesce to the latest intent instead of replaying obsole
     const page = visit( { ...staging, user: 42, deferSaves: true } ); await settle();
     page.choose( true ); await settle(); page.choose( false ); page.choose( true );
     assert.equal( page.saves.length, 1 ); page.saves[ 0 ].resolve(); await settle();
-    if ( page.saves.length === 2 ) { assert.equal( page.saves[ 1 ].value, 'on' ); page.saves[ 1 ].resolve(); await settle(); }
+    if ( page.saves.length === 2 ) { assert.equal( page.saves[ 1 ].value, 'anchor' ); page.saves[ 1 ].resolve(); await settle(); }
     assert.ok( page.saves.length <= 2 ); assert.equal( page.maximumSaves(), 1 );
     assert.equal( page.toggle.checked, true ); assert.equal( page.previewOpen(), true ); page.close();
 } );
@@ -349,7 +361,7 @@ test( 'An uncertain failed ON cannot adopt server ON through background refresh'
     const page = visit( { ...staging, user: 42, saveError: true } ); await settle(); page.choose( true ); await settle();
     page.setAccount( 'on' ); page.pageshow(); page.focus(); page.visible(); await settle();
     assert.equal( page.toggle.checked, false ); assert.equal( page.previewOpen(), false ); assert.equal( page.saves.length, 1 );
-    assert.equal( page.cacheWrites.some( write => write.value === 'on' ), false ); page.close();
+    assert.equal( page.cacheWrites.some( write => write.value === 'anchor' ), false ); page.close();
 } );
 test( 'Account lifecycle refreshes reassert identity and reread options without writes', async () => {
     for ( const refresh of [ 'pageshow', 'focus', 'visible' ] ) {
@@ -371,7 +383,7 @@ test( 'Observed anonymous/account config switches latch OFF for the document wit
         page.setConfigIdentity( 77, 'Other Reader' ); page.choose( false ); page.focus(); await settle();
         assert.equal( page.previewOpen(), false ); assert.equal( page.toggle.checked, false );
         assert.equal( page.cookieWrites.length, 0 ); assert.equal( page.saves.length, 0 ); assert.equal( page.reads.length, reads );
-        assert.equal( page.storageCalls.filter( call => call.method !== 'get' ).length, 0 );
+        assert.equal( page.storageCalls.filter( call => call.method !== 'get' && !call.key.startsWith( 'eql-ads-scroll-v1:' ) ).length, 0 );
         page.setConfigIdentity( initial.user, initial.name ); page.choose( true ); page.pageshow(); page.visible(); await settle();
         assert.equal( page.previewOpen(), false ); assert.equal( page.toggle.checked, false );
         assert.equal( page.cookieWrites.length, 0 ); assert.equal( page.saves.length, 0 ); assert.equal( page.reads.length, reads ); page.close();
@@ -457,7 +469,7 @@ test( 'Staging dock leaves article DOM intact and closes to temporary OFF with k
     assert.equal( doc.getElementById( 'mw-content-text' ).parentNode.id, 'bodyContent' ); assert.equal( doc.querySelector( 'main > h1' ).textContent, 'Synthetic article' );
     const close = doc.getElementById( 'eql-ad-preview-close' ); close.focus(); close.click(); await settle();
     assert.equal( page.hidden(), true ); assert.equal( page.previewOpen(), false ); assert.equal( page.toggle.checked, false );
-    assert.equal( page.cookie(), cookieName + '=off' ); assert.equal( doc.activeElement, page.toggle ); assertOffNotice( page );
+    assert.equal( page.cookie(), cookieName + '=off' ); assert.equal( doc.activeElement.value, 'off' ); assertOffNotice( page );
     page.choose( true ); page.pageshow(); page.w.eval( source ); await settle();
     assert.equal( doc.querySelectorAll( '.eql-ad-preview' ).length, 1 ); noProvider( page ); assert.equal( page.reloads(), 0 ); page.close();
 } );
@@ -578,6 +590,92 @@ test( 'Layout tracking starts only with a permitted provider and keeps controls 
     await page.layout(); anchor( page ); await page.layout(); assert.equal( page.clearance(), '129px' );
     page.choose( false ); await page.layout(); assert.equal( page.clearance(), '129px' );
     assert.equal( page.reloads(), 0 ); assert.match( page.notifications[ 0 ].message, /Close this tab/ ); page.close();
+} );
+
+const layoutsConfig = { ...stagingConfig, format: 'layouts', sidebarSlot: '1234567890' };
+const layoutsVisit = { ...staging, config: layoutsConfig };
+test( 'Fresh defaults select Side only with sufficient landscape desktop space', async () => {
+    for ( const [ viewport, expected ] of [
+        [ { width: 1920, height: 1080 }, 'side' ], [ { width: 1080, height: 1920 }, 'anchor' ],
+        [ { width: 1920, height: 1080, contentWidth: 1150 }, 'anchor' ],
+        [ { width: 1920, height: 1080, touch: 1 }, 'anchor' ], [ { width: 1920, height: 1080, fine: false }, 'anchor' ],
+        [ { width: 1600, height: 500 }, 'anchor' ]
+    ] ) {
+        const page = visit( { ...layoutsVisit, viewport } ); await settle();
+        assert.equal( page.selected(), expected ); assert.equal( page.cookieWrites.length, 0 ); page.close();
+    }
+} );
+test( 'Existing ON remains Bottom on a wide screen; explicit side and anchor preferences survive navigation', async () => {
+    for ( const [ saved, expected ] of [ [ 'on', 'anchor' ], [ 'side', 'side' ], [ 'anchor', 'anchor' ], [ 'off', 'off' ] ] ) {
+        for ( const account of [ false, true ] ) {
+            const page = visit( { ...layoutsVisit, viewport: { width: 1920, height: 1080 },
+                ...( account ? { user: 42, option: saved } : { cookie: cookieName + '=' + saved } ) } );
+            await settle(); assert.equal( page.selected(), expected ); assert.equal( page.saves.length + page.cookieWrites.length, 0 ); page.close();
+        }
+    }
+} );
+test( 'Side requests one issued display unit and no anchor override; resizing never requests another ad', async () => {
+    const page = visit( { ...layoutsVisit, viewport: { width: 1920, height: 1080 }, cookie: cookieName + '=side' } ); await settle();
+    const ad = page.w.document.querySelector( 'ins.adsbygoogle' );
+    assert.equal( ad.dataset.adSlot, layoutsConfig.sidebarSlot ); assert.equal( ad.dataset.adClient, layoutsConfig.client );
+    assert.equal( ad.style.width, '300px' ); assert.equal( ad.style.height, '250px' );
+    assert.equal( page.scripts()[ 0 ].hasAttribute( 'data-overlays' ), false ); assert.equal( page.w.adsbygoogle.length, 1 );
+    const host = page.w.document.querySelector( '.mw-content-container' ); assert.equal( host.classList.contains( 'eql-ad-side-wide' ), true );
+    const before = ad.outerHTML;
+    page.w.innerWidth = 375; page.w.innerHeight = 812; page.w.dispatchEvent( new page.w.Event( 'resize' ) );
+    assert.equal( host.classList.contains( 'eql-ad-side-wide' ), false ); assert.equal( page.selected(), 'side' );
+    page.pageshow(); page.focus(); page.visible(); await settle();
+    assert.equal( page.w.document.querySelectorAll( 'ins.adsbygoogle' ).length, 1 ); assert.equal( ad.outerHTML, before );
+    assert.equal( page.scripts().length, 1 ); assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( page.reloads(), 0 ); page.close();
+} );
+test( 'Bottom requests only the native anchor even when a valid sidebar slot is configured', async () => {
+    const page = visit( { ...layoutsVisit, cookie: cookieName + '=anchor' } ); await settle();
+    assert.equal( page.scripts()[ 0 ].dataset.overlays, 'collapsed-bottom' );
+    assert.equal( page.w.document.querySelector( 'ins' ), null ); assert.equal( page.w.adsbygoogle, undefined ); page.close();
+} );
+test( 'Mode changes persist before one reload and never create two live styles in a document', async () => {
+    for ( const [ first, second ] of [ [ 'side', 'anchor' ], [ 'anchor', 'side' ], [ 'side', 'off' ] ] ) {
+        const page = visit( { ...layoutsVisit, cookie: cookieName + '=' + first } ); await settle();
+        page.choose( second ); await settle(); assert.equal( page.cookie(), cookieName + '=' + second ); assert.equal( page.reloads(), 1 );
+        assert.equal( page.scripts().length, 1 ); assert.equal( page.w.document.querySelectorAll( 'ins' ).length, first === 'side' ? 1 : 0 );
+        const restoration = JSON.parse( page.session.get( 'eql-ads-scroll-v1:' + wiki ) ); assert.equal( restoration.page, '/Article' );
+        const next = visit( { ...layoutsVisit, cookie: page.cookie() } ); await settle(); assert.equal( next.selected(), second );
+        if ( second === 'off' ) { noProvider( next ); }
+        next.close(); page.close();
+    }
+} );
+test( 'Account mode changes serialize and a stale Side response cannot replace the latest Bottom choice', async () => {
+    const page = visit( { ...layoutsVisit, user: 42, deferSaves: true } ); await settle();
+    page.choose( 'side' ); await settle(); page.choose( 'anchor' );
+    assert.equal( page.saves[ 0 ].value, 'side' ); noProvider( page );
+    page.saves[ 0 ].resolve(); await settle(); noProvider( page );
+    assert.equal( page.saves[ 1 ].value, 'anchor' ); page.saves[ 1 ].resolve(); await settle();
+    assert.equal( page.selected(), 'anchor' ); assert.equal( page.scripts().length, 1 );
+    assert.equal( page.scripts()[ 0 ].dataset.overlays, 'collapsed-bottom' ); assert.equal( page.maximumSaves(), 1 ); page.close();
+} );
+test( 'Failed Side opt-out leaves the real unit intact, warns, and does not reload into stale account state', async () => {
+    const page = visit( { ...layoutsVisit, user: 42, option: 'side', saveError: true } ); await settle();
+    const unit = page.w.document.querySelector( 'ins' ), before = unit.outerHTML;
+    page.choose( 'off' ); await settle(); page.focus(); await settle();
+    assert.equal( page.selected(), 'off' ); assert.equal( page.reloads(), 0 );
+    assert.equal( page.w.document.getElementById( 'eql-ad-sidebar' ).hidden, false ); assert.equal( unit.outerHTML, before );
+    assert.ok( page.notifications.some( x => /Close this tab/.test( x.message ) ) ); page.close();
+} );
+test( 'Layouts require an exact staging origin and a valid issued slot', async () => {
+    for ( const invalid of [ { ...layoutsConfig, sidebarSlot: '' }, { ...layoutsConfig, sidebarSlot: 1234567890 },
+        { ...layoutsConfig, sidebarSlot: '1234567890\n' }, { ...layoutsConfig, sidebarSlot: 'not-a-slot' },
+        { ...layoutsConfig, environment: 'production' } ] ) {
+        const page = visit( { ...layoutsVisit, config: invalid, cookie: cookieName + '=side' } ); await settle(); noProvider( page ); page.close();
+    }
+    const copied = visit( { config: layoutsConfig, cookie: cookieName + '=side' } ); await settle(); noProvider( copied ); copied.close();
+} );
+test( 'Both synthetic styles switch without Google requests and retain the article DOM', async () => {
+    const page = visit( { ...staging, viewport: { width: 1920, height: 1080 } } ); await settle();
+    assert.equal( page.selected(), 'side' ); assert.equal( page.w.document.getElementById( 'eql-ad-sidebar' ).hidden, false );
+    const article = page.w.document.querySelector( 'main' ).outerHTML;
+    page.choose( 'anchor' ); await settle(); assert.equal( page.previewOpen(), true ); assert.equal( page.w.document.getElementById( 'eql-ad-sidebar' ).hidden, true );
+    page.choose( 'off' ); await settle(); assert.equal( page.previewOpen(), false ); assert.equal( page.w.document.querySelector( 'main' ).outerHTML, article );
+    noProvider( page ); page.close();
 } );
 
 ( async () => {

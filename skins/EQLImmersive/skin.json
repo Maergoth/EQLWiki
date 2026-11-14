@@ -134,7 +134,8 @@
         "EQLAdSenseClient": { "value": "" },
         "EQLAdSenseFormat": { "value": "" },
         "EQLAdSenseStagingClient": { "value": "" },
-        "EQLAdSenseStagingFormat": { "value": "" }
+        "EQLAdSenseStagingFormat": { "value": "" },
+        "EQLAdSenseStagingSidebarSlot": { "value": "" }
     },
     "ResourceModules": {
         "skins.EQLImmersive.waypoints": {

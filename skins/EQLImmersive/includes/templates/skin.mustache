@@ -237,6 +237,12 @@
 					{{/is-language-in-content-bottom}}
 				</div>
 			</main>
+			<aside id="eql-ad-sidebar" aria-label="Advertisement" hidden>
+				<div class="eql-ad-sidebar-inner">
+					<span class="eql-advertisement-label">Advertisements</span>
+					<div id="eql-ad-sidebar-unit"></div>
+				</div>
+			</aside>
 
 			{{{html-after-content}}}
 		</div>
@@ -266,10 +272,12 @@
 	>
 		Donate
 	</button>
-	<label class="eql-ads-choice" title="Ads preference: browser session when logged out, account when logged in.">
-		<input id="eql-ads-toggle" type="checkbox" disabled>
-		<span>Ads</span>
-	</label>
+	<div id="eql-ads-toggle" class="eql-ads-choice" role="radiogroup" aria-label="Advertising layout" title="Ads preference: browser session when logged out, account when logged in.">
+		<span aria-hidden="true">Ads</span>
+		<label title="Off"><input type="radio" name="eql-ads-layout" value="off" aria-label="Ads off" checked disabled><span>X</span></label>
+		<label title="Side — wide screens"><input type="radio" name="eql-ads-layout" value="side" aria-label="Style 1: Side, wide screens" disabled><span>1</span></label>
+		<label title="Bottom — tall screens"><input type="radio" name="eql-ads-layout" value="anchor" aria-label="Style 2: Bottom, tall screens" disabled><span>2</span></label>
+	</div>
 
 	{{#data-footer}}{{>Footer}}{{/data-footer}}
 </div>

@@ -2,14 +2,14 @@
 
 namespace EQLImmersive;
 
-/** Publishes independently configured native anchors or a staging dock preview. */
+/** Publishes independently configured ads or harmless staging previews. */
 final class Ads {
 	public static function isStagingEnvironment( $config ): bool {
 		return $config->get( 'Server' ) === 'https://test.eqlwiki.com' &&
 			$config->get( 'CanonicalServer' ) === 'https://test.eqlwiki.com';
 	}
 
-	/** @return array{client:string,format:string,environment:string}|array{preview:true}|null */
+	/** @return array{client:string,format:string,environment:string,sidebarSlot?:string}|array{preview:true}|null */
 	public static function configurationForOutput( $out, bool $publicRead ): ?array {
 		$config = $out->getConfig();
 		$server = $config->get( 'Server' );
@@ -48,11 +48,17 @@ final class Ads {
 	private static function anchorConfiguration( $config, string $prefix, string $environment ): ?array {
 		$client = $config->get( $prefix . 'Client' );
 		$format = $config->get( $prefix . 'Format' );
-		if ( !is_string( $client ) || !preg_match( '/\Aca-pub-[0-9]{16}\z/', $client ) ||
-			$format !== 'anchor'
-		) {
+		if ( !is_string( $client ) || !preg_match( '/\Aca-pub-[0-9]{16}\z/', $client ) ) {
 			return null;
 		}
+		// Two-layout serving is staging-only. Its slot must be explicitly installed
+		// after the shared Google format settings have been reviewed separately.
+		if ( $environment === 'staging' && $format === 'layouts' ) {
+			$slot = $config->get( $prefix . 'SidebarSlot' );
+			return is_string( $slot ) && preg_match( '/\A[0-9]{10}\z/', $slot ) ?
+				[ 'client' => $client, 'format' => $format, 'environment' => $environment, 'sidebarSlot' => $slot ] : null;
+		}
+		if ( $format !== 'anchor' ) { return null; }
 		return [ 'client' => $client, 'format' => $format, 'environment' => $environment ];
 	}
 }
