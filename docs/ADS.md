@@ -6,19 +6,33 @@ card), and **2 is Right sidebar** (vertical Multiplex grid beside the card).
 The controls have individual accessible names, native radio-keyboard behavior,
 visible focus/selection states and descriptive tooltips.
 
-**Fresh logged-out readers in Multiplex mode default to Bottom in landscape.
-Portrait windows default to Right only with at least 1000 CSS pixels available
-in the content container; otherwise Bottom.** Both grids scroll normally. The
+**Fresh logged-out readers in Multiplex mode default to Right (2) in landscape
+and Bottom (1) in portrait or square windows.** Both grids scroll normally. The
 right column moves below the article on narrower windows, without requesting
 another unit. The default is computed once and resizing never changes a saved choice.
 Historical display-unit configurations keep their existing desktop-aware default.
 An explicit choice wins. Turning ads off says exactly **“Ads disabled. Log in
-to save your preference”**. The choice lasts for the browser session through a
-first-party host-only session cookie (`Path=/`, `SameSite=Lax`, Secure on HTTPS),
-with sessionStorage as a per-tab fallback if cookies cannot retain it. Cookies
-have no expiry/Max-Age; browser session restoration can restore them. A present
-cookie is authoritative; malformed/unreadable values fail Off. No localStorage,
-long-lived cookie, or anonymous preference API write is used.
+to save your preference”**. An anonymous Off, Bottom or Right choice lasts for
+**24 hours from the latest selection**, using a first-party host-only cookie
+(`Max-Age=86400`, `Path=/`, `SameSite=Lax`, Secure on HTTPS). It can survive closing
+and reopening the browser until that deadline; reads, navigation and focus do not
+extend it. The stored timestamp is also checked by the preference reader.
+If cookies cannot retain the choice, a timestamped sessionStorage fallback applies
+within that tab for at most 24 hours and may end earlier when the tab closes.
+A present cookie is authoritative; malformed/unreadable values fail Off. No
+localStorage or anonymous preference API write is used. Expiration is checked
+when the preference is read; a valid expired record returns to that document's
+initial orientation default. No timer refreshes an ad while someone is reading.
+
+The existing wiki-scoped `eql_ads_session_v1_<wiki>` cookie and
+`eql-ads-session-v1:<wiki>` storage keys now contain
+`v2:<off|side|anchor>:<created milliseconds>`. A legacy plain `off`, `side`,
+`anchor` or `on` choice is converted once on its first anonymous read, starting
+a bounded 24-hour period then (`on` becomes Bottom). A failed migration stays
+Off. No anonymous choice is imported into an account.
+
+These defaults do not guarantee immediate ad visibility. Bottom remains below
+the complete article, and Right also falls below it when the window is too narrow.
 
 **Named accounts start with Off** unless their native `userjs-eql-ads` option
 selects Bottom or Right. New writes use `off`, `side` or `anchor`. The current
@@ -50,7 +64,9 @@ Selecting X removes synthetic previews immediately. When Google's script has bee
 requested and a changed mode can be retained, it reloads the page once to end that document's
 advertising runtime. A one-use, page-bound sessionStorage record restores the
 scroll offset on reload (60-second lifetime); it contains no account data or ad
-preference. Restoration is best effort when layout height changes. A change in
+preference. The same short-lived record replays the anonymous Off notification
+once after a successful reload, so it remains visible. Restoration is best effort
+when layout height changes. A change in
 another tab is also observed. Browser ad blockers
 are respected.
 
@@ -226,6 +242,11 @@ and privacy requests. It explicitly states that advertising is not currently
 enabled on the public wiki. Disclosure publication does not activate ads, change
 consent controls or publish an announcement.
 
+The published policy's prospective anonymous ad preference still describes the
+older browser-session lifetime. The test supplement documents the 24-hour test
+behavior. Review and separately publish that disclosure change before any future
+production ad activation; a staging source deployment does not update the live policy.
+
 The policy is a database page. Git deployment does not publish this source.
 For an approved update, read the target's current revision, take a fresh private
 backup and open the [native source editor](https://www.mediawiki.org/wiki/Help:Editing_pages)
@@ -343,7 +364,8 @@ traffic alone cannot establish this site's RPM or future share of ad-enabled vis
 
 Run `node ops/test-ads.cjs` with the development guide's jsdom runtime and
 `php ops/test-ads-config.php`. These cover synthetic storage/network lifecycles
-and server eligibility, including anonymous session defaults, asserted account
+and server eligibility, including anonymous orientation defaults and fixed
+24-hour choice expiry, asserted account
 reads/gesture-only writes, queue and identity races, staging-only dock dismissal, footer breakpoint/
 reserve contracts, independent staging/production configuration, one-provider-style
 loading, responsive Side fallback, migration from the old On value, scroll restoration
@@ -353,9 +375,10 @@ changed sources as well.
 
 Browser checks should include keyboard focus and Space activation, narrow
 320px/375px footers, reload/navigation persistence, a second tab, signed-in and
-signed-out readers, no provider configuration, an anonymous fresh-session On
+signed-out readers, no provider configuration, an anonymous fresh-choice On
 visit, and a new account's Off default. Confirm anonymous opt-out survives
-navigation/tabs only for the browser session and shows the exact login notice;
+navigation/tabs/browser restarts until its 24-hour deadline without renewing on
+reads, verify the deadline with a controlled test clock, and check the login notice;
 confirm named-account saves survive a fresh browser without importing anonymous state.
 Inspect network requests: Off must make no Google ad request. Use synthetic
 provider responses for local lifecycle tests; never generate artificial clicks
