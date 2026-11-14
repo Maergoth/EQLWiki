@@ -53,10 +53,13 @@ Major custom skin behavior:
   `EQLAdSenseStagingMultiplexSidebarSlot`; display-unit IDs are never substituted.
   Standard responsive `autorelaxed` units leave count and height to Google.
   One selected unit is requested per document, without refresh on resize.
-  In-page units explicitly reported `unfilled` by Google collapse their complete
-  wrapper/label and release the sidebar column; pending, filled and optimized
-  units stay visible. The scoped observer resumes after BFCache restoration;
-  it does not inspect frames, refresh ads or change saved preferences. Auto
+  In-page units mount only after the Google loader succeeds; blocked, failed or
+  still-loading scripts leave no panel. Pending Multiplex units stay measurable below the
+  article without a wiki label, margins or right-column reservation. Filled or
+  optimized Multiplex units with visible, positive outer geometry enable that surrounding layout;
+  geometry never hides or clips Google's creative. Explicit `unfilled` collapses
+  the complete wrapper. Scoped status/size observers resume after BFCache
+  restoration; they do not inspect frames, retry, refresh ads or change preferences. Auto
   ads and Auto optimize remain Off. Stored `anchor`/`on` values stay Bottom and
   `side` stays Right despite reordered numbering. Mode changes retain the saved
   identity/browser boundaries, reload once and restore the page-bound scroll offset.

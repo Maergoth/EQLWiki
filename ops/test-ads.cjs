@@ -50,17 +50,22 @@ function visit( options = {} ) {
     const w = dom.window;
     let now = options.now === undefined ? NOW : options.now;
     w.Date.now = () => now;
-    const layoutFrames = new Map(), layoutObservers = [];
+    const layoutFrames = new Map(), layoutObservers = [], adBoxes = new Map();
     let frameId = 0;
+    w.ResizeObserver = class {
+        constructor( callback ) { this.callback = callback; this.targets = new Set(); layoutObservers.push( this ); }
+        observe( node ) { this.targets.add( node ); }
+        disconnect() { this.targets.clear(); }
+    };
+    const originalBox = w.HTMLElement.prototype.getBoundingClientRect;
+    w.HTMLElement.prototype.getBoundingClientRect = function () {
+        if ( this.matches( 'ins.adsbygoogle' ) ) { return adBoxes.get( this ) || { width: 300, height: 250 }; }
+        return originalBox.call( this );
+    };
     if ( options.anchorLayout ) {
         Object.defineProperties( w, { innerHeight: { value: 720, writable: true }, innerWidth: { value: 1280, writable: true } } );
         w.requestAnimationFrame = callback => { layoutFrames.set( ++frameId, callback ); return frameId; };
         w.cancelAnimationFrame = id => layoutFrames.delete( id );
-        w.ResizeObserver = class {
-            constructor( callback ) { this.callback = callback; this.targets = new Set(); layoutObservers.push( this ); }
-            observe( node ) { this.targets.add( node ); }
-            disconnect() { this.targets.clear(); }
-        };
     }
     if ( options.viewport ) {
         Object.defineProperties( w, { innerWidth: { value: options.viewport.width, writable: true }, innerHeight: { value: options.viewport.height, writable: true } } );
@@ -138,6 +143,14 @@ function visit( options = {} ) {
         notify: ( message, settings ) => notifications.push( { message, settings } )
     };
     if ( options.apiMissing ) { delete w.mw.Api; }
+    const appendScript = w.document.head.appendChild.bind( w.document.head );
+    w.document.head.appendChild = function ( node ) {
+        const result = appendScript( node );
+        if ( node.tagName === 'SCRIPT' && !options.deferProvider ) {
+            queueMicrotask( () => node.dispatchEvent( new w.Event( options.providerError ? 'error' : 'load' ) ) );
+        }
+        return result;
+    };
     w.eval( source ); w.document.dispatchEvent( new w.Event( 'DOMContentLoaded' ) );
     const control = w.document.getElementById( 'eql-ads-toggle' );
     const toggle = control.querySelector( '[value="anchor"]' );
@@ -146,6 +159,9 @@ function visit( options = {} ) {
         choose( next ) { const input = control.querySelector( '[value="' + ( next === true ? 'anchor' : next === false ? 'off' : next ) + '"]' ); input.checked = true; input.dispatchEvent( new w.Event( 'change' ) ); },
         selected: () => control.querySelector( ':checked' ).value,
         scripts: () => [ ...w.document.querySelectorAll( 'script[src]' ) ],
+        provider( event = 'load' ) { w.document.querySelector( 'script[src]' ).dispatchEvent( new w.Event( event ) ); },
+        adSize( node, width, height ) { adBoxes.set( node, { width, height } );
+            layoutObservers.filter( observer => observer.targets.has( node ) ).forEach( observer => observer.callback() ); },
         hidden: () => w.document.getElementById( 'eql-advertisement' ).hidden,
         previewOpen: () => w.document.body.classList.contains( 'eql-ad-preview-open' ),
         reloads: () => errors.filter( error => /navigation/i.test( error.message ) ).length,
@@ -871,6 +887,8 @@ test( 'Each Multiplex mode requests one separate responsive unit outside the art
         assert.equal( page.scripts()[ 0 ].hasAttribute( 'data-overlays' ), false );
         assert.equal( d.getElementById( 'eql-ad-anchor-backdrop' ), null );
         assert.equal( d.querySelectorAll( 'ins' ).length, 1 ); assert.equal( page.w.adsbygoogle.length, 1 );
+        assert.equal( d.querySelector( '.mw-content-container' ).classList.contains( 'eql-ad-side-wide' ), false, 'Pending Multiplex never narrows the article.' );
+        ad.dataset.adStatus = 'filled'; await settle();
         assert.equal( d.querySelector( '.mw-content-container' ).classList.contains( 'eql-ad-side-wide' ), mode === 'side' );
         const before = ad.outerHTML;
         page.w.innerWidth = 375; page.w.dispatchEvent( new page.w.Event( 'resize' ) ); page.focus(); page.pageshow(); await settle();
@@ -945,7 +963,8 @@ test( 'Only confirmed unfilled manual units collapse their entire wrapper and si
                 else { ad.setAttribute( 'data-ad-status', status ); }
                 await settle();
                 assert.equal( host.hidden, status === 'unfilled', 'Only the exact confirmed empty result hides the wrapper and label.' );
-                assert.equal( wide(), mode === 'side' && status !== 'unfilled' );
+                assert.equal( wide(), mode === 'side' && status !== 'unfilled' &&
+                    ( provider !== multiplexVisit || [ 'filled', 'unfill-optimized' ].includes( status ) ) );
                 assert.equal( ad.innerHTML, creative, 'The provider frame remains untouched.' );
             }
             ad.setAttribute( 'data-ad-status', 'unfilled' ); await settle();
@@ -991,6 +1010,122 @@ test( 'Fill updates preserve live creatives and the warning after an unsuccessfu
         assert.match( page.control.title, /Close this tab/, 'The fill result does not falsely report a saved opt-out.' );
         assert.equal( page.reloads(), 0 ); assert.equal( page.w.adsbygoogle.length, 1 ); page.close();
     }
+} );
+
+test( 'A stalled or failed provider loader creates no unit, panel, column or retry', async () => {
+    for ( const mode of [ 'side', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, deferProvider: true, viewport: { width: 1920, height: 1080 },
+            cookie: cookieName + '=' + preference( mode ) } ); await settle();
+        const d = page.w.document, content = d.querySelector( '.mw-content-container' );
+        const assertEmpty = () => {
+            assert.equal( d.querySelector( 'ins' ), null ); assert.equal( page.w.adsbygoogle, undefined );
+            assert.equal( d.getElementById( 'eql-ad-sidebar' ).hidden, true );
+            assert.equal( d.getElementById( 'eql-ad-banner' ).hidden, true );
+            assert.equal( content.classList.contains( 'eql-ad-side-wide' ), false );
+            assert.equal( page.scripts().length, 1 ); assert.equal( page.cookieWrites.length, 0 );
+            assert.equal( page.reloads(), 0 ); assert.equal( page.selected(), mode );
+        };
+        assertEmpty();
+        page.focus(); page.pageshow(); page.visible(); await settle(); assertEmpty();
+        page.provider( 'error' ); await settle(); assertEmpty();
+        page.focus(); page.pageshow(); page.provider( 'load' ); await settle(); assertEmpty();
+        page.close();
+    }
+} );
+
+test( 'A delayed loader mounts one measurable pending unit without narrowing the article', async () => {
+    for ( const mode of [ 'side', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, deferProvider: true, viewport: { width: 1920, height: 1080 },
+            cookie: cookieName + '=' + preference( mode ) } ); await settle();
+        assert.equal( page.w.document.querySelector( 'ins' ), null );
+        page.provider(); await settle();
+        const d = page.w.document, ad = d.querySelector( 'ins' ), host = ad.closest( 'aside' );
+        assert.equal( host.hidden, false ); assert.equal( ad.style.display, 'block' );
+        assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), true );
+        assert.equal( d.querySelector( '.mw-content-container' ).classList.contains( 'eql-ad-side-wide' ), false );
+        const before = ad.outerHTML;
+        page.focus(); page.pageshow(); page.provider(); await settle();
+        assert.equal( ad.outerHTML, before ); assert.equal( d.querySelectorAll( 'ins' ).length, 1 );
+        assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( page.cookieWrites.length, 0 );
+        ad.dataset.adStatus = 'filled'; await settle();
+        assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), false );
+        assert.equal( d.querySelector( '.mw-content-container' ).classList.contains( 'eql-ad-side-wide' ), mode === 'side' );
+        page.close();
+    }
+} );
+
+test( 'A late loader cannot materialize ads after changed, failed or identity-invalidated preferences', async () => {
+    for ( const next of [ 'off', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, deferProvider: true, cookie: cookieName + '=' + preference( 'side' ) } ); await settle();
+        page.choose( next ); await settle(); page.provider(); await settle();
+        assert.equal( page.reloads(), 1 ); assert.equal( page.w.document.querySelector( 'ins' ), null );
+        assert.equal( page.w.adsbygoogle, undefined ); page.close();
+    }
+    for ( const failure of [ 'save', 'identity' ] ) {
+        const page = visit( { ...multiplexVisit, deferProvider: true, user: 42, option: 'side', saveError: failure === 'save' } ); await settle();
+        if ( failure === 'save' ) { page.choose( 'off' ); await settle(); }
+        else { page.setConfigIdentity( 43, 'Another Reader' ); }
+        page.provider(); await settle();
+        assert.equal( page.w.document.querySelector( 'ins' ), null ); assert.equal( page.w.adsbygoogle, undefined );
+        assert.equal( page.reloads(), 0 ); page.close();
+    }
+    const pending = visit( { ...multiplexVisit, deferProvider: true, user: 42, option: 'side', deferSaves: true } ); await settle();
+    pending.choose( 'side' ); await settle(); pending.provider(); await settle();
+    assert.equal( pending.w.document.querySelector( 'ins' ), null, 'Loader completion cannot bypass an outstanding preference save.' );
+    pending.saves[ 0 ].resolve(); await settle();
+    assert.equal( pending.w.document.querySelectorAll( 'ins' ).length, 1 ); assert.equal( pending.w.adsbygoogle.length, 1 );
+    assert.equal( pending.scripts().length, 1 ); pending.close();
+    const offThenSide = visit( { ...multiplexVisit, deferProvider: true, user: 42, option: 'side', deferSaves: true } ); await settle();
+    offThenSide.choose( 'off' ); await settle(); offThenSide.provider(); await settle();
+    assert.equal( offThenSide.w.document.querySelector( 'ins' ), null, 'An unresolved Off save prevents a late loader mount.' );
+    offThenSide.choose( 'side' ); offThenSide.saves[ 0 ].resolve(); await settle();
+    assert.equal( offThenSide.w.document.querySelector( 'ins' ), null, 'The stale Off save cannot mount while Side is queued.' );
+    offThenSide.saves[ 1 ].resolve(); await settle();
+    assert.equal( offThenSide.w.document.querySelectorAll( 'ins' ).length, 1 ); assert.equal( offThenSide.w.adsbygoogle.length, 1 );
+    assert.equal( offThenSide.scripts().length, 1 ); assert.equal( offThenSide.reloads(), 0 ); offThenSide.close();
+} );
+
+test( 'Zero-sized and cosmetically blocked results release only wiki chrome, never hide the provider', async () => {
+    for ( const mode of [ 'side', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, viewport: { width: 1920, height: 1080 },
+            cookie: cookieName + '=' + preference( mode ) } ); await settle();
+        const d = page.w.document, ad = d.querySelector( 'ins' ), host = ad.closest( 'aside' );
+        const content = d.querySelector( '.mw-content-container' );
+        for ( const status of [ 'filled', 'unfill-optimized' ] ) {
+            ad.dataset.adStatus = status; await settle();
+            assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), false );
+            const creative = ad.outerHTML;
+            page.adSize( ad, 300, 0 ); await settle();
+            assert.equal( host.hidden, false ); assert.equal( ad.outerHTML, creative );
+            assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), true );
+            assert.equal( content.classList.contains( 'eql-ad-side-wide' ), false );
+            page.adSize( ad, 300, 600 ); await settle();
+            assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), false );
+            assert.equal( content.classList.contains( 'eql-ad-side-wide' ), mode === 'side' );
+            ad.style.display = 'none'; await settle();
+            assert.equal( host.hidden, false ); assert.equal( ad.style.display, 'none', 'The external cosmetic rule is respected.' );
+            assert.equal( content.classList.contains( 'eql-ad-side-wide' ), false );
+            ad.style.display = 'block'; await settle();
+            assert.equal( content.classList.contains( 'eql-ad-side-wide' ), mode === 'side' );
+        }
+        assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( page.cookieWrites.length, 0 ); page.close();
+    }
+} );
+
+test( 'Size observation pauses off-page and rechecks pending chrome after BFCache restoration', async () => {
+    const page = visit( { ...multiplexVisit, viewport: { width: 1920, height: 1080 }, cookie: cookieName + '=' + preference( 'side' ) } ); await settle();
+    const d = page.w.document, ad = d.querySelector( 'ins' ), host = ad.closest( 'aside' );
+    ad.dataset.adStatus = 'unfill-optimized'; await settle();
+    assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), false );
+    page.w.dispatchEvent( new page.w.PageTransitionEvent( 'pagehide', { persisted: true } ) );
+    page.adSize( ad, 300, 0 ); page.w.dispatchEvent( new page.w.Event( 'resize' ) ); await settle();
+    assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), false );
+    page.pageshow(); await settle();
+    assert.equal( host.hidden, false ); assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), true );
+    assert.equal( d.querySelector( '.mw-content-container' ).classList.contains( 'eql-ad-side-wide' ), false );
+    page.adSize( ad, 300, 600 ); await settle();
+    assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), false );
+    assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( page.cookieWrites.length, 0 ); page.close();
 } );
 
 ( async () => {
