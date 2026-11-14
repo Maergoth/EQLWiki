@@ -43,6 +43,18 @@ function visit( options = {} ) {
         url: options.url || 'https://eqlwiki.com/Synthetic_article', runScripts: 'outside-only', virtualConsole
     } );
     const w = dom.window;
+    const layoutFrames = new Map(), layoutObservers = [];
+    let frameId = 0;
+    if ( options.anchorLayout ) {
+        Object.defineProperties( w, { innerHeight: { value: 720, writable: true }, innerWidth: { value: 1280, writable: true } } );
+        w.requestAnimationFrame = callback => { layoutFrames.set( ++frameId, callback ); return frameId; };
+        w.cancelAnimationFrame = id => layoutFrames.delete( id );
+        w.ResizeObserver = class {
+            constructor( callback ) { this.callback = callback; this.targets = new Set(); layoutObservers.push( this ); }
+            observe( node ) { this.targets.add( node ); }
+            disconnect() { this.targets.clear(); }
+        };
+    }
     const scope = options.wiki === undefined ? wiki : options.wiki;
     const scopedSessionKey = 'eql-ads-session-v1:' + encodeURIComponent( scope || w.location.host + ( options.scriptPath || '' ) );
     const cookieAccess = Object.getOwnPropertyDescriptor( w.Document.prototype, 'cookie' );
@@ -129,6 +141,13 @@ function visit( options = {} ) {
         focus() { w.dispatchEvent( new w.Event( 'focus' ) ); },
         visible( next = true ) { visibility = next ? 'visible' : 'hidden'; w.document.dispatchEvent( new w.Event( 'visibilitychange' ) ); },
         maximumSaves: () => maximumSaves,
+        async layout() {
+            await settle();
+            const pending = [ ...layoutFrames.values() ]; layoutFrames.clear();
+            pending.forEach( callback => callback() ); await settle();
+        },
+        resizeAnchors() { layoutObservers.filter( observer => observer.targets.size ).forEach( observer => observer.callback() ); },
+        clearance: () => w.document.documentElement.style.getPropertyValue( '--eql-ad-anchor-clearance' ),
         close() {
             try {
                 assert.equal( localAccesses, 0, 'Ads must never access localStorage or its legacy preferences.' );
@@ -498,6 +517,67 @@ test( 'Preview CSS matches footer breakpoint and reserves its entire dock only w
 test( 'A blocked provider leaves the custom preview dock hidden', async () => {
     const page = visit(); await settle(); page.scripts()[ 0 ].dispatchEvent( new page.w.Event( 'error' ) );
     assert.equal( page.hidden(), true ); assert.equal( page.previewOpen(), false ); assert.equal( page.w.document.querySelector( 'ins' ), null ); page.close();
+} );
+
+function anchor( page, geometry = {} ) {
+    const el = page.w.document.createElement( 'ins' );
+    el.className = 'adsbygoogle adsbygoogle-noablate';
+    el.dataset.anchorStatus = 'displayed';
+    el.style.cssText = 'position:fixed;bottom:0;display:block;visibility:visible;opacity:1';
+    el.innerHTML = '<div class="grippy-host"></div><iframe title="Advertisement"></iframe>';
+    const box = { top: 591, bottom: 720, left: 130, right: 1135, width: 1005, height: 129, ...geometry };
+    el.getBoundingClientRect = () => ( { ...box } );
+    // Google's observed anchor is a child of <html>, outside <body>.
+    page.w.document.documentElement.appendChild( el );
+    return { el, box };
+}
+test( 'A late native bottom anchor lifts the footer above the ad and its collapse tab without modifying Google DOM', async () => {
+    const page = visit( { anchorLayout: true, url: 'https://test.eqlwiki.com/Article', config: stagingConfig } );
+    await page.layout(); assert.equal( page.clearance(), '' );
+    const ad = anchor( page ); const before = ad.el.outerHTML;
+    await page.layout(); assert.equal( page.clearance(), '181px' );
+    assert.equal( ad.el.outerHTML, before ); assert.equal( page.previewOpen(), false );
+    assert.equal( page.scripts().length, 1 ); page.close();
+} );
+test( 'Native anchor resizing, collapsing, hiding and removal restore only the required footer clearance', async () => {
+    const page = visit( { anchorLayout: true } ); const ad = anchor( page ); await page.layout();
+    ad.box.top = 520; ad.box.height = 200; page.resizeAnchors(); await page.layout();
+    assert.equal( page.clearance(), '252px' );
+    ad.box.top = 720; ad.box.bottom = 920; ad.el.dataset.anchorStatus = 'dismissed'; await page.layout();
+    assert.equal( page.clearance(), '52px', 'Keep the remaining collapse/reopen tab clear.' );
+    ad.el.style.display = 'none'; await page.layout(); assert.equal( page.clearance(), '' );
+    ad.el.style.display = 'block'; ad.box.top = 520; ad.box.bottom = 720; await page.layout(); assert.equal( page.clearance(), '252px' );
+    ad.el.remove(); await page.layout(); assert.equal( page.clearance(), '' ); page.close();
+} );
+test( 'Viewport resizing and BFCache restoration remeasure the anchor without duplicating the loader', async () => {
+    const page = visit( { anchorLayout: true } ); const ad = anchor( page ); await page.layout();
+    page.w.innerHeight = 600; Object.assign( ad.box, { top: 500, bottom: 600, height: 100 } );
+    page.w.dispatchEvent( new page.w.Event( 'resize' ) ); await page.layout(); assert.equal( page.clearance(), '152px' );
+    page.w.dispatchEvent( new page.w.PageTransitionEvent( 'pagehide', { persisted: true } ) );
+    ad.el.remove(); await page.layout(); assert.equal( page.clearance(), '152px', 'Inactive documents do no geometry work.' );
+    page.pageshow(); await page.layout(); assert.equal( page.clearance(), '' );
+    assert.equal( page.scripts().length, 1 ); page.close();
+} );
+test( 'Non-anchor, top, invisible and out-of-viewport ads do not move the footer', async () => {
+    const page = visit( { anchorLayout: true } ); const ad = anchor( page );
+    ad.el.removeAttribute( 'data-anchor-status' ); await page.layout(); assert.equal( page.clearance(), '' );
+    ad.el.dataset.anchorStatus = 'displayed'; ad.box.top = 0; ad.box.bottom = 129;
+    await page.layout(); assert.equal( page.clearance(), '' );
+    ad.box.top = 591; ad.box.bottom = 720; ad.el.style.bottom = 'auto'; await page.layout(); assert.equal( page.clearance(), '' );
+    ad.el.style.bottom = '0px'; ad.el.style.opacity = '0'; await page.layout(); assert.equal( page.clearance(), '' );
+    ad.el.style.opacity = '1'; ad.box.top = 800; ad.box.bottom = 929; await page.layout(); assert.equal( page.clearance(), '' );
+    ad.box.top = 591; ad.box.bottom = 720; ad.box.width = 0; page.resizeAnchors(); await page.layout(); assert.equal( page.clearance(), '' );
+    page.close();
+} );
+test( 'Layout tracking starts only with a permitted provider and keeps controls clear if an OFF save fails', async () => {
+    for ( const options of [ { config: null }, staging, { user: 42, option: 'off' } ] ) {
+        const page = visit( { anchorLayout: true, ...options } ); anchor( page ); await page.layout();
+        assert.equal( page.clearance(), '' ); page.close();
+    }
+    const page = visit( { anchorLayout: true, user: 42, option: 'on', saveError: true } );
+    await page.layout(); anchor( page ); await page.layout(); assert.equal( page.clearance(), '181px' );
+    page.choose( false ); await page.layout(); assert.equal( page.clearance(), '181px' );
+    assert.equal( page.reloads(), 0 ); assert.match( page.notifications[ 0 ].message, /Close this tab/ ); page.close();
 } );
 
 ( async () => {

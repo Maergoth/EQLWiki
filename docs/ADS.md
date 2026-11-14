@@ -118,8 +118,29 @@ preference. The server marks that configuration `environment: 'staging'`; the
 browser accepts it only at the exact staging origin. Production configuration is
 marked `environment: 'production'` and accepted only at its exact production
 origin. Neither environment uses the other's publisher settings as a fallback.
-The real provider does not open the local preview dock or apply its fixed CSS or
-reserved page padding to Google's ads. Google owns its actual anchor and close UI.
+The real provider does not open the local preview dock or apply its CSS to
+Google's ads. Google owns its actual anchor, dimensions and close UI. Regular
+anchors have no supported pixel-height cap; disabling dynamic anchors does not
+make their size equal to the synthetic preview.
+
+Once the permitted provider is requested, `ads.js` observes the outer native
+`ins.adsbygoogle[data-anchor-status]` container. A visible fixed bottom anchor
+sets `--eql-ad-anchor-clearance` on our document root. `layout-reset.css` uses
+that value to lift the entire wiki footer (Contribute, Donate, Ads, policy links
+and diagnostics) and add matching end-of-page space. It leaves 40px for Google's
+collapse/reopen tab outside the container, plus a 12px separation. A collapsed
+anchor retains only the clearance needed for its remaining tab; a removed,
+hidden or offscreen anchor restores the normal footer position. Top anchors,
+ordinary in-page units and zero-sized frames do not move the footer.
+
+Mutation/resize observers, viewport changes and BFCache restoration remeasure
+the outer geometry; pagehide suspends observation. This code never reads ad
+iframe contents or resizes, clips, moves or restyles Google elements. If an Off
+save fails after Google has loaded, clearance remains active for that document
+until it is closed, just like the provider itself. The provider's DOM is external
+and can change: verify a real fill, collapse/reopen tab, narrow layouts and the
+last article links after deployment. The synthetic checks establish our geometry
+handling, not a guarantee about future Google creatives.
 
 This explicit staging path preserves its existing authentication and noindex
 policies; it does not require anonymous public reading as the production path
