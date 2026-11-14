@@ -12,6 +12,7 @@ function fixture( array $options = [] ): object {
 			$values = array_replace( [
 				'EQLAdSenseClient' => 'ca-pub-1234567890123456', 'EQLAdSenseFormat' => 'anchor',
 				'EQLAdSenseStagingClient' => '', 'EQLAdSenseStagingFormat' => '', 'EQLAdSenseStagingSidebarSlot' => '', 'EQLAdSenseStagingBannerSlot' => '',
+				'EQLAdSenseStagingMultiplexSidebarSlot' => '', 'EQLAdSenseStagingMultiplexBottomSlot' => '',
 				'Server' => 'https://eqlwiki.com', 'CanonicalServer' => 'https://eqlwiki.com',
 				'DefaultRobotPolicy' => 'index,follow'
 			], $this->options['config'] ?? [] );
@@ -82,7 +83,7 @@ $staging = [
 	'Server' => 'https://test.eqlwiki.com', 'CanonicalServer' => 'https://test.eqlwiki.com',
 	'EQLAdSenseClient' => '', 'EQLAdSenseFormat' => '', 'DefaultRobotPolicy' => 'noindex,nofollow'
 ];
-$preview = [ 'preview' => true, 'manual' => true ];
+$preview = [ 'preview' => true, 'manual' => true, 'multiplex' => true ];
 // Existing staging access policy remains authoritative: only an already rendered
 // article receives a harmless preview, even if anonymous reading is disabled.
 $check( [ 'config' => $staging, 'policy' => 'noindex,nofollow' ], false, $preview );
@@ -155,6 +156,20 @@ $check( [ 'config' => array_replace( $manualSettings, [ 'EQLAdSenseStagingSideba
 $check( [ 'config' => [ 'EQLAdSenseFormat' => 'manual-layouts' ] ], true, null );
 $check( [ 'config' => $manualSettings, 'namespace' => 1 ], false, null );
 $check( [ 'config' => $manualSettings, 'action' => 'edit' ], false, null );
+$multiplexSettings = array_replace( $configuredStaging, [ 'EQLAdSenseStagingFormat' => 'multiplex-layouts',
+    'EQLAdSenseStagingMultiplexSidebarSlot' => '1234567890', 'EQLAdSenseStagingMultiplexBottomSlot' => '0987654321' ] );
+$multiplexProvider = array_replace( $manualProvider, [ 'format' => 'multiplex-layouts' ] );
+$check( [ 'config' => $multiplexSettings ], false, $multiplexProvider );
+foreach ( [ 'EQLAdSenseStagingMultiplexSidebarSlot', 'EQLAdSenseStagingMultiplexBottomSlot' ] as $slot ) {
+    foreach ( [ '', '123', '0987654321' . "\n", 987654321, false ] as $invalid ) {
+        $check( [ 'config' => array_replace( $multiplexSettings, [ $slot => $invalid ] ) ], false, $preview );
+    }
+}
+// Existing display slots cannot silently become Multiplex units.
+$check( [ 'config' => array_replace( $manualSettings, [ 'EQLAdSenseStagingFormat' => 'multiplex-layouts' ] ) ], false, $preview );
+$check( [ 'config' => [ 'EQLAdSenseFormat' => 'multiplex-layouts' ] ], true, null );
+$check( [ 'config' => $multiplexSettings, 'namespace' => 1 ], false, null );
+$check( [ 'config' => $multiplexSettings, 'action' => 'edit' ], false, null );
 
 // Staging's explicit URL rewrite list must not rewrite production allowlists.
 $prepare = file_get_contents( __DIR__ . '/staging-prepare.php' );
@@ -177,7 +192,7 @@ if ( $talkInclude === false || $adsInclude === false || $settingsWrite === false
 $checks++;
 
 $manifest = json_decode( file_get_contents( __DIR__ . '/../skins/EQLImmersive/skin.json' ), true, 512, JSON_THROW_ON_ERROR );
-foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseFormat', 'EQLAdSenseStagingClient', 'EQLAdSenseStagingFormat', 'EQLAdSenseStagingSidebarSlot', 'EQLAdSenseStagingBannerSlot' ] as $setting ) {
+foreach ( [ 'EQLAdSenseClient', 'EQLAdSenseFormat', 'EQLAdSenseStagingClient', 'EQLAdSenseStagingFormat', 'EQLAdSenseStagingSidebarSlot', 'EQLAdSenseStagingBannerSlot', 'EQLAdSenseStagingMultiplexSidebarSlot', 'EQLAdSenseStagingMultiplexBottomSlot' ] as $setting ) {
 	if ( $manifest['config'][$setting]['value'] !== '' ) { throw new RuntimeException( 'Advertising must default unconfigured.' ); }
 	$checks++;
 }

@@ -495,8 +495,8 @@ Staging's optional [native ad provider](docs/ADS.md#configure-the-native-provide
 uses its own private, mode-0600 file
 `/home/eqlwikdq/deploy/EQLWiki-staging/ads-settings.php`, independent of the Talk
 policy file. It contains only `$wgEQLAdSenseStagingClient` and
-`$wgEQLAdSenseStagingFormat` and, for format `manual-layouts`, the issued
-`$wgEQLAdSenseStagingSidebarSlot` and `$wgEQLAdSenseStagingBannerSlot`, never production ad settings or account credentials.
+`$wgEQLAdSenseStagingFormat` and, for format `multiplex-layouts`, the separately issued
+`$wgEQLAdSenseStagingMultiplexSidebarSlot` and `$wgEQLAdSenseStagingMultiplexBottomSlot`, never production ad settings or account credentials.
 The refresh generator conditionally includes it after the Talk policy include at
 the end of staging `LocalSettings.php`; if absent, the synthetic preview remains.
 Do not put this include in generated `EQLStaging.php`, which refresh replaces.

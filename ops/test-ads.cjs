@@ -197,7 +197,7 @@ test( 'The skin renders an inert Ads control beside Donate and an accessible ext
     assert.equal( group.getAttribute( 'role' ), 'radiogroup' );
     assert.equal( group.previousElementSibling.id, 'eql-support-button' );
     const radios = [ ...group.querySelectorAll( 'input' ) ];
-    assert.deepEqual( radios.map( input => input.value ), [ 'off', 'side', 'anchor' ] );
+    assert.deepEqual( radios.map( input => input.value ), [ 'off', 'anchor', 'side' ] );
     assert.ok( radios.every( input => input.type === 'radio' && input.disabled && input.getAttribute( 'aria-label' ) ) );
     assert.equal( group.querySelector( ':checked' ).value, 'off' );
     const ad = dom.window.document.getElementById( 'eql-advertisement' );
@@ -682,7 +682,7 @@ test( 'Both synthetic styles switch without Google requests and retain the artic
 
 const manualConfig = { ...layoutsConfig, format: 'manual-layouts', bannerSlot: '0987654321' };
 const manualVisit = { ...staging, config: manualConfig };
-test( 'Manual banner uses its issued slot at 90px high, in flow before article or after Main Page', async () => {
+test( 'Manual banner uses its issued slot at 90px high, outside the entire article card', async () => {
     for ( const mainPage of [ false, true ] ) {
         const page = visit( { ...manualVisit, mainPage, cookie: cookieName + '=anchor' } ); await settle();
         const d = page.w.document, banner = d.getElementById( 'eql-ad-banner' ), ad = banner.querySelector( 'ins' );
@@ -692,10 +692,10 @@ test( 'Manual banner uses its issued slot at 90px high, in flow before article o
         assert.equal( page.scripts()[ 0 ].hasAttribute( 'data-overlays' ), false );
         assert.equal( d.getElementById( 'eql-ad-anchor-backdrop' ), null ); assert.equal( page.previewOpen(), false );
         assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( d.querySelectorAll( 'ins' ).length, 1 );
-        if ( mainPage ) { assert.equal( d.querySelector( 'main' ).nextElementSibling, banner ); }
-        else { assert.equal( banner.nextElementSibling.id, 'bodyContent' ); assert.equal( banner.parentElement.id, 'content' ); }
+        assert.equal( d.querySelector( 'main' ).nextElementSibling, banner );
+        assert.equal( banner.parentElement, d.querySelector( '.mw-content-container' ) );
         assert.ok( d.querySelector( 'main#content > #bodyContent > #mw-content-text.mw-body-content' ) );
-        assert.equal( page.toggle.getAttribute( 'aria-label' ), 'Style 2: Banner, in-page' );
+        assert.equal( page.toggle.getAttribute( 'aria-label' ), 'Style 1: Bottom, below content' );
         page.focus(); page.pageshow(); page.visible(); page.w.dispatchEvent( new page.w.Event( 'resize' ) ); await settle();
         assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( d.querySelectorAll( 'ins' ).length, 1 ); page.close();
     }
@@ -737,10 +737,82 @@ test( 'Manual staging previews switch between Side, Banner and Off without a flo
     const body = page.w.document.getElementById( 'bodyContent' ), before = body.outerHTML;
     page.choose( 'anchor' ); await settle();
     const banner = page.w.document.getElementById( 'eql-ad-banner' );
-    assert.equal( banner.hidden, false ); assert.equal( banner.nextElementSibling, body ); assert.equal( page.previewOpen(), false );
+    assert.equal( banner.hidden, false ); assert.equal( body.parentElement.nextElementSibling, banner ); assert.equal( page.previewOpen(), false );
     assert.equal( page.w.document.getElementById( 'eql-ad-sidebar' ).hidden, true );
     page.choose( 'off' ); await settle(); assert.equal( banner.hidden, true ); assert.equal( body.outerHTML, before );
     noProvider( page ); page.close();
+} );
+
+const multiplexConfig = { ...manualConfig, format: 'multiplex-layouts' };
+const multiplexVisit = { ...staging, config: multiplexConfig };
+test( 'Numbered choices are X Off, 1 Bottom, 2 Right; stored layout semantics stay unchanged', async () => {
+    const page = visit( { ...multiplexVisit, cookie: cookieName + '=off' } ); await settle();
+    const radios = [ ...page.control.querySelectorAll( 'input' ) ];
+    assert.deepEqual( radios.map( el => el.value ), [ 'off', 'anchor', 'side' ] );
+    assert.deepEqual( radios.map( el => el.nextElementSibling.textContent ), [ 'X', '1', '2' ] );
+    assert.equal( radios[ 2 ].getAttribute( 'aria-label' ), 'Style 2: Right sidebar' );
+    noProvider( page ); page.close();
+} );
+test( 'Each Multiplex mode requests one separate responsive unit outside the article card without sticky sizing', async () => {
+    for ( const mode of [ 'side', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, cookie: cookieName + '=' + mode, viewport: { width: 1080, height: 1920, touch: 2 } } );
+        await settle(); const d = page.w.document, ad = d.querySelector( 'ins.adsbygoogle' );
+        assert.equal( ad.dataset.adFormat, 'autorelaxed' );
+        assert.equal( ad.dataset.adSlot, mode === 'side' ? multiplexConfig.sidebarSlot : multiplexConfig.bannerSlot );
+        assert.equal( ad.style.cssText, 'display: block;' );
+        assert.equal( ad.closest( 'main' ), null ); assert.ok( ad.closest( '.eql-ad-multiplex' ) );
+        assert.equal( page.scripts()[ 0 ].hasAttribute( 'data-overlays' ), false );
+        assert.equal( d.getElementById( 'eql-ad-anchor-backdrop' ), null );
+        assert.equal( d.querySelectorAll( 'ins' ).length, 1 ); assert.equal( page.w.adsbygoogle.length, 1 );
+        assert.equal( d.querySelector( '.mw-content-container' ).classList.contains( 'eql-ad-side-wide' ), mode === 'side' );
+        const before = ad.outerHTML;
+        page.w.innerWidth = 375; page.w.dispatchEvent( new page.w.Event( 'resize' ) ); page.focus(); page.pageshow(); await settle();
+        assert.equal( d.querySelector( '.mw-content-container' ).classList.contains( 'eql-ad-side-wide' ), false );
+        assert.equal( ad.outerHTML, before ); assert.equal( page.w.adsbygoogle.length, 1 ); page.close();
+    }
+} );
+test( 'Multiplex anonymous defaults use Bottom in landscape and Right in portrait only when article space is sufficient', async () => {
+    for ( const [ viewport, expected ] of [
+        [ { width: 1920, height: 1080 }, 'anchor' ], [ { width: 1080, height: 1920 }, 'side' ],
+        [ { width: 1080, height: 1920, contentWidth: 999 }, 'anchor' ], [ { width: 375, height: 812 }, 'anchor' ]
+    ] ) {
+        const page = visit( { ...multiplexVisit, viewport } ); await settle();
+        assert.equal( page.selected(), expected ); assert.equal( page.cookieWrites.length, 0 ); page.close();
+    }
+} );
+test( 'Multiplex switches and Off save before reloading, with no duplicate requests or hidden live grid', async () => {
+    for ( const [ first, second ] of [ [ 'side', 'anchor' ], [ 'anchor', 'side' ], [ 'anchor', 'off' ] ] ) {
+        const page = visit( { ...multiplexVisit, user: 42, option: first } ); await settle();
+        page.choose( second ); await settle(); assert.equal( page.reloads(), 1 ); assert.equal( page.w.adsbygoogle.length, 1 );
+        const next = visit( { ...multiplexVisit, user: 42, option: second } ); await settle();
+        if ( second === 'off' ) { noProvider( next ); } else { assert.equal( next.w.adsbygoogle.length, 1 ); }
+        page.close(); next.close();
+    }
+    for ( const first of [ 'side', 'anchor' ] ) {
+        const page = visit( { ...multiplexVisit, user: 42, option: first, saveError: true } ); await settle();
+        const ad = page.w.document.querySelector( 'ins' ), host = ad.closest( 'aside' ), before = host.innerHTML;
+        page.choose( 'off' ); await settle(); assert.equal( page.reloads(), 0 );
+        assert.equal( host.hidden, false ); assert.equal( host.innerHTML, before ); page.close();
+    }
+} );
+test( 'Multiplex configuration is staging-only and requires two valid slots', async () => {
+    for ( const config of [ { ...multiplexConfig, bannerSlot: '' }, { ...multiplexConfig, sidebarSlot: '' },
+        { ...multiplexConfig, bannerSlot: 1234567890 }, { ...multiplexConfig, bannerSlot: '1234567890\n' },
+        { ...multiplexConfig, environment: 'production' } ] ) {
+        const page = visit( { ...multiplexVisit, config } ); await settle(); noProvider( page ); page.close();
+    }
+    const page = visit( { config: multiplexConfig, cookie: cookieName + '=side' } ); await settle(); noProvider( page ); page.close();
+} );
+test( 'Multiplex synthetic grids sit outside cards and switch to Off without provider calls', async () => {
+    const page = visit( { ...staging, config: { preview: true, manual: true, multiplex: true }, cookie: cookieName + '=off' } );
+    await settle(); const main = page.w.document.querySelector( 'main' ), before = main.outerHTML;
+    for ( const next of [ 'anchor', 'side', 'off' ] ) {
+        page.choose( next ); await settle(); assert.equal( main.outerHTML, before );
+        const grids = [ ...page.w.document.querySelectorAll( '.eql-ad-grid-preview' ) ];
+        assert.equal( grids.length, next === 'off' ? 0 : 1 ); assert.ok( grids.every( grid => grid.closest( 'main' ) === null ) );
+        noProvider( page );
+    }
+    page.close();
 } );
 
 ( async () => {
