@@ -56,7 +56,8 @@ are respected.
 
 Each Multiplex layout uses a separate issued responsive unit, requested only when
 selected. Google chooses its real ad count, arrangement and height. The bottom
-wrapper is at most 1200px wide; the right wrapper is 300px wide. Neither grid is
+wrapper is at most 1200px wide; the right wrapper is at most 300px wide and
+shrinks with the available space on narrow pages. Neither grid is
 sticky or fixed, clipped, refreshed or artificially constrained to a banner's
 height. Both are siblings of `main#content`, outside its background/border card.
 There are no real ads on login/account/special pages, talk pages,

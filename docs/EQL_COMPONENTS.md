@@ -43,7 +43,8 @@ Major custom skin behavior:
   2 vertical right-column grid. Named accounts default Off; anonymous Multiplex
   defaults prefer Bottom in landscape or Right in portrait with at least 1000px
   of content width. The 300px right column plus 32px gap falls below the card
-  on narrow windows. Both grids are outside `main#content` and scroll normally;
+  on narrow windows, shrinking to the available width below 300px. Both grids
+  are outside `main#content` and scroll normally;
   neither grid is sticky. Exact staging origin and article guards preserve login/noindex.
   Blank staging settings give synthetic grid previews. Explicit `multiplex-layouts`
   requires separately issued `EQLAdSenseStagingMultiplexBottomSlot` and
