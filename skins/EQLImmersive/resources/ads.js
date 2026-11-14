@@ -99,6 +99,8 @@
 		var closePreview = document.getElementById( 'eql-ad-preview-close' );
 		var sidebar = document.getElementById( 'eql-ad-sidebar' );
 		var sidebarUnit = document.getElementById( 'eql-ad-sidebar-unit' );
+		var banner = document.getElementById( 'eql-ad-banner' );
+		var bannerUnit = document.getElementById( 'eql-ad-banner-unit' );
 		var content = document.querySelector( '.mw-content-container' );
 		var wiki = encodeURIComponent( mw.config.get( 'wgWikiID' ) ||
 			window.location.host + ( mw.config.get( 'wgScriptPath' ) || '' ) );
@@ -120,11 +122,19 @@
 		var preview = rawConfig && rawConfig.preview === true && window.location.origin === 'https://test.eqlwiki.com';
 		var providerOrigin = rawConfig && rawConfig.environment === 'staging' ? 'https://test.eqlwiki.com' :
 			rawConfig && rawConfig.environment === 'production' ? 'https://eqlwiki.com' : null;
-		var layouts = rawConfig && rawConfig.environment === 'staging' && rawConfig.format === 'layouts' &&
+		var manual = rawConfig && rawConfig.environment === 'staging' && rawConfig.format === 'manual-layouts' &&
+			typeof rawConfig.bannerSlot === 'string' && rawConfig.bannerSlot.length === 10 && /^[0-9]{10}$/.test( rawConfig.bannerSlot );
+		var manualPreview = preview && rawConfig.manual === true;
+		var layouts = rawConfig && rawConfig.environment === 'staging' && ( rawConfig.format === 'layouts' || manual ) &&
 			typeof rawConfig.sidebarSlot === 'string' && rawConfig.sidebarSlot.length === 10 && /^[0-9]{10}$/.test( rawConfig.sidebarSlot );
 		var config = rawConfig && rawConfig.preview !== true && typeof rawConfig.client === 'string' &&
 			/^ca-pub-[0-9]{16}$/.test( rawConfig.client ) && rawConfig.client.length === 23 &&
 			( rawConfig.format === 'anchor' || layouts ) && window.location.origin === providerOrigin ? rawConfig : null;
+		if ( manual || manualPreview ) {
+			var bannerChoice = control.querySelector( '[value="anchor"]' );
+			bannerChoice.setAttribute( 'aria-label', 'Style 2: Banner, in-page' );
+			bannerChoice.parentElement.title = 'Banner — in-page, suited to tall screens';
+		}
 
 		function normalize( value ) {
 			// Read the current boolean-era choice without a background migration write.
@@ -144,6 +154,16 @@
 		}
 		function positionSidebar() {
 			if ( content ) { content.classList.toggle( 'eql-ad-side-wide', !!sidebar && !sidebar.hidden && wideDesktop() ); }
+		}
+		function positionBanner() {
+			var main = document.querySelector( 'main#content' );
+			var body = main && main.querySelector( '#bodyContent' );
+			if ( !banner || !bannerUnit || !content || !main || !body ) { return false; }
+			// Keep article markup intact. Main Page ads trail the content; other
+			// article ads sit below the title and before the article body.
+			if ( mw.config.get( 'wgIsMainPage' ) === true ) { main.after( banner ); }
+			else { body.before( banner ); }
+			return true;
 		}
 		// Choose a fresh anonymous default once. Resizing reflows our column only;
 		// it never changes a reader's choice, refreshes ads or requests a second unit.
@@ -215,6 +235,10 @@
 				if ( sidebarUnit ) { sidebarUnit.replaceChildren(); }
 				positionSidebar();
 			}
+			if ( requestedMode !== 'anchor' || !manual ) {
+				if ( banner ) { banner.hidden = true; }
+				if ( bannerUnit ) { bannerUnit.replaceChildren(); }
+			}
 		}
 		function reloadProvider() {
 			if ( requestedMode && !reloading && !offLatch ) {
@@ -249,7 +273,10 @@
 			if ( mode === 'side' && content && sidebar && sidebarUnit ) {
 				placeholder( sidebarUnit, 'Style 1: side on wide screens, in-page on narrow screens. Real ads are off.' );
 				sidebar.hidden = false; positionSidebar();
-			} else if ( mode === 'anchor' && advertisement && unit && closePreview &&
+			} else if ( mode === 'anchor' && manualPreview && positionBanner() ) {
+				placeholder( bannerUnit, 'Style 2: in-page horizontal banner. Real ads are off.' );
+				banner.hidden = false;
+			} else if ( mode === 'anchor' && !manualPreview && advertisement && unit && closePreview &&
 				document.querySelector( 'main#content #bodyContent > #mw-content-text.mw-body-content' ) &&
 				advertisement.nextElementSibling === document.querySelector( '.mw-footer-container' ) ) {
 				placeholder( unit, 'Style 2: bottom anchor. Real ads are off.' );
@@ -270,14 +297,22 @@
 				ad.style.cssText = 'display:inline-block;width:300px;height:250px';
 				ad.dataset.adClient = config.client; ad.dataset.adSlot = config.sidebarSlot;
 				sidebarUnit.appendChild( ad ); sidebar.hidden = false; positionSidebar();
+			} else if ( manual ) {
+				if ( !positionBanner() ) { return; }
+				var bannerAd = document.createElement( 'ins' ); bannerAd.className = 'adsbygoogle';
+				// Google's documented variable-width, fixed-height responsive pattern.
+				// Size the unit inline, never clip a creative or put it in a fixed dock.
+				bannerAd.style.cssText = 'display:block;min-width:250px;max-width:970px;width:100%;height:90px';
+				bannerAd.dataset.adClient = config.client; bannerAd.dataset.adSlot = config.bannerSlot;
+				bannerUnit.appendChild( bannerAd ); banner.hidden = false;
 			}
 			var script = document.createElement( 'script' ); script.async = true; script.crossOrigin = 'anonymous';
-			if ( mode === 'anchor' ) { script.dataset.overlays = 'collapsed-bottom'; }
+			if ( mode === 'anchor' && !manual ) { script.dataset.overlays = 'collapsed-bottom'; }
 			script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent( config.client );
 			requestedMode = mode;
-			if ( mode === 'anchor' ) { followAnchor(); }
+			if ( mode === 'anchor' && !manual ) { followAnchor(); }
 			document.head.appendChild( script );
-			if ( mode === 'side' ) { ( window.adsbygoogle = window.adsbygoogle || [] ).push( {} ); }
+			if ( mode === 'side' || manual ) { ( window.adsbygoogle = window.adsbygoogle || [] ).push( {} ); }
 		}
 		function render( next ) {
 			mode = normalize( next ); select( mode );

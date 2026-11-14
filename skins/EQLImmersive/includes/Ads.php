@@ -9,7 +9,7 @@ final class Ads {
 			$config->get( 'CanonicalServer' ) === 'https://test.eqlwiki.com';
 	}
 
-	/** @return array{client:string,format:string,environment:string,sidebarSlot?:string}|array{preview:true}|null */
+	/** @return array{client:string,format:string,environment:string,sidebarSlot?:string,bannerSlot?:string}|array{preview:true,manual:true}|null */
 	public static function configurationForOutput( $out, bool $publicRead ): ?array {
 		$config = $out->getConfig();
 		$server = $config->get( 'Server' );
@@ -33,7 +33,7 @@ final class Ads {
 		// noindex/private policy; only separate, explicit staging settings load ads.
 		if ( $staging ) {
 			return self::anchorConfiguration( $config, 'EQLAdSenseStaging', 'staging' ) ??
-				[ 'preview' => true ];
+				[ 'preview' => true, 'manual' => true ];
 		}
 		$policy = $config->get( 'DefaultRobotPolicy' );
 		$policy = is_array( $policy ) ? implode( ',', $policy ) : (string)$policy;
@@ -53,10 +53,16 @@ final class Ads {
 		}
 		// Two-layout serving is staging-only. Its slot must be explicitly installed
 		// after the shared Google format settings have been reviewed separately.
-		if ( $environment === 'staging' && $format === 'layouts' ) {
+		if ( $environment === 'staging' && ( $format === 'layouts' || $format === 'manual-layouts' ) ) {
 			$slot = $config->get( $prefix . 'SidebarSlot' );
-			return is_string( $slot ) && preg_match( '/\A[0-9]{10}\z/', $slot ) ?
-				[ 'client' => $client, 'format' => $format, 'environment' => $environment, 'sidebarSlot' => $slot ] : null;
+			if ( !is_string( $slot ) || !preg_match( '/\A[0-9]{10}\z/', $slot ) ) { return null; }
+			$result = [ 'client' => $client, 'format' => $format, 'environment' => $environment, 'sidebarSlot' => $slot ];
+			if ( $format === 'manual-layouts' ) {
+				$banner = $config->get( $prefix . 'BannerSlot' );
+				if ( !is_string( $banner ) || !preg_match( '/\A[0-9]{10}\z/', $banner ) ) { return null; }
+				$result['bannerSlot'] = $banner;
+			}
+			return $result;
 		}
 		if ( $format !== 'anchor' ) { return null; }
 		return [ 'client' => $client, 'format' => $format, 'environment' => $environment ];
