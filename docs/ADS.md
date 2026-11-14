@@ -76,6 +76,15 @@ wrapper is at most 1200px wide; the right wrapper is at most 300px wide and
 shrinks with the available space on narrow pages. Neither grid is
 sticky or fixed, clipped, refreshed or artificially constrained to a banner's
 height. Both are siblings of `main#content`, outside its background/border card.
+For a requested in-page unit, `ads.js` observes Google's documented
+[`data-ad-status`](https://support.google.com/adsense/answer/10762946) on that
+unit's outer `ins`. Only `unfilled` hides our complete wrapper and label and
+releases the right-column reservation. Pending, `filled`, `unfill-optimized`
+and unknown states remain visible; no timeout or frame inspection guesses whether
+an ad exists. A later fill restores the wrapper. Observation pauses on page exit
+and rechecks the same unit after BFCache restoration. This changes neither the
+saved preference nor the Google unit, and never refreshes or retries an ad.
+Synthetic previews and historical native anchors are unaffected.
 There are no real ads on login/account/special pages, talk pages,
 editing/history/diff/old-revision views, missing articles, or local clones.
 Production also excludes nonpublic and noindex articles. Staging can load the

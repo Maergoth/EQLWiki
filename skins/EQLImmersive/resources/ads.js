@@ -161,6 +161,24 @@
 			if ( content ) { content.classList.toggle( 'eql-ad-side-wide', !!sidebar && !sidebar.hidden &&
 				( multiplexLayout ? sidebarRoom() : wideDesktop() ) ); }
 		}
+		function watchFill( ad, wrapper ) {
+			// Google publishes the fill result on our requested outer ins. Pending,
+			// filled and optimized units must remain visible; never infer no-fill
+			// from dimensions or a timeout, or inspect the provider's frame contents.
+			function update() {
+				if ( !ad.isConnected || !wrapper.contains( ad ) ) { return; }
+				wrapper.hidden = ad.getAttribute( 'data-ad-status' ) === 'unfilled';
+				positionSidebar();
+			}
+			var observer = new MutationObserver( update );
+			function start() {
+				observer.observe( ad, { attributes: true, attributeFilter: [ 'data-ad-status' ] } );
+				update();
+			}
+			window.addEventListener( 'pagehide', function () { observer.disconnect(); } );
+			window.addEventListener( 'pageshow', function ( event ) { if ( event.persisted ) { start(); } } );
+			start();
+		}
 		function sidebarRoom() {
 			// A non-sticky grid can use portrait/tablet space too, while keeping
 			// at least 668px for the article before its own padding.
@@ -367,6 +385,7 @@
 				if ( multiplex ) { ad.dataset.adFormat = 'autorelaxed'; }
 				ad.dataset.adClient = config.client; ad.dataset.adSlot = config.sidebarSlot;
 				sidebarUnit.appendChild( ad ); sidebar.hidden = false; positionSidebar();
+				watchFill( ad, sidebar );
 			} else if ( manual ) {
 				if ( !positionBanner() ) { return; }
 				var bannerAd = document.createElement( 'ins' ); bannerAd.className = 'adsbygoogle';
@@ -376,6 +395,7 @@
 				if ( multiplex ) { bannerAd.dataset.adFormat = 'autorelaxed'; }
 				bannerAd.dataset.adClient = config.client; bannerAd.dataset.adSlot = config.bannerSlot;
 				bannerUnit.appendChild( bannerAd ); banner.hidden = false;
+				watchFill( bannerAd, banner );
 			}
 			var script = document.createElement( 'script' ); script.async = true; script.crossOrigin = 'anonymous';
 			if ( mode === 'anchor' && !manual ) { script.dataset.overlays = 'collapsed-bottom'; }

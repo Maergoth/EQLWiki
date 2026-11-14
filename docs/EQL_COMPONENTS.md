@@ -52,7 +52,11 @@ Major custom skin behavior:
   requires separately issued `EQLAdSenseStagingMultiplexBottomSlot` and
   `EQLAdSenseStagingMultiplexSidebarSlot`; display-unit IDs are never substituted.
   Standard responsive `autorelaxed` units leave count and height to Google.
-  One selected unit is requested per document, without refresh on resize. Auto
+  One selected unit is requested per document, without refresh on resize.
+  In-page units explicitly reported `unfilled` by Google collapse their complete
+  wrapper/label and release the sidebar column; pending, filled and optimized
+  units stay visible. The scoped observer resumes after BFCache restoration;
+  it does not inspect frames, refresh ads or change saved preferences. Auto
   ads and Auto optimize remain Off. Stored `anchor`/`on` values stay Bottom and
   `side` stays Right despite reordered numbering. Mode changes retain the saved
   identity/browser boundaries, reload once and restore the page-bound scroll offset.
