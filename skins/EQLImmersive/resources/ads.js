@@ -278,13 +278,6 @@
 			if ( mode === 'anchor' ) { followAnchor(); }
 			document.head.appendChild( script );
 			if ( mode === 'side' ) { ( window.adsbygoogle = window.adsbygoogle || [] ).push( {} ); }
-			else if ( layouts ) {
-				// Google's documented per-page Auto ads initialization, restricted to
-				// the explicitly selected staging Bottom mode. No manual unit is added.
-				( window.adsbygoogle = window.adsbygoogle || [] ).push( {
-					google_ad_client: config.client, enable_page_level_ads: true
-				} );
-			}
 		}
 		function render( next ) {
 			mode = normalize( next ); select( mode );

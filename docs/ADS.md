@@ -122,15 +122,17 @@ automatic optimization and automatic winner application. This is a shared
 root-domain/subdomain setting and needs explicit approval beyond staging-only
 activation. The current Google UI also switches the Auto ads master setting Off
 when all formats are disabled; it cannot retain the previously proposed On/zero-format
-combination. Bottom alone supplies `data-overlays="collapsed-bottom"` and Google's
-documented per-page `enable_page_level_ads: true` initialization. Side supplies
-neither and requests only the issued display unit. Confirm real anchor serving
-under the saved master setting before claiming that both modes serve; the
-documented position override alone was observed without a fill in this state.
+combination. Bottom alone supplies `data-overlays="collapsed-bottom"`. Side supplies
+no overlay override and requests only the issued display unit. Confirm real anchor
+serving under the saved master setting before claiming that both modes serve;
+the position override was observed without a fill in this state. Adding the
+documented legacy `enable_page_level_ads: true` initializer alongside the current
+client-qualified tag produced Google's duplicate-initialization error on test
+and was removed. Do not add a second Auto ads initializer.
 Do not turn on competing formats or hide an unwanted Google ad to simulate separation.
 
 References: [Google's supported per-page anchor override](https://support.google.com/adsense/answer/7478225),
-[documented Auto ads initialization](https://support.google.com/adsense/answer/9042142),
+[legacy initialization example](https://support.google.com/adsense/answer/9042142),
 [manual sticky restrictions](https://support.google.com/adsense/answer/10734935),
 and [supported display sizing](https://support.google.com/adsense/answer/9183363).
 
