@@ -117,6 +117,7 @@
 		var temporary = Boolean( mw.config.get( 'wgUserIsTemp' ) );
 		var account = userId > 0 && typeof userName === 'string' && userName.length > 0 && !temporary;
 		var offLatch = false, mode = 'off', requestedMode = null, reloading = false;
+		var providerReady = false, providerFailed = false, unitRequested = false;
 		var api = null, reading = false, saving = false, failedWrite = false, identityInvalid = false;
 		var queued = null, revision = 0;
 		var rawConfig = mw.config.get( 'wgEQLAdSense' );
@@ -159,24 +160,42 @@
 		}
 		function positionSidebar() {
 			if ( content ) { content.classList.toggle( 'eql-ad-side-wide', !!sidebar && !sidebar.hidden &&
+				!sidebar.classList.contains( 'eql-ad-awaiting-result' ) &&
 				( multiplexLayout ? sidebarRoom() : wideDesktop() ) ); }
 		}
 		function watchFill( ad, wrapper ) {
-			// Google publishes the fill result on our requested outer ins. Pending,
-			// filled and optimized units must remain visible; never infer no-fill
-			// from dimensions or a timeout, or inspect the provider's frame contents.
+			var active = true;
+			// Keep pending Google units measurable in normal flow. Only our label,
+			// margins and sidebar reservation wait for a visible provider result.
+			// Geometry never hides a requested unit or inspects its frame contents.
+			function hasVisibleResult() {
+				var status = ad.getAttribute( 'data-ad-status' );
+				if ( status !== 'filled' && status !== 'unfill-optimized' ) { return false; }
+				var box = ad.getBoundingClientRect();
+				if ( box.width <= 0 || box.height <= 0 ) { return false; }
+				for ( var node = ad; node && node !== wrapper; node = node.parentElement ) {
+					var style = window.getComputedStyle( node );
+					if ( style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse' ) { return false; }
+				}
+				return true;
+			}
 			function update() {
-				if ( !ad.isConnected || !wrapper.contains( ad ) ) { return; }
+				if ( !active || !ad.isConnected || !wrapper.contains( ad ) ) { return; }
 				wrapper.hidden = ad.getAttribute( 'data-ad-status' ) === 'unfilled';
+				wrapper.classList.toggle( 'eql-ad-awaiting-result', multiplex && !hasVisibleResult() );
 				positionSidebar();
 			}
 			var observer = new MutationObserver( update );
+			var resize = typeof ResizeObserver === 'function' ? new ResizeObserver( update ) : null;
 			function start() {
-				observer.observe( ad, { attributes: true, attributeFilter: [ 'data-ad-status' ] } );
+				active = true;
+				observer.observe( ad, { attributes: true, attributeFilter: [ 'data-ad-status', 'style', 'class', 'hidden' ] } );
+				if ( resize ) { resize.observe( ad ); }
 				update();
 			}
-			window.addEventListener( 'pagehide', function () { observer.disconnect(); } );
+			window.addEventListener( 'pagehide', function () { active = false; observer.disconnect(); if ( resize ) { resize.disconnect(); } } );
 			window.addEventListener( 'pageshow', function ( event ) { if ( event.persisted ) { start(); } } );
+			window.addEventListener( 'resize', update );
 			start();
 		}
 		function sidebarRoom() {
@@ -370,21 +389,18 @@
 				advertisement.hidden = false; document.body.classList.add( 'eql-ad-preview-open' );
 			}
 		}
-		function load() {
-			if ( mode === 'off' || reloading ) { return; }
-			if ( preview ) { showPreview(); return; }
-			if ( !config || requestedMode ) { return; }
+		function requestUnit() {
+			if ( !providerReady || providerFailed || unitRequested || reloading || offLatch ||
+				mode !== requestedMode || mode === 'off' || !identityMatches() ) { return; }
+			unitRequested = true;
 			if ( mode === 'side' ) {
-				if ( !layouts || !content || !sidebar || !sidebarUnit ) {
-					control.title = 'Style 2 is not configured here yet. Choose 1 for bottom ads.'; return;
-				}
 				var ad = document.createElement( 'ins' ); ad.className = 'adsbygoogle';
 				// Fixed-size display unit in our reserved column; never a custom fixed
 				// footer. Its 300px width also fits the narrow in-flow fallback.
 				ad.style.cssText = multiplex ? 'display:block' : 'display:inline-block;width:300px;height:250px';
 				if ( multiplex ) { ad.dataset.adFormat = 'autorelaxed'; }
 				ad.dataset.adClient = config.client; ad.dataset.adSlot = config.sidebarSlot;
-				sidebarUnit.appendChild( ad ); sidebar.hidden = false; positionSidebar();
+				sidebarUnit.appendChild( ad ); sidebar.hidden = false;
 				watchFill( ad, sidebar );
 			} else if ( manual ) {
 				if ( !positionBanner() ) { return; }
@@ -397,13 +413,27 @@
 				bannerUnit.appendChild( bannerAd ); banner.hidden = false;
 				watchFill( bannerAd, banner );
 			}
+			if ( mode === 'side' || manual ) { ( window.adsbygoogle = window.adsbygoogle || [] ).push( {} ); }
+		}
+		function load() {
+			if ( mode === 'off' || reloading ) { return; }
+			if ( preview ) { showPreview(); return; }
+			if ( !config ) { return; }
+			if ( requestedMode ) { requestUnit(); return; }
+			if ( mode === 'side' && ( !layouts || !content || !sidebar || !sidebarUnit ) ) {
+				control.title = 'Style 2 is not configured here yet. Choose 1 for bottom ads.'; return;
+			}
+			if ( mode !== 'side' && manual && !positionBanner() ) { return; }
 			var script = document.createElement( 'script' ); script.async = true; script.crossOrigin = 'anonymous';
 			if ( mode === 'anchor' && !manual ) { script.dataset.overlays = 'collapsed-bottom'; }
 			script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent( config.client );
 			requestedMode = mode;
 			if ( mode === 'anchor' && !manual ) { followAnchor(); }
+			// A blocked or failed loader must not create an empty panel. Once loaded,
+			// mount a visible measurable unit before pushing its one ad request.
+			script.addEventListener( 'load', function () { providerReady = true; requestUnit(); }, { once: true } );
+			script.addEventListener( 'error', function () { providerFailed = true; }, { once: true } );
 			document.head.appendChild( script );
-			if ( mode === 'side' || manual ) { ( window.adsbygoogle = window.adsbygoogle || [] ).push( {} ); }
 		}
 		function render( next ) {
 			mode = normalize( next ); select( mode );

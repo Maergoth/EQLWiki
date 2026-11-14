@@ -76,14 +76,25 @@ wrapper is at most 1200px wide; the right wrapper is at most 300px wide and
 shrinks with the available space on narrow pages. Neither grid is
 sticky or fixed, clipped, refreshed or artificially constrained to a banner's
 height. Both are siblings of `main#content`, outside its background/border card.
+The Google loader must finish loading before an in-page unit is mounted or
+requested. A blocked, failed or still-loading script therefore leaves no panel,
+label or reserved column. Failure does not trigger an automatic retry.
 For a requested in-page unit, `ads.js` observes Google's documented
 [`data-ad-status`](https://support.google.com/adsense/answer/10762946) on that
-unit's outer `ins`. Only `unfilled` hides our complete wrapper and label and
-releases the right-column reservation. Pending, `filled`, `unfill-optimized`
-and unknown states remain visible; no timeout or frame inspection guesses whether
-an ad exists. A later fill restores the wrapper. Observation pauses on page exit
-and rechecks the same unit after BFCache restoration. This changes neither the
-saved preference nor the Google unit, and never refreshes or retries an ad.
+unit's outer `ins`. A pending or unknown Multiplex unit remains visible and measurable in
+normal flow below the article, without the wiki's label, margins or right-column
+reservation. This avoids squeezing the article while Google is still deciding
+whether an ad can show. `filled` or `unfill-optimized` enables the wiki's label,
+spacing and eligible right column only when the unit has visible, positive outer geometry.
+Size observation updates that layout as the unit changes. Geometry controls only
+our surrounding layout: it never hides or clips Google's unit or frame.
+Only `unfilled` hides the complete wrapper and releases its layout space; a later
+fill can restore it. No timeout or frame inspection guesses whether an ad exists.
+If Google supplies blank height while remaining pending, that space can remain
+below the article, but it does not narrow the article. Observation pauses on page
+exit and rechecks the same unit after BFCache restoration. This changes neither
+the saved preference nor Google's creative, and never refreshes or retries an ad.
+Legacy manual display units retain their prior placement after the loader is ready.
 Synthetic previews and historical native anchors are unaffected.
 There are no real ads on login/account/special pages, talk pages,
 editing/history/diff/old-revision views, missing articles, or local clones.
@@ -111,11 +122,14 @@ views have no preview. Production settings stay blank during staging review.
 
 ## Grid placement and per-reader provider selection
 
-Right's aside is a sibling of `main#content` in `.mw-content-container`. With
+Right's aside is a sibling of `main#content` in `.mw-content-container`. Once
+Google reports a filled or optimized Multiplex unit with visible, positive outer geometry, and with
 at least 1000 CSS pixels available, the container reserves a 300px right column
 and 32px gap, leaving at least 668px for the article before its own padding.
 This ordinary column can also fit a sufficiently wide portrait/tablet window.
-Below that threshold it falls after the article. Multiplex does not use the
+Below that threshold it stays after the article. Pending units also stay there
+at the same 300px maximum width, so opening the column does not resize the ad.
+The layout change is unanimated. Multiplex does not use the
 legacy sticky rule, even on desktop. Only one selected unit is requested per
 document; resizing changes our layout, not Google's creative or request count.
 
