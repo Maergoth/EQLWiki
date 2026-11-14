@@ -213,6 +213,19 @@ body.skin-eqlimmersive #eql-ad-banner-unit { width: 100%; max-width: 970px; min-
 body.skin-eqlimmersive #eql-ad-banner .eql-ad-preview {
 	height: 90px; border: 1px solid #657087; background: #142138;
 }
+/* Multiplex grids stay in document flow. Google owns their real creative count
+   and height; never clip the grid or make multiple ads sticky. */
+body.skin-eqlimmersive #eql-ad-banner.eql-ad-multiplex #eql-ad-banner-unit { max-width: 1200px; min-height: 0; }
+body.skin-eqlimmersive #eql-ad-sidebar.eql-ad-multiplex #eql-ad-sidebar-unit { min-height: 0; }
+body.skin-eqlimmersive .eql-ad-grid-preview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+body.skin-eqlimmersive #eql-ad-sidebar .eql-ad-grid-preview { grid-template-columns: 1fr; }
+body.skin-eqlimmersive .eql-ad-grid-preview-tile {
+	min-height: 140px; padding: 16px; box-sizing: border-box; display: grid; place-items: center;
+	border: 1px dashed #657087; background: #142138; color: #a7b4c8; font: .8rem/1.4 system-ui, sans-serif;
+}
+@media (max-width: 700px) {
+	body.skin-eqlimmersive #eql-ad-banner .eql-ad-grid-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 body.skin-eqlimmersive #eql-ad-sidebar {
 	box-sizing: border-box; width: 300px; margin: 2rem auto 1rem;
 	text-align: center; min-width: 0; align-self: stretch;
@@ -231,7 +244,7 @@ body.skin-eqlimmersive .eql-ad-side-wide > main#content { grid-column: 1; grid-r
 body.skin-eqlimmersive .eql-ad-side-wide > #eql-ad-sidebar { grid-column: 2; grid-row: 1; margin: 24px 0 0; }
 body.skin-eqlimmersive .eql-ad-side-wide > :not(main):not(#eql-ad-sidebar) { grid-column: 1 / -1; }
 @media (hover: hover) and (pointer: fine) and (min-height: 560px) {
-	body.skin-eqlimmersive .eql-ad-side-wide .eql-ad-sidebar-inner {
+	body.skin-eqlimmersive .eql-ad-side-wide > #eql-ad-sidebar:not(.eql-ad-multiplex) .eql-ad-sidebar-inner {
 		position: sticky; top: calc(var(--eql-header-height, 60px) + 24px);
 	}
 }

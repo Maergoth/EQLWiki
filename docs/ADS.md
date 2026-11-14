@@ -1,14 +1,17 @@
 # Optional ad layouts and staging previews
 
 EQLImmersive places an **Ads X / 1 / 2** radio group immediately after **Donate**.
-X is Off, 1 is Side (wide desktop), and 2 is Banner (in-page, suited to tall/narrow windows).
+X is Off, **1 is Bottom** (horizontal Multiplex grid after the complete content
+card), and **2 is Right sidebar** (vertical Multiplex grid beside the card).
 The controls have individual accessible names, native radio-keyboard behavior,
 visible focus/selection states and descriptive tooltips.
 
-**New logged-out readers start with Side only on a landscape desktop with at
-least 1280 CSS pixels of content-container width and 560 pixels of viewport
-height, a fine hover pointer and no touch points. Otherwise they start with
-Banner.** The initial default is computed once, not changed while resizing.
+**Fresh logged-out readers in Multiplex mode default to Bottom in landscape.
+Portrait windows default to Right only with at least 1000 CSS pixels available
+in the content container; otherwise Bottom.** Both grids scroll normally. The
+right column moves below the article on narrower windows, without requesting
+another unit. The default is computed once and resizing never changes a saved choice.
+Historical display-unit configurations keep their existing desktop-aware default.
 An explicit choice wins. Turning ads off says exactly **“Ads disabled. Log in
 to save your preference”**. The choice lasts for the browser session through a
 first-party host-only session cookie (`Path=/`, `SameSite=Lax`, Secure on HTTPS),
@@ -18,9 +21,10 @@ cookie is authoritative; malformed/unreadable values fail Off. No localStorage,
 long-lived cookie, or anonymous preference API write is used.
 
 **Named accounts start with Off** unless their native `userjs-eql-ads` option
-selects Side or Banner. New writes use `off`, `side` or `anchor`. The current
-boolean-era `on` value reads as style 2 without a background migration write;
-`off` remains Off, both for accounts and current anonymous session storage.
+selects Bottom or Right. New writes use `off`, `side` or `anchor`. The current
+boolean-era `on` value reads as Bottom (now numbered 1) without a background migration write;
+`anchor` remains the internal Bottom value and `side` remains Right; relabeling
+does not rewrite preferences. `off` remains Off for accounts and anonymous sessions.
 Superseded long-lived browser preferences are still ignored. Anonymous and
 account choices are never copied across login boundaries.
 
@@ -50,8 +54,12 @@ preference. Restoration is best effort when layout height changes. A change in
 another tab is also observed. Browser ad blockers
 are respected.
 
-Banner uses a separate responsive display unit with variable width (250–970px) and a fixed 90px height. It scrolls with the page, below Main Page content or below the title and before other articles. Side uses an
-issued display-unit slot with explicit 300x250 dimensions in its own column. Side is sticky only within its desktop article column, never a custom fixed footer. There are no real ads on login/account/special pages, talk pages,
+Each Multiplex layout uses a separate issued responsive unit, requested only when
+selected. Google chooses its real ad count, arrangement and height. The bottom
+wrapper is at most 1200px wide; the right wrapper is 300px wide. Neither grid is
+sticky or fixed, clipped, refreshed or artificially constrained to a banner's
+height. Both are siblings of `main#content`, outside its background/border card.
+There are no real ads on login/account/special pages, talk pages,
 editing/history/diff/old-revision views, missing articles, or local clones.
 Production also excludes nonpublic and noindex articles. Staging can load the
 provider only through its separate explicit settings described below, preserving
@@ -62,10 +70,11 @@ to the footer, database `MediaWiki:` scripts, or page head.
 ## Review manual previews on staging
 
 Placement review is limited to **https://test.eqlwiki.com**. With its separate
-provider settings blank or invalid, the server publishes `{preview:true,manual:true}`.
-Style 1 shows a synthetic 300x250 Side unit; style 2 shows a synthetic 90px-high
-in-page Banner. Neither creates a floating footer or requests Google. Selecting
-X removes previews immediately. They illustrate placement, not actual ad fill.
+provider settings blank or invalid, the server publishes
+`{preview:true,manual:true,multiplex:true}`. Each choice shows a synthetic grid
+of four labeled placeholders. Bottom uses four columns, or two at 700px and
+below; Right uses one column. This illustrates placement only, not the number
+or size of Google's eventual ads. X removes the preview, with no Google calls.
 
 The server selects staging only when trusted `Server` and `CanonicalServer`
 are both exactly `https://test.eqlwiki.com`; the browser also requires that exact
@@ -74,46 +83,43 @@ staging login/noindex policies remain intact. Eligible current main-namespace
 articles include Main Page; special/talk/edit/history/diff/old-revision and missing
 views have no preview. Production settings stay blank during staging review.
 
-## Side layout and per-reader provider selection
+## Grid placement and per-reader provider selection
 
-Side's inert aside is a sibling of `main#content` inside `.mw-content-container`.
-On eligible wide desktops that container reserves a 300px column plus 32px gap,
-leaving at least 948px for the main column before its own padding. The inner
-unit is sticky below the measured header with 24px clearance. On narrow,
-portrait, short, touch/tablet or coarse-pointer layouts it remains an ordinary
-in-flow block after the article. The same unit stays in the DOM during resizing;
-there is no ad refresh, second request, cloned creative, clipping or forced
-Google iframe sizing. The manual banner and side unit are never requested
-in the same document. A failed Off/style save leaves an already-requested real
-unit intact and warns the reader to close the tab, rather than hiding an ad.
+Right's aside is a sibling of `main#content` in `.mw-content-container`. With
+at least 1000 CSS pixels available, the container reserves a 300px right column
+and 32px gap, leaving at least 668px for the article before its own padding.
+This ordinary column can also fit a sufficiently wide portrait/tablet window.
+Below that threshold it falls after the article. Multiplex does not use the
+legacy sticky rule, even on desktop. Only one selected unit is requested per
+document; resizing changes our layout, not Google's creative or request count.
 
-Banner's inert aside is placed after `main#content` on Main Page, or inside
-`main#content` immediately before `#bodyContent` on other eligible articles.
-The body and its IDs remain intact. The 90px unit height and responsive width
-are set inline using Google's supported variable-width/fixed-height pattern;
-`data-ad-format="auto"` and full-width responsive expansion are omitted. Its
-own wrapper centers it up to 970px. No creative is clipped or restyled, and no
-unit refresh occurs when resizing. The footer stays in its normal position.
+Bottom's aside always follows `main#content`, including on Main Page. The title,
+body, categories and parser-output DOM remain untouched. Its own wrapper centers
+the responsive unit up to 1200px. Both units use the standard `autorelaxed` tag
+with `display:block`. No deprecated row/column parameters force a count. Never
+reuse a display-unit ID as a Multiplex ID or force a 90px height onto the grid.
 
-To serve both styles, independently install staging format `manual-layouts` and
-two issued, 10-digit slots: `EQLAdSenseStagingSidebarSlot` and
-`EQLAdSenseStagingBannerSlot`. Separate units allow per-unit reporting. Historical
-`layouts` (Side/native anchor) and `anchor` configurations remain compatible,
-but are not the selected test setup. The stored style-2 value remains `anchor`
-to preserve account/session choices; it renders Banner under `manual-layouts`.
-Production still accepts only its independently configured legacy `anchor` path;
-manual staging settings cannot activate production.
+Google's [Multiplex creation guide](https://support.google.com/adsense/answer/9274644)
+recommends responsive units. It suggests roughly 2:1 horizontal or 1:2 vertical
+ratios if choosing a custom size. This implementation uses responsive dimensions.
+The [row/column customization options](https://support.google.com/adsense/answer/7533385)
+are deprecated and are intentionally omitted. The [sticky rules](https://support.google.com/adsense/answer/10734935)
+permit only one sticky ad visible at a time, so these multi-ad grids stay in flow.
 
-Google account prerequisite: **Auto ads Off and Auto optimize Off**. Manual
-units continue serving independently. Shared root-domain/subdomain settings
-need owner authorization; never turn on competing formats or hide an unwanted
-Google creative to simulate layout separation. Do not add an
-`enable_page_level_ads` initializer alongside the client-qualified tag: it
-duplicates that tag's initialization and was rejected during real acceptance.
+Two independent Multiplex slots support comparing overall revenue, page RPM and
+Active View viewability by unit and device. More ad tiles do not establish a
+revenue gain. Reader-selected layouts are not a randomized A/B experiment; do
+not infer causality from different audiences. Keep content more prominent than
+advertising, review short pages and mobile height, and assess real fills before
+adding more inventory. Do not generate synthetic impressions for measurement.
 
-References: [supported display sizing](https://support.google.com/adsense/answer/9183363),
-[manual sticky restrictions](https://support.google.com/adsense/answer/10734935),
-and [Auto ads settings](https://support.google.com/adsense/answer/9305577).
+Google account prerequisite: **Auto ads Off and Auto optimize Off**. Shared
+root-domain/subdomain settings need owner authorization. Manual units continue
+serving independently. No extra `enable_page_level_ads` initializer is used.
+Historical `manual-layouts` display units remain supported pending deliberate
+Multiplex activation. Their bottom banner now also sits after every article card.
+Production still accepts only its independently configured legacy anchor path;
+no staging format or slot can activate production.
 
 ## Configure the provider on staging
 
@@ -123,9 +129,9 @@ file `/home/eqlwikdq/deploy/EQLWiki-staging/ads-settings.php`:
 
 ```php
 $wgEQLAdSenseStagingClient = 'ca-pub-<issued publisher ID>';
-$wgEQLAdSenseStagingFormat = 'manual-layouts';
-$wgEQLAdSenseStagingSidebarSlot = '<issued side slot>';
-$wgEQLAdSenseStagingBannerSlot = '<issued banner slot>';
+$wgEQLAdSenseStagingFormat = 'multiplex-layouts';
+$wgEQLAdSenseStagingMultiplexSidebarSlot = '<issued vertical Multiplex slot>';
+$wgEQLAdSenseStagingMultiplexBottomSlot = '<issued horizontal Multiplex slot>';
 ```
 
 Do not include production settings or account credentials, and do not reuse the
@@ -154,7 +160,7 @@ origin. Neither environment uses the other's publisher settings as a fallback.
 ## Legacy native-anchor compatibility
 
 The following applies only to historical `anchor`/`layouts` settings, not the
-selected `manual-layouts` configuration. The real provider does not open the
+selected `multiplex-layouts` configuration. The real provider does not open the
 local preview dock or apply its CSS to Google's ads. Google owns its actual anchor, dimensions and close UI. Regular
 anchors have no supported pixel-height cap; disabling dynamic anchors does not
 make their size equal to the synthetic preview.
@@ -323,7 +329,7 @@ analytics collection is added by this feature. Exclude API/resource requests,
 test traffic and staging. Unknown automation and measurement blockers still
 make human counts estimates.
 
-Only views whose effective Ads preference is Side or Banner can earn revenue. Forecast from
+Only views whose effective Ads preference is Bottom or Right can earn revenue. Forecast from
 anonymous human article pageviews, the fraction with Ads on, the fraction delivering
 ads, and measured earnings per thousand of those monetized pageviews. Google
 [page RPM](https://support.google.com/adsense/answer/112030) uses AdSense-counted
@@ -354,13 +360,13 @@ Inspect network requests: Off must make no Google ad request. Use synthetic
 provider responses for local lifecycle tests; never generate artificial clicks
 or impressions against a live publisher as routine verification.
 In staging's synthetic preview mode, scroll a long article to its final links,
-check both sides of the 900px breakpoint plus 320px/375px widths, keyboard dismissal and reopening, and
+check both sides of the 1000px column threshold plus 320px/375px widths, keyboard selection and Off, and
 the unobstructed utility footer. Verify there is no Google script, iframe,
 request, or `adsbygoogle` unit. With explicit staging provider configuration,
-confirm the synthetic dock stays hidden and an Off preference makes no provider
+confirm synthetic placeholders stay absent and an Off preference makes no provider
 request; verify actual Google placement separately when approval and access allow
 serving. Synthetic CSS/DOM checks do not prove rendered
-browser geometry or Google's eventual anchor behavior.
+browser geometry or Google's eventual grid dimensions and fill.
 
 Deploy the source through a feature PR to staging, preserving the staging login
 gate and separate blank-by-default provider configuration. Review placement with

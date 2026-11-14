@@ -154,6 +154,10 @@ $wgEQLAdSenseStagingFormat = '';
 # disabling competing default Auto ad formats. Never copy these to production.
 $wgEQLAdSenseStagingSidebarSlot = '';
 $wgEQLAdSenseStagingBannerSlot = '';
+# Multiplex grids require their own issued Multiplex units, not display-unit IDs.
+# Set staging format to 'multiplex-layouts' after configuring both units.
+$wgEQLAdSenseStagingMultiplexSidebarSlot = '';
+$wgEQLAdSenseStagingMultiplexBottomSlot = '';
 
 # Hide legacy Vector from user skin preferences.
 # This leaves only EQLImmersive and Vector 2022 selectable.

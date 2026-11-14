@@ -39,22 +39,22 @@ the custom layout and conditional resources. See the
 Major custom skin behavior:
 
 - `resources/ads.js`, the footer X/1/2 radio group, and `includes/Ads.php` provide
-  optional Side/Banner layouts with a width-aware anonymous browser-session default
-  and named-account default Off using `userjs-eql-ads`. Session/account state stays
-  separate. Exact staging origin and eligible article guards preserve login/noindex.
-  Blank staging settings yield harmless manual previews. Explicit staging format
-  `manual-layouts` requires independent client, sidebar-slot and banner-slot settings.
-  Side uses one 300x250 unit in a reserved desktop column, falling back to in-flow
-  placement on narrow/portrait/touch screens. Banner uses a separate responsive
-  unit with inline variable-width/fixed-90px-height sizing, after Main Page or before
-  other article bodies; it does not float or move the footer. Only one unit is
-  requested per document; resizing never refreshes it. Auto ads and Auto optimize
-  remain Off in the shared Google settings. Separate units support separate reports.
-  Stored `anchor` and legacy `on` choices select style 2; `off` stays Off. Confirmed
-  mode changes reload a loaded provider once, with page-bound scroll restoration.
-  Historical anchor settings retain the outer-geometry footer clearance/backdrop;
-  this is not invoked for manual layouts. Production has independent blank settings
-  and accepts no manual staging configuration. No second Auto ads initializer is used.
+  optional Bottom/Right layouts: X Off, 1 horizontal grid after the entire card,
+  2 vertical right-column grid. Named accounts default Off; anonymous Multiplex
+  defaults prefer Bottom in landscape or Right in portrait with at least 1000px
+  of content width. The 300px right column plus 32px gap falls below the card
+  on narrow windows. Both grids are outside `main#content` and scroll normally;
+  neither grid is sticky. Exact staging origin and article guards preserve login/noindex.
+  Blank staging settings give synthetic grid previews. Explicit `multiplex-layouts`
+  requires separately issued `EQLAdSenseStagingMultiplexBottomSlot` and
+  `EQLAdSenseStagingMultiplexSidebarSlot`; display-unit IDs are never substituted.
+  Standard responsive `autorelaxed` units leave count and height to Google.
+  One selected unit is requested per document, without refresh on resize. Auto
+  ads and Auto optimize remain Off. Stored `anchor`/`on` values stay Bottom and
+  `side` stays Right despite reordered numbering. Mode changes retain the saved
+  identity/session boundaries, reload once and restore the page-bound scroll offset.
+  Historical display and native-anchor configurations remain separate. Production
+  has independent blank settings and accepts no manual/Multiplex staging format.
   Approval, consent and protected-content crawler access remain separate from
   loader setup. Only this ad option is saved on an explicit named-user gesture; no
   analytics collection or unrelated account state is changed. Root
