@@ -10,8 +10,9 @@ const source = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/res
 const template = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/includes/templates/skin.mustache' ), 'utf8' );
 const toggleMarkup = template.match( /<div id="eql-ads-toggle"[\s\S]*?<\/div>/ )?.[ 0 ];
 const sidebarMarkup = template.match( /<aside id="eql-ad-sidebar"[\s\S]*?<\/aside>/ )?.[ 0 ];
+const bannerMarkup = template.match( /<aside id="eql-ad-banner"[\s\S]*?<\/aside>/ )?.[ 0 ];
 const adMarkup = template.match( /<aside id="eql-advertisement"[\s\S]*?<\/aside>/ )?.[ 0 ];
-assert.ok( toggleMarkup && adMarkup && sidebarMarkup, 'The active skin must render the control and inert unit.' );
+assert.ok( toggleMarkup && adMarkup && sidebarMarkup && bannerMarkup, 'The active skin must render the control and inert units.' );
 const OPTION = 'userjs-eql-ads';
 const wiki = 'fixturewiki';
 const cookieName = 'eql_ads_session_v1_' + encodeURIComponent( wiki );
@@ -38,7 +39,7 @@ function visit( options = {} ) {
         '<div class="mw-content-container"><main id="content"><h1>Synthetic article</h1><div id="bodyContent"><div id="contentSub">Synthetic subtitle</div>' +
         ( options.articleAnchor === false ? '<div class="mw-parser-output">Synthetic article</div>' :
             '<div id="mw-content-text" class="mw-body-content"><div class="mw-parser-output">Synthetic article</div></div>' ) +
-        '<div id="catlinks">Synthetic categories</div></div></main>' + sidebarMarkup + '</div>' + adMarkup +
+        '<div id="catlinks">Synthetic categories</div></div></main>' + sidebarMarkup + bannerMarkup + '</div>' + adMarkup +
         ( options.footer === false ? toggleMarkup : '<div class="mw-footer-container"><button id="eql-support-button">Donate</button>' +
             toggleMarkup + '</div>' ) + '</div></body></html>', {
         url: options.url || 'https://eqlwiki.com/Synthetic_article', runScripts: 'outside-only', virtualConsole
@@ -124,7 +125,8 @@ function visit( options = {} ) {
         }, error => { activeSaves--; throw error; } );
     }
     const values = { wgWikiID: scope, wgScriptPath: options.scriptPath || '', wgUserId: user, wgUserName: name,
-        wgUserIsTemp: options.temporary || false, wgEQLAdSense: options.config === undefined ? config : options.config };
+        wgUserIsTemp: options.temporary || false, wgIsMainPage: options.mainPage === true,
+        wgEQLAdSense: options.config === undefined ? config : options.config };
     w.mw = {
         config: { get: key => values[ key ] }, Api: function () { return { get, saveOption }; },
         user: { options: { set: ( option, value ) => cacheWrites.push( { option, value } ) } },
@@ -631,10 +633,7 @@ test( 'Side requests one issued display unit and no anchor override; resizing ne
 test( 'Bottom requests only the native anchor even when a valid sidebar slot is configured', async () => {
     const page = visit( { ...layoutsVisit, cookie: cookieName + '=anchor' } ); await settle();
     assert.equal( page.scripts()[ 0 ].dataset.overlays, 'collapsed-bottom' );
-    assert.equal( page.w.document.querySelector( 'ins' ), null );
-    assert.deepEqual( JSON.parse( JSON.stringify( page.w.adsbygoogle ) ), [ { google_ad_client: stagingConfig.client, enable_page_level_ads: true } ] );
-    page.focus(); page.pageshow(); await settle();
-    assert.equal( page.w.adsbygoogle.length, 1 ); page.close();
+    assert.equal( page.w.document.querySelector( 'ins' ), null ); assert.equal( page.w.adsbygoogle, undefined ); page.close();
 } );
 test( 'Mode changes persist before one reload and never create two live styles in a document', async () => {
     for ( const [ first, second ] of [ [ 'side', 'anchor' ], [ 'anchor', 'side' ], [ 'side', 'off' ] ] ) {
@@ -678,6 +677,69 @@ test( 'Both synthetic styles switch without Google requests and retain the artic
     const article = page.w.document.querySelector( 'main' ).outerHTML;
     page.choose( 'anchor' ); await settle(); assert.equal( page.previewOpen(), true ); assert.equal( page.w.document.getElementById( 'eql-ad-sidebar' ).hidden, true );
     page.choose( 'off' ); await settle(); assert.equal( page.previewOpen(), false ); assert.equal( page.w.document.querySelector( 'main' ).outerHTML, article );
+    noProvider( page ); page.close();
+} );
+
+const manualConfig = { ...layoutsConfig, format: 'manual-layouts', bannerSlot: '0987654321' };
+const manualVisit = { ...staging, config: manualConfig };
+test( 'Manual banner uses its issued slot at 90px high, in flow before article or after Main Page', async () => {
+    for ( const mainPage of [ false, true ] ) {
+        const page = visit( { ...manualVisit, mainPage, cookie: cookieName + '=anchor' } ); await settle();
+        const d = page.w.document, banner = d.getElementById( 'eql-ad-banner' ), ad = banner.querySelector( 'ins' );
+        assert.equal( banner.hidden, false ); assert.equal( ad.dataset.adSlot, manualConfig.bannerSlot );
+        assert.equal( ad.style.height, '90px' ); assert.equal( ad.style.width, '100%' ); assert.equal( ad.style.maxWidth, '970px' );
+        assert.equal( ad.hasAttribute( 'data-ad-format' ), false ); assert.equal( ad.hasAttribute( 'data-full-width-responsive' ), false );
+        assert.equal( page.scripts()[ 0 ].hasAttribute( 'data-overlays' ), false );
+        assert.equal( d.getElementById( 'eql-ad-anchor-backdrop' ), null ); assert.equal( page.previewOpen(), false );
+        assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( d.querySelectorAll( 'ins' ).length, 1 );
+        if ( mainPage ) { assert.equal( d.querySelector( 'main' ).nextElementSibling, banner ); }
+        else { assert.equal( banner.nextElementSibling.id, 'bodyContent' ); assert.equal( banner.parentElement.id, 'content' ); }
+        assert.ok( d.querySelector( 'main#content > #bodyContent > #mw-content-text.mw-body-content' ) );
+        assert.equal( page.toggle.getAttribute( 'aria-label' ), 'Style 2: Banner, in-page' );
+        page.focus(); page.pageshow(); page.visible(); page.w.dispatchEvent( new page.w.Event( 'resize' ) ); await settle();
+        assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( d.querySelectorAll( 'ins' ).length, 1 ); page.close();
+    }
+} );
+test( 'Manual styles switch only after saving and request one distinct unit per document', async () => {
+    for ( const account of [ false, true ] ) {
+        for ( const [ first, second ] of [ [ 'side', 'anchor' ], [ 'anchor', 'side' ], [ 'anchor', 'off' ] ] ) {
+            const pref = mode => account ? { user: 42, option: mode } : { cookie: cookieName + '=' + mode };
+            const page = visit( { ...manualVisit, ...pref( first ) } ); await settle();
+            const ad = page.w.document.querySelector( 'ins' );
+            assert.equal( ad.dataset.adSlot, first === 'side' ? manualConfig.sidebarSlot : manualConfig.bannerSlot );
+            page.choose( second ); await settle(); assert.equal( page.reloads(), 1 );
+            assert.equal( page.w.document.querySelectorAll( 'ins' ).length, 1 ); assert.equal( page.w.adsbygoogle.length, 1 );
+            const next = visit( { ...manualVisit, ...pref( second ) } ); await settle();
+            assert.equal( next.selected(), second ); if ( second === 'off' ) { noProvider( next ); }
+            page.close(); next.close();
+        }
+    }
+} );
+test( 'Failed banner opt-out leaves the requested creative intact and reports the unsaved state', async () => {
+    const page = visit( { ...manualVisit, user: 42, option: 'anchor', saveError: true } ); await settle();
+    const banner = page.w.document.getElementById( 'eql-ad-banner' ), before = banner.innerHTML;
+    page.choose( 'off' ); await settle(); page.focus(); await settle();
+    assert.equal( page.reloads(), 0 ); assert.equal( banner.hidden, false ); assert.equal( banner.innerHTML, before );
+    assert.ok( page.notifications.some( x => /Close this tab/.test( x.message ) ) ); page.close();
+} );
+test( 'Manual layouts reject invalid slots, copied production origin and production environment', async () => {
+    for ( const invalid of [ '', 1234567890, '0987654321\n', 'bad-slot' ] ) {
+        const page = visit( { ...manualVisit, config: { ...manualConfig, bannerSlot: invalid }, cookie: cookieName + '=anchor' } );
+        await settle(); noProvider( page ); page.close();
+    }
+    for ( const invalid of [ { ...manualConfig, sidebarSlot: '' }, { ...manualConfig, environment: 'production' } ] ) {
+        const page = visit( { ...manualVisit, config: invalid, cookie: cookieName + '=anchor' } ); await settle(); noProvider( page ); page.close();
+    }
+    const page = visit( { config: manualConfig, cookie: cookieName + '=anchor' } ); await settle(); noProvider( page ); page.close();
+} );
+test( 'Manual staging previews switch between Side, Banner and Off without a floating dock', async () => {
+    const page = visit( { ...staging, config: { preview: true, manual: true }, viewport: { width: 1920, height: 1080 } } ); await settle();
+    const body = page.w.document.getElementById( 'bodyContent' ), before = body.outerHTML;
+    page.choose( 'anchor' ); await settle();
+    const banner = page.w.document.getElementById( 'eql-ad-banner' );
+    assert.equal( banner.hidden, false ); assert.equal( banner.nextElementSibling, body ); assert.equal( page.previewOpen(), false );
+    assert.equal( page.w.document.getElementById( 'eql-ad-sidebar' ).hidden, true );
+    page.choose( 'off' ); await settle(); assert.equal( banner.hidden, true ); assert.equal( body.outerHTML, before );
     noProvider( page ); page.close();
 } );
 

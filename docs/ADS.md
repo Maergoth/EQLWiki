@@ -1,14 +1,14 @@
 # Optional ad layouts and staging previews
 
 EQLImmersive places an **Ads X / 1 / 2** radio group immediately after **Donate**.
-X is Off, 1 is Side (wide desktop), and 2 is Bottom (tall/narrow windows).
+X is Off, 1 is Side (wide desktop), and 2 is Banner (in-page, suited to tall/narrow windows).
 The controls have individual accessible names, native radio-keyboard behavior,
 visible focus/selection states and descriptive tooltips.
 
 **New logged-out readers start with Side only on a landscape desktop with at
 least 1280 CSS pixels of content-container width and 560 pixels of viewport
 height, a fine hover pointer and no touch points. Otherwise they start with
-Bottom.** The initial default is computed once, not changed while resizing.
+Banner.** The initial default is computed once, not changed while resizing.
 An explicit choice wins. Turning ads off says exactly **“Ads disabled. Log in
 to save your preference”**. The choice lasts for the browser session through a
 first-party host-only session cookie (`Path=/`, `SameSite=Lax`, Secure on HTTPS),
@@ -18,8 +18,8 @@ cookie is authoritative; malformed/unreadable values fail Off. No localStorage,
 long-lived cookie, or anonymous preference API write is used.
 
 **Named accounts start with Off** unless their native `userjs-eql-ads` option
-selects Side or Bottom. New writes use `off`, `side` or `anchor`. The current
-boolean-era `on` value reads as Bottom without a background migration write;
+selects Side or Banner. New writes use `off`, `side` or `anchor`. The current
+boolean-era `on` value reads as style 2 without a background migration write;
 `off` remains Off, both for accounts and current anonymous session storage.
 Superseded long-lived browser preferences are still ignored. Anonymous and
 account choices are never copied across login boundaries.
@@ -35,7 +35,7 @@ Missing/malformed account values default Off; failed reads also stay Off.
 If the browser or account cannot retain an opt-out, the current document keeps
 the selection and local preview Off and explains the failure. It does not reload
 into a stale saved On. Close that tab to end an already loaded provider; Google's
-own anchor may remain until the tab closes. Retry or reload after resolving a
+already requested creative remains intact until navigation. Retry or reload after resolving a
 save failure to establish a retained preference.
 
 `resources/ads.js` owns the preference and Google loader. No Google advertising
@@ -50,7 +50,7 @@ preference. Restoration is best effort when layout height changes. A change in
 another tab is also observed. Browser ad blockers
 are respected.
 
-Bottom uses Google's supported regular bottom anchor format. Side uses an
+Banner uses a separate responsive display unit with variable width (250–970px) and a fixed 90px height. It scrolls with the page, below Main Page content or below the title and before other articles. Side uses an
 issued display-unit slot with explicit 300x250 dimensions in its own column. Side is sticky only within its desktop article column, never a custom fixed footer. There are no real ads on login/account/special pages, talk pages,
 editing/history/diff/old-revision views, missing articles, or local clones.
 Production also excludes nonpublic and noindex articles. Staging can load the
@@ -59,39 +59,20 @@ its existing authentication and noindex. `includes/Ads.php` checks the actual en
 and view before exposing configuration. Google code is not unconditionally added
 to the footer, database `MediaWiki:` scripts, or page head.
 
-## Review the footer dock on staging
+## Review manual previews on staging
 
 Placement review is limited to **https://test.eqlwiki.com**. With its separate
-provider settings blank or invalid, the **2 / Bottom** preference on a current existing
-main-namespace article, including the Main Page, displays
-a synthetic bottom dock. It stays visible while scrolling, immediately
-above the fixed Donate/Ads utility bar. Its creative area is 90px tall on desktop
-and 50px at widths up to 900px, with a separate label and close button. The offset
-matches the utility bar's 2.25rem desktop and 3rem mobile heights. End-of-page
-padding includes the full dock height so the last article links remain reachable.
-The dock is a sibling outside the utility bar's clipped container; it does not
-move article content or change unrelated account state.
+provider settings blank or invalid, the server publishes `{preview:true,manual:true}`.
+Style 1 shows a synthetic 300x250 Side unit; style 2 shows a synthetic 90px-high
+in-page Banner. Neither creates a floating footer or requests Google. Selecting
+X removes previews immediately. They illustrate placement, not actual ad fill.
 
-Closing the dock sets Ads Off, retains it for the anonymous browser session or
-saves it to the named account, removes the dock and reserved space, and returns
-keyboard focus to the X radio. Selecting X does the same. Anonymous close
-and X opt-outs show the exact login notice above. Focus, visibility and
-back/forward restoration re-read the appropriate session/account state. Failed
-persistence retains the document-only Off behavior described above.
-
-The synthetic preview contains no Google script, iframe, live creative, tracking
-call, or ad impression. It illustrates space and controls; it does not predict Google's
-creative, visibility, or actual anchor placement. Production publisher and format
-settings stay empty until the owner separately approves production activation.
-
-The server selects staging only when its trusted `Server` and `CanonicalServer`
+The server selects staging only when trusted `Server` and `CanonicalServer`
 are both exactly `https://test.eqlwiki.com`; the browser also requires that exact
-origin. With staging provider settings blank or invalid it publishes only
-`{preview:true}`. Copied production publisher settings cannot activate Google on
-staging. Existing staging login and noindex policies remain intact. A harmless
-preview can appear to an already authorized staging reader when anonymous wiki
-reading is disabled; it grants no access and exposes no publisher configuration.
-Special/talk/edit/history/diff/old-revision and missing-page views have no preview.
+origin. Copied production settings cannot activate Google on staging. Existing
+staging login/noindex policies remain intact. Eligible current main-namespace
+articles include Main Page; special/talk/edit/history/diff/old-revision and missing
+views have no preview. Production settings stay blank during staging review.
 
 ## Side layout and per-reader provider selection
 
@@ -102,50 +83,53 @@ unit is sticky below the measured header with 24px clearance. On narrow,
 portrait, short, touch/tablet or coarse-pointer layouts it remains an ordinary
 in-flow block after the article. The same unit stays in the DOM during resizing;
 there is no ad refresh, second request, cloned creative, clipping or forced
-Google iframe sizing. The native anchor and side unit are never requested
+Google iframe sizing. The manual banner and side unit are never requested
 in the same document. A failed Off/style save leaves an already-requested real
 unit intact and warns the reader to close the tab, rather than hiding an ad.
 
-With no provider configuration, Side has a synthetic 300x250 preview and Bottom
-uses the existing synthetic dock. Neither preview requests Google. Exact
-staging origin and eligible article checks remain mandatory.
+Banner's inert aside is placed after `main#content` on Main Page, or inside
+`main#content` immediately before `#bodyContent` on other eligible articles.
+The body and its IDs remain intact. The 90px unit height and responsive width
+are set inline using Google's supported variable-width/fixed-height pattern;
+`data-ad-format="auto"` and full-width responsive expansion are omitted. Its
+own wrapper centers it up to 970px. No creative is clipped or restyled, and no
+unit refresh occurs when resizing. The footer stays in its normal position.
 
-To serve both modes, independently install staging format `layouts` and a valid
-issued `EQLAdSenseStagingSidebarSlot` (10 decimal digits). The previously installed
-`anchor` format remains compatible with Bottom; Side makes no request until its
-configuration is ready. Production continues accepting only its existing
-explicit `anchor` configuration; staging layout/slot settings cannot activate
-production.
+To serve both styles, independently install staging format `manual-layouts` and
+two issued, 10-digit slots: `EQLAdSenseStagingSidebarSlot` and
+`EQLAdSenseStagingBannerSlot`. Separate units allow per-unit reporting. Historical
+`layouts` (Side/native anchor) and `anchor` configurations remain compatible,
+but are not the selected test setup. The stored style-2 value remains `anchor`
+to preserve account/session choices; it renders Banner under `manual-layouts`.
+Production still accepts only its independently configured legacy `anchor` path;
+manual staging settings cannot activate production.
 
-Google account prerequisite: disable every default format (including anchors),
-automatic optimization and automatic winner application. This is a shared
-root-domain/subdomain setting and needs explicit approval beyond staging-only
-activation. The current Google UI also switches the Auto ads master setting Off
-when all formats are disabled; it cannot retain the previously proposed On/zero-format
-combination. Bottom alone supplies `data-overlays="collapsed-bottom"` and Google's
-documented per-page `enable_page_level_ads: true` initialization. Side supplies
-neither and requests only the issued display unit. Confirm real anchor serving
-under the saved master setting before claiming that both modes serve; the
-documented position override alone was observed without a fill in this state.
-Do not turn on competing formats or hide an unwanted Google ad to simulate separation.
+Google account prerequisite: **Auto ads Off and Auto optimize Off**. Manual
+units continue serving independently. Shared root-domain/subdomain settings
+need owner authorization; never turn on competing formats or hide an unwanted
+Google creative to simulate layout separation. Do not add an
+`enable_page_level_ads` initializer alongside the client-qualified tag: it
+duplicates that tag's initialization and was rejected during real acceptance.
 
-References: [Google's supported per-page anchor override](https://support.google.com/adsense/answer/7478225),
-[documented Auto ads initialization](https://support.google.com/adsense/answer/9042142),
+References: [supported display sizing](https://support.google.com/adsense/answer/9183363),
 [manual sticky restrictions](https://support.google.com/adsense/answer/10734935),
-and [supported display sizing](https://support.google.com/adsense/answer/9183363).
+and [Auto ads settings](https://support.google.com/adsense/answer/9305577).
 
-## Configure the native provider on staging
+## Configure the provider on staging
 
-Staging has independent `$wgEQLAdSenseStagingClient` and
-`$wgEQLAdSenseStagingFormat` settings. All staging provider settings default to empty strings. To configure
-the native integration, set the issued `ca-pub-` publisher identifier and format
-`'anchor'` for Bottom alone, or `'layouts'` plus the issued sidebar slot for both
-styles after the shared Google settings approval described above, in the private, mode-0600 file
-`/home/eqlwikdq/deploy/EQLWiki-staging/ads-settings.php` only. This file contains
-only `$wgEQLAdSenseStagingClient`, `$wgEQLAdSenseStagingFormat` and, for
-the two-layout configuration, `$wgEQLAdSenseStagingSidebarSlot`; it must not
-contain production settings or account credentials. Do not reuse the independent
-Talk policy file. Keep both production settings blank.
+All staging provider settings default to empty strings. Install only the issued
+publisher identifier and these four staging settings in the private mode-0600
+file `/home/eqlwikdq/deploy/EQLWiki-staging/ads-settings.php`:
+
+```php
+$wgEQLAdSenseStagingClient = 'ca-pub-<issued publisher ID>';
+$wgEQLAdSenseStagingFormat = 'manual-layouts';
+$wgEQLAdSenseStagingSidebarSlot = '<issued side slot>';
+$wgEQLAdSenseStagingBannerSlot = '<issued banner slot>';
+```
+
+Do not include production settings or account credentials, and do not reuse the
+independent Talk policy file. Keep production provider settings blank.
 
 The reviewed refresh generator conditionally includes this optional file after
 the existing Talk policy include at the end of staging `LocalSettings.php`,
@@ -161,18 +145,21 @@ and installs neither the private host generator nor ignored settings. Verify
 syntax, staging isolation and credentialed API health without running a database
 refresh as a test; see [host installation and rollback](../PROJECT.md#staging-and-contributions).
 
-Valid staging settings replace the synthetic dock with Google's native loader on
+Valid staging settings replace the synthetic previews with the selected Google unit on
 eligible current main-namespace article views, through the same effective Ads
 preference. The server marks that configuration `environment: 'staging'`; the
 browser accepts it only at the exact staging origin. Production configuration is
 marked `environment: 'production'` and accepted only at its exact production
 origin. Neither environment uses the other's publisher settings as a fallback.
-The real provider does not open the local preview dock or apply its CSS to
-Google's ads. Google owns its actual anchor, dimensions and close UI. Regular
+## Legacy native-anchor compatibility
+
+The following applies only to historical `anchor`/`layouts` settings, not the
+selected `manual-layouts` configuration. The real provider does not open the
+local preview dock or apply its CSS to Google's ads. Google owns its actual anchor, dimensions and close UI. Regular
 anchors have no supported pixel-height cap; disabling dynamic anchors does not
 make their size equal to the synthetic preview.
 
-Once the permitted provider is requested, `ads.js` observes the outer native
+Once the legacy anchor provider is requested, `ads.js` observes the outer native
 `ins.adsbygoogle[data-anchor-status]` container. A visible fixed bottom anchor
 sets `--eql-ad-anchor-clearance` on our document root. `layout-reset.css` uses
 that value to lift the entire wiki footer (Contribute, Donate, Ads, policy links
@@ -281,7 +268,10 @@ Google loading, but do **not** hide the existing Ads selector or stop its
 preference lifecycle if these feature files are later promoted. Review that UI
 boundary before any separately approved full production release.
 
-Source deployment alone does not activate advertising. After separate owner
+Production manual layouts are not implemented or authorized by this staging change.
+The existing legacy path below is retained for reference and is not a recommendation
+to switch on shared Auto ads during manual-layout testing. Source deployment alone
+does not activate advertising. After separate owner
 approval, the production site must be approved in AdSense and configured for
 **anchor-only Auto ads**, with all other formats and automatic optimization off.
 The loader uses Google's supported `data-overlays="collapsed-bottom"` setting for
@@ -333,7 +323,7 @@ analytics collection is added by this feature. Exclude API/resource requests,
 test traffic and staging. Unknown automation and measurement blockers still
 make human counts estimates.
 
-Only views whose effective Ads preference is Side or Bottom can earn revenue. Forecast from
+Only views whose effective Ads preference is Side or Banner can earn revenue. Forecast from
 anonymous human article pageviews, the fraction with Ads on, the fraction delivering
 ads, and measured earnings per thousand of those monetized pageviews. Google
 [page RPM](https://support.google.com/adsense/answer/112030) uses AdSense-counted

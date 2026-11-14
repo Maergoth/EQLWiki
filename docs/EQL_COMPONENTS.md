@@ -39,36 +39,22 @@ the custom layout and conditional resources. See the
 Major custom skin behavior:
 
 - `resources/ads.js`, the footer X/1/2 radio group, and `includes/Ads.php` provide
-  optional Side/Bottom layouts with a width-aware anonymous default for the browser
-  session and named-account default Off using the native `userjs-eql-ads` option. Session choices and account
-  state remain separate; legacy browser choices are ignored. Exact configured/runtime
-  `https://test.eqlwiki.com` offers a dismissible synthetic bottom dock above the
-  fixed Donate/Ads bar, without Google calls or impressions, behind the existing
-  staging gate. Its body class reserves the full responsive dock height at page
-  end; closing saves Ads Off. Independent blank-by-default
-  `EQLAdSenseStagingClient`/`EQLAdSenseStagingFormat` settings can replace that dock
-  with Google's supported regular bottom anchor only on the exact staging host,
-  preserving login/noindex. Provider objects identify their environment and the
-  browser rejects a mismatched origin. Production uses its own settings and
-  current public article checks; neither copies the other's configuration.
-  Staging format `layouts` additionally requires an issued `EQLAdSenseStagingSidebarSlot`.
-  Side uses one 300x250 unit in a reserved wide-desktop column, falling back to
-  normal document flow elsewhere; resizing does not request another ad. Current
-  In staging's `layouts` configuration, Bottom explicitly initializes Google's
-  per-page Auto ads once; Side requests only its display unit. The current Google
-  dashboard turns its master switch Off when all default formats are disabled,
-  so real anchor serving must be verified separately from source configuration.
-  Saved `on` choices read as Bottom, `off` stays Off; new values are `side`, `anchor`
-  and `off`. Confirmed mode changes reload an already loaded provider once and
-  restore the scroll offset with a short-lived, page-bound session record.
-  Shared Google account format settings need separate approval before activation.
-  For native bottom anchors, `ads.js` observes the provider's outer geometry and
-  `layout-reset.css` raises the wiki footer and reserves page-end space using
-  `--eql-ad-anchor-clearance`. The footer meets the ad body without a gap; only
-  Google's collapse/reopen tab may overlay the footer. Google elements
-  and ad dimensions are untouched; hiding/removal restores the footer position.
-  A noninteractive `#eql-ad-anchor-backdrop` shares that measured height and
-  extends the footer background across the exposed sides of the centered ad.
+  optional Side/Banner layouts with a width-aware anonymous browser-session default
+  and named-account default Off using `userjs-eql-ads`. Session/account state stays
+  separate. Exact staging origin and eligible article guards preserve login/noindex.
+  Blank staging settings yield harmless manual previews. Explicit staging format
+  `manual-layouts` requires independent client, sidebar-slot and banner-slot settings.
+  Side uses one 300x250 unit in a reserved desktop column, falling back to in-flow
+  placement on narrow/portrait/touch screens. Banner uses a separate responsive
+  unit with inline variable-width/fixed-90px-height sizing, after Main Page or before
+  other article bodies; it does not float or move the footer. Only one unit is
+  requested per document; resizing never refreshes it. Auto ads and Auto optimize
+  remain Off in the shared Google settings. Separate units support separate reports.
+  Stored `anchor` and legacy `on` choices select style 2; `off` stays Off. Confirmed
+  mode changes reload a loaded provider once, with page-bound scroll restoration.
+  Historical anchor settings retain the outer-geometry footer clearance/backdrop;
+  this is not invoked for manual layouts. Production has independent blank settings
+  and accepts no manual staging configuration. No second Auto ads initializer is used.
   Approval, consent and protected-content crawler access remain separate from
   loader setup. Only this ad option is saved on an explicit named-user gesture; no
   analytics collection or unrelated account state is changed. Root

@@ -150,9 +150,10 @@ $wgEQLAdSenseFormat = '';
 # Site approval, consent setup and crawler access remain separate requirements.
 $wgEQLAdSenseStagingClient = '';
 $wgEQLAdSenseStagingFormat = '';
-# Set staging format to 'layouts' with an issued display-unit slot only after
+# Set staging format to 'manual-layouts' with two issued display-unit slots only after
 # disabling competing default Auto ad formats. Never copy these to production.
 $wgEQLAdSenseStagingSidebarSlot = '';
+$wgEQLAdSenseStagingBannerSlot = '';
 
 # Hide legacy Vector from user skin preferences.
 # This leaves only EQLImmersive and Vector 2022 selectable.

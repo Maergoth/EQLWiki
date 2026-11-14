@@ -56,7 +56,7 @@ or update both producer and consumer when changing database templates.
 | Waypoint copying | `copy-waypoints.js/css`, inline coordinate buttons in rendered articles; copies `/way` commands and refreshes with `wikipage.content` |
 | Upload workflow | `upload-purge.js`, `upload-converter.js`: passive native upload-form/return tracking with guarded account-bound storage; no filename assignment, file replacement or image re-encoding implementation. Existing image matching and conversion stay with their original handlers. |
 | Smaller controls | Announcements, Spellblade indicators, missing-image prompts, diagnostics and contribution links |
-| Optional ads | `ads.js`, footer X/1/2 radios and `Ads.php`; anonymous width-aware Side/Bottom browser-session choice, named-account default-Off `userjs-eql-ads` option, dismissible staging bottom dock and independently configured exact-host staging/production AdSense anchor loader plus an explicitly configured staging-only sidebar unit; staging login/noindex stay intact and real fills require external approval/access; [preview and activation](../../docs/ADS.md) |
+| Optional ads | `ads.js`, footer X/1/2 radios and `Ads.php`; anonymous width-aware Side/Banner session choice, account default-Off option, staging-only manual side/banner units with separate slots and in-flow previews. Side is desktop-column sticky with narrow/touch fallback; Banner is 90px high below Main Page or before other articles. Legacy native-anchor configuration remains separate. Exact-host guards preserve staging login/noindex; [preview and activation](../../docs/ADS.md) |
 
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
