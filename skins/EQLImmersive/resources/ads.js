@@ -106,6 +106,7 @@
 			window.location.host + ( mw.config.get( 'wgScriptPath' ) || '' ) );
 		var cookieName = 'eql_ads_session_v1_' + wiki;
 		var sessionKey = 'eql-ads-session-v1:' + wiki;
+		var anonymousLifetime = 24 * 60 * 60 * 1000;
 		var scrollKey = 'eql-ads-scroll-v1:' + wiki;
 		var cookieAttributes = '; Path=/; SameSite=Lax' +
 			( window.location.protocol === 'https:' ? '; Secure' : '' );
@@ -177,7 +178,7 @@
 		// Choose a fresh anonymous default once. Resizing reflows our column only;
 		// it never changes a reader's choice, refreshes ads or requests a second unit.
 		var initialDefault = multiplexLayout ?
-			( sidebarRoom() && window.innerHeight > window.innerWidth ? 'side' : 'anchor' ) :
+			( window.innerWidth > window.innerHeight ? 'side' : 'anchor' ) :
 			( wideDesktop() && ( preview || layouts ) ? 'side' : 'anchor' );
 		window.addEventListener( 'resize', positionSidebar );
 		if ( typeof ResizeObserver === 'function' && content ) {
@@ -199,7 +200,7 @@
 			return false;
 		}
 		function anonymousTitle( next ) {
-			return next === 'off' ? anonymousOffNotice : 'Ad layout lasts until this browser session ends. Log in to save it.';
+			return next === 'off' ? anonymousOffNotice : 'Ad layout is remembered for 24 hours. Log in to save it to your account.';
 		}
 		// undefined means unreadable; null means no choice. Never read localStorage
 		// or the superseded long-lived browser preferences.
@@ -213,27 +214,69 @@
 				return null;
 			} catch ( error ) { return undefined; }
 		}
+		function readAnonymousValue( value, fromFallback ) {
+			// Retain the existing scoped keys, but version the value so a browser
+			// restore or sessionStorage fallback cannot extend the 24-hour choice.
+			if ( typeof value !== 'string' ) { return 'off'; }
+			var record = /^v2:(off|side|anchor):([0-9]{1,16})$/.exec( value );
+			if ( record ) {
+				var created = Number( record[ 2 ] ), now = Date.now();
+				if ( !Number.isSafeInteger( created ) || created <= 0 || created > now ) { return 'off'; }
+				return now - created < anonymousLifetime ? record[ 1 ] : initialDefault;
+			}
+			// The previous session-only value has no timestamp. Preserve it once,
+			// starting a bounded lifetime now; never renew a versioned record.
+			if ( [ 'off', 'side', 'anchor', 'on' ].indexOf( value ) !== -1 ) {
+				var next = normalize( value );
+				if ( fromFallback ) {
+					// Timestamp the fallback itself before promoting it to a cookie.
+					// If it cannot be updated, never leave an untimed value to revive.
+					var upgraded = 'v2:' + next + ':' + Date.now();
+					try {
+						window.sessionStorage.setItem( sessionKey, upgraded );
+						if ( window.sessionStorage.getItem( sessionKey ) !== upgraded ) { return 'off'; }
+					} catch ( error ) { return 'off'; }
+				}
+				return saveAnonymous( next ) ? next : 'off';
+			}
+			return 'off';
+		}
 		function readAnonymous() {
 			var cookie = readCookie();
-			if ( cookie !== null ) { return normalize( cookie ); }
+			// A present cookie, including an expired or invalid record, wins over
+			// any older per-tab fallback. Unreadable cookies fail closed.
+			if ( cookie !== null ) {
+				if ( typeof cookie === 'string' && cookie.indexOf( 'v2:' ) === 0 ) {
+					// An older untimed fallback must not restart its lifetime after
+					// the browser expires this authoritative cookie.
+					try { window.sessionStorage.removeItem( sessionKey ); } catch ( error ) {}
+				}
+				return readAnonymousValue( cookie, false );
+			}
 			try {
 				var fallback = window.sessionStorage.getItem( sessionKey );
-				if ( fallback !== null ) { return normalize( fallback ); }
+				if ( fallback !== null ) { return readAnonymousValue( fallback, true ); }
 			} catch ( error ) { return 'off'; }
 			return initialDefault;
 		}
 		function saveAnonymous( value ) {
-			var saved = false;
+			var record = 'v2:' + value + ':' + Date.now(), saved = false;
 			try {
-				document.cookie = cookieName + '=' + value + cookieAttributes;
-				saved = readCookie() === value;
+				document.cookie = cookieName + '=' + record + cookieAttributes + '; Max-Age=86400';
+				saved = readCookie() === record;
 			} catch ( error ) {}
 			if ( saved ) {
 				try { window.sessionStorage.removeItem( sessionKey ); } catch ( error ) {}
-			} else {
-				try { window.sessionStorage.setItem( sessionKey, value ); saved = window.sessionStorage.getItem( sessionKey ) === value; } catch ( error ) {}
+			} else if ( readCookie() === null ) {
+				try {
+					window.sessionStorage.setItem( sessionKey, record );
+					saved = window.sessionStorage.getItem( sessionKey ) === record;
+				} catch ( error ) {}
 			}
-			return saved && readCookie() !== undefined && readAnonymous() === value;
+			// Do not recurse through the legacy reader or accept a fallback over
+			// an immutable cookie. A retained Off must survive the ensuing reload.
+			var cookie = readCookie();
+			return saved && ( cookie === record || cookie === null );
 		}
 		function hidePreview() {
 			document.body.classList.remove( 'eql-ad-preview-open' );
@@ -255,7 +298,8 @@
 			if ( requestedMode && !reloading && !offLatch ) {
 				reloading = true;
 				try { window.sessionStorage.setItem( scrollKey, JSON.stringify( {
-					page: window.location.pathname + window.location.search, at: Date.now(), x: window.scrollX, y: window.scrollY
+					page: window.location.pathname + window.location.search, at: Date.now(), x: window.scrollX, y: window.scrollY,
+					anonymousOff: !account && mode === 'off'
 				} ) ); } catch ( error ) {}
 				window.location.reload();
 			}
@@ -268,6 +312,9 @@
 				if ( saved.page === window.location.pathname + window.location.search && Date.now() - saved.at < 60000 &&
 					Date.now() >= saved.at && Number.isFinite( saved.x ) && Number.isFinite( saved.y ) ) {
 					window.scrollTo( saved.x, saved.y );
+					if ( !account && saved.anonymousOff === true && readAnonymous() === 'off' ) {
+						notify( anonymousOffNotice, false );
+					}
 				}
 			} catch ( error ) {}
 		}
@@ -403,7 +450,7 @@
 			var saved = saveAnonymous( next ); offLatch = !saved;
 			if ( next === 'off' ) { notify( anonymousOffNotice, false ); }
 			if ( !saved ) {
-				var message = 'This browser could not remember the choice for this session.';
+				var message = 'This browser could not remember the choice for 24 hours.';
 				if ( requestedMode ) { message += ' Close this tab to fully stop the loaded ad provider.'; }
 				notify( message, true ); if ( next === 'off' ) { control.title = anonymousOffNotice; }
 			} else if ( next !== 'off' ) { control.title = anonymousTitle( next ); }

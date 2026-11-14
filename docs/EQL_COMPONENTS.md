@@ -41,8 +41,10 @@ Major custom skin behavior:
 - `resources/ads.js`, the footer X/1/2 radio group, and `includes/Ads.php` provide
   optional Bottom/Right layouts: X Off, 1 horizontal grid after the entire card,
   2 vertical right-column grid. Named accounts default Off; anonymous Multiplex
-  defaults prefer Bottom in landscape or Right in portrait with at least 1000px
-  of content width. The 300px right column plus 32px gap falls below the card
+  defaults select Right in landscape and Bottom in portrait or square windows.
+  Anonymous choices last 24 hours from selection in a host-only cookie, with a
+  timestamped per-tab sessionStorage fallback; reads do not renew the deadline.
+  The 300px right column plus 32px gap needs 1000px of content width and falls below the card
   on narrow windows, shrinking to the available width below 300px. Both grids
   are outside `main#content` and scroll normally;
   neither grid is sticky. Exact staging origin and article guards preserve login/noindex.
@@ -53,7 +55,7 @@ Major custom skin behavior:
   One selected unit is requested per document, without refresh on resize. Auto
   ads and Auto optimize remain Off. Stored `anchor`/`on` values stay Bottom and
   `side` stays Right despite reordered numbering. Mode changes retain the saved
-  identity/session boundaries, reload once and restore the page-bound scroll offset.
+  identity/browser boundaries, reload once and restore the page-bound scroll offset.
   Historical display and native-anchor configurations remain separate. Production
   has independent blank settings and accepts no manual/Multiplex staging format.
   Approval, consent and protected-content crawler access remain separate from

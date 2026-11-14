@@ -56,7 +56,7 @@ or update both producer and consumer when changing database templates.
 | Waypoint copying | `copy-waypoints.js/css`, inline coordinate buttons in rendered articles; copies `/way` commands and refreshes with `wikipage.content` |
 | Upload workflow | `upload-purge.js`, `upload-converter.js`: passive native upload-form/return tracking with guarded account-bound storage; no filename assignment, file replacement or image re-encoding implementation. Existing image matching and conversion stay with their original handlers. |
 | Smaller controls | Announcements, Spellblade indicators, missing-image prompts, diagnostics and contribution links |
-| Optional ads | `ads.js`, footer X/1/2 radios and `Ads.php`; X Off, 1 Bottom horizontal grid, 2 Right vertical grid outside content cards. Staging-only responsive Multiplex units use separate issued slots, normal flow and a narrow-screen fallback. Session/account boundaries and legacy display/native-anchor compatibility are preserved; [preview and activation](../../docs/ADS.md) |
+| Optional ads | `ads.js`, footer X/1/2 radios and `Ads.php`; X Off, 1 Bottom horizontal grid, 2 Right vertical grid outside content cards. Fresh anonymous Multiplex defaults select Right in landscape and Bottom in portrait/square windows; selected choices last 24 hours without renewal on reads. Named accounts default Off and keep independent saved choices. Staging-only responsive Multiplex units use separate issued slots, normal flow and a narrow-screen fallback. Legacy display/native-anchor compatibility is preserved; [preview and activation](../../docs/ADS.md) |
 
 Use `mw.hook('wikipage.content')` and existing refresh APIs when inserting parsed
 content. CSS order in skin.json and the database Common.css cascade both matter.
