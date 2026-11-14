@@ -631,7 +631,10 @@ test( 'Side requests one issued display unit and no anchor override; resizing ne
 test( 'Bottom requests only the native anchor even when a valid sidebar slot is configured', async () => {
     const page = visit( { ...layoutsVisit, cookie: cookieName + '=anchor' } ); await settle();
     assert.equal( page.scripts()[ 0 ].dataset.overlays, 'collapsed-bottom' );
-    assert.equal( page.w.document.querySelector( 'ins' ), null ); assert.equal( page.w.adsbygoogle, undefined ); page.close();
+    assert.equal( page.w.document.querySelector( 'ins' ), null );
+    assert.deepEqual( JSON.parse( JSON.stringify( page.w.adsbygoogle ) ), [ { google_ad_client: stagingConfig.client, enable_page_level_ads: true } ] );
+    page.focus(); page.pageshow(); await settle();
+    assert.equal( page.w.adsbygoogle.length, 1 ); page.close();
 } );
 test( 'Mode changes persist before one reload and never create two live styles in a document', async () => {
     for ( const [ first, second ] of [ [ 'side', 'anchor' ], [ 'anchor', 'side' ], [ 'side', 'off' ] ] ) {
