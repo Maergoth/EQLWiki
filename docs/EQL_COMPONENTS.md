@@ -56,6 +56,8 @@ Major custom skin behavior:
   `--eql-ad-anchor-clearance`. The footer meets the ad body without a gap; only
   Google's collapse/reopen tab may overlay the footer. Google elements
   and ad dimensions are untouched; hiding/removal restores the footer position.
+  A noninteractive `#eql-ad-anchor-backdrop` shares that measured height and
+  extends the footer background across the exposed sides of the centered ad.
   Approval, consent and protected-content crawler access remain separate from
   loader setup. Only this ad option is saved on an explicit named-user gesture; no
   analytics collection or unrelated account state is changed. Root

@@ -6,6 +6,10 @@
 	// resize, clip, restyle or inspect the contents of the provider's ad frames.
 	function followAnchor() {
 		var root = document.documentElement;
+		var backdrop = document.createElement( 'div' );
+		backdrop.id = 'eql-ad-anchor-backdrop';
+		backdrop.setAttribute( 'aria-hidden', 'true' );
+		document.body.appendChild( backdrop );
 		var selector = 'ins.adsbygoogle[data-anchor-status]';
 		var property = '--eql-ad-anchor-clearance';
 		var anchors = [];

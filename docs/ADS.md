@@ -134,6 +134,12 @@ removed, hidden or offscreen anchor restores the normal footer position once
 its body leaves the viewport. Top anchors,
 ordinary in-page units and zero-sized frames do not move the footer.
 
+A decorative, noninteractive `#eql-ad-anchor-backdrop` uses the same measured
+height to extend the footer's dark background across the screen behind the ad.
+It covers the exposed page background to the left and right of a centered anchor,
+has no accessible content or pointer target, and shrinks to zero with the anchor
+clearance. It is created only when the permitted provider is requested.
+
 Mutation/resize observers, viewport changes and BFCache restoration remeasure
 the outer geometry; pagehide suspends observation. This code never reads ad
 iframe contents or resizes, clips, moves or restyles Google elements. If an Off
