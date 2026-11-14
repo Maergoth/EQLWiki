@@ -127,10 +127,11 @@ Once the permitted provider is requested, `ads.js` observes the outer native
 `ins.adsbygoogle[data-anchor-status]` container. A visible fixed bottom anchor
 sets `--eql-ad-anchor-clearance` on our document root. `layout-reset.css` uses
 that value to lift the entire wiki footer (Contribute, Donate, Ads, policy links
-and diagnostics) and add matching end-of-page space. It leaves 40px for Google's
-collapse/reopen tab outside the container, plus a 12px separation. A collapsed
-anchor retains only the clearance needed for its remaining tab; a removed,
-hidden or offscreen anchor restores the normal footer position. Top anchors,
+and diagnostics) and add matching end-of-page space. The footer's bottom edge
+meets the ad container's top edge, with no extra gap. Google's collapse/reopen
+tab may overlay the footer, while the ad body stays below it. A collapsed,
+removed, hidden or offscreen anchor restores the normal footer position once
+its body leaves the viewport. Top anchors,
 ordinary in-page units and zero-sized frames do not move the footer.
 
 Mutation/resize observers, viewport changes and BFCache restoration remeasure
