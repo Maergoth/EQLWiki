@@ -130,6 +130,18 @@
         "HTMLFileCache::useFileCache": "EQLHomepageCache",
         "PageSaveComplete": "EQLHomepageCache"
     },
+    "config": {
+        "EQLAdSenseClient": { "value": "" },
+        "EQLAdSenseFormat": { "value": "" },
+        "EQLAdSenseMultiplexSidebarSlot": { "value": "" },
+        "EQLAdSenseMultiplexBottomSlot": { "value": "" },
+        "EQLAdSenseStagingClient": { "value": "" },
+        "EQLAdSenseStagingFormat": { "value": "" },
+        "EQLAdSenseStagingSidebarSlot": { "value": "" },
+        "EQLAdSenseStagingBannerSlot": { "value": "" },
+        "EQLAdSenseStagingMultiplexSidebarSlot": { "value": "" },
+        "EQLAdSenseStagingMultiplexBottomSlot": { "value": "" }
+    },
     "ResourceModules": {
         "skins.EQLImmersive.waypoints": {
             "scripts": [ "resources/copy-waypoints.js" ],
@@ -244,6 +256,7 @@
                 "resources/main.js",
                 "resources/announcements.js",
                 "resources/contribute.js",
+                "resources/ads.js",
                 "resources/item-hover.js",
                 "resources/missing-image.js",
                 "resources/sidebar-cleanup.js",

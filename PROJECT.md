@@ -55,6 +55,48 @@ Host-generated `php.ini`, `.user.ini`, logs, backups, and archive files are igno
 The original cPanel `.htaccess` is versioned because it contains live routing rules.
 The built-in local PHP server uses `ops/local-router.php` instead.
 
+## Optional production ad trial
+
+The [ad guide](docs/ADS.md) owns the X/1/2 preference and eligibility contract.
+Production serves only with independent valid `$wgEQLAdSenseClient`,
+`$wgEQLAdSenseFormat = 'multiplex-layouts'`,
+`$wgEQLAdSenseMultiplexSidebarSlot` and `$wgEQLAdSenseMultiplexBottomSlot` values.
+All defaults are blank; staging values never activate production. Blank or
+ineligible pages keep the Ads control hidden and do not read ad preferences.
+Eligible Off readers still have the control. Keep shared
+Google Auto ads and Auto optimize Off and use separately issued Multiplex units.
+
+Deploy only reviewed ad files to `main` with owner authorization, then verify the
+installed SHA, release assets and API health before private activation. Put the
+four public identifiers/settings in a mode-0600 private file outside the web root
+and load it through an optional include in production `LocalSettings.php`,
+guarded by `__DIR__ === '/home/eqlwikdq/public_html'`. The path guard prevents
+a production settings file copied by staging refresh from loading production ads.
+Hold `/home/eqlwikdq/deploy/EQLWiki/deploy.lock`, confirm no deployment is in
+progress and the installed SHA still matches the reviewed release, and take fresh
+private backups before editing. Validate PHP syntax before atomic replacement;
+recheck unchanged inputs before writing and verify API health after installation.
+Do not replace or display unrelated private settings. `ops/` and ignored files
+are excluded from releases, so pushing a helper is not installing it.
+
+Before serving, verify the site's AdSense approval, issued units, seller record,
+current Google consent setup and public site branding. Publish the reviewed
+privacy wording from the latest database revision with a fresh private backup;
+verify its rendered text and absence of ad/CMP tags. The trial News entry is a
+separate database edit, published alongside verified activation using the same
+revision/backup/conflict checks. Neither publication follows automatically from
+Git deployment. No schema migration, account migration or new analytics is added.
+
+Verify anonymous defaults and retained Off/style choices, signed-in Off and saved
+choices, narrow layouts, and no Google loading on Off or ineligible pages. A
+fixture proves the expiry contract, not actual Google fill or consent delivery.
+Record observed production results and limitations in the private release log.
+For rollback, clear the production provider settings or restore the fresh private
+backup under the same lock and health checks, then reload open ad documents.
+Restore application code separately if necessary; leave staging settings and
+saved user preferences alone. Staging's independent host configuration is
+maintained from its reviewed branch and is not promoted wholesale to production.
+
 ## Deployment implementation
 
 SEO routing, canonical links and the production article sitemap are application

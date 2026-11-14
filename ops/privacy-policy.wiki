@@ -1,0 +1,43 @@
+= EQLWiki Privacy and Cookie Policy =
+
+Last updated: 14 November 2026.
+
+This policy describes information used by EQLWiki and its associated forum. '''The public wiki offers an optional advertising trial to support the site and further development.''' The advertising practices below apply where advertising is offered and enabled.
+
+== Information used to operate the site ==
+* Server logs record technical information such as IP addresses, requested pages, browser information and access times. Logs support security, troubleshooting, performance monitoring and aggregate traffic estimates.
+* Wiki accounts use a username, an email address for verification and account recovery, and saved account preferences. Wiki and forum sessions support the site's connected sign-in features.
+* Contributions, uploads, forum posts and optional profile information contain whatever you choose to submit. Do not include information you do not want to make public in public contributions.
+* Site administrators and hosting or other service providers may process information needed to operate, maintain and protect the site. Optional advertising can involve the separate data uses described below.
+
+== Public contributions ==
+Signed-in wiki edits are attributed to the account's username. Where logged-out contributions are allowed, including public Talk pages, the contributor's IP address may be displayed publicly. Public contributions, edit summaries, revision histories, uploads, forum posts and profile material can be visible to other visitors.
+
+The account email field is not normally public. An email address or other personal information that you include in a public page, post or profile can be visible there.
+
+== Cookies, browser storage and preferences ==
+The wiki and forum use cookies and similar browser storage for login sessions, security and site preferences. Features such as saved checklists, display settings and dismissed notices can use local storage or session storage. Some choices are saved in the wiki account when you are signed in.
+
+You can manage or clear cookies and site storage in your browser. Doing so can sign you out or reset browser-only choices. Session storage and session cookies normally last for the browser session; browsers that restore sessions may retain some session choices. Advertising-related storage is described separately below.
+
+== Optional Google advertising ==
+If Google advertising is enabled on a page, Google and other advertising providers identified in the applicable consent controls may receive information such as your IP address, the page URL, browser or device information, and cookie or advertising identifiers. They may place or read cookies, use web beacons or similar technologies, and process information for ad delivery, measurement, fraud prevention and, subject to consent where required, personalization.
+
+Third-party vendors, including Google, may use advertising cookies to serve ads based on prior visits to this site or other websites. Google's advertising cookies can allow Google and its partners to personalize ads using those visits.
+
+Read '''[https://policies.google.com/technologies/partner-sites how Google uses information from partner sites]''' and [https://policies.google.com/technologies/cookies Google's cookie information]. Provider details, purposes and available choices are described in the applicable consent controls. You can manage personalized advertising through [https://adssettings.google.com/ Google's ad personalization controls]. Participating third-party providers also offer choices through [https://optout.aboutads.info/ the Digital Advertising Alliance's opt-out tool]; that tool does not cover every provider or every use of data.
+
+== Your advertising and consent choices ==
+Where the '''Ads X / 1 / 2''' controls are offered, '''X''' turns ads off, '''1''' places an ad grid below the article, and '''2''' uses a right-hand grid that moves below the article on narrower screens:
+* Logged-out visitors without a saved choice start with Ads on: style 2 in landscape windows and style 1 in portrait or square windows. An explicit Off or style choice is kept for '''24 hours from the latest selection''' in a site cookie. It can survive closing and reopening the browser until that deadline; ordinary page visits do not extend it. If cookies cannot retain the choice, storage in that tab is used for at most 24 hours and may end sooner when the tab closes. Clearing browser storage can reset the choice.
+* Signed-in accounts start with Ads off unless they have saved an enabled style. Their choice applies while signed in and is saved to the wiki account for future visits, including on other devices. Logging in does not copy the logged-out advertising choice into the account; signing out uses the separate logged-out preference.
+* A saved Off choice prevents the optional Google advertising code described here from loading on subsequent pages. If that code has already loaded, a successfully retained Off choice reloads the page to end it. Other open tabs may continue until they recheck the preference; reload or close them to end already loaded code. If the preference cannot be saved, follow the displayed warning and close the tab to stop its loaded advertising code.
+
+The Ads preference is separate from consent to cookies, data use or personalized advertising. Turning Ads off does not erase existing cookies, retract information already sent, revoke a previously recorded Google consent choice or change Google settings on other sites.
+
+Where a Google consent message is available, use '''Consent''', '''Manage options''' or '''Do not consent''' to make your data choices. Where provided, '''Privacy and cookie settings''' reopens those choices so you can change or withdraw consent. Applicable US state messages may also offer '''Do Not Sell or Share''' choices. These controls depend on the applicable message and may not appear while the optional Google code is disabled. Declining personalization or consent does not by itself guarantee that no ads appear or that no information is processed.
+
+== Retention and requests ==
+Public wiki contributions and revision histories are generally retained as part of the project's records. Removing visible content or changing an account does not necessarily remove earlier revisions or backup copies. Account and operational records may also be retained for site operation, security and recovery. Advertising providers handle their own records under their policies and your applicable choices.
+
+For privacy questions, cookie questions or requests concerning your account or personal information, contact '''@maergoth on Discord'''. Do not post sensitive account details publicly.

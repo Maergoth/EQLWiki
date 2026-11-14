@@ -237,10 +237,27 @@
 					{{/is-language-in-content-bottom}}
 				</div>
 			</main>
+			<aside id="eql-ad-sidebar" aria-label="Advertisement" hidden>
+				<div class="eql-ad-sidebar-inner">
+					<span class="eql-advertisement-label">Advertisements</span>
+					<div id="eql-ad-sidebar-unit"></div>
+				</div>
+			</aside>
+			<aside id="eql-ad-banner" aria-label="Advertisement" hidden>
+				<span class="eql-advertisement-label">Advertisements</span>
+				<div id="eql-ad-banner-unit"></div>
+			</aside>
 
 			{{{html-after-content}}}
 		</div>
 
+		<aside id="eql-advertisement" class="eql-advertisement" aria-label="Advertisement preview" hidden>
+			<div class="eql-ad-preview-header">
+				<span class="eql-advertisement-label">Advertisement preview</span>
+				<button id="eql-ad-preview-close" type="button" aria-label="Turn ads off and close preview" title="Turn ads off">×</button>
+			</div>
+			<div id="eql-advertisement-unit"></div>
+		</aside>
 		<div class="mw-footer-container">
 	<button
 		id="eql-contribute-button"
@@ -259,6 +276,12 @@
 	>
 		Donate
 	</button>
+	<div id="eql-ads-toggle" class="eql-ads-choice" role="radiogroup" aria-label="Advertising layout" title="Ads preference: 24 hours when logged out, account when logged in." hidden>
+		<span aria-hidden="true">Ads</span>
+		<label title="Off"><input type="radio" name="eql-ads-layout" value="off" aria-label="Ads off" checked disabled><span>X</span></label>
+		<label title="Bottom — below content"><input type="radio" name="eql-ads-layout" value="anchor" aria-label="Style 1: Bottom, below content" disabled><span>1</span></label>
+		<label title="Right sidebar — when space permits"><input type="radio" name="eql-ads-layout" value="side" aria-label="Style 2: Right sidebar" disabled><span>2</span></label>
+	</div>
 
 	{{#data-footer}}{{>Footer}}{{/data-footer}}
 </div>
