@@ -117,17 +117,20 @@ configuration is ready. Production continues accepting only its existing
 explicit `anchor` configuration; staging layout/slot settings cannot activate
 production.
 
-Google account prerequisite: leave Auto ads enabled but disable every default
-format (including anchors), automatic optimization and automatic winner
-application. This is a shared root-domain/subdomain setting and needs explicit
-approval beyond staging-only activation. Google may present an all-formats-off
-warning. Bottom alone supplies the documented `data-overlays="collapsed-bottom"`
-override, which enables regular bottom anchors despite the dashboard anchor
-setting. Side supplies no overlay override and requests only the issued display
-unit. Verify a real fill for each after propagation; if modes are mixed, leave
-Side unconfigured and investigate rather than hiding an unwanted Google ad.
+Google account prerequisite: disable every default format (including anchors),
+automatic optimization and automatic winner application. This is a shared
+root-domain/subdomain setting and needs explicit approval beyond staging-only
+activation. The current Google UI also switches the Auto ads master setting Off
+when all formats are disabled; it cannot retain the previously proposed On/zero-format
+combination. Bottom alone supplies `data-overlays="collapsed-bottom"` and Google's
+documented per-page `enable_page_level_ads: true` initialization. Side supplies
+neither and requests only the issued display unit. Confirm real anchor serving
+under the saved master setting before claiming that both modes serve; the
+documented position override alone was observed without a fill in this state.
+Do not turn on competing formats or hide an unwanted Google ad to simulate separation.
 
 References: [Google's supported per-page anchor override](https://support.google.com/adsense/answer/7478225),
+[documented Auto ads initialization](https://support.google.com/adsense/answer/9042142),
 [manual sticky restrictions](https://support.google.com/adsense/answer/10734935),
 and [supported display sizing](https://support.google.com/adsense/answer/9183363).
 

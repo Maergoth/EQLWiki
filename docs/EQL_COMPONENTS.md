@@ -54,7 +54,11 @@ Major custom skin behavior:
   Staging format `layouts` additionally requires an issued `EQLAdSenseStagingSidebarSlot`.
   Side uses one 300x250 unit in a reserved wide-desktop column, falling back to
   normal document flow elsewhere; resizing does not request another ad. Current
-  saved `on` choices read as Bottom, `off` stays Off; new values are `side`, `anchor`
+  In staging's `layouts` configuration, Bottom explicitly initializes Google's
+  per-page Auto ads once; Side requests only its display unit. The current Google
+  dashboard turns its master switch Off when all default formats are disabled,
+  so real anchor serving must be verified separately from source configuration.
+  Saved `on` choices read as Bottom, `off` stays Off; new values are `side`, `anchor`
   and `off`. Confirmed mode changes reload an already loaded provider once and
   restore the scroll offset with a short-lived, page-bound session record.
   Shared Google account format settings need separate approval before activation.
