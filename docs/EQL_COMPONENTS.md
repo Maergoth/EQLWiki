@@ -60,9 +60,12 @@ Major custom skin behavior:
   when possible. Production and staging require independent explicit publisher
   and Multiplex slot settings with exact-origin and article eligibility checks.
   Production excludes nonpublic/noindex views; blank staging settings retain
-  synthetic previews without changing staging access. The hidden template control
-  is revealed only for valid configuration or staging preview, with no ad-option
-  API read on blank/ineligible views; eligible Off readers retain the control.
+  synthetic previews without changing staging access. Separate `wgEQLAdPreferences`
+  configuration keeps the selector available on category, special/account, talk
+  and edit/history pages; only eligible articles receive `wgEQLAdSense` provider
+  configuration. Preference-only pages save without Google, previews or reloads.
+  Blank production settings and local clones keep the control hidden with no
+  ad-option API reads. Off readers retain the control.
   Auto ads and Auto optimize
   stay Off. Only the ad choice is saved by this feature; no analytics is added.
   The [ads guide](ADS.md) covers configuration, preference failures, consent and

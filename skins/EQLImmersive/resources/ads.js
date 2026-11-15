@@ -120,6 +120,11 @@
 		var providerReady = false, providerFailed = false, unitRequested = false;
 		var api = null, reading = false, saving = false, failedWrite = false, identityInvalid = false;
 		var queued = null, revision = 0;
+		var rawPreferences = mw.config.get( 'wgEQLAdPreferences' );
+		var preferencesOrigin = rawPreferences && rawPreferences.environment === 'staging' ? 'https://test.eqlwiki.com' :
+			rawPreferences && rawPreferences.environment === 'production' ? 'https://eqlwiki.com' : null;
+		var preferences = rawPreferences && window.location.origin === preferencesOrigin &&
+			[ 'anchor', 'layouts', 'manual-layouts', 'multiplex-layouts' ].indexOf( rawPreferences.format ) !== -1 ? rawPreferences : null;
 		var rawConfig = mw.config.get( 'wgEQLAdSense' );
 		var preview = rawConfig && rawConfig.preview === true && window.location.origin === 'https://test.eqlwiki.com';
 		var providerOrigin = rawConfig && rawConfig.environment === 'staging' ? 'https://test.eqlwiki.com' :
@@ -128,17 +133,16 @@
 		var manual = rawConfig && ( ( rawConfig.environment === 'staging' && rawConfig.format === 'manual-layouts' ) || multiplex ) &&
 			typeof rawConfig.bannerSlot === 'string' && rawConfig.bannerSlot.length === 10 && /^[0-9]{10}$/.test( rawConfig.bannerSlot );
 		var manualPreview = preview && rawConfig.manual === true;
-		var multiplexLayout = multiplex || ( manualPreview && rawConfig.multiplex === true );
+		var multiplexLayout = multiplex || ( manualPreview && rawConfig.multiplex === true ) ||
+			( preferences && preferences.format === 'multiplex-layouts' );
 		var layouts = rawConfig && ( ( rawConfig.environment === 'staging' && rawConfig.format === 'layouts' ) || manual ) &&
 			typeof rawConfig.sidebarSlot === 'string' && rawConfig.sidebarSlot.length === 10 && /^[0-9]{10}$/.test( rawConfig.sidebarSlot );
 		var config = rawConfig && rawConfig.preview !== true && typeof rawConfig.client === 'string' &&
 			/^ca-pub-[0-9]{16}$/.test( rawConfig.client ) && rawConfig.client.length === 23 &&
 			( rawConfig.format === 'anchor' || layouts ) && window.location.origin === providerOrigin ? rawConfig : null;
-		// Blank settings and excluded pages have no ad UI or preference reads.
-		// Off retains the selector on eligible pages so readers can enable ads.
-		if ( !config && !preview ) { return; }
+		if ( !config && !preview && !preferences ) { return; }
 		control.hidden = false;
-		if ( manual || manualPreview ) {
+		if ( manual || manualPreview || ( preferences && ( preferences.format === 'manual-layouts' || multiplexLayout ) ) ) {
 			var bannerChoice = control.querySelector( '[value="anchor"]' );
 			bannerChoice.setAttribute( 'aria-label', 'Style 1: Bottom, below content' );
 			bannerChoice.parentElement.title = multiplexLayout ? 'Bottom — horizontal ad grid after the content' : 'Bottom — banner after the content';
@@ -220,7 +224,7 @@
 		// it never changes a reader's choice, refreshes ads or requests a second unit.
 		var initialDefault = multiplexLayout ?
 			( window.innerWidth > window.innerHeight ? 'side' : 'anchor' ) :
-			( wideDesktop() && ( preview || layouts ) ? 'side' : 'anchor' );
+			( wideDesktop() && ( preview || layouts || ( preferences && preferences.format !== 'anchor' ) ) ? 'side' : 'anchor' );
 		window.addEventListener( 'resize', positionSidebar );
 		if ( typeof ResizeObserver === 'function' && content ) {
 			var sideObserver = new ResizeObserver( positionSidebar );

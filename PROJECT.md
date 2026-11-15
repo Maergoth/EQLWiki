@@ -61,9 +61,13 @@ The [ad guide](docs/ADS.md) owns the X/1/2 preference and eligibility contract.
 Production serves only with independent valid `$wgEQLAdSenseClient`,
 `$wgEQLAdSenseFormat = 'multiplex-layouts'`,
 `$wgEQLAdSenseMultiplexSidebarSlot` and `$wgEQLAdSenseMultiplexBottomSlot` values.
-All defaults are blank; staging values never activate production. Blank or
-ineligible pages keep the Ads control hidden and do not read ad preferences.
-Eligible Off readers still have the control. Keep shared
+All defaults are blank; staging values never activate production. Blank production
+settings keep the Ads control hidden and do not read ad preferences. With valid
+settings, separate preference configuration keeps X/1/2 available on category,
+special/account, talk and edit/history pages without Google, previews or reloads;
+provider eligibility remains article-only. This separation needs normal source
+deployment, with no additional host setting or database-page publication.
+Off readers still have the control. Keep shared
 Google Auto ads and Auto optimize Off and use separately issued Multiplex units.
 
 Deploy only reviewed ad files to `main` with owner authorization, then verify the

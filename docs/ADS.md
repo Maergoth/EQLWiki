@@ -5,10 +5,12 @@ X is Off, **1 is Bottom** (horizontal Multiplex grid after the complete content
 card), and **2 is Right sidebar** (vertical Multiplex grid beside the card).
 The controls have individual accessible names, native radio-keyboard behavior,
 visible focus/selection states and descriptive tooltips. The template starts
-them hidden. JavaScript reveals them only for valid exact-origin provider
-configuration or a valid staging preview; blank/ineligible pages show no control
-and make no ad-preference API reads. On eligible pages, X remains available
-when ads are Off.
+them hidden. On configured wiki environments JavaScript reveals them wherever
+this skin renders its footer, including category, talk, special/account and
+edit/history pages. Choosing a mode there saves the same preference for later
+eligible article visits; it does not load Google, show a preview or reload an
+editor. Blank production settings and local clones keep the control hidden and
+make no ad-preference API reads. X remains available when ads are Off.
 
 **Fresh logged-out readers in Multiplex mode default to Right (2) in landscape
 and Bottom (1) in portrait or square windows.** Both grids scroll normally. The
@@ -60,11 +62,14 @@ into a stale saved On. Close that tab to end an already loaded provider; Google'
 already requested creative remains intact until navigation. Retry or reload after resolving a
 save failure to establish a retained preference.
 
-`resources/ads.js` owns the preference and Google loader. No Google advertising
-script, iframe, or ad request is created until the effective preference is On
-**and** the server publishes valid ad configuration for that exact environment.
-Without provider configuration, the production control stays hidden and no
-ad-preference API read or empty ad area is created.
+`resources/ads.js` owns the preference and Google loader. The server publishes
+`wgEQLAdPreferences` separately from page-specific `wgEQLAdSense`: preference
+availability does not grant permission to serve an ad. Both require the expected
+exact environment origin. Staging can expose preferences for its preview mode;
+production needs valid provider settings. No Google advertising script, iframe
+or ad request is created until the effective preference is On **and** the server
+publishes valid provider configuration for that eligible page. Preference-only
+pages create no empty ad area.
 Selecting X removes synthetic previews immediately. When Google's script has been
 requested and a changed mode can be retained, it reloads the page once to end that document's
 advertising runtime. A one-use, page-bound sessionStorage record restores the
@@ -101,12 +106,13 @@ exit and rechecks the same unit after BFCache restoration. This changes neither
 the saved preference nor Google's creative, and never refreshes or retries an ad.
 Legacy manual display units retain their prior placement after the loader is ready.
 Synthetic previews and historical native anchors are unaffected.
-There are no real ads on login/account/special pages, talk pages,
+There are no real ads on category pages, login/account/special pages, talk pages,
 editing/history/diff/old-revision views, missing articles, or local clones.
 Production also excludes nonpublic and noindex articles. Staging can load the
 provider only through its separate explicit settings described below, preserving
 its existing authentication and noindex. `includes/Ads.php` checks the actual environment, title
-and view before exposing configuration. Google code is not unconditionally added
+and view before exposing provider configuration; these eligibility checks do not
+hide the preference selector on a configured environment. Google code is not unconditionally added
 to the footer, database `MediaWiki:` scripts, or page head.
 
 ## Review manual previews on staging
@@ -123,7 +129,8 @@ are both exactly `https://test.eqlwiki.com`; the browser also requires that exac
 origin. Copied production settings cannot activate Google on staging. Existing
 staging login/noindex policies remain intact. Eligible current main-namespace
 articles include Main Page; special/talk/edit/history/diff/old-revision and missing
-views have no preview. Production settings stay blank during staging review.
+views have no preview, but retain the preference selector. Production settings stay
+blank during staging review.
 
 ## Grid placement and per-reader provider selection
 
@@ -331,8 +338,12 @@ production `Server` and `CanonicalServer` must both be `https://eqlwiki.com`;
 public reading must be allowed and the current article must not be noindex.
 Invalid or incomplete production settings publish no provider configuration and
 never produce synthetic previews. The footer selector remains hidden and its
-preference lifecycle does not start without valid configuration or a valid
-staging preview; eligible Off readers retain the control.
+preference lifecycle does not start without valid environment settings or a
+valid staging preview configuration. With configured settings, separate
+`wgEQLAdPreferences` keeps X/1/2 available on category, special/account, talk and
+edit/history pages while `wgEQLAdSense` remains restricted to eligible articles.
+This separation needs only normal source deployment, with no additional host
+setting or database-page publication. Off readers retain the control.
 
 Promote only reviewed ad feature files from staging after owner authorization;
 never merge the whole staging branch. Deploy code with serving disabled, verify
@@ -399,7 +410,8 @@ traffic alone cannot establish this site's RPM or future share of ad-enabled vis
 
 Run `node ops/test-ads.cjs` with the development guide's jsdom runtime and
 `php ops/test-ads-config.php`. These cover synthetic storage/network lifecycles
-and server eligibility, including anonymous orientation defaults and fixed
+and server eligibility, including preference-only category/special/edit views,
+unchanged provider exclusions, anonymous orientation defaults and fixed
 24-hour choice expiry, asserted account
 reads/gesture-only writes, queue and identity races, staging-only dock dismissal, footer breakpoint/
 reserve contracts, independent staging/production configuration, one-provider-style
@@ -415,7 +427,10 @@ visit, and a new account's Off default. Confirm anonymous opt-out survives
 navigation/tabs/browser restarts until its 24-hour deadline without renewing on
 reads, verify the deadline with a controlled test clock, and check the login notice;
 confirm named-account saves survive a fresh browser without importing anonymous state.
-Inspect network requests: Off must make no Google ad request. Use synthetic
+On a category, special/account, talk or edit/history page, confirm the selector
+remains available, a choice carries to an eligible article, and changing it does
+not reload the page or create a Google script, unit or preview. Inspect network
+requests: Off must make no Google ad request. Use synthetic
 provider responses for local lifecycle tests; never generate artificial clicks
 or impressions against a live publisher as routine verification.
 In staging's synthetic preview mode, scroll a long article to its final links,
