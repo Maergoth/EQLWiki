@@ -500,6 +500,11 @@ policy file. It contains only `$wgEQLAdSenseStagingClient` and
 The refresh generator conditionally includes it after the Talk policy include at
 the end of staging `LocalSettings.php`; if absent, the synthetic preview remains.
 Do not put this include in generated `EQLStaging.php`, which refresh replaces.
+The skin exposes its preference selector separately from provider eligibility:
+category, special/account, talk and edit/history pages retain X/1/2 without
+loading Google or synthetic previews. This separation needs only normal source
+deployment, with no additional host setting or database-page publication.
+Blank production provider settings still leave its selector and Google inactive.
 
 Deploy the reviewed staging ad source before provider activation. The two-layout
 selector also requires separately approved shared AdSense format settings; see
