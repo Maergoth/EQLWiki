@@ -9,6 +9,22 @@ final class Ads {
 			$config->get( 'CanonicalServer' ) === 'https://test.eqlwiki.com';
 	}
 
+	/** Preferences remain available even where ads must not load. No provider IDs. */
+	public static function preferencesForOutput( $out ): ?array {
+		$config = $out->getConfig();
+		if ( self::isStagingEnvironment( $config ) ) {
+			$provider = self::providerConfiguration( $config, 'EQLAdSenseStaging', 'staging' );
+			return [ 'environment' => 'staging', 'format' => $provider['format'] ?? 'multiplex-layouts' ];
+		}
+		if ( $config->get( 'Server' ) !== 'https://eqlwiki.com' ||
+			$config->get( 'CanonicalServer' ) !== 'https://eqlwiki.com'
+		) {
+			return null;
+		}
+		$provider = self::providerConfiguration( $config, 'EQLAdSense', 'production' );
+		return $provider ? [ 'environment' => 'production', 'format' => $provider['format'] ] : null;
+	}
+
 	/** @return array{client:string,format:string,environment:string,sidebarSlot?:string,bannerSlot?:string}|array{preview:true,manual:true,multiplex:true}|null */
 	public static function configurationForOutput( $out, bool $publicRead ): ?array {
 		$config = $out->getConfig();
