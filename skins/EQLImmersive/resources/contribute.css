@@ -130,6 +130,7 @@ body.skin-eqlimmersive .eql-ads-choice {
 	color: #e0d3b3;
 	cursor: pointer;
 }
+body.skin-eqlimmersive .eql-ads-choice[hidden] { display: none; }
 body.skin-eqlimmersive .eql-ads-choice > span { margin-right: .15rem; }
 body.skin-eqlimmersive .eql-ads-choice label { position: relative; cursor: pointer; }
 body.skin-eqlimmersive .eql-ads-choice input {

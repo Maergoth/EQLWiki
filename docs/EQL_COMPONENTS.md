@@ -40,7 +40,12 @@ Major custom skin behavior:
 
 - `resources/ads.js`, the footer X/1/2 radio group, and `includes/Ads.php` provide
   optional Bottom/Right layouts: X Off, 1 horizontal grid after the entire card,
-  2 vertical right-column grid. Named accounts default Off; anonymous Multiplex
+  2 vertical right-column grid. Separate `wgEQLAdPreferences` configuration keeps
+  the selector available on category, special/account, talk and edit/history
+  pages in configured environments; only eligible article views receive provider
+  configuration. Preference-only pages save without Google, previews or reloads.
+  Blank production settings and local clones leave the selector inactive.
+  Named accounts default Off; anonymous Multiplex
   defaults select Right in landscape and Bottom in portrait or square windows.
   Anonymous choices last 24 hours from selection in a host-only cookie, with a
   timestamped per-tab sessionStorage fallback; reads do not renew the deadline.

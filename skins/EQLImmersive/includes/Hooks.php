@@ -52,12 +52,14 @@ class Hooks implements
 	}
 
 	private function addAdvertising( $out ): void {
-		$staging = Ads::isStagingEnvironment( $out->getConfig() );
-		// Staging has separate provider settings and a local preview fallback.
-		if ( !$staging && ( $out->getConfig()->get( 'EQLAdSenseClient' ) === '' ||
-			$out->getConfig()->get( 'EQLAdSenseFormat' ) === '' ) ) {
+		$preferences = Ads::preferencesForOutput( $out );
+		if ( $preferences === null ) {
 			return;
 		}
+		// Keep the footer preference usable on categories, account and edit pages.
+		// This flag cannot load Google; the article guards below still own that.
+		$out->addJsConfigVars( 'wgEQLAdPreferences', $preferences );
+		$staging = Ads::isStagingEnvironment( $out->getConfig() );
 		$title = $out->getTitle();
 		if ( !$title || $title->getNamespace() !== NS_MAIN ) {
 			return;

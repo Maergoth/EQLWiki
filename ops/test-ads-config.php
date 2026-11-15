@@ -7,7 +7,9 @@ require_once __DIR__ . '/../skins/EQLImmersive/includes/Ads.php';
 
 function fixture( array $options = [] ): object {
 	return new class( $options ) {
+		public array $jsConfig = [];
 		public function __construct( private array $options ) {}
+		public function addJsConfigVars( string $name, mixed $value ): void { $this->jsConfig[$name] = $value; }
 		public function getConfig(): object {
 			$values = array_replace( [
 				'EQLAdSenseClient' => 'ca-pub-1234567890123456', 'EQLAdSenseFormat' => 'anchor',
@@ -170,6 +172,82 @@ $check( [ 'config' => array_replace( $manualSettings, [ 'EQLAdSenseStagingFormat
 $check( [ 'config' => [ 'EQLAdSenseFormat' => 'multiplex-layouts' ] ], true, null );
 $check( [ 'config' => $multiplexSettings, 'namespace' => 1 ], false, null );
 $check( [ 'config' => $multiplexSettings, 'action' => 'edit' ], false, null );
+
+// The preference flag is page-independent, contains no provider IDs and cannot
+// substitute for the separately guarded ad-serving configuration.
+$preferencesCheck = static function ( array $options, ?array $expected ) use ( &$checks ): void {
+	$actual = EQLImmersive\Ads::preferencesForOutput( fixture( $options ) );
+	$checks++;
+	if ( $actual !== $expected ) {
+		throw new RuntimeException( 'Advertising preference availability failed: ' . json_encode( $options ) );
+	}
+};
+$productionPreferences = [ 'environment' => 'production', 'format' => 'anchor' ];
+$stagingPreferences = [ 'environment' => 'staging', 'format' => 'multiplex-layouts' ];
+$excludedViews = [
+	[ 'namespace' => 14 ], [ 'namespace' => 1 ], [ 'namespace' => -1 ], [ 'namespace' => 2 ],
+	[ 'missingTitle' => true ], [ 'exists' => false ], [ 'redirect' => true ],
+	[ 'article' => false ], [ 'current' => false ], [ 'action' => 'edit' ], [ 'action' => 'history' ],
+	[ 'query' => [ 'oldid' => '123' ] ], [ 'query' => [ 'diff' => '' ] ], [ 'query' => [ 'veaction' => 'edit' ] ],
+	[ 'policy' => 'noindex,nofollow' ]
+];
+foreach ( array_merge( [ [] ], $excludedViews ) as $options ) {
+	$preferencesCheck( $options, $productionPreferences );
+	$preferencesCheck( array_replace( $options, [ 'config' => $staging ] ), $stagingPreferences );
+	$preferencesCheck( array_replace( $options, [ 'config' => $multiplexSettings ] ), $stagingPreferences );
+}
+foreach ( $excludedViews as $options ) { $check( $options, true, null ); }
+$preferencesCheck( [ 'config' => $configuredStaging ], [ 'environment' => 'staging', 'format' => 'anchor' ] );
+$preferencesCheck( [ 'config' => $manualSettings ], [ 'environment' => 'staging', 'format' => 'manual-layouts' ] );
+foreach ( [
+	[ 'EQLAdSenseClient' => '' ], [ 'EQLAdSenseFormat' => '' ], [ 'EQLAdSenseClient' => 'ca-pub-invalid' ],
+	[ 'EQLAdSenseFormat' => 'unknown' ], [ 'Server' => 'http://eqlwiki.com' ],
+	[ 'CanonicalServer' => 'https://test.eqlwiki.com' ], [ 'Server' => 'https://test.eqlwiki.com' ],
+	[ 'Server' => 'http://127.0.0.1:8080', 'CanonicalServer' => 'http://127.0.0.1:8080' ]
+] as $values ) { $preferencesCheck( [ 'config' => $values ], null ); }
+
+// Execute the real display hook with minimal native-service doubles. This catches
+// an early namespace return that would otherwise discard the preference flag.
+eval( <<<'STUBS'
+namespace MediaWiki\Hook {
+	interface BeforePageDisplayHook {}
+	interface ParserAfterParseHook {}
+	interface SkinBuildSidebarHook {}
+	interface SkinTemplateNavigation__UniversalHook {}
+}
+namespace MediaWiki {
+	class MediaWikiServices {
+		public static function getInstance(): self { return new self(); }
+		public function getPermissionManager(): self { return $this; }
+		public function getUserFactory(): self { return $this; }
+		public function newAnonymous(): object { return new \stdClass(); }
+		public function userCan( ...$arguments ): bool { return true; }
+	}
+}
+STUBS
+);
+require_once __DIR__ . '/../skins/EQLImmersive/includes/Hooks.php';
+$hook = new ReflectionMethod( EQLImmersive\Hooks::class, 'addAdvertising' );
+foreach ( $excludedViews as $options ) {
+	foreach ( [ [], $multiplexSettings, $staging ] as $settings ) {
+		$out = fixture( array_replace( $options, [ 'config' => $settings ] ) );
+		$hook->invoke( new EQLImmersive\Hooks(), $out );
+		$expectedPreferences = $settings === [] ? $productionPreferences : $stagingPreferences;
+		$expected = [ 'wgEQLAdPreferences' => $expectedPreferences ];
+		// Staging intentionally retains its existing article-only noindex exception.
+		if ( isset( $options['policy'] ) && $settings !== [] ) {
+			$expected['wgEQLAdSense'] = $settings === $staging ? $preview : $multiplexProvider;
+		}
+		if ( $out->jsConfig !== $expected ) { throw new RuntimeException( 'Display hook changed preference/provider separation.' ); }
+		$checks++;
+	}
+}
+foreach ( [ [ 'EQLAdSenseClient' => '' ], [ 'Server' => 'http://127.0.0.1:8080' ] ] as $settings ) {
+	$out = fixture( [ 'config' => $settings ] );
+	$hook->invoke( new EQLImmersive\Hooks(), $out );
+	if ( $out->jsConfig !== [] ) { throw new RuntimeException( 'Unconfigured or local hook must remain inert.' ); }
+	$checks++;
+}
 
 // Staging's explicit URL rewrite list must not rewrite production allowlists.
 $prepare = file_get_contents( __DIR__ . '/staging-prepare.php' );

@@ -136,7 +136,8 @@ function visit( options = {} ) {
     }
     const values = { wgWikiID: scope, wgScriptPath: options.scriptPath || '', wgUserId: user, wgUserName: name,
         wgUserIsTemp: options.temporary || false, wgIsMainPage: options.mainPage === true,
-        wgEQLAdSense: options.config === undefined ? config : options.config };
+        wgEQLAdSense: options.config === undefined ? config : options.config,
+        wgEQLAdPreferences: options.preferences };
     w.mw = {
         config: { get: key => values[ key ] }, Api: function () { return { get, saveOption }; },
         user: { options: { set: ( option, value ) => cacheWrites.push( { option, value } ) } },
@@ -218,11 +219,17 @@ test( 'The skin renders an inert Ads control beside Donate and an accessible ext
     const dom = new JSDOM( template );
     const group = dom.window.document.getElementById( 'eql-ads-toggle' );
     assert.equal( group.getAttribute( 'role' ), 'radiogroup' );
+    assert.equal( group.hidden, true, 'An unconfigured site leaves the control inert until explicit configuration is read.' );
     assert.equal( group.previousElementSibling.id, 'eql-support-button' );
     const radios = [ ...group.querySelectorAll( 'input' ) ];
     assert.deepEqual( radios.map( input => input.value ), [ 'off', 'anchor', 'side' ] );
     assert.ok( radios.every( input => input.type === 'radio' && input.disabled && input.getAttribute( 'aria-label' ) ) );
     assert.equal( group.querySelector( ':checked' ).value, 'off' );
+    const style = dom.window.document.createElement( 'style' );
+    style.textContent = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/resources/contribute.css' ), 'utf8' );
+    dom.window.document.head.appendChild( style ); dom.window.document.body.classList.add( 'skin-eqlimmersive' );
+    assert.equal( dom.window.getComputedStyle( group ).display, 'none', 'The hidden state overrides the footer inline-flex rule.' );
+    group.hidden = false; assert.equal( dom.window.getComputedStyle( group ).display, 'inline-flex' );
     const ad = dom.window.document.getElementById( 'eql-advertisement' );
     assert.equal( ad.hidden, true ); assert.equal( ad.nextElementSibling.className, 'mw-footer-container' );
     const close = dom.window.document.getElementById( 'eql-ad-preview-close' );
@@ -539,8 +546,78 @@ test( 'Anonymous provider OFF saves its 24-hour cookie before reloading', async 
 test( 'Absent and invalid publisher formats never request Google or leave a dock gap', async () => {
     for ( const invalid of [ null, {}, { ...config, client: 'ca-pub-123' }, { ...config, client: config.client + '\n' },
         { ...config, format: 1234 }, { ...config, format: 'display' }, { ...config, format: 'anchor\n' }, { client: config.client, slot: '1234567890' } ] ) {
-        const page = visit( { config: invalid } ); await settle(); assert.equal( page.toggle.checked, true );
+        const page = visit( { config: invalid } ); await settle(); assert.equal( page.selected(), 'off' );
+        assert.equal( page.control.hidden, true ); assert.equal( page.toggle.disabled, true );
         noProvider( page ); assert.equal( page.hidden(), true ); assert.equal( page.previewOpen(), false ); page.close();
+    }
+} );
+
+test( 'Excluded pages retain anonymous X/1/2 preferences without Google, previews or a reload', async () => {
+    for ( const environment of [ 'production', 'staging' ] ) {
+        const origin = environment === 'production' ? 'https://eqlwiki.com' : 'https://test.eqlwiki.com';
+        for ( const suffix of [ '/Category:Character', '/Special:Preferences', '/Talk:Character', '/Article?action=edit',
+            '/Article?action=history', '/Article?oldid=123', '/EQLWiki:Privacy_policy' ] ) {
+            const settings = { url: origin + suffix, config: null, preferences: { environment, format: 'multiplex-layouts' },
+                viewport: { width: 1440, height: 900, contentWidth: 1200 } };
+            const page = visit( settings ); await settle();
+            assert.equal( page.control.hidden, false ); assert.equal( page.toggle.disabled, false );
+            assert.equal( page.selected(), 'side' ); assert.equal( page.cookieWrites.length, 0 );
+            for ( const choice of [ 'anchor', 'side', 'off' ] ) {
+                page.choose( choice ); await settle(); assert.equal( page.selected(), choice );
+                assert.equal( page.cookie(), cookieName + '=' + preference( choice ) );
+                noProvider( page ); assert.equal( page.reloads(), 0 ); assert.equal( page.previewOpen(), false );
+                assert.ok( [ 'eql-advertisement', 'eql-ad-banner', 'eql-ad-sidebar' ].every( id => page.w.document.getElementById( id ).hidden ) );
+            }
+            assertOffNotice( page );
+            const next = visit( { ...settings, cookie: page.cookie(), now: NOW + DAY - 1 } ); await settle();
+            assert.equal( next.selected(), 'off' ); assert.equal( next.cookieWrites.length, 0 ); noProvider( next );
+            const expired = visit( { ...settings, cookie: page.cookie(), now: NOW + DAY } ); await settle();
+            assert.equal( expired.selected(), 'side' ); assert.equal( expired.cookieWrites.length, 0 ); noProvider( expired );
+            expired.close(); next.close(); page.close();
+        }
+    }
+} );
+
+test( 'Preference-only portrait default and anonymous choices carry to an eligible article', async () => {
+    const preferences = { environment: 'staging', format: 'multiplex-layouts' };
+    const settings = { url: 'https://test.eqlwiki.com/Category:Character', config: null, preferences,
+        viewport: { width: 800, height: 1200 } };
+    const category = visit( settings ); await settle(); assert.equal( category.selected(), 'anchor' );
+    category.choose( 'off' ); await settle(); noProvider( category );
+    const article = visit( { ...staging, config: { preview: true, manual: true, multiplex: true }, preferences,
+        cookie: category.cookie(), viewport: { width: 1400, height: 900 } } ); await settle();
+    assert.equal( article.selected(), 'off' ); assert.equal( article.w.document.getElementById( 'eql-ad-sidebar' ).hidden, true );
+    assert.equal( article.w.document.getElementById( 'eql-ad-banner' ).hidden, true ); noProvider( article );
+    article.close(); category.close();
+} );
+
+test( 'Preference-only account pages keep default Off and asserted gesture saves without navigation', async () => {
+    const settings = { url: 'https://eqlwiki.com/Article?action=edit', config: null,
+        preferences: { environment: 'production', format: 'multiplex-layouts' }, user: 42 };
+    const page = visit( settings ); await settle();
+    assert.equal( page.control.hidden, false ); assert.equal( page.selected(), 'off' );
+    assert.equal( page.reads.length, 1 ); assert.equal( page.saves.length, 0 );
+    for ( const next of [ 'side', 'anchor', 'off' ] ) {
+        page.choose( next ); await settle(); assert.equal( page.selected(), next );
+        assert.equal( page.saves.at( -1 ).value, next ); noProvider( page ); assert.equal( page.reloads(), 0 );
+        const later = visit( { ...settings, option: next } ); await settle();
+        assert.equal( later.selected(), next ); assert.equal( later.saves.length, 0 ); noProvider( later ); later.close();
+    }
+    assert.equal( page.cookieWrites.length, 0 ); page.close();
+} );
+
+test( 'Preference flags require exact environment, supported format and browser origin', async () => {
+    for ( const preferences of [ undefined, null, {}, { environment: 'production', format: 'unknown' },
+        { environment: 'production', format: true }, { environment: 'staging', format: 'multiplex-layouts' },
+        { environment: 'production\n', format: 'multiplex-layouts' } ] ) {
+        const page = visit( { config: null, preferences, user: 42 } ); await settle();
+        assert.equal( page.control.hidden, true ); assert.equal( page.toggle.disabled, true );
+        assert.equal( page.reads.length + page.saves.length, 0 ); noProvider( page ); page.close();
+    }
+    for ( const url of [ 'http://eqlwiki.com/Category:Character', 'https://www.eqlwiki.com/Category:Character',
+        'https://eqlwiki.com.evil.example/Category:Character', 'http://127.0.0.1:8080/Category:Character' ] ) {
+        const page = visit( { url, config: null, preferences: { environment: 'production', format: 'multiplex-layouts' } } );
+        await settle(); assert.equal( page.control.hidden, true ); assert.equal( page.cookieWrites.length, 0 ); noProvider( page ); page.close();
     }
 } );
 test( 'Copied production IDs cannot load on staging or override preview isolation', async () => {
