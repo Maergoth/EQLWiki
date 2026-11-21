@@ -276,8 +276,15 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   sentences are filtered as zone claims without changing stored data.
   NPC presentation remains test-only: item name, one percentage and rarity,
   preserving source/hover data while hiding duplicate authored rate annotations.
-  These percentages are not per-kill drop chances. This needs normal
-  application deployment, with no new schema or database-page publication.
+  These percentages are not per-kill drop chances. Optional cumulative totals
+  use `CumulativeDropStore`/`CumulativeDropReader` and five separately installed
+  derived tables, with same-transaction ingestion and resumable reconciled legacy
+  backfill. Reads use indexed totals and bounded submission pages; readiness
+  keeps the recent received-report fallback until completion. Schema-2 snapshots
+  require persistent shared WAN cache for history. No lifetime entry cutoff
+  applies once cumulative readiness is active. Source deployment does not install
+  schema, private maintenance or database documentation; see the separate
+  [activation and rollback guide](CUMULATIVE_DROPS.md).
   See [the metric and history contract](CLIENT_API.md#browsing-observed-loot-14-read-schema-2).
 - Metadata comes from database `VerifiedPages`, `Template:PageEra`, and
   `SpellLevelSliderOverrides`. Revision-aware WANObjectCache entries and
