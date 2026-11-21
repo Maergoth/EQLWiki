@@ -82,6 +82,11 @@ Major custom skin behavior:
   introductions/descriptions at display time without rewriting database pages.
   The skin emits one native responsive viewport. See the
   [SEO ownership and release guide](EQL_SEO.md), including staging protections.
+  `SiteIdentity.php` declares the homepage's preferred search name and alternate
+  spellings; `EntitySeo.php` supplies concise branded HTML titles and factual
+  descriptions for eligible item, NPC and zone entries. Visible headings,
+  canonical URLs, authored descriptions and robots policies are preserved. See
+  the [entity search targets](SEO_ENTITY_SEARCH.md) and their indexing limits.
   [`NavigationCrawl.php`](../skins/EQLImmersive/includes/NavigationCrawl.php)
   qualifies recognized local utility/action links in custom menus and the native
   toolbox while preserving ordinary content links and existing attributes.

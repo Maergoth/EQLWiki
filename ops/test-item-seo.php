@@ -11,6 +11,7 @@ namespace {
 		exit( "Run this fixture from the command line.\n" );
 	}
 	define( 'NS_MAIN', 0 );
+	require __DIR__ . '/../skins/EQLImmersive/includes/SiteIdentity.php';
 	require __DIR__ . '/../skins/EQLImmersive/includes/ItemSeo.php';
 	require __DIR__ . '/../skins/EQLImmersive/includes/SkinEQLImmersive.php';
 
@@ -79,7 +80,7 @@ namespace {
 
 	$html = itemHtml();
 	$summary = ItemSeo::summarize( $html, 'Synthetic Claymore' );
-	$expected = 'Synthetic Claymore is listed in the EverQuest Legends Wiki as a two-handed slashing weapon. ' .
+	$expected = 'Synthetic Claymore is listed in the EQ Legends Wiki as a two-handed slashing weapon. ' .
 		'Slot: PRIMARY. Base DMG: 17; delay: 45. Listed drop location: Synthetic Keep.';
 	checkSeo( $summary['text'] === $expected && $summary['addLead'], 'Summarize only documented own-card fields and the linked drop zone.' );
 	checkSeo( !str_contains( $summary['text'], 'missing' ) && !str_contains( $summary['text'], 'Guard' ) && !str_contains( $summary['text'], 'Shop' ), 'Exclude placeholders, NPC names and unrelated sections.' );

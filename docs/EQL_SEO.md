@@ -46,6 +46,33 @@ provides an explicit discovery policy.
 
 ## Checks and release
 
+### Item, NPC and zone searches
+
+The [entity search targets](SEO_ENTITY_SEARCH.md) define the requested name-plus-
+brand queries. Eligible current public main-namespace item, NPC and zone entries
+use a concise `<entity> - EQ Legends Wiki` browser/search title. The visible
+heading and canonical page name stay unchanged. Existing item summaries use the
+same short brand; authored descriptions take precedence. NPC/zone descriptions
+use the page's own verified content where safe, with conservative reference copy
+when no unambiguous source facts can be extracted. They do not assert that an
+out-of-era entry is currently available in the game.
+
+`SiteIdentity.php` adds homepage `WebSite` JSON-LD with preferred name **EQ Legends
+Wiki** and alternate names **EQLegends Wiki**, **EverQuest Legends Wiki**, **EQ
+Legends** and **EQLegends**. It supplies an accurate lookup-oriented homepage
+title/description without changing its visible heading. Both root and Main Page
+views receive the same site node; its URL uses only the matching configured
+production or staging origin. Another provider's existing WebSite JSON-LD is
+retained. All changes leave permissions, account state and robots rules intact.
+
+Run `php ops/test-site-identity.php`, `php ops/test-entity-seo.php` and the item SEO
+checks. Verify actual HTML titles, descriptions and JSON-LD on staging, including
+an item, NPC, zone, out-of-era entry, homepage and excluded editor/history views.
+Check title escaping and that staging emits only its own URLs while retaining
+`noindex`. File deployment installs this metadata; it requires no new database
+page publication. Search Console acceptance and title preferences do not prove
+Google will index a page or select a particular title/ranking.
+
 ### Reader copy and equipment browsing
 
 The [November 2026 comparison](SEO_COMPARISON_2026-11.md) includes both sparse
@@ -123,4 +150,6 @@ HTTP redirects, canonical links, descriptions and sitemap XML, and recheck stagi
 isolation. Submit the native sitemap in Search Console and inspect representative
 items such as `Bone_Bladed_Claymore`; this account-side step is separate from code
 deployment. Google recrawling and ranking changes are not immediate release checks.
-No template or `MediaWiki:` page synchronization is required for these changes.
+Routing, canonical and metadata changes require no database-page synchronization.
+The reviewed reader-copy, equipment and map changes above require their separate
+guarded publication on each environment.

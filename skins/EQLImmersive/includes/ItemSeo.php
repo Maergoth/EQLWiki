@@ -114,7 +114,7 @@ class ItemSeo {
 		$lines = self::statLines( $card );
 		$skill = self::field( $lines, '/^Skill:\s*(.+?)(?:\s+Atk Delay:.*)?$/i' );
 		$kind = self::SKILLS[$skill] ?? 'an item';
-		$text = self::normalize( $title ) . ' is listed in the EverQuest Legends Wiki as ' . $kind . '.';
+		$text = self::normalize( $title ) . ' is listed in the ' . SiteIdentity::PREFERRED_NAME . ' as ' . $kind . '.';
 		$slot = self::field( $lines, '/^Slot:\s*([A-Z]+(?:\s+[A-Z]+)*)$/' );
 		if ( $slot !== '' ) {
 			$text .= ' Slot: ' . $slot . '.';
