@@ -70,6 +70,15 @@ $event = [ 'id' => 'event_00001', 'kind' => 'loot', 'observedAt' => '2026-10-24T
 $now = strtotime( '2026-10-24T11:00:00Z' );
 $normalized = Payload::event( $event, $now );check( $normalized['observedAt'] === '2026-10-24T10:00:00.000Z', 'Normalize UTC milliseconds.' );
 check( Payload::hash( $normalized ) === Payload::hash( array_reverse( $normalized, true ) ), 'Object order cannot alter an event hash.' );
+check( !array_key_exists( 'characterName', $normalized ) && Payload::hash( $normalized ) === '74deff49fd82575d742d43ea1e7157958a62bcf2beaf95de398d4c631aa44ee1', 'Optional attribution preserves the historical wire event and retry hash exactly.' );
+check( Payload::event( $event + [ 'characterName' => '  Fixture Character  ' ], $now )['characterName'] === 'Fixture Character', 'Normalize an explicitly supplied public character name.' );
+check( Payload::event( $event + [ 'characterName' => str_repeat( 'é', 120 ) ], $now )['characterName'] === str_repeat( 'é', 120 ), 'Character-name bound counts Unicode characters, not UTF-8 bytes.' );
+foreach ( [ '', 'C:private', 'C:/private/log.txt', 'https://example.invalid/name', 'private\\name' ] as $badName ) {
+    rejects( fn() => Payload::event( $event + [ 'characterName' => $badName ], $now ), 'invalid-character-name' );
+}
+foreach ( [ null, 10, "Bad\nName", str_repeat( 'é', 121 ) ] as $badName ) {
+    rejects( fn() => Payload::event( $event + [ 'characterName' => $badName ], $now ), 'invalid-text' );
+}
 foreach ( [ [ 'observedAt', '2026-99-99T99:99:99Z', 'invalid-time' ], [ 'observedAt', '2026-02-30T10:00:00Z', 'invalid-time' ], [ 'observedAt', '2026-10-24T11:05:01Z', 'invalid-time' ], [ 'id', 'bad', 'invalid-id' ], [ 'quantity', 0, 'invalid-quantity' ], [ 'tier', 11, 'invalid-tier' ], [ 'sourceKind', 'provider', 'invalid-provenance' ], [ 'itemTitle', 'User:Someone', 'invalid-title' ], [ 'item', "Bad\nname", 'invalid-text' ], [ 'sourceToken', '/private/log.txt', 'invalid-token' ] ] as [ $key, $value, $code ] ) { rejects( fn() => Payload::event( array_replace( $event, [ $key => $value ] ), $now ), $code ); }
 rejects( fn() => Payload::event( $event + [ 'playerName' => 'Private' ], $now ), 'unsupported-field' );
 check( Payload::event( array_replace( $event, [ 'observedAt' => '2020-01-01T00:00:00Z' ] ), $now )['item'] === $event['item'], 'Offline observations have no past expiry.' );
@@ -77,7 +86,12 @@ foreach ( [ 'explicit-corpse', 'explicit-source', 'recent-kill', 'encounter-targ
 $batch = static fn( $events, $id = 'batch_00001' ) => Payload::batch( json_encode( [ 'schemaVersion' => 1, 'batchId' => $id, 'clientVersion' => 'fixture', 'events' => $events ] ), $now );
 $mixed = $batch( [ $event, array_replace( $event, [ 'id' => 'event_00002', 'observedAt' => '2026-99-99T00:00:00Z' ] ) ] );check( count( $mixed['events'] ) === 1 && $mixed['rejected'] === [ [ 'id' => 'event_00002', 'code' => 'invalid-time' ] ], 'One invalid event cannot discard valid peers.' );
 rejects( fn() => $batch( [ $event, $event ] ), 'duplicate-batch-id' );rejects( fn() => $batch( array_fill( 0, 101, $event ) ), 'invalid-batch' );
+$backlog = [];
+for ( $i = 0; $i < 100; $i++ ) { $backlog[] = array_replace( $event, [ 'id' => 'backlog_event_' . $i ] ); }
+check( count( $batch( $backlog, 'backlog_batch_0001' )['events'] ) === 100, 'Each small backlog batch remains within the existing schema and advertised byte limits.' );
+rejects( fn() => Payload::batch( str_repeat( ' ', Payload::MAX_BYTES + 1 ), $now ), 'batch-too-large' );
 $config = new FixtureConfig();$db = new FixtureDB();$repository = new Repository( new FixtureProvider( $db ), new \MediaWiki\User\ActorStore(), $config );$user = new FixtureUser();
+check( $repository->limits()['optionalEventFields'] === [ 'characterName' ], 'Advertise public character attribution capability in the existing limits envelope.' );
 $config->values['EQLClientDataEnableObservations'] = false;check( !$repository->available() && $db->writes === 0, 'Disabled endpoint touches no schema/data.' );rejects( fn() => $repository->store( $user, $mixed ), 'eoz-disabled' );$config->values['EQLClientDataEnableObservations'] = true;
 $receipt = $repository->store( $user, $mixed );check( $receipt['accepted'] === [ 'event_00001' ] && $receipt['account'] === [ 'id' => 7, 'name' => 'Fixture 7' ], 'Server-derived attribution and per-event acceptance.' );
 $before = $db->writes;$retry = $repository->store( $user, $mixed );check( $retry['accepted'] === [] && $retry['duplicates'] === [ 'event_00001' ] && $db->writes === $before, 'Exact batch replay adds no data.' );
@@ -87,6 +101,12 @@ $conflict = $repository->store( $user, $batch( [ array_replace( $event, [ 'quant
 $other = $repository->store( new FixtureUser( 8 ), $batch( [ $event ], 'batch_00003' ) );check( $other['accepted'] === [ 'event_00001' ], 'Different actors retain independent attributed reports.' );
 $config->values['EQLClientDataObservationMaxEvents'] = 2;$full = $repository->store( $user, $batch( [ array_replace( $event, [ 'id' => 'event_00003' ] ) ], 'batch_00004' ) );check( $full['rejected'] === [ [ 'id' => 'event_00003', 'code' => 'capacity' ] ], 'Capacity is explicit, no eviction or silent acknowledgement.' );
 $config->values['EQLClientDataObservationHourlyBatches'] = 1;rejects( fn() => $repository->store( $user, $batch( [ $event ], 'batch_00005' ) ), 'eoz-rate-limit' );
+$unlimitedConfig = new FixtureConfig();
+foreach ( [ 'MaxEvents', 'ActorMaxEvents', 'MaxBatches', 'ActorMaxBatches' ] as $suffix ) { $unlimitedConfig->values['EQLClientDataObservation' . $suffix] = 0; }
+$unlimitedDB = new FixtureDB();$unlimitedDB->tables['eql_eoz_state'][0]['eos_events'] = 2000000;$unlimitedDB->tables['eql_eoz_state'][0]['eos_batches'] = 50000;
+$unlimitedRepository = new Repository( new FixtureProvider( $unlimitedDB ), new \MediaWiki\User\ActorStore(), $unlimitedConfig );
+$unlimited = $unlimitedRepository->store( $user, $batch( [ $event ], 'unlimited_batch_001' ) );
+check( $unlimited['accepted'] === [ 'event_00001' ] && $unlimitedDB->tables['eql_eoz_state'][0]['eos_events'] === 2000001, 'Zero disables lifetime entry and receipt quotas; old contribution totals cannot stop a new upload.' );
 $config->values['EQLClientDataObservationHourlyBatches'] = 12;$config->values['EQLClientDataObservationMaxEvents'] = 100;$before = $db->tables;$db->fail = true;rejects( fn() => $repository->store( $user, $batch( [ array_replace( $event, [ 'id' => 'event_00006' ] ) ], 'batch_00006' ) ), 'fixture-failure' );check( $db->tables === $before, 'Failed transaction leaves neither partial events nor receipt/counters.' );
 echo "Observation payload/repository fixture: $checks checks passed; no real database writes.\n";
 $apiUser=new class implements \MediaWiki\User\UserIdentity {

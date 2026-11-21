@@ -249,11 +249,20 @@ version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations).
   are capped by `EQLClientDataApiMaxTitles` (configured 500). Skin requests batch
   450 titles; retain the response/normalization contract.
 - Optional `action=eozobservations` stores named-session/CSRF-protected, attributed
-  kill/loot data with actor/event idempotency and hard quotas. It is disabled by
+  kill/loot data with actor/event idempotency and rolling request limits. Default
+  lifetime entry and receipt quotas are disabled. It is disabled by
   default and requires three separately installed own tables. It does not edit
   articles or publish drop rates. Standard MediaWiki `action=edit` handles page
   creation/updates. [API, schema and activation contract](CLIENT_API.md); the
   reviewed public `API_Documentation` database page has its own guarded publisher.
+- Version 1.4 adds `Special:DropDatabase` and read-only `action=eqldrops` with
+  combined server/tier aggregates, invalid area-message filtering and expandable
+  submissions. History exposes observed/received UTC times, quantity and optional
+  consented character names, never private wiki account/event identifiers. Old
+  observations remain unnamed. Percentages mean share of reported loot, not
+  per-kill chance. The browser has no effect on article loot lists: the separate
+  NPC overlay and display cleanup remain on staging only. See
+  [the metric and history contract](CLIENT_API.md#browsing-observed-loot-14-read-schema-2).
 - Metadata comes from database `VerifiedPages`, `Template:PageEra`, and
   `SpellLevelSliderOverrides`. Revision-aware WANObjectCache entries and
   save/move/delete invalidation keep data fresh. Era results also depend on page

@@ -1,0 +1,172 @@
+/* Muted observation evidence stays distinct from manually authored loot. */
+.eql-drop-observed,
+.eql-drop-observed-item,
+.eql-drop-observed-item a,
+.eql-drop-observed-item a:visited {
+    color: #aeb6c1 !important;
+}
+.eql-drop-observed {
+    font-size: 0.88em;
+    font-weight: normal;
+    cursor: help;
+}
+.eql-drop-observed:focus-visible {
+    outline: 2px solid #c8ad73;
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+.eql-drop-observations {
+    margin: 0.5rem 0 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem 0.8rem;
+}
+.eql-drop-info { font-size: 0.85em; }
+.eql-drop-info summary { cursor: pointer; color: #aeb6c1; }
+.eql-drop-info[open] { flex-basis: 100%; }
+/* Keep authored source data and native hover nodes; suppress inline source-rate noise. */
+.eql-mobpage .eql-drop-clean-item .ddb,
+.eql-mobpage .eql-drop-clean-item > .itemtopbg,
+.eql-mobpage .eql-drop-clean-item > .itembg,
+.eql-mobpage .eql-drop-clean-item > .itembotbg,
+.eql-mobpage .eql-drop-clean-item > .ils-slider-container {
+    display: none !important;
+}
+.eql-mobpage .eql-drop-clean-item .hbdiv {
+    display: inline-block;
+    position: relative;
+}
+.eql-mobpage .eql-drop-clean-item .hbdiv > .hb {
+    display: none;
+    position: absolute;
+    z-index: 999;
+    top: 1.5em;
+    left: 0;
+}
+.eql-mobpage .eql-drop-clean-item .hbdiv:hover > .hb,
+.eql-mobpage .eql-drop-clean-item .hbdiv:focus-within > .hb {
+    display: block;
+}
+.eql-drop-source-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9em;
+}
+.eql-drop-source-select {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.35rem 0.45rem;
+    color: #e2e7ee;
+    background: #111c2c;
+    border: 1px solid #596675;
+    border-radius: 4px;
+    font: inherit;
+}
+.eql-drop-observations h3,
+.eql-drop-observations h4 {
+    margin: 0.4rem 0;
+    font-size: 1em;
+}
+.eql-drop-legend {
+    color: #aeb6c1;
+    font-size: 0.88em;
+    max-width: 65em;
+    line-height: 1.5;
+}
+.eql-drop-observed-group {
+    margin-top: 0.9rem;
+}
+.eql-drop-observed-list {
+    columns: auto !important;
+    margin: 0.4rem 0 0 1.4rem;
+}
+.eql-drop-observed-list li,
+.eql-drop-manual li {
+    break-inside: avoid;
+    overflow-wrap: anywhere;
+}
+.eql-drop-database-link {
+    font-size: 0.9em;
+}
+.eql-drop-database {
+    min-width: 0;
+}
+.eql-drop-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    align-items: end;
+    padding: 1rem;
+    margin: 1rem 0;
+    background: rgba(174, 182, 193, 0.04);
+    border: 1px solid rgba(174, 182, 193, 0.25);
+    border-radius: 8px;
+}
+.eql-drop-filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+}
+.eql-drop-filters input,
+.eql-drop-filters select {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.5rem;
+    box-sizing: border-box;
+    padding: 0.45rem 0.6rem;
+    background: #111c2c;
+    color: #e2e7ee;
+    border: 1px solid #596675;
+    border-radius: 4px;
+    font: inherit;
+}
+.eql-drop-filters button {
+    min-height: 2.5rem;
+    padding: 0.45rem 0.8rem;
+    font: inherit;
+    cursor: pointer;
+}
+.eql-drop-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+.eql-drop-table {
+    width: 100%;
+    margin: 0;
+    font-size: 0.9em;
+}
+.eql-drop-table caption {
+    text-align: left;
+    padding: 0.6rem 0;
+    font-weight: bold;
+}
+.eql-drop-table th,
+.eql-drop-table td {
+    padding: 0.55rem 0.65rem;
+}
+.eql-drop-table td:nth-child(n+6) {
+    font-variant-numeric: tabular-nums;
+}
+.eql-drop-database nav {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+.eql-drop-entry > summary { cursor: pointer; white-space: nowrap; }
+.eql-drop-detail-content { margin-top: 0.6rem; max-width: 45rem; }
+.eql-drop-detail-scroll { max-width: 100%; overflow-x: auto; }
+.eql-drop-detail-table { margin: 0; font-size: 0.95em; }
+.eql-drop-detail-table td:nth-child(2),
+.eql-drop-detail-table td:nth-child(3) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eql-drop-detail-status { font-size: 0.9em; color: #aeb6c1; }
+.eql-drop-detail-error { color: #f4bfad; }
+.eql-drop-detail-content button { font: inherit; padding: 0.4rem 0.7rem; cursor: pointer; }
+@media (max-width: 600px) {
+    .eql-drop-filters { grid-template-columns: 1fr; padding: 0.8rem; }
+    .eql-drop-observed { line-height: 1.6; }
+}

@@ -1,0 +1,61 @@
+'use strict';
+// Isolated synthetic submission records. No account, wiki, logs or network access.
+const assert = require( 'node:assert/strict' );
+const fs = require( 'node:fs' );
+const path = require( 'node:path' );
+const { JSDOM } = require( 'jsdom' );
+const source = fs.readFileSync( path.join( __dirname, '../extensions/EQLClientData/resources/drop-database-browser.js' ), 'utf8' );
+const id = 'drop_' + 'a'.repeat( 64 ), secondId = 'drop_' + 'b'.repeat( 64 ), snapshot = 'c'.repeat( 64 );
+const submission = ( extra = {} ) => ( { observedAt: '2026-11-20T12:34:56.000Z', receivedAt: '2026-11-21T01:02:03Z', quantity: 1, characterName: null, sourceKind: 'explicit-corpse', ...extra } );
+const response = ( rows, extra = {} ) => ( { eqldrops: { detail: { rows, offset: 0, limit: 25, totalRows: rows.length, hasMore: false, ...extra } } } );
+const turn = () => new Promise( resolve => setImmediate( resolve ) );
+async function until( predicate, label ) { for ( let count = 0; count < 30; count++ ) { if ( predicate() ) { return; }await turn(); }assert.fail( 'Did not settle: ' + label ); }
+function fixture( get ) {
+    const markup = value => '<details class="eql-drop-entry" data-entry="' + value + '" data-snapshot="' + snapshot + '"><summary>View submissions</summary><div class="eql-drop-detail-content">Open to load submissions.</div></details>';
+    const dom = new JSDOM( '<body>' + markup( id ) + markup( secondId ) + '</body>', { url: 'https://wiki.example/Special:DropDatabase?q=ore', runScripts: 'outside-only' } );
+    const window = dom.window, document = window.document, calls = [], hooks = [];
+    window.mw = { hook: () => ( { add: fn => hooks.push( fn ) } ), Api: function () { this.get = ( params, options ) => { calls.push( { params, options } );return get( params, calls.length ); }; } };
+    window.eval( source );document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
+    const entries = [ ...document.querySelectorAll( '.eql-drop-entry' ) ];
+    const open = ( entry = entries[ 0 ] ) => { entry.open = true;entry.dispatchEvent( new window.Event( 'toggle' ) ); };
+    const settled = ( entry = entries[ 0 ] ) => until( () => entry.querySelector( '.eql-drop-detail-content' ).getAttribute( 'aria-busy' ) === 'false', 'submission request' );
+    return { dom, window, document, calls, hooks, entries, open, settled, close: () => window.close() };
+}
+( async () => {
+    const first = Array.from( { length: 25 }, ( _, index ) => submission( { quantity: index + 1, characterName: index === 1 ? '<img src=x onerror="attacked=1">' : index === 2 ? 'Aster' : null } ) );
+    const f = fixture( params => params.offset === 0 ? Promise.resolve( response( first, { totalRows: 26, hasMore: true } ) ) : Promise.resolve( response( [ submission( { characterName: 'Birch' } ) ], { offset: 25, totalRows: 26 } ) ) );
+    await turn();assert.equal( f.calls.length, 0, 'Collapsed rows never prefetch individual submissions.' );
+    f.open();await f.settled();
+    assert.equal( f.calls.length, 1 );assert.deepEqual( { ...f.calls[ 0 ].params }, { action: 'eqldrops', detail: id, snapshot, offset: 0, limit: 25, formatversion: 2 } );
+    assert.equal( f.calls[ 0 ].options.timeout, 10000 );
+    const entry = f.entries[ 0 ], rows = () => [ ...entry.querySelectorAll( 'tbody tr' ) ];
+    assert.equal( rows().length, 25 );assert.equal( rows()[ 0 ].children[ 0 ].textContent, 'Not provided', 'Historical submissions never infer character from account identity.' );
+    assert.equal( rows()[ 2 ].children[ 0 ].textContent, 'Aster' );assert.equal( rows()[ 0 ].children[ 1 ].textContent, '2026-11-20 12:34:56' );
+    assert.equal( rows()[ 0 ].children[ 2 ].textContent, '2026-11-21 01:02:03' );assert.equal( rows()[ 24 ].children[ 3 ].textContent, '25' );
+    assert.deepEqual( [ ...entry.querySelectorAll( 'th' ) ].map( th => th.textContent ), [ 'Character', 'Observed (UTC)', 'Submitted (UTC)', 'Quantity' ] );
+    assert.equal( entry.querySelectorAll( 'img,script' ).length, 0 );assert.equal( rows()[ 1 ].children[ 0 ].textContent, '<img src=x onerror="attacked=1">' );
+    assert.equal( f.window.attacked, undefined );assert.doesNotMatch( entry.textContent, /explicit-corpse/ );
+    f.hooks[ 0 ]( f.document );entry.dispatchEvent( new f.window.Event( 'toggle' ) );await turn();assert.equal( f.calls.length, 1, 'Repeated dynamic hooks and toggles do not duplicate the loaded request.' );
+    assert.equal( f.entries[ 1 ].querySelectorAll( 'tbody tr' ).length, 0, 'Opening one entry does not fetch another.' );
+    const more = entry.querySelector( '.eql-drop-detail-more' );more.focus();more.click();await f.settled();
+    assert.equal( f.calls.length, 2 );assert.equal( f.calls[ 1 ].params.offset, 25 );assert.equal( rows().length, 26 );
+    assert.equal( entry.querySelector( '.eql-drop-detail-more' ), null );assert.match( entry.querySelector( '[role=status]' ).textContent, /26 of 26/ );
+    assert.equal( f.document.activeElement, entry.querySelector( 'summary' ), 'Completion leaves keyboard focus on the disclosure control.' );
+    entry.open = false;entry.dispatchEvent( new f.window.Event( 'toggle' ) );f.open();await turn();assert.equal( f.calls.length, 2, 'Reopening retains the bounded loaded rows.' );f.close();
+    const retry = fixture( ( params, count ) => count === 1 ? Promise.reject( new Error( 'timeout' ) ) : Promise.resolve( response( [ submission() ] ) ) );
+    retry.open();await retry.settled();
+    assert.match( retry.entries[ 0 ].textContent, /Could not load submissions/ );
+    const retryButton = retry.entries[ 0 ].querySelector( '.eql-drop-detail-retry' );retryButton.focus();retryButton.click();await retry.settled();
+    assert.equal( retry.calls.length, 2 );assert.equal( retry.entries[ 0 ].querySelectorAll( 'tbody tr' ).length, 1 );retry.close();
+    const stale = fixture( () => Promise.reject( 'eqldrops-detail-stale' ) );stale.open();await stale.settled();
+    assert.match( stale.entries[ 0 ].textContent, /submissions have changed/ );assert.equal( stale.entries[ 0 ].querySelector( '.eql-drop-detail-retry' ), null );
+    assert.equal( stale.entries[ 0 ].querySelector( '.eql-drop-detail-reload' ).href, 'https://wiki.example/Special:DropDatabase?q=ore' );stale.close();
+    const malformed = fixture( () => Promise.resolve( response( [ submission( { observedAt: 'not-a-date' } ) ] ) ) );malformed.open();await malformed.settled();
+    assert.equal( malformed.entries[ 0 ].querySelectorAll( 'tbody tr' ).length, 0 );assert( malformed.entries[ 0 ].querySelector( '.eql-drop-detail-retry' ) );malformed.close();
+    let release;
+    const pending = fixture( () => new Promise( resolve => { release = resolve; } ) );pending.open();await turn();pending.open();pending.hooks[ 0 ]( pending.document );await turn();
+    assert.equal( pending.calls.length, 1, 'An in-flight request has one owner per expanded entry.' );release( response( [ submission() ] ) );await pending.settled();pending.close();
+    const syncFailure = fixture( () => { throw new Error( 'transport unavailable' ); } );syncFailure.open();await syncFailure.settled();
+    assert( syncFailure.entries[ 0 ].querySelector( '.eql-drop-detail-retry' ) );syncFailure.close();
+    console.log( 'Drop browser passed: lazy per-entry reads, bounded paging, UTC/optional character rows, safe text, stale reload, retry, keyboard focus, duplicate guards and malformed-response refusal.' );
+} )().catch( error => { console.error( error );process.exitCode = 1; } );
