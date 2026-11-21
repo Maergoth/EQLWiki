@@ -14,7 +14,7 @@ final class ObservationPayload {
     public const MAX_EVENT_BYTES = 4096;
     public const EVENT_FIELDS = [ 'id', 'kind', 'observedAt', 'server', 'zone', 'zoneTitle',
         'npc', 'npcTitle', 'item', 'itemTitle', 'quantity', 'tier', 'instance', 'sourceKind',
-        'sourceToken', 'sessionToken', 'sequence', 'catalogVersion' ];
+        'sourceToken', 'sessionToken', 'sequence', 'catalogVersion', 'characterName' ];
 
     private static function keys( array $value, array $allowed ): void {
         if ( array_diff( array_keys( $value ), $allowed ) ) {
@@ -107,6 +107,16 @@ final class ObservationPayload {
             'sourceToken' => self::optionalToken( $value['sourceToken'] ?? null ),
             'sessionToken' => self::optionalToken( $value['sessionToken'] ?? null ),
             'sequence' => $sequence, 'catalogVersion' => self::text( $value['catalogVersion'] ?? '', 120 ) ];
+        // Optional public attribution is supplied only by clients with explicit opt-in.
+        // Do not insert a default: absent legacy fields must keep their exact event hashes.
+        if ( array_key_exists( 'characterName', $value ) ) {
+            $name = self::text( $value['characterName'], 120 );
+            if ( $name === '' || str_contains( $name, '/' ) || str_contains( $name, '\\' ) ||
+                preg_match( '/[a-z]:/i', $name ) ) {
+                throw new InvalidArgumentException( 'invalid-character-name' );
+            }
+            $event['characterName'] = $name;
+        }
         if ( strlen( json_encode( $event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) ) > self::MAX_EVENT_BYTES ) {
             throw new InvalidArgumentException( 'event-too-large' );
         }

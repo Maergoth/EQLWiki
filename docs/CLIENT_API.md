@@ -24,7 +24,8 @@ the tables nor enables collection or publishes API_Documentation.
 The module requires a named, unblocked account, the ordinary
 `eoz-submit-observations` right (granted to the user group), confirmed email by
 default, POST and a CSRF token. Actor identity is acquired on the server from the
-authenticated user; submitted actor/account/player fields are rejected. Clients
+authenticated user; submitted actor/account fields are rejected. Optional public
+character attribution requires explicit consent, described below. Clients
 also send `assert=user` and `assertuser` in the same cookie session. There is no
 shared bot credential. Query current login requests and module parameters; the
 read-only baseline on 2026-10-24 exposed login/clientlogin/edit/upload and normal
@@ -32,7 +33,7 @@ password/remember-me requests. This is not a successful real-account login test.
 Scoped bot passwords can request the separate `eozobservations` grant; this grants
 only the observation right, never article editing or elevated wiki permissions.
 
-## Frozen observation schema 1
+## Observation schema 1 and backlog delivery
 
 Form parameters: `action=eozobservations`, `operation=status|submit`, CSRF
 `token`, account assertions and `format=json&formatversion=2`. Status returns
@@ -46,7 +47,21 @@ normalized event is limited to 4096 bytes. Batch/event identifiers match
 
 `id`, `kind`, `observedAt`, `server`, `zone`, `zoneTitle`, `npc`, `npcTitle`,
 `item`, `itemTitle`, `quantity`, `tier`, `instance`, `sourceKind`, `sourceToken`,
-`sessionToken`, `sequence`, `catalogVersion`.
+`sessionToken`, `sequence`, `catalogVersion`, and optional `characterName`.
+
+`limits.optionalEventFields:["characterName"]` advertises optional public
+character attribution. Clients must omit this field unless the contributor opted
+in and explicitly configured their character identity. Never silently publish a
+log-derived name or wiki account. Names are 1–120 Unicode characters excluding
+controls, paths and URLs. Absence remains absence during normalization, preserving
+historical event hashes. Do not retrofit names onto old records or rewrite frozen
+batches. Character names are self-reported, not proof of account ownership.
+
+The per-request limits are not a backlog limit. Send further bounded batches,
+newest observed timestamps first, until the pending queue is empty. Complete an
+already prepared immutable batch before selecting new records. Login inside EoZ
+is required; website login is a different session. Timeouts preserve the exact
+batch for idempotent retry, and disabled collection must remain opted out.
 
 - Kills require npc, no item, quantity 1 and sourceKind `kill-line`.
 - Loot requires item and quantity 1–1000; npc/zone may be unknown. Source kinds
@@ -57,7 +72,8 @@ normalized event is limited to 4096 bytes. Batch/event identifiers match
   are specified by the validator and public page, not a free-form log archive.
 - UTC observedAt permits seconds or three fractional digits and no more than
   five minutes of future drift. Old offline data has no arbitrary past expiry.
-  Store observedAt and server receivedAt separately. No player names, raw chat,
+  Store observedAt and server receivedAt separately. Apart from explicitly opted-in
+  character attribution, no player names, raw chat,
   paths, coordinates, screenshots or credentials belong in these records.
 
 The inner receipt has schemaVersion, batchId, server-derived account, accepted,
@@ -82,57 +98,78 @@ unique actor/key indexes prevent cross-account or retry overwrites. Raw records
 and contributor identities remain private. Version 1.3 adds the aggregate-only
 browser and read API described below.
 
-Defaults: 12 new batches/account/hour, 100000 events globally/10000 per actor,
-20000 batch receipts globally/2000 per actor. These are configured hard bounds,
-not coverage guarantees. Exact retries do not consume another receipt. Capacity
-rejects explicitly and never evicts saved data. No automatic expiry,
+Default pacing is 120 new batches/account/hour. There is no default lifetime
+entry or batch-receipt quota: `EQLClientDataObservationMaxEvents`,
+`ActorMaxEvents`, `MaxBatches` and `ActorMaxBatches` are zero (unlimited).
+Operators can still configure positive emergency capacity bounds; a positive
+bound rejects explicitly and never evicts saved data. Exact retries do not consume
+another receipt. The rate window and small requests protect normal wiki traffic
+while the client continues automatically after backoff. No automatic expiry,
 drop-probability calculation or destructive compaction is implemented. Operators must review
 capacity/retention before changing quotas or removing data; preserve receipts
 for retry semantics. Multiple accounts can report the same real encounter.
 
-## Browsing observed loot (1.3)
+## Browsing observed loot (1.4, read schema 2)
 
 `Special:DropDatabase` browses existing accepted observations without changing
-articles or installing tables. Its filters cover zone, NPC, item, server,
+articles or installing tables. Its filters cover zone, NPC, item,
 instance and literal free-text search, with 50 aggregate entries per page.
 The read-only GET API `action=eqldrops&format=json` exposes the same projection,
-with optional `zone`, `npc`, `item`, `server`, `instance`, `q`, `offset` and
+with optional `zone`, `npc`, `item`, `instance`, `q`, `offset` and
 `limit` (1–500). Source filters use exact reported/canonical title identities.
 These title claims are not an editorial verification of the reports.
 
 Only explicit-corpse loot with a zone, NPC and item qualifies. Provider wording
 can describe merchants; recent-kill/target inference and unknown sources are
-excluded. A source/item/tier entry needs at least two distinct accepted events;
-an ingestion replay contributes no new event. Server, zone, NPC, instance and
-tier stay separate. Contributor counts do not establish independent encounters.
+excluded. Capability-message pseudo-zones (`a/an area where…`) are excluded
+from both raw zone and zone-title claims without rewriting stored observations
+or guessing the missing zone. A source/item entry needs at least two distinct
+accepted events; an ingestion replay contributes no new event. Server and tier
+are combined before counting; zone, NPC and instance remain separate.
+Contributor counts do not establish independent encounters.
 No actor, event, batch, source or session identifiers leave the projection.
 
 `reportShare` is the item's percentage of all eligible loot-event reports for
-the same server/zone/NPC/instance. The denominator includes every tier and
+the same zone/NPC/instance. The denominator includes every server and tier and
 single-report items hidden by the display threshold. It counts reports, not item
 quantity or kills. The logs lack complete corpse coverage, zero-drop encounters
 and shared encounter IDs, so this is **not drop chance**. `reports`, `quantity`,
-`contributors` and `totalReports` are separate fields.
+`contributors` and `totalReports` are separate API fields. The browser shows
+Times reported and moves item quantity into the expanded submission history.
+
+Each aggregate has an opaque `entryId`; the response carries a `snapshot` token.
+GET `action=eqldrops&detail=ENTRY&snapshot=TOKEN&offset=0&limit=25` returns
+one bounded history page (maximum 50 rows). Only currently published groups can
+be expanded; guessed singleton IDs and stale snapshots are refused. Details
+contain only observed time, server-received submission time, quantity,
+explicit-corpse category and an optional consented character name. Historical
+names are null and shown as Not provided; wiki account names are never inferred.
+The browser loads history on expansion with a normal history-page fallback.
 
 The projection reads at most 100,000 most-recent loot candidates in 500-row
-keyset chunks, caches only public aggregates for five minutes, and reports
-`windowed` if older candidates fall outside the limit. This covers the current
-100,000-event global ingestion cap; if operators raise the cap, review projection
-capacity too. Schema absence returns `available:false`; it never installs tables.
+keyset chunks and caches aggregates plus a private member-ID lookup for five
+minutes. `windowed` explicitly reports when older candidates are outside the
+recent public totals; ingestion retains them without a lifetime contribution
+limit. Schema absence returns `available:false`; it never installs tables.
 
 On EQLImmersive NPC articles using `.eql-mobpage`, the conditional ResourceLoader
 module annotates manual item links with grey percentages and appends unmatched
 items in grey. Matching uses the same-origin link destination, including links
 generated by item transclusions, independently of display labels or rarity notes
 such as `[[Item Link]] (Common)`. Internal title case stays exact; underscores and
-the wiki's first letter are normalized. The source selector keeps each
-server/zone/normal/raid/unknown-instance context separate. Original article text,
-manual rates and notes are unchanged. A failed or timed-out read leaves the
-manual list usable. No database-page JavaScript/template publication is needed.
+the wiki's first letter are normalized. A source selector appears only for
+multiple zone/instance contexts. The test presentation shows item name, one grey
+percentage and optional rarity. Duplicate authored `.ddb` rates and inline stat
+cards are hidden in the rendered loot list; native hover data and original
+article/template source remain intact. A failed read leaves the manual list
+usable. No database-page JavaScript/template publication is needed. **NPC
+presentation remains test-only until separately approved.** Production browser
+promotion must exclude the NPC Hook/module activation.
 
 Checks: `php ops/test-drop-database.php` exercises synthetic aggregates,
 privacy, thresholds, denominators, pagination, caching and bounded reads.
-`node ops/test-drop-overlay.cjs` (jsdom) exercises actual renderer matching,
+`node ops/test-drop-browser.cjs` checks lazy expansion, timestamps, optional names,
+pagination and failures. `node ops/test-drop-overlay.cjs` (jsdom) exercises actual renderer matching,
 notes, append behavior, source scopes and failures. These do not establish live
 authentication or uploads. Verify real article integration separately on staging.
 

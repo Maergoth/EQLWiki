@@ -1,6 +1,6 @@
 {
   "name": "EQLClientData",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": "EverQuest Legends Wiki",
   "description": "Provides revision-aware client metadata and optional authenticated, idempotent gameplay observations.",
   "type": "other",
@@ -48,6 +48,13 @@
     }
   },
   "ResourceModules": {
+    "ext.eqlDropDatabase.browser": {
+      "scripts": [ "resources/drop-database-browser.js" ],
+      "styles": [ "resources/drop-database.css" ],
+      "dependencies": [ "mediawiki.api" ],
+      "localBasePath": "",
+      "remoteExtPath": "EQLClientData"
+    },
     "ext.eqlDropDatabase": {
       "scripts": [ "resources/drop-database.js" ],
       "styles": [ "resources/drop-database.css" ],
@@ -81,11 +88,11 @@
     "EQLClientDataPlayerMaxLevel": { "value": 50 },
     "EQLClientDataEnableObservations": { "value": false },
     "EQLClientDataObservationRequireConfirmedEmail": { "value": true },
-    "EQLClientDataObservationHourlyBatches": { "value": 12 },
-    "EQLClientDataObservationMaxEvents": { "value": 100000 },
-    "EQLClientDataObservationActorMaxEvents": { "value": 10000 },
-    "EQLClientDataObservationMaxBatches": { "value": 20000 },
-    "EQLClientDataObservationActorMaxBatches": { "value": 2000 },
+    "EQLClientDataObservationHourlyBatches": { "value": 120 },
+    "EQLClientDataObservationMaxEvents": { "value": 0 },
+    "EQLClientDataObservationActorMaxEvents": { "value": 0 },
+    "EQLClientDataObservationMaxBatches": { "value": 0 },
+    "EQLClientDataObservationActorMaxBatches": { "value": 0 },
     "EQLClientDataEnableEra": {
       "value": false
     },

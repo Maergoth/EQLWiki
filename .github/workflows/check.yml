@@ -70,7 +70,9 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-ui.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-ads.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-drop-overlay.cjs
+          NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-drop-browser.cjs
           node --check extensions/EQLClientData/resources/drop-database.js
+          node --check extensions/EQLClientData/resources/drop-database-browser.js
           node --check skins/EQLImmersive/resources/ads.js
       - name: Check Eye of Zomm refresh wrapper
         run: bash ops/test-eoz-refresh-wrapper.sh
