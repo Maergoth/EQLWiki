@@ -4,7 +4,7 @@ declare( strict_types = 1 );
 
 namespace Wikimedia\Rdbms { interface IConnectionProvider {} }
 namespace Wikimedia\ParamValidator { class ParamValidator { public const PARAM_TYPE = 'type'; public const PARAM_DEFAULT = 'default'; } }
-namespace Wikimedia\ParamValidator\TypeDef { class IntegerDef { public const PARAM_MIN = 'min'; public const PARAM_MAX = 'max'; } }
+namespace Wikimedia\ParamValidator\TypeDef { class IntegerDef { public const PARAM_MIN = 'min'; public const PARAM_MAX = 'max'; } class StringDef { public const PARAM_MAX_CHARS = 'maxchars'; } }
 namespace MediaWiki\Api {
 	class ApiMain {
 		public array $data = [];
@@ -31,6 +31,8 @@ namespace {
 
 	require __DIR__ . '/../extensions/EQLClientData/includes/ObservationPayload.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/DropObservationSummary.php';
+	require __DIR__ . '/../extensions/EQLClientData/includes/CumulativeDropStore.php';
+	require __DIR__ . '/../extensions/EQLClientData/includes/CumulativeDropReader.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/DropDatabaseRepository.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/ApiDrops.php';
 
@@ -66,6 +68,7 @@ namespace {
 			$this->rows = array_map( static fn ( $row, $index ) => [ 'eoo_id' => $count - $index ] + $row, $rows, array_keys( $rows ) );
 		}
 		public function tableExists( $table, $caller ): bool {
+			if ( in_array( $table, \EQLClientData\CumulativeDropStore::TABLES, true ) ) { return false; }
 			check( $table === 'eql_eoz_observations', 'Read only the observation table.' ); return $this->available;
 		}
 		public function select( $table, $fields, $conditions, $caller, $options ): array {
@@ -220,5 +223,7 @@ namespace {
 	$api->params = [ 'q' => [] ];
 	invalid( static fn () => $api->execute() );
 	check( isset( $api->getAllowedParams()['q'] ), 'Document the supported text-search parameter.' );
+	check( $api->getAllowedParams()['zone'][\Wikimedia\ParamValidator\TypeDef\StringDef::PARAM_MAX_CHARS] === 256,
+		'API filter definition accommodates first-letter normalization expansion without changing ingestion limits.' );
 	echo "Drop database: $checks synthetic checks passed.\n";
 }

@@ -109,7 +109,7 @@ drop-probability calculation or destructive compaction is implemented. Operators
 capacity/retention before changing quotas or removing data; preserve receipts
 for retry semantics. Multiple accounts can report the same real encounter.
 
-## Browsing observed loot (1.4, read schema 2)
+## Browsing observed loot (1.5, read schema 2)
 
 `Special:DropDatabase` browses existing accepted observations without changing
 articles or installing tables. Its filters cover zone, NPC, item,
@@ -146,11 +146,34 @@ explicit-corpse category and an optional consented character name. Historical
 names are null and shown as Not provided; wiki account names are never inferred.
 The browser loads history on expansion with a normal history-page fallback.
 
-The projection reads at most 100,000 most-recent loot candidates in 500-row
-keyset chunks and caches aggregates plus a private member-ID lookup for five
-minutes. `windowed` explicitly reports when older candidates are outside the
-recent public totals; ingestion retains them without a lifetime contribution
-limit. Schema absence returns `available:false`; it never installs tables.
+With the separately installed and reconciled cumulative schema, `historyMode`
+is `cumulative`, `cumulativeStatus` is `ready`, `windowed` is false and
+`windowLimit` is null. Persistent aggregate tables include all eligible accepted
+history without a lifetime entry cutoff; raw observations and receipt hashes
+remain unchanged. Public reads use indexed aggregate and `LIMIT`/`OFFSET`
+submission queries, never a full-history payload scan. Offset traversal is linear
+within the matching index; it is not keyset paging. Page size and native-integer
+offsets remain bounded; out-of-range offsets skip the SQL page query. Normalized
+public filters allow 256 codepoints so first-letter case expansion of a valid
+230-codepoint input stays exactly filterable. Ingestion's 230-input limit and
+legacy hashes are unchanged.
+
+Summary `snapshot` and detail requests retain read schema 2. The shared WAN cache
+stores at most 500 displayed entries' count/revision boundaries per snapshot for
+five minutes, with no per-submission member list. It must persist across PHP
+requests. Cache write failure returns `detailsAvailable:false` with usable counts;
+the browser disables history links. An evicted/expired snapshot returns
+`eqldrops-detail-stale`. New accepted rows do not change an open snapshot's history.
+
+Before installation and while backfill is incomplete, `historyMode` remains
+`recent-window`; `cumulativeStatus` is `not-installed` or `backfilling`. This
+fallback reads at most 100,000 most recently received loot candidates in 500-row
+chunks and uses the existing five-minute bounded member lookup. `windowed`
+and the browser warning disclose excluded older candidates. Partial derived
+totals are never presented as cumulative. Absence of the original observation
+schema returns `available:false`; reads never install tables. See the
+[separate schema/backfill/rollback contract](CUMULATIVE_DROPS.md). Source-only
+deployment does not activate cumulative storage or publish public documentation.
 
 On EQLImmersive NPC articles using `.eql-mobpage`, the conditional ResourceLoader
 module annotates manual item links with grey percentages and appends unmatched
@@ -166,7 +189,11 @@ usable. No database-page JavaScript/template publication is needed. **NPC
 presentation remains test-only until separately approved.** Production browser
 promotion must exclude the NPC Hook/module activation.
 
-Checks: `php ops/test-drop-database.php` exercises synthetic aggregates,
+Checks: `php ops/test-drop-cumulative.php` exercises more than 100,000 legacy
+records, exact cumulative counters, resumable/late-ID backfill, atomic ingestion,
+Unicode title expansion, privacy and revision-bound paging. The optional fixed
+loopback MariaDB fixture checks actual InnoDB DDL and repeatable-read behavior;
+it is separate from a real wiki or host activation. `php ops/test-drop-database.php` exercises synthetic aggregates,
 privacy, thresholds, denominators, pagination, caching and bounded reads.
 `node ops/test-drop-browser.cjs` checks lazy expansion, timestamps, optional names,
 pagination and failures. `node ops/test-drop-overlay.cjs` (jsdom) exercises actual renderer matching,
