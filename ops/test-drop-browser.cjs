@@ -10,15 +10,17 @@ const submission = ( extra = {} ) => ( { observedAt: '2026-11-20T12:34:56.000Z',
 const response = ( rows, extra = {} ) => ( { eqldrops: { detail: { rows, offset: 0, limit: 25, totalRows: rows.length, hasMore: false, ...extra } } } );
 const turn = () => new Promise( resolve => setImmediate( resolve ) );
 async function until( predicate, label ) { for ( let count = 0; count < 30; count++ ) { if ( predicate() ) { return; }await turn(); }assert.fail( 'Did not settle: ' + label ); }
-function fixture( get ) {
+function fixture( get, { table = false } = {} ) {
     const markup = value => '<details class="eql-drop-entry" data-entry="' + value + '" data-snapshot="' + snapshot + '"><summary>View submissions</summary><div class="eql-drop-detail-content">Open to load submissions.</div></details>';
-    const dom = new JSDOM( '<body>' + markup( id ) + markup( secondId ) + '</body>', { url: 'https://wiki.example/Special:DropDatabase?q=ore', runScripts: 'outside-only' } );
+    const surface = table ? '<table class="eql-drop-table"><tbody><tr><td>Fixture item</td><td>' + markup( id ) + '</td></tr></tbody></table>' : markup( id ) + markup( secondId );
+    const dom = new JSDOM( '<body>' + surface + '</body>', { url: 'https://wiki.example/Special:DropDatabase?q=ore', runScripts: 'outside-only' } );
     const window = dom.window, document = window.document, calls = [], hooks = [];
     window.mw = { hook: () => ( { add: fn => hooks.push( fn ) } ), Api: function () { this.get = ( params, options ) => { calls.push( { params, options } );return get( params, calls.length ); }; } };
     window.eval( source );document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
     const entries = [ ...document.querySelectorAll( '.eql-drop-entry' ) ];
     const open = ( entry = entries[ 0 ] ) => { entry.open = true;entry.dispatchEvent( new window.Event( 'toggle' ) ); };
-    const settled = ( entry = entries[ 0 ] ) => until( () => entry.querySelector( '.eql-drop-detail-content' ).getAttribute( 'aria-busy' ) === 'false', 'submission request' );
+    const content = entry => entry.querySelector( '.eql-drop-detail-content' ) || document.getElementById( entry.querySelector( 'summary' ).getAttribute( 'aria-controls' ) );
+    const settled = ( entry = entries[ 0 ] ) => until( () => content( entry ).getAttribute( 'aria-busy' ) === 'false', 'submission request' );
     return { dom, window, document, calls, hooks, entries, open, settled, close: () => window.close() };
 }
 ( async () => {
@@ -57,5 +59,14 @@ function fixture( get ) {
     assert.equal( pending.calls.length, 1, 'An in-flight request has one owner per expanded entry.' );release( response( [ submission() ] ) );await pending.settled();pending.close();
     const syncFailure = fixture( () => { throw new Error( 'transport unavailable' ); } );syncFailure.open();await syncFailure.settled();
     assert( syncFailure.entries[ 0 ].querySelector( '.eql-drop-detail-retry' ) );syncFailure.close();
+    const layout = fixture( () => Promise.resolve( response( [ submission() ] ) ), { table: true } );
+    const disclosure = layout.entries[ 0 ], parent = disclosure.closest( 'tr' ), history = parent.nextElementSibling;
+    assert( history.classList.contains( 'eql-drop-detail-row' ) && history.hidden );
+    assert.equal( history.cells[ 0 ].colSpan, parent.cells.length, 'History spans the entire selected entry.' );
+    assert.equal( disclosure.querySelector( '.eql-drop-detail-content' ), null, 'Expanded history cannot stretch the final column.' );
+    assert.equal( disclosure.querySelector( 'summary' ).getAttribute( 'aria-controls' ), history.querySelector( '.eql-drop-detail-content' ).id );
+    layout.open();await layout.settled();assert.equal( history.hidden, false );assert.equal( history.querySelectorAll( '.eql-drop-detail-table > tbody > tr' ).length, 1 );
+    disclosure.open = false;disclosure.dispatchEvent( new layout.window.Event( 'toggle' ) );assert.equal( history.hidden, true );
+    layout.hooks[ 0 ]( layout.document );assert.equal( layout.document.querySelectorAll( '.eql-drop-detail-row' ).length, 1 );layout.close();
     console.log( 'Drop browser passed: lazy per-entry reads, bounded paging, UTC/optional character rows, safe text, stale reload, retry, keyboard focus, duplicate guards and malformed-response refusal.' );
 } )().catch( error => { console.error( error );process.exitCode = 1; } );
