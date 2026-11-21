@@ -252,7 +252,8 @@ testing. Standard permissions are described in the [MediaWiki user rights manual
 ## Metadata, era filtering, and verification
 
 [`extensions/EQLClientData/`](../extensions/EQLClientData/) is enabled (extension
-version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations). Start with `extension.json`, `includes/Hooks.php`,
+version 1.1.2 at the prior live audit; 1.2.0 adds optional observations and 1.3.0
+adds their read-only aggregate browser). Start with `extension.json`, `includes/Hooks.php`,
 `includes/ApiMetadata.php`, and `includes/ConfigRepository.php`.
 
 - The read-only `action=eqlmetadata` API requires **POST**. Pipe-delimited titles
@@ -264,6 +265,15 @@ version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations).
   articles or publish drop rates. Standard MediaWiki `action=edit` handles page
   creation/updates. [API, schema and activation contract](CLIENT_API.md); the
   reviewed public `API_Documentation` database page has its own guarded publisher.
+- `Special:DropDatabase` and GET `action=eqldrops` expose repeated explicit-corpse
+  loot aggregates through `DropDatabaseRepository`/`DropObservationSummary`.
+  The conditional `ext.eqlDropDatabase` module adds grey report-share percentages
+  beside exact item-link destinations on NPC pages and appends unlisted items.
+  Rarity notes and manual text stay intact; a source selector separates
+  server/zone/instance contexts. These percentages are not per-kill drop chances.
+  No raw observations or contributor identities are public. This needs normal
+  application deployment, with no new schema or database-page publication.
+  See [the metric and capacity contract](CLIENT_API.md#browsing-observed-loot-13).
 - Metadata comes from database `VerifiedPages`, `Template:PageEra`, and
   `SpellLevelSliderOverrides`. Revision-aware WANObjectCache entries and
   save/move/delete invalidation keep data fresh. Era results also depend on page

@@ -3,11 +3,15 @@
 declare( strict_types = 1 );
 
 use EQLClientData\ConfigRepository;
+use EQLClientData\DropDatabaseRepository;
 use EQLClientData\ObservationRepository;
 use EQLClientData\PlayerListRepository;
 use MediaWiki\MediaWikiServices;
 
 return [
+	'EQLClientData.DropDatabaseRepository' => static function ( MediaWikiServices $services ): DropDatabaseRepository {
+		return new DropDatabaseRepository( $services->getConnectionProvider(), $services->getMainWANObjectCache() );
+	},
 	'EQLClientData.PlayerListRepository' => static function ( MediaWikiServices $services ): PlayerListRepository {
 		return new PlayerListRepository(
 			$services->getConnectionProvider(), $services->getPageStore(), $services->getRevisionLookup(),
