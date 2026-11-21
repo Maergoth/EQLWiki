@@ -45,7 +45,7 @@ class Hooks implements
 		$out->addInlineStyle(
 			'html, body { background-color: #0c1425 !important; color-scheme: dark; }'
 		);
-		$this->addItemSummary( $out );
+		$this->addSearchMetadata( $out );
 		$this->addConditionalResourceModules( $out, $skin );
 		$this->addTalkActivityModule( $out, $skin );
 		$this->addAdvertising( $out );
@@ -77,7 +77,7 @@ class Hooks implements
 		}
 	}
 
-	private function addItemSummary( $out ): void {
+	private function addSearchMetadata( $out ): void {
 		$title = $out->getTitle();
 		if ( !$title || $title->getNamespace() !== NS_MAIN ) {
 			return;
@@ -88,6 +88,8 @@ class Hooks implements
 			'read', $services->getUserFactory()->newAnonymous(), $title
 		);
 		ItemSeo::addToOutput( $out, $publicRead );
+		SiteIdentity::addToOutput( $out, $publicRead );
+		EntitySeo::addToOutput( $out, $publicRead );
 	}
 
 	/** Provide authoritative Talk pairing and the timestamp of rendered content. */
