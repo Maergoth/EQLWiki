@@ -16,6 +16,21 @@ final class DropObservationSummary {
 		return self::project( $records )['rows'];
 	}
 
+	/** Internal admission shared by incremental ingestion and legacy backfill. Never expose actor. */
+	public static function cumulativeRecord( array $record ): ?array {
+		$event = self::eligibleEvent( $record );
+		if ( $event === null ) { return null; }
+		$id = self::entryId( $event );
+		$detail = self::detail( $record, $id );
+		if ( $detail === null ) { throw new \RuntimeException( 'Invalid accepted observation receive time.' ); }
+		$zone = self::subject( $event, 'zone' );$npc = self::subject( $event, 'npc' );$item = self::subject( $event, 'item' );
+		return [ 'id' => substr( $id, 5 ),
+			'scope' => hash( 'sha256', json_encode( [ $zone, $npc, $event['instance'] ], JSON_THROW_ON_ERROR ) ),
+			'zone' => $zone, 'npc' => $npc, 'item' => $item, 'instance' => $event['instance'],
+			'zoneTitle' => self::titleClaim( $event['zoneTitle'] ), 'npcTitle' => self::titleClaim( $event['npcTitle'] ),
+			'itemTitle' => self::titleClaim( $event['itemTitle'] ), 'actor' => (int)$record['eoo_actor'], 'detail' => $detail ];
+	}
+
 	/** Internal projection: members contains private database cursors and must never be returned by an API. */
 	public static function project( iterable $records ): array {
 		$groups = [];

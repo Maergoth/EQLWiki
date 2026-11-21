@@ -46,7 +46,7 @@ final class ObservationRepository {
             if ( !$state ) { throw new RuntimeException( 'eoz-schema-unavailable' ); }
             $actor = $this->actors->acquireActorId( $user, $db );
             $prior = $db->selectRow( 'eql_eoz_batches', [ 'eob_hash', 'eob_receipt' ],
-                [ 'eob_actor' => $actor, 'eob_key' => $batch['batchId'] ], __METHOD__ );
+                [ 'eob_actor' => $actor, 'eob_key' => $batch['batchId'] ], __METHOD__, [ 'FOR UPDATE' ] );
             if ( $prior ) {
                 if ( !hash_equals( $prior->eob_hash, $batch['payloadHash'] ) ) { throw new RuntimeException( 'eoz-batch-conflict' ); }
                 $receipt = json_decode( $prior->eob_receipt, true, 16, JSON_THROW_ON_ERROR );
@@ -58,25 +58,26 @@ final class ObservationRepository {
             }
             $since = gmdate( 'YmdHis', time() - 3600 );
             $hourly = (int)$db->selectField( 'eql_eoz_batches', 'COUNT(*)',
-                [ 'eob_actor' => $actor, 'eob_received >= ' . $db->addQuotes( $since ) ], __METHOD__ );
+                [ 'eob_actor' => $actor, 'eob_received >= ' . $db->addQuotes( $since ) ], __METHOD__, [ 'FOR UPDATE' ] );
             if ( $hourly >= $this->limits()['hourlyBatches'] ) { throw new RuntimeException( 'eoz-rate-limit' ); }
             $actorBatches = $this->quota( 'EQLClientDataObservationActorMaxBatches' ) > 0
-                ? (int)$db->selectField( 'eql_eoz_batches', 'COUNT(*)', [ 'eob_actor' => $actor ], __METHOD__ ) : 0;
+                ? (int)$db->selectField( 'eql_eoz_batches', 'COUNT(*)', [ 'eob_actor' => $actor ], __METHOD__, [ 'FOR UPDATE' ] ) : 0;
             if ( $this->atCapacity( 'EQLClientDataObservationMaxBatches', (int)$state->eos_batches ) ||
                 $this->atCapacity( 'EQLClientDataObservationActorMaxBatches', $actorBatches ) ) { throw new RuntimeException( 'eoz-capacity' ); }
             $actorEvents = $this->quota( 'EQLClientDataObservationActorMaxEvents' ) > 0
-                ? (int)$db->selectField( 'eql_eoz_observations', 'COUNT(*)', [ 'eoo_actor' => $actor ], __METHOD__ ) : 0;
+                ? (int)$db->selectField( 'eql_eoz_observations', 'COUNT(*)', [ 'eoo_actor' => $actor ], __METHOD__, [ 'FOR UPDATE' ] ) : 0;
             $ids = array_column( $batch['events'], 'id' ); $existing = [];
             if ( $ids ) {
                 $rows = $db->select( 'eql_eoz_observations', [ 'eoo_key', 'eoo_hash' ],
-                    [ 'eoo_actor' => $actor, 'eoo_key' => $ids ], __METHOD__ );
+                    [ 'eoo_actor' => $actor, 'eoo_key' => $ids ], __METHOD__, [ 'FOR UPDATE' ] );
                 foreach ( $rows as $row ) { $existing[$row->eoo_key] = $row->eoo_hash; }
             }
             $now = gmdate( 'YmdHis' ); $receipt = [ 'schemaVersion' => 1, 'batchId' => $batch['batchId'],
                 'account' => [ 'id' => $user->getId(), 'name' => $user->getName() ],
                 'accepted' => [], 'duplicates' => [], 'conflicts' => [], 'rejected' => $batch['rejected'],
                 'receivedAt' => gmdate( 'Y-m-d\TH:i:s\Z' ), 'limits' => $this->limits() ];
-            $accepted = 0;
+            $accepted = 0; $projectionRecords = [];
+            $projecting = CumulativeDropStore::state( $db ) !== null;
             foreach ( $batch['events'] as $event ) {
                 $id = $event['id']; $hash = ObservationPayload::hash( $event );
                 if ( isset( $existing[$id] ) ) {
@@ -91,8 +92,12 @@ final class ObservationRepository {
                     'eoo_observed' => ( new \DateTimeImmutable( $event['observedAt'] ) )->format( 'YmdHis' ),
                     'eoo_received' => $now,
                     'eoo_payload' => json_encode( $event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) ], __METHOD__ );
+                if ( $projecting ) { $projectionRecords[] = [ 'eoo_id' => $db->insertId(), 'eoo_actor' => $actor,
+                    'eoo_kind' => $event['kind'], 'eoo_received' => $now,
+                    'eoo_payload' => json_encode( $event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) ]; }
                 $receipt['accepted'][] = $id; $accepted++;
             }
+            CumulativeDropStore::accepted( $db, $projectionRecords );
             $db->insert( 'eql_eoz_batches', [ 'eob_actor' => $actor, 'eob_key' => $batch['batchId'],
                 'eob_hash' => $batch['payloadHash'], 'eob_received' => $now,
                 'eob_client' => $batch['clientVersion'], 'eob_receipt' => json_encode( $receipt, JSON_THROW_ON_ERROR ) ], __METHOD__ );

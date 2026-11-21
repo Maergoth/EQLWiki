@@ -26,9 +26,9 @@ final class SpecialDropDatabase extends SpecialPage {
         }
         $filters = [];
         foreach ( [ 'q', 'zone', 'npc', 'item', 'instance' ] as $field ) {
-            $filters[$field] = mb_substr( trim( $request->getText( $field ) ), 0, 230 );
+            $filters[$field] = mb_substr( trim( $request->getText( $field ) ), 0, DropDatabaseRepository::FILTER_MAX_CHARS );
         }
-        $filters['offset'] = max( 0, min( 100000, $request->getInt( 'offset' ) ) );
+        $filters['offset'] = max( 0, $request->getInt( 'offset' ) );
         $filters['limit'] = 50;
         $out->addHTML( Html::openElement( 'div', [ 'class' => 'eql-drop-database' ] ) );
         $out->addHTML( Html::element( 'p', [], 'Browse observed corpse loot. Expand an entry to see its individual submissions.' ) );
@@ -50,12 +50,15 @@ final class SpecialDropDatabase extends SpecialPage {
         if ( $summary['windowed'] ) {
             $out->addHTML( Html::element( 'p', [ 'role' => 'status' ], 'Showing a recent window of ' . number_format( $summary['windowLimit'] ) . ' loot reports. Older reports are outside these totals.' ) );
         }
+        if ( ( $summary['cumulativeStatus'] ?? '' ) === 'backfilling' ) {
+            $out->addHTML( Html::element( 'p', [ 'role' => 'status' ], 'All-history totals are being prepared. These results still use the recent received-report view.' ) );
+        }
         $total = (int)$summary['totalRows'];
         $out->addHTML( Html::element( 'p', [ 'role' => 'status' ], number_format( $total ) . ' matching entries' ) );
         if ( !$summary['rows'] ) {
             $out->addHTML( Html::element( 'p', [], 'No repeated corpse-loot reports match these filters yet. Try clearing a filter.' ) );
         } else {
-            $out->addHTML( $this->table( $summary['rows'], $summary['snapshot'] ) );
+            $out->addHTML( $this->table( $summary['rows'], $summary['snapshot'], $summary['detailsAvailable'] ?? true ) );
         }
         $nav = '';
         if ( $filters['offset'] > 0 ) {
@@ -72,7 +75,7 @@ final class SpecialDropDatabase extends SpecialPage {
         $html = Html::openElement( 'form', [ 'method' => 'get', 'action' => $this->getPageTitle()->getLocalURL(), 'class' => 'eql-drop-filters' ] );
         $html .= Html::element( 'input', [ 'type' => 'hidden', 'name' => 'title', 'value' => $this->getPageTitle()->getPrefixedText() ] );
         foreach ( [ 'q' => 'Search', 'zone' => 'Zone', 'npc' => 'NPC', 'item' => 'Item' ] as $key => $label ) {
-            $html .= Html::rawElement( 'label', [], Html::element( 'span', [], $label ) . Html::element( 'input', [ 'name' => $key, 'value' => $filters[$key], 'type' => 'search', 'maxlength' => 230 ] ) );
+            $html .= Html::rawElement( 'label', [], Html::element( 'span', [], $label ) . Html::element( 'input', [ 'name' => $key, 'value' => $filters[$key], 'type' => 'search', 'maxlength' => DropDatabaseRepository::FILTER_MAX_CHARS ] ) );
         }
         $options = '';
         foreach ( [ '' => 'All instances', 'normal' => 'Normal', 'raid' => 'Raid', 'unknown' => 'Unknown' ] as $value => $label ) {
@@ -84,7 +87,7 @@ final class SpecialDropDatabase extends SpecialPage {
         return $html . '</form>';
     }
 
-    private function table( array $rows, string $snapshot ): string {
+    private function table( array $rows, string $snapshot, bool $detailsAvailable = true ): string {
         $html = '<div class="eql-drop-table-scroll"><table class="wikitable eql-drop-table"><caption>Repeated observed loot</caption><thead><tr>';
         foreach ( [ 'Zone', 'NPC', 'Item', 'Instance', 'Times reported', 'Observed %', 'Submissions' ] as $label ) {
             $html .= Html::element( 'th', [ 'scope' => 'col' ], $label );
@@ -101,6 +104,10 @@ final class SpecialDropDatabase extends SpecialPage {
             }
             foreach ( [ ucfirst( $row['instance'] ), number_format( $row['reports'] ), number_format( $row['reportShare'], 1 ) . '%' ] as $value ) {
                 $html .= Html::element( 'td', [], $value );
+            }
+            if ( !$detailsAvailable ) {
+                $html .= Html::element( 'td', [], 'Submission history is temporarily unavailable.' ) . '</tr>';
+                continue;
             }
             $fallback = Html::element( 'a', [ 'href' => $this->getPageTitle()->getLocalURL( [
                 'entry' => $row['entryId'], 'snapshot' => $snapshot
@@ -127,7 +134,7 @@ final class SpecialDropDatabase extends SpecialPage {
         $request = $this->getRequest();
         $entry = $request->getText( 'entry' );
         $snapshot = $request->getText( 'snapshot' );
-        $offset = max( 0, min( 100000, $request->getInt( 'offset' ) ) );
+        $offset = max( 0, $request->getInt( 'offset' ) );
         $out->addHTML( Html::element( 'a', [ 'href' => $this->getPageTitle()->getLocalURL() ], 'Back to drop database' ) );
         try {
             $detail = $this->repository->getDetail( $entry, $snapshot, $offset, 25 );

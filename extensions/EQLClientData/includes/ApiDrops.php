@@ -10,6 +10,7 @@ use MediaWiki\Api\ApiMain;
 use RuntimeException;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
+use Wikimedia\ParamValidator\TypeDef\StringDef;
 
 /** Public aggregate claims only. No endpoint returns private observation records. */
 final class ApiDrops extends ApiBase {
@@ -40,7 +41,7 @@ final class ApiDrops extends ApiBase {
 		$this->getResult()->addValue( null, $this->getModuleName(), [
 			'schemaVersion' => 2,
 			'metric' => 'loot-report-share',
-			'denominator' => 'All eligible explicit-corpse loot reports in the window for the same zone, NPC and instance; combines every server and tier and includes reports below the display threshold. Capability-message pseudo-zones are excluded.',
+			'denominator' => 'Eligible explicit-corpse loot reports for the same zone, NPC and instance in the declared historyMode; combines every server and tier and includes reports below the display threshold. Capability-message pseudo-zones are excluded.',
 			'coverage' => 'Unknown; reports are not distinct kills and reportShare is not a drop chance.',
 			'minimumReports' => DropObservationSummary::MIN_REPORTS,
 			'cacheSeconds' => DropDatabaseRepository::CACHE_SECONDS
@@ -50,11 +51,12 @@ final class ApiDrops extends ApiBase {
 	public function getAllowedParams(): array {
 		$params = [];
 		foreach ( [ 'zone', 'npc', 'item', 'q', 'detail', 'snapshot' ] as $field ) {
-			$params[$field] = [ ParamValidator::PARAM_TYPE => 'string' ];
+			$params[$field] = [ ParamValidator::PARAM_TYPE => 'string', StringDef::PARAM_MAX_CHARS =>
+				$field === 'detail' ? 69 : ( $field === 'snapshot' ? 64 : DropDatabaseRepository::FILTER_MAX_CHARS ) ];
 		}
 		$params['instance'] = [ ParamValidator::PARAM_TYPE => [ 'normal', 'raid', 'unknown' ] ];
 		$params['offset'] = [ ParamValidator::PARAM_TYPE => 'integer', ParamValidator::PARAM_DEFAULT => 0,
-			IntegerDef::PARAM_MIN => 0, IntegerDef::PARAM_MAX => 1000000 ];
+			IntegerDef::PARAM_MIN => 0, IntegerDef::PARAM_MAX => PHP_INT_MAX ];
 		$params['limit'] = [ ParamValidator::PARAM_TYPE => 'integer', ParamValidator::PARAM_DEFAULT => 50,
 			IntegerDef::PARAM_MIN => 1, IntegerDef::PARAM_MAX => 500 ];
 		return $params;

@@ -25,6 +25,7 @@ use EQLClientData\ObservationPayload as Payload;
 use EQLClientData\ObservationRepository as Repository;
 require __DIR__ . '/../extensions/EQLClientData/includes/ObservationPayload.php';
 require __DIR__ . '/../extensions/EQLClientData/includes/ObservationRepository.php';
+require __DIR__ . '/../extensions/EQLClientData/includes/CumulativeDropStore.php';
 require __DIR__ . '/../extensions/EQLClientData/includes/ApiObservations.php';
 $checks = 0;
 function check( bool $test, string $label ): void { global $checks; if ( !$test ) { throw new \RuntimeException( $label ); } $checks++; }
