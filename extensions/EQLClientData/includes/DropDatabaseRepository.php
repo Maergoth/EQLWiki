@@ -14,6 +14,7 @@ final class DropDatabaseRepository {
 	public const WINDOW_LIMIT = 100000;
 	public const READ_CHUNK_SIZE = 500;
 	public const CACHE_SECONDS = 300;
+	public const FILTER_MAX_CHARS = 256;
 
 	public function __construct(
 		private readonly IConnectionProvider $dbProvider,
@@ -24,12 +25,16 @@ final class DropDatabaseRepository {
 	/** Exact source filters plus a literal case-insensitive text search; paginate after grouping. */
 	public function getSummary( array $filters = [] ): array {
 		$filters = self::filters( $filters );
+		$db = $this->dbProvider->getPrimaryDatabase();
+		$cumulative = CumulativeDropStore::state( $db );
+		if ( $cumulative && $cumulative->dps_ready ) { return ( new CumulativeDropReader( $this->cache ) )->summary( $db, $filters ); }
 		$snapshot = $this->snapshot();
 		if ( !$snapshot['available'] ) { return self::unavailable( $filters ); }
 		$rows = array_values( array_filter( $snapshot['rows'], static fn ( array $row ): bool => self::matches( $row, $filters ) ) );
 		$total = count( $rows );
 		return [
-			'available' => true, 'snapshot' => $snapshot['snapshot'], 'windowLimit' => self::WINDOW_LIMIT, 'windowed' => $snapshot['windowed'],
+			'available' => true, 'snapshot' => $snapshot['snapshot'], 'historyMode' => 'recent-window',
+			'cumulativeStatus' => $cumulative ? 'backfilling' : 'not-installed', 'windowLimit' => self::WINDOW_LIMIT, 'windowed' => $snapshot['windowed'],
 			'rows' => array_slice( $rows, $filters['offset'], $filters['limit'] ), 'totalRows' => $total,
 			'offset' => $filters['offset'], 'limit' => $filters['limit'],
 			'hasMore' => $filters['offset'] + $filters['limit'] < $total
@@ -39,7 +44,10 @@ final class DropDatabaseRepository {
 	/** Publish only a bounded allowlist from a currently public, snapshot-bound entry. */
 	public function getDetail( string $entryId, string $token, int $offset = 0, int $limit = 25 ): array {
 		if ( !preg_match( '/^drop_[a-f0-9]{64}$/D', $entryId ) || !preg_match( '/^[a-f0-9]{64}$/D', $token ) ||
-			$offset < 0 || $offset > 1000000 || $limit < 1 || $limit > 50 ) { throw new InvalidArgumentException( 'badvalue' ); }
+			$offset < 0 || $limit < 1 || $limit > 50 ) { throw new InvalidArgumentException( 'badvalue' ); }
+		$db = $this->dbProvider->getPrimaryDatabase();
+		$cumulative = CumulativeDropStore::state( $db );
+		if ( $cumulative && $cumulative->dps_ready ) { return ( new CumulativeDropReader( $this->cache ) )->detail( $db, $entryId, $token, $offset, $limit ); }
 		$snapshot = $this->snapshot();
 		if ( !$snapshot['available'] ) { throw new RuntimeException( 'eqldrops-detail-unavailable' ); }
 		if ( !hash_equals( $snapshot['snapshot'], $token ) ) { throw new RuntimeException( 'eqldrops-detail-stale' ); }
@@ -109,7 +117,7 @@ final class DropDatabaseRepository {
 		foreach ( [ 'zone', 'npc', 'item', 'instance', 'q' ] as $name ) {
 			$value = $filters[$name] ?? '';
 			if ( !is_string( $value ) || !preg_match( '//u', $value ) ||
-				mb_strlen( $value, 'UTF-8' ) > 230 || preg_match( '/[\x00-\x1f\x7f]/u', $value ) ) {
+				mb_strlen( $value, 'UTF-8' ) > self::FILTER_MAX_CHARS || preg_match( '/[\x00-\x1f\x7f]/u', $value ) ) {
 				throw new InvalidArgumentException( 'badvalue' );
 			}
 			$filters[$name] = trim( $value );
@@ -117,7 +125,7 @@ final class DropDatabaseRepository {
 		if ( $filters['instance'] !== '' && !in_array( $filters['instance'], [ 'normal', 'raid', 'unknown' ], true ) ) {
 			throw new InvalidArgumentException( 'badvalue' );
 		}
-		foreach ( [ 'offset' => [ 0, 1000000, 0 ], 'limit' => [ 1, 500, 50 ] ] as $name => [ $min, $max, $default ] ) {
+		foreach ( [ 'offset' => [ 0, PHP_INT_MAX, 0 ], 'limit' => [ 1, 500, 50 ] ] as $name => [ $min, $max, $default ] ) {
 			$value = $filters[$name] ?? $default;
 			if ( !is_int( $value ) || $value < $min || $value > $max ) { throw new InvalidArgumentException( 'badvalue' ); }
 			$filters[$name] = $value;
