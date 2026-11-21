@@ -1,0 +1,18 @@
+Here you will find lists of items usable by particular classes or combinations of classes.
+
+For a big list of everything, see [[:Category:Items]].
+
+<div id="eql-equipment-trio-builder"></div>
+
+<!-- EQL_EQUIPMENT_CLASS_LINKS_START -->
+=== Browse equipment by class ===
+Browse a class category for individual items, or use the equipment search above to combine classes and filter results.
+
+[[:Category:Bard Equipment|Bard]] · [[:Category:Beastlord Equipment|Beastlord]] · [[:Category:Berserker Equipment|Berserker]] · [[:Category:Cleric Equipment|Cleric]]
+
+[[:Category:Druid Equipment|Druid]] · [[:Category:Enchanter Equipment|Enchanter]] · [[:Category:Magician Equipment|Magician]] · [[:Category:Monk Equipment|Monk]]
+
+[[:Category:Necromancer Equipment|Necromancer]] · [[:Category:Paladin Equipment|Paladin]] · [[:Category:Ranger Equipment|Ranger]] · [[:Category:Rogue Equipment|Rogue]]
+
+[[:Category:Shadow Knight Equipment|Shadow Knight]] · [[:Category:Shaman Equipment|Shaman]] · [[:Category:Warrior Equipment|Warrior]] · [[:Category:Wizard Equipment|Wizard]]
+<!-- EQL_EQUIPMENT_CLASS_LINKS_END -->

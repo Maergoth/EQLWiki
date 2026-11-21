@@ -244,6 +244,7 @@ class Hooks implements
 	 * Keep ca-edit for the native editor integration and its mode-switch toolbar.
 	 */
 	public function finalizeNavigation( SkinTemplate $skin, array &$links ): void {
+		NavigationCrawl::applyToGroups( $links );
 		$title = $skin->getRelevantTitle();
 		if ( !$title || $title->isSpecialPage() ) {
 			return;
@@ -268,6 +269,7 @@ class Hooks implements
 			unset( $edit );
 		}
 
+		NavigationCrawl::applyToGroups( $links );
 		$this->createViewsOverflow( $links );
 	}
 
@@ -778,11 +780,11 @@ class Hooks implements
 		string $text,
 		string $href
 	): void {
-		$section[] = [
+		$section[] = NavigationCrawl::decorate( [
 			'id' => $id,
 			'text' => $text,
 			'href' => $href,
 			'active' => false
-		];
+		] );
 	}
 }
