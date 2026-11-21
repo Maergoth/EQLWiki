@@ -49,6 +49,10 @@ jobs:
           php ops/test-item-seo.php
           php ops/test-ajax-hover.php
           php ops/test-ads-config.php
+          php ops/test-navigation-crawl.php
+          php ops/test-item-reader-copy.php
+          php ops/test-site-identity.php
+          php ops/test-entity-seo.php
       - name: Check public character directory and effect metadata
         run: |
           php ops/test-player-list.php

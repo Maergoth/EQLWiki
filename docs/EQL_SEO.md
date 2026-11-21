@@ -46,6 +46,80 @@ provides an explicit discovery policy.
 
 ## Checks and release
 
+### Item, NPC and zone searches
+
+The [entity search targets](SEO_ENTITY_SEARCH.md) define the requested name-plus-
+brand queries. Eligible current public main-namespace item, NPC and zone entries
+use a concise `<entity> - EQ Legends Wiki` browser/search title. The visible
+heading and canonical page name stay unchanged. Existing item summaries use the
+same short brand; authored descriptions take precedence. NPC/zone descriptions
+use the page's own verified content where safe, with conservative reference copy
+when no unambiguous source facts can be extracted. They do not assert that an
+out-of-era entry is currently available in the game.
+
+`SiteIdentity.php` adds homepage `WebSite` JSON-LD with preferred name **EQ Legends
+Wiki** and alternate names **EQLegends Wiki**, **EverQuest Legends Wiki**, **EQ
+Legends** and **EQLegends**. It supplies an accurate lookup-oriented homepage
+title/description without changing its visible heading. Both root and Main Page
+views receive the same site node; its URL uses only the matching configured
+production or staging origin. Another provider's existing WebSite JSON-LD is
+retained. All changes leave permissions, account state and robots rules intact.
+
+Run `php ops/test-site-identity.php`, `php ops/test-entity-seo.php` and the item SEO
+checks. Verify actual HTML titles, descriptions and JSON-LD on staging, including
+an item, NPC, zone, out-of-era entry, homepage and excluded editor/history views.
+Check title escaping and that staging emits only its own URLs while retaining
+`noindex`. File deployment installs this metadata; it requires no new database
+page publication. Search Console acceptance and title preferences do not prove
+Google will index a page or select a particular title/ranking.
+
+### Reader copy and equipment browsing
+
+The [November 2026 comparison](SEO_COMPARISON_2026-11.md) includes both sparse
+indexed pages and substantial excluded guides. It does not establish a minimum
+word count or a single cause for Google's exclusions.
+
+`NavigationCrawl.php` preserves native navigation attributes and adds `nofollow`
+to recognized local action, revision and utility links in EQL's page-action menus,
+custom sidebar and native toolbox. Article, Talk, category and content-source
+links remain ordinary links. Native account-menu rendering retains core behavior:
+its final conversion filters relation attributes. This is a link hint, not a crawl
+block or an indexing policy; existing `noindex` handling and staging protections
+remain separate.
+
+Four reviewed database content changes live under `ops/`:
+
+- `itempage.wiki` describes empty optional source/quest/crafting fields as
+  undocumented, preserving authored values, headings, classes and the hover path.
+- `item-lore-missing.wiki` keeps the maintenance categories and contribution link,
+  with compact reader copy; template-editing instructions stay in documentation.
+- `equipment-by-class.wiki` retains the JavaScript builder and adds sixteen
+  ordinary links to the existing class equipment categories.
+- `zone-map-labels.json` corrects three map-link labels without changing map
+  geometry, destinations or display behavior.
+
+Git deployment does not publish these pages. Install the reviewed
+`ops/sync-item-reader-copy.php` privately and use its fixed target, reviewed
+source, freshly checked `--expected-revision` and a fresh private `--backup`.
+The fixed target names are `itempage`, `item-lore-missing`,
+`equipment-by-class` and `zones-map-labels`.
+The helper refuses unrelated content changes and concurrent revisions. Run its
+`--help` first. Publish and verify each target on staging before the same reviewed
+change goes live; do not use write commands as routine tests. Recovery uses the
+private original content and normal revision/conflict protection.
+
+Verify missing, explicitly blank and authored item fields, missing-lore categories
+and editor links, item/spell/NPC hovers, and the unchanged equipment builder plus
+all sixteen category links. Map checks must preserve the image and positioned
+link targets. Record actual staging and production results separately from parser
+fixtures. Successful releases and sitemap ingestion do not prove Google indexing.
+
+Run `php ops/test-navigation-crawl.php` and `php ops/test-item-reader-copy.php`
+for source-only navigation and publisher scope/recovery checks. With a configured
+wiki, `php maintenance/run.php ./ops/test-item-reader-copy.php` also parses
+synthetic articles with unsaved template overlays; it saves no pages. These
+parser fixtures supplement the actual staging checks required above.
+
 Run `python ops/test-seo-routing.py`, `php ops/test-seo-config.php`,
 `php ops/test-item-seo.php`, and the existing
 `php ops/test-deployment-assets.php`. They use synthetic requests/content and do
@@ -76,4 +150,6 @@ HTTP redirects, canonical links, descriptions and sitemap XML, and recheck stagi
 isolation. Submit the native sitemap in Search Console and inspect representative
 items such as `Bone_Bladed_Claymore`; this account-side step is separate from code
 deployment. Google recrawling and ranking changes are not immediate release checks.
-No template or `MediaWiki:` page synchronization is required for these changes.
+Routing, canonical and metadata changes require no database-page synchronization.
+The reviewed reader-copy, equipment and map changes above require their separate
+guarded publication on each environment.

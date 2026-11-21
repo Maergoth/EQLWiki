@@ -46,6 +46,15 @@ class SkinEQLImmersive extends SkinVector22 {
 		return $attributes;
 	}
 
+	/** Preserve native toolbox data while qualifying its utility destinations. */
+	public function makeToolbox( $navUrls, $feedUrls ) {
+		$items = parent::makeToolbox( $navUrls, $feedUrls );
+		if ( class_exists( NavigationCrawl::class ) ) {
+			NavigationCrawl::applyToItems( $items );
+		}
+		return $items;
+	}
+
 	/** Apply EQL's source-first action after every extension has built its tabs. */
 	protected function runOnSkinTemplateNavigationHooks( SkinTemplate $skin, &$content_navigation ) {
 		parent::runOnSkinTemplateNavigationHooks( $skin, $content_navigation );
