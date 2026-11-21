@@ -84,6 +84,7 @@ jobs:
         run: |
           php ops/test-eoz-observations.php
           php ops/test-drop-database.php
+          php ops/test-drop-cumulative.php
           php ops/test-eoz-installers.php
           php ops/test-hover-item-metadata.php
       - name: Check automatic NPC recorded loot
