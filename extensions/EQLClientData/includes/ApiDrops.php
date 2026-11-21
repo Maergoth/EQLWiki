@@ -7,6 +7,7 @@ namespace EQLClientData;
 use InvalidArgumentException;
 use MediaWiki\Api\ApiBase;
 use MediaWiki\Api\ApiMain;
+use RuntimeException;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 
@@ -19,16 +20,27 @@ final class ApiDrops extends ApiBase {
 	public function execute(): void {
 		$params = $this->extractRequestParams();
 		try {
-			$result = $this->repository->getSummary( array_filter( $params, static fn ( $value ): bool => $value !== null ) );
+			if ( isset( $params['detail'] ) ) {
+				if ( !isset( $params['snapshot'] ) || array_filter( array_intersect_key( $params, array_flip( [ 'q', 'zone', 'npc', 'item', 'instance' ] ) ), static fn ( $value ): bool => $value !== null ) ) {
+					throw new InvalidArgumentException( 'badvalue' );
+				}
+				$result = [ 'detail' => $this->repository->getDetail( $params['detail'], $params['snapshot'], (int)( $params['offset'] ?? 0 ), (int)( $params['limit'] ?? 25 ) ) ];
+			} else {
+				if ( isset( $params['snapshot'] ) ) { throw new InvalidArgumentException( 'badvalue' ); }
+				$result = $this->repository->getSummary( array_filter( $params, static fn ( $value ): bool => $value !== null ) );
+			}
 		} catch ( InvalidArgumentException $error ) {
 			$this->dieWithError( 'apierror-eqldrops-invalid', 'badvalue' );
+		} catch ( RuntimeException $error ) {
+			$code = in_array( $error->getMessage(), [ 'eqldrops-detail-stale', 'eqldrops-detail-unavailable' ], true ) ? $error->getMessage() : 'eqldrops-unavailable';
+			$this->dieWithError( 'apierror-' . $code, $code );
 		}
 		$this->getMain()->setCacheMode( 'public' );
 		$this->getMain()->setCacheMaxAge( 60 );
 		$this->getResult()->addValue( null, $this->getModuleName(), [
-			'schemaVersion' => 1,
+			'schemaVersion' => 2,
 			'metric' => 'loot-report-share',
-			'denominator' => 'All eligible explicit-corpse loot reports in the window for the same server, zone, NPC and instance; includes every tier and reports below the display threshold.',
+			'denominator' => 'All eligible explicit-corpse loot reports in the window for the same zone, NPC and instance; combines every server and tier and includes reports below the display threshold. Capability-message pseudo-zones are excluded.',
 			'coverage' => 'Unknown; reports are not distinct kills and reportShare is not a drop chance.',
 			'minimumReports' => DropObservationSummary::MIN_REPORTS,
 			'cacheSeconds' => DropDatabaseRepository::CACHE_SECONDS
@@ -37,7 +49,7 @@ final class ApiDrops extends ApiBase {
 
 	public function getAllowedParams(): array {
 		$params = [];
-		foreach ( [ 'zone', 'npc', 'item', 'server', 'q' ] as $field ) {
+		foreach ( [ 'zone', 'npc', 'item', 'q', 'detail', 'snapshot' ] as $field ) {
 			$params[$field] = [ ParamValidator::PARAM_TYPE => 'string' ];
 		}
 		$params['instance'] = [ ParamValidator::PARAM_TYPE => [ 'normal', 'raid', 'unknown' ] ];

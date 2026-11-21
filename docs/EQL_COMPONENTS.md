@@ -252,15 +252,16 @@ testing. Standard permissions are described in the [MediaWiki user rights manual
 ## Metadata, era filtering, and verification
 
 [`extensions/EQLClientData/`](../extensions/EQLClientData/) is enabled (extension
-version 1.1.2 at the prior live audit; 1.2.0 adds optional observations and 1.3.0
-adds their read-only aggregate browser). Start with `extension.json`, `includes/Hooks.php`,
+version 1.4.0 source adds expandable observation history and optional public
+character attribution). Start with `extension.json`, `includes/Hooks.php`,
 `includes/ApiMetadata.php`, and `includes/ConfigRepository.php`.
 
 - The read-only `action=eqlmetadata` API requires **POST**. Pipe-delimited titles
   are capped by `EQLClientDataApiMaxTitles` (configured 500). Skin requests batch
   450 titles; retain the response/normalization contract.
 - Optional `action=eozobservations` stores named-session/CSRF-protected, attributed
-  kill/loot data with actor/event idempotency and hard quotas. It is disabled by
+  kill/loot data with actor/event idempotency, bounded requests and rolling rate
+  limits. Lifetime entry/receipt quotas default to disabled. It is disabled by
   default and requires three separately installed own tables. It does not edit
   articles or publish drop rates. Standard MediaWiki `action=edit` handles page
   creation/updates. [API, schema and activation contract](CLIENT_API.md); the
@@ -269,11 +270,15 @@ adds their read-only aggregate browser). Start with `extension.json`, `includes/
   loot aggregates through `DropDatabaseRepository`/`DropObservationSummary`.
   The conditional `ext.eqlDropDatabase` module adds grey report-share percentages
   beside exact item-link destinations on NPC pages and appends unlisted items.
-  Rarity notes and manual text stay intact; a source selector separates
-  server/zone/instance contexts. These percentages are not per-kill drop chances.
-  No raw observations or contributor identities are public. This needs normal
+  The browser combines server/tier and expands individual submissions with UTC
+  observed/received times, quantity and an optional explicitly consented character
+  name; private actor/account/event identifiers are never public. Invalid area-rule
+  sentences are filtered as zone claims without changing stored data.
+  NPC presentation remains test-only: item name, one percentage and rarity,
+  preserving source/hover data while hiding duplicate authored rate annotations.
+  These percentages are not per-kill drop chances. This needs normal
   application deployment, with no new schema or database-page publication.
-  See [the metric and capacity contract](CLIENT_API.md#browsing-observed-loot-13).
+  See [the metric and history contract](CLIENT_API.md#browsing-observed-loot-14-read-schema-2).
 - Metadata comes from database `VerifiedPages`, `Template:PageEra`, and
   `SpellLevelSliderOverrides`. Revision-aware WANObjectCache entries and
   save/move/delete invalidation keep data fresh. Era results also depend on page

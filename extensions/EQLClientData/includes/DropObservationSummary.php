@@ -13,29 +13,20 @@ final class DropObservationSummary {
 	 * @return array Public aggregates only; actor/event/session identifiers never leave this method.
 	 */
 	public static function summarize( iterable $records ): array {
+		return self::project( $records )['rows'];
+	}
+
+	/** Internal projection: members contains private database cursors and must never be returned by an API. */
+	public static function project( iterable $records ): array {
 		$groups = [];
 		$totals = [];
 		$seen = [];
+		$members = [];
 		foreach ( $records as $record ) {
 			$record = (array)$record;
-			$actor = $record['eoo_actor'] ?? null;
-			$json = $record['eoo_payload'] ?? null;
-			if ( !is_numeric( $actor ) || (int)$actor < 1 || !is_string( $json ) ||
-				strlen( $json ) > ObservationPayload::MAX_EVENT_BYTES ) {
-				continue;
-			}
-			try {
-				$raw = json_decode( $json, true, 16, JSON_THROW_ON_ERROR );
-				if ( !is_array( $raw ) || array_is_list( $raw ) ) { continue; }
-				$event = ObservationPayload::event( $raw );
-			} catch ( \Throwable $error ) {
-				continue;
-			}
-			// Named providers can be merchants; recent targets and kills are inference.
-			// Only actual corpse wording supports this first public source summary.
-			if ( $event['kind'] !== 'loot' || $event['sourceKind'] !== 'explicit-corpse' ) {
-				continue;
-			}
+			$event = self::eligibleEvent( $record );
+			if ( $event === null ) { continue; }
+			$actor = (int)$record['eoo_actor'];
 			$zone = self::subject( $event, 'zone' );
 			$npc = self::subject( $event, 'npc' );
 			$item = self::subject( $event, 'item' );
@@ -43,21 +34,24 @@ final class DropObservationSummary {
 			$eventKey = (int)$actor . ':' . $event['id'];
 			if ( isset( $seen[$eventKey] ) ) { continue; }
 			$seen[$eventKey] = true;
-			$scope = json_encode( [ $event['server'], $zone, $npc, $event['instance'] ], JSON_THROW_ON_ERROR );
-			$key = json_encode( [ $scope, $item, $event['tier'] ], JSON_THROW_ON_ERROR );
+			$scope = json_encode( [ $zone, $npc, $event['instance'] ], JSON_THROW_ON_ERROR );
+			$key = self::entryId( $event );
 			$totals[$scope] = ( $totals[$scope] ?? 0 ) + 1;
 			if ( !isset( $groups[$key] ) ) {
 				$groups[$key] = [
-					'server' => $event['server'], 'zone' => $zone, 'zoneTitle' => self::titleClaim( $event['zoneTitle'] ),
+					'entryId' => $key, 'zone' => $zone, 'zoneTitle' => self::titleClaim( $event['zoneTitle'] ),
 					'npc' => $npc, 'npcTitle' => self::titleClaim( $event['npcTitle'] ),
 					'item' => $item, 'itemTitle' => self::titleClaim( $event['itemTitle'] ),
-					'instance' => $event['instance'], 'tier' => $event['tier'],
+					'instance' => $event['instance'],
 					'reports' => 0, 'quantity' => 0, '_actors' => [], '_scope' => $scope
 				];
 			}
 			$groups[$key]['reports']++;
 			$groups[$key]['quantity'] += $event['quantity'];
 			$groups[$key]['_actors'][(int)$actor] = true;
+			if ( isset( $record['eoo_id'] ) && (int)$record['eoo_id'] > 0 ) {
+				$members[$key][] = (int)$record['eoo_id'];
+			}
 			// Prefer a supplied canonical title when raw and canonical names coincide.
 			foreach ( [ 'zoneTitle', 'npcTitle', 'itemTitle' ] as $title ) {
 				if ( $event[$title] !== null ) { $groups[$key][$title] = self::titleClaim( $event[$title] ); }
@@ -65,19 +59,60 @@ final class DropObservationSummary {
 		}
 		$rows = [];
 		foreach ( $groups as $group ) {
-			if ( $group['reports'] < self::MIN_REPORTS ) { continue; }
+			if ( $group['reports'] < self::MIN_REPORTS ) { unset( $members[$group['entryId']] ); continue; }
 			$group['contributors'] = count( $group['_actors'] );
 			$group['totalReports'] = $totals[$group['_scope']];
-			// Denominator includes hidden single reports and every tier in the scope.
-            // Round once at presentation; rounding here can change the final displayed tenth.
-            $group['reportShare'] = 100.0 * $group['reports'] / $group['totalReports'];
+			// Denominator includes hidden singles, every server and every tier in the scope.
+			// Round once at presentation; rounding here can change the final displayed tenth.
+			$group['reportShare'] = 100.0 * $group['reports'] / $group['totalReports'];
 			unset( $group['_actors'], $group['_scope'] );
 			$rows[] = $group;
 		}
 		usort( $rows, static fn ( array $first, array $second ): int =>
-			[ $first['zone'], $first['npc'], $first['server'], $first['instance'], $first['item'], $first['tier'] ?? -1 ] <=>
-			[ $second['zone'], $second['npc'], $second['server'], $second['instance'], $second['item'], $second['tier'] ?? -1 ] );
-		return $rows;
+			[ $first['zone'], $first['npc'], $first['instance'], $first['item'] ] <=>
+			[ $second['zone'], $second['npc'], $second['instance'], $second['item'] ] );
+		return [ 'rows' => $rows, 'members' => $members ];
+	}
+
+	/** Public detail allowlist for a row already admitted through a published group. */
+	public static function detail( array $record, string $entryId ): ?array {
+		$event = self::eligibleEvent( $record );
+		if ( $event === null || !hash_equals( self::entryId( $event ), $entryId ) ) { return null; }
+		$received = $record['eoo_received'] ?? '';
+		if ( !is_string( $received ) || !preg_match( '/^[0-9]{14}$/D', $received ) ) { return null; }
+		$time = \DateTimeImmutable::createFromFormat( '!YmdHis', $received, new \DateTimeZone( 'UTC' ) );
+		if ( !$time || $time->format( 'YmdHis' ) !== $received ) { return null; }
+		$character = $event['characterName'] ?? null;
+		// Optional names have already passed the versioned ingestion validator.
+		// Never derive a historical character name from account identity or tokens.
+		if ( !is_string( $character ) ) { $character = null; }
+		return [ 'observedAt' => $event['observedAt'], 'receivedAt' => $time->format( 'Y-m-d\\TH:i:s\\Z' ),
+			'quantity' => $event['quantity'], 'characterName' => $character, 'sourceKind' => 'explicit-corpse' ];
+	}
+
+	private static function eligibleEvent( array $record ): ?array {
+		$actor = $record['eoo_actor'] ?? null;
+		$json = $record['eoo_payload'] ?? null;
+		if ( !is_numeric( $actor ) || (int)$actor < 1 || !is_string( $json ) || strlen( $json ) > ObservationPayload::MAX_EVENT_BYTES ) { return null; }
+		try {
+			$raw = json_decode( $json, true, 16, JSON_THROW_ON_ERROR );
+			if ( !is_array( $raw ) || array_is_list( $raw ) ) { return null; }
+			$event = ObservationPayload::event( $raw );
+		} catch ( \Throwable $error ) { return null; }
+		// Capability messages were admitted as zones by old clients. Quarantine both
+		// raw and canonical claims; never reassign or modify the saved observations.
+		foreach ( [ $event['zone'], $event['zoneTitle'] ] as $zone ) {
+			if ( $zone !== null && preg_match( '/^an? area where\\b/i', self::titleClaim( $zone ) ?? '' ) ) { return null; }
+		}
+		// Named providers can be merchants. Inferred targets are not corpse evidence.
+		if ( $event['kind'] !== 'loot' || $event['sourceKind'] !== 'explicit-corpse' ||
+			self::subject( $event, 'zone' ) === '' || self::subject( $event, 'npc' ) === '' || self::subject( $event, 'item' ) === '' ) { return null; }
+		return $event;
+	}
+
+	private static function entryId( array $event ): string {
+		return 'drop_' . hash( 'sha256', json_encode( [ self::subject( $event, 'zone' ), self::subject( $event, 'npc' ),
+			self::subject( $event, 'item' ), $event['instance'] ], JSON_THROW_ON_ERROR ) );
 	}
 
 	private static function subject( array $event, string $field ): string {

@@ -26,9 +26,14 @@ final class ObservationRepository {
     public function limits(): array {
         return [ 'events' => ObservationPayload::MAX_EVENTS, 'bytes' => ObservationPayload::MAX_BYTES,
             'eventBytes' => ObservationPayload::MAX_EVENT_BYTES,
+            'optionalEventFields' => [ 'characterName' ],
             'hourlyBatches' => max( 1, (int)$this->config->get( 'EQLClientDataObservationHourlyBatches' ) ) ];
     }
-    private function quota( string $key ): int { return max( 1, (int)$this->config->get( $key ) ); }
+    private function quota( string $key ): int { return max( 0, (int)$this->config->get( $key ) ); }
+    private function atCapacity( string $key, int $count ): bool {
+        $maximum = $this->quota( $key );
+        return $maximum > 0 && $count >= $maximum;
+    }
     public function store( UserIdentity $user, array $batch ): array {
         if ( !$this->enabled() ) { throw new RuntimeException( 'eoz-disabled' ); }
         if ( !$this->available() ) { throw new RuntimeException( 'eoz-schema-unavailable' ); }
@@ -55,10 +60,12 @@ final class ObservationRepository {
             $hourly = (int)$db->selectField( 'eql_eoz_batches', 'COUNT(*)',
                 [ 'eob_actor' => $actor, 'eob_received >= ' . $db->addQuotes( $since ) ], __METHOD__ );
             if ( $hourly >= $this->limits()['hourlyBatches'] ) { throw new RuntimeException( 'eoz-rate-limit' ); }
-            $actorBatches = (int)$db->selectField( 'eql_eoz_batches', 'COUNT(*)', [ 'eob_actor' => $actor ], __METHOD__ );
-            if ( (int)$state->eos_batches >= $this->quota( 'EQLClientDataObservationMaxBatches' ) ||
-                $actorBatches >= $this->quota( 'EQLClientDataObservationActorMaxBatches' ) ) { throw new RuntimeException( 'eoz-capacity' ); }
-            $actorEvents = (int)$db->selectField( 'eql_eoz_observations', 'COUNT(*)', [ 'eoo_actor' => $actor ], __METHOD__ );
+            $actorBatches = $this->quota( 'EQLClientDataObservationActorMaxBatches' ) > 0
+                ? (int)$db->selectField( 'eql_eoz_batches', 'COUNT(*)', [ 'eob_actor' => $actor ], __METHOD__ ) : 0;
+            if ( $this->atCapacity( 'EQLClientDataObservationMaxBatches', (int)$state->eos_batches ) ||
+                $this->atCapacity( 'EQLClientDataObservationActorMaxBatches', $actorBatches ) ) { throw new RuntimeException( 'eoz-capacity' ); }
+            $actorEvents = $this->quota( 'EQLClientDataObservationActorMaxEvents' ) > 0
+                ? (int)$db->selectField( 'eql_eoz_observations', 'COUNT(*)', [ 'eoo_actor' => $actor ], __METHOD__ ) : 0;
             $ids = array_column( $batch['events'], 'id' ); $existing = [];
             if ( $ids ) {
                 $rows = $db->select( 'eql_eoz_observations', [ 'eoo_key', 'eoo_hash' ],
@@ -75,8 +82,8 @@ final class ObservationRepository {
                 if ( isset( $existing[$id] ) ) {
                     $receipt[hash_equals( $existing[$id], $hash ) ? 'duplicates' : 'conflicts'][] = $id;continue;
                 }
-                if ( (int)$state->eos_events + $accepted >= $this->quota( 'EQLClientDataObservationMaxEvents' ) ||
-                    $actorEvents + $accepted >= $this->quota( 'EQLClientDataObservationActorMaxEvents' ) ) {
+                if ( $this->atCapacity( 'EQLClientDataObservationMaxEvents', (int)$state->eos_events + $accepted ) ||
+                    $this->atCapacity( 'EQLClientDataObservationActorMaxEvents', $actorEvents + $accepted ) ) {
                     $receipt['rejected'][] = [ 'id' => $id, 'code' => 'capacity' ];continue;
                 }
                 $db->insert( 'eql_eoz_observations', [ 'eoo_actor' => $actor, 'eoo_key' => $id,

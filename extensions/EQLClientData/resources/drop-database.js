@@ -38,21 +38,15 @@
         return row && typeof row === 'object' &&
             Number.isSafeInteger( row.reports ) && row.reports >= 2 &&
             Number.isSafeInteger( row.totalReports ) && row.totalReports >= row.reports &&
-            Number.isSafeInteger( row.quantity ) && row.quantity >= row.reports &&
-            Number.isSafeInteger( row.contributors ) && row.contributors >= 1 &&
             [ 'normal', 'raid', 'unknown' ].indexOf( row.instance ) !== -1 &&
-            ( row.tier === null || Number.isSafeInteger( row.tier ) && row.tier >= 0 && row.tier <= 10 ) &&
             ( text( row.item ) || cleanTitle( row.itemTitle ) );
     }
-    function tierLabel( row ) { return row.tier === null ? 'tier unreported' : 'tier ' + row.tier; }
-    function badge( row, showTier ) {
+    function badge( row ) {
         var percent = ( row.reports / row.totalReports * 100 ).toFixed( 1 ).replace( /\.0$/, '' );
         var node = element( 'span', 'eql-drop-generated eql-drop-observed',
-            ' (' + percent + '%' + ( showTier ? '; ' + tierLabel( row ) : '' ) + ')' );
-        node.title = percent + '% share of reported loot; ' + row.reports + ' / ' + row.totalReports + ' eligible loot reports; ' +
-            row.quantity + ' items; ' + row.contributors + ' contributor' + ( row.contributors === 1 ? '' : 's' ) +
-            '; ' + scopeLabel( row ) + '; ' + tierLabel( row ) +
-            '. Reports may describe the same encounter. This is not a drop chance.';
+            ' (' + percent + '%)' );
+        node.title = percent + '% share of reported loot; reported ' + row.reports + ' times out of ' + row.totalReports +
+            ' recorded loot events; ' + scopeLabel( row ) + '. This is not a drop chance per kill.';
         node.setAttribute( 'aria-label', node.title );
         node.tabIndex = 0;
         return node;
@@ -69,7 +63,10 @@
                     return Boolean( anchorTitle( candidate ) );
                 } );
                 var key = anchor && titleKey( anchorTitle( anchor ) );
-                if ( key ) { if ( !items[ key ] ) { items[ key ] = []; } items[ key ].push( { li: li, anchor: anchor } ); }
+                if ( key ) {
+                    li.classList.add( 'eql-drop-clean-item' );
+                    if ( !items[ key ] ) { items[ key ] = []; }items[ key ].push( { li: li, anchor: anchor } );
+                }
             } );
         } );
         return items;
@@ -89,11 +86,11 @@
         return '';
     }
     function scopeKey( row ) {
-        return JSON.stringify( [ row.server, row.zoneTitle || row.zone, row.npcTitle || row.npc, row.instance ] );
+        return JSON.stringify( [ row.zoneTitle || row.zone, row.npcTitle || row.npc, row.instance ] );
     }
     function scopeLabel( row ) {
         var instance = row.instance === 'unknown' ? 'instance unknown' : row.instance === 'raid' ? 'Raid' : 'Normal';
-        return [ text( row.zoneTitle || row.zone ) || 'Zone unknown', text( row.server ) || 'Server unknown', instance ].join( ' · ' );
+        return [ text( row.zoneTitle || row.zone ) || 'Zone unknown', instance ].join( ' · ' );
     }
     function preferredInstance( root ) {
         if ( [ 'normal', 'raid' ].indexOf( root.dataset.dropInstance ) !== -1 ) { return root.dataset.dropInstance; }
@@ -113,15 +110,18 @@
     }
     function render( root, rows ) {
         Array.prototype.forEach.call( root.querySelectorAll( '.eql-drop-generated' ), function ( node ) { node.remove(); } );
+        var manual = manualItems( manualLists( root ) );
         var npc = titleKey( root.dataset.dropNpc || mw.config.get( 'wgPageName' ) );
         rows = Array.isArray( rows ) ? rows.filter( function ( row ) {
             return validRow( row ) && ( !npc || titleKey( row.npcTitle || row.npc ) === npc );
         } ).slice( 0, 500 ) : [];
         if ( !rows.length ) { return; }
-        var manual = manualItems( manualLists( root ) ), groups = Object.create( null );
+        var groups = Object.create( null ), seen = Object.create( null );
         var panel = root.querySelector( '.eql-mobpage-hero-loot, .eql-mobpage-loot' ) || root;
         rows.forEach( function ( row ) {
             var key = scopeKey( row );
+            var itemKey = JSON.stringify( [ key, titleKey( row.itemTitle || row.item ) ] );
+            if ( seen[ itemKey ] ) { return; }seen[ itemKey ] = true;
             if ( !groups[ key ] ) { groups[ key ] = { key: key, row: row, reports: 0, rows: [] }; }
             groups[ key ].reports += row.reports;groups[ key ].rows.push( row );
         } );
@@ -134,41 +134,42 @@
             selected = ( candidate || contexts[ 0 ] ).key;selectedSources.set( root, selected );
         }
         var controls = element( 'div', 'eql-drop-generated eql-drop-observations' );
-        var label = element( 'label', 'eql-drop-source-label', 'Observation source ' );
-        var selector = element( 'select', 'eql-drop-source-select' );
-        selector.setAttribute( 'aria-label', 'Observation source: zone, server and instance' );
-        contexts.forEach( function ( context ) {
-            var option = element( 'option', '', scopeLabel( context.row ) );option.value = context.key;
-            option.selected = context.key === selected;selector.appendChild( option );
-        } );
-        selector.addEventListener( 'change', function () {
-            selectedSources.set( root, selector.value );render( root, rows );
-            var replacement = root.querySelector( '.eql-drop-source-select' );if ( replacement ) { replacement.focus(); }
-        } );
-        label.appendChild( selector );controls.appendChild( label );
-        controls.appendChild( element( 'p', 'eql-drop-legend',
-            'Grey percentages show share of reported loot for the selected source, not drop chance. Only items with at least two reports appear. Unreported loot and repeated encounters can affect these figures.' ) );
+        if ( contexts.length > 1 ) {
+            var label = element( 'label', 'eql-drop-source-label', 'Source ' );
+            var selector = element( 'select', 'eql-drop-source-select' );
+            selector.setAttribute( 'aria-label', 'Observation source: zone and instance' );
+            contexts.forEach( function ( context ) {
+                var option = element( 'option', '', scopeLabel( context.row ) );option.value = context.key;
+                option.selected = context.key === selected;selector.appendChild( option );
+            } );
+            selector.addEventListener( 'change', function () {
+                selectedSources.set( root, selector.value );render( root, rows );
+                var replacement = root.querySelector( '.eql-drop-source-select' );if ( replacement ) { replacement.focus(); }
+            } );
+            label.appendChild( selector );controls.appendChild( label );
+        }
+        var info = element( 'details', 'eql-drop-info' );
+        info.appendChild( element( 'summary', '', 'About the percentages' ) );
+        info.appendChild( element( 'p', 'eql-drop-legend',
+            'Grey percentages show share of reported loot from ' + scopeLabel( groups[ selected ].row ) +
+            ', not drop chance per kill. Each item needs at least two recorded loot events. Missing loot and overlapping reports can affect the figures.' ) );
         var detail = element( 'a', 'eql-drop-database-link', 'Browse the drop database' );
         detail.href = mw.util.getUrl( 'Special:DropDatabase' );
-        controls.appendChild( detail );
+        info.appendChild( detail );controls.appendChild( info );
         var heading = panel.querySelector( 'h2, h3' );
         if ( heading && heading.parentNode === panel ) { heading.after( controls ); }
         else { panel.insertBefore( controls, panel.firstChild ); }
-        var selectedRows = groups[ selected ].rows, tierCounts = Object.create( null );
-        selectedRows.forEach( function ( row ) {
-            var key = titleKey( row.itemTitle || row.item );tierCounts[ key ] = ( tierCounts[ key ] || 0 ) + 1;
-        } );
+        var selectedRows = groups[ selected ].rows;
         var appendList = panel.querySelector( 'ul:not(.eql-drop-generated-list)' );
         selectedRows.forEach( function ( row ) {
-            var key = titleKey( row.itemTitle || row.item ), showTier = tierCounts[ key ] > 1;
-            var target = cleanTitle( row.itemTitle ) && manual[ titleKey( row.itemTitle ) ];
+            var target = cleanTitle( row.itemTitle || row.item ) && manual[ titleKey( row.itemTitle || row.item ) ];
             if ( target ) {
                 target.forEach( function ( entry ) {
                     var after = entry.anchor.closest( 'span.ih' ) || entry.anchor;
                     if ( !entry.li.contains( after ) ) { after = entry.anchor; }
                     while ( after.nextSibling && after.nextSibling.nodeType === 1 &&
                         after.nextSibling.classList.contains( 'eql-drop-observed' ) ) { after = after.nextSibling; }
-                    after.after( badge( row, showTier ) );
+                    after.after( badge( row ) );
                 } );return;
             }
             if ( !appendList ) {
@@ -176,12 +177,13 @@
             }
             var item = element( 'li', 'eql-drop-observed-item' );
             item.classList.add( 'eql-drop-generated' );
-            item.appendChild( link( row ) );item.appendChild( badge( row, showTier ) );appendList.appendChild( item );
+            item.appendChild( link( row ) );item.appendChild( badge( row ) );appendList.appendChild( item );
         } );
     }
     function load( root ) {
         if ( mounted.has( root ) ) { return; }
         mounted.add( root );
+        manualItems( manualLists( root ) );
         var npc = titleKey( root.dataset.dropNpc || mw.config.get( 'wgPageName' ) );
         if ( !npc || !mw.config.get( 'wgIsArticle' ) || mw.config.get( 'wgAction' ) !== 'view' ) { return; }
         if ( !requests[ npc ] ) {
