@@ -1,6 +1,6 @@
 {
   "name": "EQLClientData",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "EverQuest Legends Wiki",
   "description": "Provides revision-aware client metadata and optional authenticated, idempotent gameplay observations.",
   "type": "other",
@@ -19,6 +19,10 @@
   "GroupPermissions": { "user": { "eoz-submit-observations": true } },
   "GrantPermissions": { "eozobservations": { "eoz-submit-observations": true } },
   "APIModules": {
+    "eqldrops": {
+      "class": "EQLClientData\\ApiDrops",
+      "services": [ "EQLClientData.DropDatabaseRepository" ]
+    },
     "eqlcharactereffects": { "class": "EQLClientData\\ApiCharacterEffects" },
     "eqlplayers": {
       "class": "EQLClientData\\ApiPlayers",
@@ -35,6 +39,26 @@
         "MainConfig",
         "TitleFactory"
       ]
+    }
+  },
+  "SpecialPages": {
+    "DropDatabase": {
+      "class": "EQLClientData\\SpecialDropDatabase",
+      "services": [ "EQLClientData.DropDatabaseRepository" ]
+    }
+  },
+  "ResourceModules": {
+    "ext.eqlDropDatabase": {
+      "scripts": [ "resources/drop-database.js" ],
+      "styles": [ "resources/drop-database.css" ],
+      "dependencies": [ "mediawiki.api", "mediawiki.util" ],
+      "localBasePath": "",
+      "remoteExtPath": "EQLClientData"
+    },
+    "ext.eqlDropDatabase.styles": {
+      "styles": [ "resources/drop-database.css" ],
+      "localBasePath": "",
+      "remoteExtPath": "EQLClientData"
     }
   },
   "HookHandlers": {
