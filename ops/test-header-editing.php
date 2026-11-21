@@ -13,6 +13,7 @@ if ( PHP_SAPI !== 'cli' ) {
 $root = dirname( __DIR__ );
 require_once $root . '/includes/AutoLoader.php';
 require_once $root . '/includes/Defines.php';
+require_once $root . '/skins/EQLImmersive/includes/NavigationCrawl.php';
 require_once $root . '/skins/EQLImmersive/includes/Hooks.php';
 
 class EqlHeaderFixtureTitle extends Title {
@@ -80,6 +81,10 @@ foreach ( [ null, new EqlHeaderFixtureTitle( true ) ] as $title ) {
     $links = [ 'views' => [ 'edit' => $source, 've-edit' => $visual ] ];
     $before = $links;
     $hooks->finalizeNavigation( new EqlHeaderFixtureSkin( $title ), $links );
-    eqlHeaderCheck( $before === $links, 'Missing/special titles retain extension-defined navigation' );
+    foreach ( $before['views'] as &$item ) {
+        $item['rel'] = 'nofollow';
+    }
+    unset( $item );
+    eqlHeaderCheck( $before === $links, 'Missing/special titles retain extension navigation with utility relations' );
 }
 echo "Passed $checks source-only header editing checks.\n";
