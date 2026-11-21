@@ -1,7 +1,7 @@
 /* On-demand, read-only submission details. Raw events and account identities stay private. */
 ( function () {
     'use strict';
-    var mounted = new WeakSet(), PAGE_SIZE = 25;
+    var mounted = new WeakSet(), PAGE_SIZE = 25, detailSequence = 0;
     function element( tag, className, value ) {
         var node = document.createElement( tag );
         if ( className ) { node.className = className; }
@@ -38,6 +38,17 @@
         var content = entry.querySelector( '.eql-drop-detail-content' );
         var id = entry.dataset.entry, snapshot = entry.dataset.snapshot;
         if ( !content || !/^drop_[0-9a-f]{64}$/.test( id || '' ) || !/^[0-9a-f]{64}$/.test( snapshot || '' ) ) { return; }
+        // Put history beneath the complete entry rather than stretching its last cell.
+        // Without JavaScript, the original disclosure still contains the history link.
+        var parentRow = entry.closest( 'tr' ), historyRow = null;
+        if ( parentRow && parentRow.closest( '.eql-drop-table' ) ) {
+            historyRow = element( 'tr', 'eql-drop-detail-row' );historyRow.hidden = !entry.open;
+            var historyCell = element( 'td' );historyCell.colSpan = parentRow.cells.length;
+            content.id = 'eql-drop-history-' + ( ++detailSequence );
+            var summary = entry.querySelector( 'summary' );
+            if ( summary ) { summary.setAttribute( 'aria-controls', content.id ); }
+            historyCell.appendChild( content );historyRow.appendChild( historyCell );parentRow.after( historyRow );
+        }
         var state = { rows: [], total: 0, more: false, loading: false, loaded: false, started: false, error: null };
         function draw() {
             content.replaceChildren();content.setAttribute( 'aria-busy', String( state.loading ) );
@@ -99,7 +110,10 @@
                 }
             } );
         }
-        entry.addEventListener( 'toggle', function () { if ( entry.open && !state.started ) { load(); } } );
+        entry.addEventListener( 'toggle', function () {
+            if ( historyRow ) { historyRow.hidden = !entry.open; }
+            if ( entry.open && !state.started ) { load(); }
+        } );
         if ( entry.open ) { load(); }
     }
     function mount( content ) {

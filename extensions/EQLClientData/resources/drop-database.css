@@ -158,6 +158,10 @@
     margin: 1rem 0;
 }
 .eql-drop-entry > summary { cursor: pointer; white-space: nowrap; }
+.eql-drop-detail-row[hidden] { display: none !important; }
+.eql-drop-detail-row > td { padding: 0.8rem 1rem; background: #101b2a; }
+.eql-drop-detail-row .eql-drop-detail-scroll { max-height: 28rem; overflow: auto; }
+.eql-drop-detail-row .eql-drop-detail-table { width: 100%; }
 .eql-drop-detail-content { margin-top: 0.6rem; max-width: 45rem; }
 .eql-drop-detail-scroll { max-width: 100%; overflow-x: auto; }
 .eql-drop-detail-table { margin: 0; font-size: 0.95em; }
