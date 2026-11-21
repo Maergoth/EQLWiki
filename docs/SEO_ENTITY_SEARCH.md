@@ -64,11 +64,13 @@ see [the official site-name documentation](https://developers.google.com/search/
 
 ## Factual entity descriptions
 
-Current public NPC and zone descriptions should use the page's own information:
-an NPC's own stat block and documented spawn zone, or a zone's own descriptive
-lead. Embedded item/NPC previews are not evidence about the enclosing page's
-identity. Preserve authored descriptions and omit unsupported details rather than
-inventing mechanics, rarity, drop rates or current-era availability.
+Current public NPC descriptions use a concise, category-qualified reference.
+Their stat tables do not contain the NPC's own name, so this implementation does
+not copy those stats or spawn locations into metadata. Zone descriptions may use
+their own direct, title-led introductory paragraph. Embedded item/NPC previews
+and image captions are not evidence about the enclosing page's identity. Preserve
+authored descriptions and omit unsupported details rather than inventing
+mechanics, rarity, drop rates or current-era availability.
 
 Descriptions must remain readable summaries. An array of alternative keyword
 spellings is not a useful description. Page-specific structured facts can support
