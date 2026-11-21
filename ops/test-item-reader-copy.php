@@ -48,7 +48,7 @@ namespace {
         $sources = [];
         $checks = 0;
         foreach ( $paths as $key => $path ) {
-            $sources[$key] = file_get_contents( $path );
+            $sources[$key] = str_replace( "\r\n", "\n", file_get_contents( $path ) );
             $validate->invoke( $publisher, $key, $sources[$key] );
             $checks++;
         }
