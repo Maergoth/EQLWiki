@@ -49,7 +49,9 @@ class SkinEQLImmersive extends SkinVector22 {
 	/** Preserve native toolbox data while qualifying its utility destinations. */
 	public function makeToolbox( $navUrls, $feedUrls ) {
 		$items = parent::makeToolbox( $navUrls, $feedUrls );
-		NavigationCrawl::applyToItems( $items );
+		if ( class_exists( NavigationCrawl::class ) ) {
+			NavigationCrawl::applyToItems( $items );
+		}
 		return $items;
 	}
 

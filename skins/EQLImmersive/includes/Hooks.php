@@ -88,8 +88,14 @@ class Hooks implements
 			'read', $services->getUserFactory()->newAnonymous(), $title
 		);
 		ItemSeo::addToOutput( $out, $publicRead );
-		SiteIdentity::addToOutput( $out, $publicRead );
-		EntitySeo::addToOutput( $out, $publicRead );
+		// Releases install files individually; optional metadata must tolerate
+		// its new helpers arriving after an existing caller has been replaced.
+		if ( class_exists( SiteIdentity::class ) ) {
+			SiteIdentity::addToOutput( $out, $publicRead );
+			if ( class_exists( EntitySeo::class ) ) {
+				EntitySeo::addToOutput( $out, $publicRead );
+			}
+		}
 	}
 
 	/** Provide authoritative Talk pairing and the timestamp of rendered content. */
@@ -246,7 +252,9 @@ class Hooks implements
 	 * Keep ca-edit for the native editor integration and its mode-switch toolbar.
 	 */
 	public function finalizeNavigation( SkinTemplate $skin, array &$links ): void {
-		NavigationCrawl::applyToGroups( $links );
+		if ( class_exists( NavigationCrawl::class ) ) {
+			NavigationCrawl::applyToGroups( $links );
+		}
 		$title = $skin->getRelevantTitle();
 		if ( !$title || $title->isSpecialPage() ) {
 			return;
@@ -782,11 +790,12 @@ class Hooks implements
 		string $text,
 		string $href
 	): void {
-		$section[] = NavigationCrawl::decorate( [
+		$item = [
 			'id' => $id,
 			'text' => $text,
 			'href' => $href,
 			'active' => false
-		] );
+		];
+		$section[] = class_exists( NavigationCrawl::class ) ? NavigationCrawl::decorate( $item ) : $item;
 	}
 }
