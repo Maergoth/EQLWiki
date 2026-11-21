@@ -46,6 +46,53 @@ provides an explicit discovery policy.
 
 ## Checks and release
 
+### Reader copy and equipment browsing
+
+The [November 2026 comparison](SEO_COMPARISON_2026-11.md) includes both sparse
+indexed pages and substantial excluded guides. It does not establish a minimum
+word count or a single cause for Google's exclusions.
+
+`NavigationCrawl.php` preserves native navigation attributes and adds `nofollow`
+to recognized local action, revision and utility links in EQL's page-action menus,
+custom sidebar and native toolbox. Article, Talk, category and content-source
+links remain ordinary links. Native account-menu rendering retains core behavior:
+its final conversion filters relation attributes. This is a link hint, not a crawl
+block or an indexing policy; existing `noindex` handling and staging protections
+remain separate.
+
+Four reviewed database content changes live under `ops/`:
+
+- `itempage.wiki` describes empty optional source/quest/crafting fields as
+  undocumented, preserving authored values, headings, classes and the hover path.
+- `item-lore-missing.wiki` keeps the maintenance categories and contribution link,
+  with compact reader copy; template-editing instructions stay in documentation.
+- `equipment-by-class.wiki` retains the JavaScript builder and adds sixteen
+  ordinary links to the existing class equipment categories.
+- `zone-map-labels.json` corrects three map-link labels without changing map
+  geometry, destinations or display behavior.
+
+Git deployment does not publish these pages. Install the reviewed
+`ops/sync-item-reader-copy.php` privately and use its fixed target, reviewed
+source, freshly checked `--expected-revision` and a fresh private `--backup`.
+The fixed target names are `itempage`, `item-lore-missing`,
+`equipment-by-class` and `zones-map-labels`.
+The helper refuses unrelated content changes and concurrent revisions. Run its
+`--help` first. Publish and verify each target on staging before the same reviewed
+change goes live; do not use write commands as routine tests. Recovery uses the
+private original content and normal revision/conflict protection.
+
+Verify missing, explicitly blank and authored item fields, missing-lore categories
+and editor links, item/spell/NPC hovers, and the unchanged equipment builder plus
+all sixteen category links. Map checks must preserve the image and positioned
+link targets. Record actual staging and production results separately from parser
+fixtures. Successful releases and sitemap ingestion do not prove Google indexing.
+
+Run `php ops/test-navigation-crawl.php` and `php ops/test-item-reader-copy.php`
+for source-only navigation and publisher scope/recovery checks. With a configured
+wiki, `php maintenance/run.php ./ops/test-item-reader-copy.php` also parses
+synthetic articles with unsaved template overlays; it saves no pages. These
+parser fixtures supplement the actual staging checks required above.
+
 Run `python ops/test-seo-routing.py`, `php ops/test-seo-config.php`,
 `php ops/test-item-seo.php`, and the existing
 `php ops/test-deployment-assets.php`. They use synthetic requests/content and do

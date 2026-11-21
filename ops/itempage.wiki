@@ -1,0 +1,69 @@
+<includeonly>{{#ifeq:{{{mode|{{#ifeq:{{FULLPAGENAME}}|{{{itemname}}}|page|tooltip}}}}}|tooltip|
+<div class="hbdiv">[[{{{itemname}}}]]<span class="hb">{{Itembox
+|itemname     = {{{itemname}}}
+|lucy_img_ID  = {{{lucy_img_ID}}}
+|statsblock   =
+{{{statsblock}}}
+|focus_effect = {{{focus_effect|}}}
+}}</span></div>
+|
+{{#if: {{{second_image|}}} | [[ File:{{{second_image}}}|thumb|350x420px|{{{second_imagetext|}}} ]] }}
+{{#if: {{{third_image|}}}  | [[ File:{{{third_image}}} |thumb|350x420px|{{{third_imagetext|}}}  ]] }}
+
+__NOTOC__
+
+{{Itembox
+|itemname     = {{{itemname}}}
+|lucy_img_ID  = {{{lucy_img_ID}}}
+|statsblock   =
+{{{statsblock}}}
+|focus_effect = {{{focus_effect|}}}
+}}
+
+{{#if: {{{notes|}}} | {{{notes}}} <br>}}
+{{#if: {{{merchant_value|}}} | [[File:Item 645.png|16px]] Merchant resale value: '''{{{merchant_value}}}''' <br>}}
+
+{{#if: {{{dropsfrom|}}} | == Drops From == | == <span class='esec'>Drops From</span> ==}}
+{{#if: {{{dropsfrom|}}} | {{{dropsfrom}}} | <ul class='esec'><li> <span class='esec'>No mob drop source has been documented.</span> </li></ul>}}
+
+{{#if: {{{soldby|}}} | == Sold by == | == <span class='esec'>Sold by</span> ==}}
+{{#if: {{{soldby|}}} | This item is sold by merchants:}}
+
+{{#if: {{{soldby|}}} | {{{soldby}}} | <ul class='esec'><li> <span class='esec'>No merchant source has been documented.</span> </li></ul>}}
+
+{{#if: {{{relatedquests|}}} | == Related quests == | == <span class='esec'>Related quests</span> ==}}
+{{#if: {{{relatedquests|}}} | {{{relatedquests}}} | <ul class='esec'><li> <span class='esec'>No related quest has been documented.</span> </li></ul>}}
+
+{{#if: {{{bookcontents|}}} |<br>
+== Book contents ==
+{{{bookcontents}}}
+}}
+
+{{#if: {{{playercrafted|}}} | == Player crafted == | == <span class='esec'>Player crafted</span> ==}}
+{{#if: {{{playercrafted|}}} | This item can be crafted with player tradeskills:}}
+
+{{#if: {{{playercrafted|}}} | {{{playercrafted}}} | <ul class='esec'><li> <span class='esec'>No player-crafted recipe has been documented.</span> </li></ul>}}
+
+{{#if: {{{recipes|}}} | == Tradeskill recipes == | == <span class='esec'>Tradeskill recipes</span> ==}}
+{{#if: {{{recipes|}}} | This item is used in player tradeskills:}}
+
+{{#if: {{{recipes|}}} | {{{recipes}}} | <ul class='esec'><li> <span class='esec'>No tradeskill use has been documented.</span> </li></ul>}}
+
+<span id='itemfashion'></span>
+
+{{#if: {{{foraged|}}} |<br>
+== Foraged ==
+This item can be foraged:
+{{{foraged}}}
+}}
+
+[[Category:Items]]
+}}</includeonly><noinclude>
+This is the template page for items.
+
+Item pages should call this template once inside <code><nowiki><onlyinclude></nowiki></code>. The template automatically renders a full item page when viewed directly, and only an item hover link when transcluded into loot lists.
+
+For Rogue-usable piercing weapons, Backstab damage defaults to the listed weapon damage. Add an explicit <code>BACKSTAB:</code> line to the item's stats block when the value differs.
+
+[[Category:Templates]]
+</noinclude>

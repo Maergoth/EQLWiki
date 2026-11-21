@@ -1,0 +1,7 @@
+<includeonly><span class="eql-item-lore-missing" style="background: #7d684640;">[[File:Spellicon_U.png|18px]] <small style="font-size:71%;color: #d8c49c;">Item lore has not been documented. [{{fullurl:{{FULLPAGENAME}}|action=edit}} Help add lore]</small></span> [[Category:Missing Lore]][[Category:Lore Items]]</includeonly><noinclude>
+===Documentation===
+To add lore text onto an item's page, add:
+<br><br>
+'''<nowiki>{{Item Lore | The eternal flame of love, knowing}}</nowiki>'''
+<br><br>
+After the "notes =" section of the item page to create <span style="background: #7d684640;">[[File:Spellicon_U.png|18px]] <small style="font-size:71%;color: #d8c49c;">'''Item Lore''' : ''The eternal flame of love, knowing&nbsp;&nbsp;''</small></span> [[Category:Lore Items]]

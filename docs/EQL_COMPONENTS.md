@@ -82,6 +82,14 @@ Major custom skin behavior:
   introductions/descriptions at display time without rewriting database pages.
   The skin emits one native responsive viewport. See the
   [SEO ownership and release guide](EQL_SEO.md), including staging protections.
+  [`NavigationCrawl.php`](../skins/EQLImmersive/includes/NavigationCrawl.php)
+  qualifies recognized local utility/action links in custom menus and the native
+  toolbox while preserving ordinary content links and existing attributes.
+  Reviewed reader-copy templates, equipment category links and map-label patches
+  are database content, published separately by the fixed-target
+  [`sync-item-reader-copy.php`](../ops/sync-item-reader-copy.php) helper with
+  revision checks and private backups. See the
+  [indexed/excluded comparison](SEO_COMPARISON_2026-11.md) for evidence and limits.
 
 - `resources/collapsible.css`, loaded by the core skin styles, gives native
   article Expand/Collapse buttons gold text, a state chevron and keyboard focus
