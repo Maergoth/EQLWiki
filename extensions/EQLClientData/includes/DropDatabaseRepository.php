@@ -27,7 +27,7 @@ final class DropDatabaseRepository {
 		if ( !$db->tableExists( 'eql_eoz_observations', __METHOD__ ) ) {
 			return self::unavailable( $filters );
 		}
-		$key = $this->cache->makeKey( 'eqldrops', 'summary1-v2', self::WINDOW_LIMIT );
+		$key = $this->cache->makeKey( 'eqldrops', 'summary1-v3', self::WINDOW_LIMIT );
 		$snapshot = $this->cache->getWithSetCallback( $key, self::CACHE_SECONDS,
 			function ( $oldValue, &$ttl, array &$setOpts ) use ( $db ): array {
 				// Keyset chunks bound raw payload memory and share one descending snapshot.

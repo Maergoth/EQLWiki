@@ -69,7 +69,8 @@ final class DropObservationSummary {
 			$group['contributors'] = count( $group['_actors'] );
 			$group['totalReports'] = $totals[$group['_scope']];
 			// Denominator includes hidden single reports and every tier in the scope.
-			$group['reportShare'] = round( 100 * $group['reports'] / $group['totalReports'], 2 );
+            // Round once at presentation; rounding here can change the final displayed tenth.
+            $group['reportShare'] = 100.0 * $group['reports'] / $group['totalReports'];
 			unset( $group['_actors'], $group['_scope'] );
 			$rows[] = $group;
 		}

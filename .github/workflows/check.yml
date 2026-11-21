@@ -69,6 +69,8 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-store.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-ui.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-ads.cjs
+          NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-drop-overlay.cjs
+          node --check extensions/EQLClientData/resources/drop-database.js
           node --check skins/EQLImmersive/resources/ads.js
       - name: Check Eye of Zomm refresh wrapper
         run: bash ops/test-eoz-refresh-wrapper.sh
@@ -79,6 +81,7 @@ jobs:
       - name: Check client API and guarded activation contracts
         run: |
           php ops/test-eoz-observations.php
+          php ops/test-drop-database.php
           php ops/test-eoz-installers.php
           php ops/test-hover-item-metadata.php
       - name: Check automatic NPC recorded loot
