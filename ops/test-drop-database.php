@@ -126,6 +126,14 @@ namespace {
 	check( $case === [], 'Do not fuzzy-merge internal title case.' );
 	$firstLetter = DropObservationSummary::summarize( [ record( 94 ), record( 95, [ 'npcTitle' => 'a fixture guardian', 'zoneTitle' => 'Fixture_zone' ] ) ] );
 	check( $firstLetter[0]['reports'] === 2 && $firstLetter[0]['npcTitle'] === 'A fixture guardian', 'Wiki first-letter and underscore normalization groups exact canonical titles.' );
+	$roundingRecords = static function (): \Generator {
+		for ( $i = 1; $i <= 617; $i++ ) {
+			yield record( 1000 + $i, $i <= 273 ? [] : [ 'item' => 'Other item', 'itemTitle' => 'Other item' ] );
+		}
+	};
+	$rounding = DropObservationSummary::summarize( $roundingRecords() );
+	check( number_format( $rounding[0]['reportShare'], 1 ) === '44.2',
+		'273/617 displays 44.2% in both database and overlay; intermediate rounding must not produce 44.3%.' );
 
 	$db = new DropFixtureDB( $records );
 	$cache = new WANObjectCache();
