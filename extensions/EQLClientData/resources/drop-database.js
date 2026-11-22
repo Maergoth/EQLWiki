@@ -57,14 +57,17 @@
         return root.querySelectorAll( '.eql-drop-manual, .eql-mobpage-hero-loot ul, .eql-mobpage-loot ul, .eql-mobpage-common-loot ul' );
     }
     function percentageText( value ) { return /\d+(?:\.\d+)?\s*%/.test( value ); }
-    function annotationText( node, anchor ) {
-        if ( node === anchor || node.nodeType === 1 && ( node.matches( RATE_EXCLUSIONS ) || /^(?:UL|OL)$/.test( node.tagName ) ) ) { return ' '; }
+    function annotationText( node, anchor, owner ) {
+        if ( node === anchor || node.nodeType === 1 && node.matches( RATE_EXCLUSIONS ) ) { return ' '; }
+        // A rate-only sub-bullet belongs to this item; a nested item owns its own annotations.
+        if ( node.nodeType === 1 && node.tagName === 'LI' && node !== owner &&
+            hasItemIdentity( node ) ) { return ' '; }
         if ( node.nodeType === 3 ) { return node.textContent; }
-        return Array.prototype.map.call( node.childNodes, function ( child ) { return annotationText( child, anchor ); } ).join( '' );
+        return Array.prototype.map.call( node.childNodes, function ( child ) { return annotationText( child, anchor, owner ); } ).join( '' );
     }
     function plainItem( value ) {
         var label = value.trim(), suffix;
-        while ( ( suffix = /\s+\(([^()]*)\)$/.exec( label ) ) &&
+        while ( ( suffix = /\s*\(([^()]*)\)$/.exec( label ) ) &&
             ( /^(?:common|uncommon|rare|very rare|ultra rare|unique|always)$/i.test( suffix[ 1 ] ) || percentageText( suffix[ 1 ] ) ) ) {
             label = label.slice( 0, suffix.index ).trim();
         }
@@ -83,10 +86,13 @@
     }
     function primaryAnchor( li ) {
         return Array.prototype.find.call( li.querySelectorAll( 'a[href]' ), function ( candidate ) {
-            if ( candidate.closest( 'li' ) !== li || candidate.closest( '.hb, .ddb, .drare' ) || !anchorTitle( candidate ) ) { return false; }
+            if ( candidate.closest( 'li' ) !== li || candidate.closest( '.eql-drop-generated, .hb, .itemtopbg, .itembg, .itembotbg, .itemdata, .ils-slider-container, .ils-stat' ) || !anchorTitle( candidate ) ) { return false; }
             var before = document.createRange();before.selectNodeContents( li );before.setEndBefore( candidate );
             return !before.cloneContents().textContent.trim();
         } );
+    }
+    function hasItemIdentity( li ) {
+        return Boolean( primaryAnchor( li ) || !li.querySelector( 'a' ) && plainMarkup( li ) && plainItem( li.textContent ) );
     }
     function normalizePlainBlocks( root ) {
         Array.prototype.forEach.call( root.querySelectorAll( '.eql-mobpage-hero-loot, .eql-mobpage-loot, .eql-mobpage-common-loot' ), function ( panel ) {
@@ -141,14 +147,17 @@
         if ( !title ) { return null; }
         li.classList.add( 'eql-drop-clean-item' );
         var recorded = li.classList.contains( 'eql-recorded-loot-item' );
-        var manualRate = !recorded && percentageText( annotationText( li, anchor ) );
+        var manualRate = !recorded && percentageText( annotationText( li, anchor, li ) );
         Array.prototype.forEach.call( li.querySelectorAll( '.ddb' ), function ( node ) {
-            node.classList.toggle( 'eql-drop-manual-rate', !recorded && node.closest( 'li' ) === li &&
-                !node.parentElement.closest( RATE_EXCLUSIONS ) && percentageText( annotationText( node, anchor ) ) );
+            var owner = node.closest( 'li' );
+            while ( owner && owner !== li && !hasItemIdentity( owner ) ) { owner = owner.parentElement.closest( 'li' ); }
+            node.classList.toggle( 'eql-drop-manual-content', !recorded && owner === li &&
+                !node.parentElement.closest( RATE_EXCLUSIONS ) && ( node.contains( anchor ) || anchor.contains( node ) ||
+                    percentageText( annotationText( node, anchor, li ) ) ) );
         } );
         Array.prototype.forEach.call( li.querySelectorAll( '.itemtopbg, .itembg, .itembotbg, .ils-slider-container' ), function ( node ) {
-            node.classList.toggle( 'eql-drop-inline-stat', node.closest( 'li' ) === li && !node.closest( '.hb' ) &&
-                Boolean( node.closest( '.ddb.eql-drop-manual-rate' ) ) );
+            node.classList.toggle( 'eql-drop-inline-stat', !node.closest( '.hb' ) &&
+                Boolean( node.closest( '.ddb.eql-drop-manual-content' ) ) );
         } );
         return { li: li, anchor: anchor, key: titleKey( title ), recorded: recorded, manualRate: manualRate };
     }

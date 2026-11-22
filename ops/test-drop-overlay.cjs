@@ -155,10 +155,44 @@ function fixture( get, options = {} ) {
     notRates.render( [ row() ] );assert.equal( notRated.querySelector( '.hbdiv > .eql-drop-observed' ), null );
     assert.notEqual( notRates.window.getComputedStyle( changeable ).display, 'none' );
     changeable.textContent = '[5] 10x';notRates.render( [ row() ] );notRates.render( [ row() ] );
-    assert.equal( changeable.classList.contains( 'eql-drop-manual-rate' ), false, 'Removing an authored rate clears its visibility exemption on the next render.' );
+    assert.equal( changeable.classList.contains( 'eql-drop-manual-content' ), false, 'Removing an authored rate clears its visibility exemption on the next render.' );
     assert.equal( notRates.window.getComputedStyle( changeable ).display, 'none' );
     assert.equal( notRated.querySelectorAll( '.hbdiv > .eql-drop-observed' ).length, 1, 'Removing a manual rate restores exactly one eligible computed badge.' );
     notRates.close();
+
+    for ( const wrapperClass of [ 'ddb', 'drare' ] ) {
+        const wrapped = fixture( null, { html: card( '<ul><li id="wrapped"><span class="' + wrapperClass + '"><a href="/wiki/Test_Blade">Authored wrapper label</a> (72.3%)</span> (Common)</li></ul>' ) } );
+        await turn();await turn();const wrappedItem = wrapped.root.querySelector( '#wrapped' ), wrappedSource = wrappedItem.textContent;
+        wrapped.render( [ row() ] );wrapped.render( [ row() ] );
+        assert.equal( wrappedItem.querySelector( '.eql-drop-observed' ), null, 'A leading item anchor remains authoritative inside any authored rate wrapper.' );
+        assert.equal( wrapped.root.querySelector( '.eql-drop-observed-item' ), null, 'A .ddb/.drare wrapper never causes a duplicate automatic row.' );
+        assert.equal( wrappedItem.textContent, wrappedSource );
+        assert.notEqual( wrapped.window.getComputedStyle( wrappedItem.firstElementChild ).display, 'none', 'The complete authored wrapper stays visible.' );wrapped.close();
+    }
+    const labelOnly = fixture( null, { html: card( '<ul><li id="label-only"><span class="ddb"><a href="/wiki/Test_Blade">100% Pure Authored Blade</a></span> (Common)</li></ul>' ) } );
+    await turn();await turn();labelOnly.render( [ row() ] );labelOnly.render( [ row() ] );
+    assert.notEqual( labelOnly.window.getComputedStyle( labelOnly.root.querySelector( '#label-only > .ddb' ) ).display, 'none', 'A label-containing .ddb stays visible even with no authored rate.' );
+    assert.equal( labelOnly.root.querySelector( '#label-only .eql-drop-observed' ).textContent, ' (20%)', 'A percentage in the item label is never interpreted as a manual rate.' );
+    assert.equal( labelOnly.root.querySelector( '.eql-drop-observed-item' ), null );labelOnly.close();
+
+    const nestedNote = fixture( null, { html: card( '<ul><li id="note-owner"><a href="/wiki/Test_Blade">Test Blade</a><ul><li><span class="ddb">(~72.3%)<div class="itembg">Haste 40%</div></span></li></ul></li></ul>' ) } );
+    await turn();await turn();const nestedSource = nestedNote.root.textContent;
+    nestedNote.render( [ row() ] );nestedNote.render( [ row() ] );
+    assert.equal( nestedNote.root.querySelector( '.eql-drop-observed' ), null, 'A rate-only nested note belongs to its owning item.' );
+    assert.notEqual( nestedNote.window.getComputedStyle( nestedNote.root.querySelector( '.ddb' ) ).display, 'none' );
+    assert.equal( nestedNote.window.getComputedStyle( nestedNote.root.querySelector( '.ddb .itembg' ) ).display, 'none' );
+    assert.equal( nestedNote.root.textContent, nestedSource );nestedNote.close();
+    for ( const nestedItem of [ '<a href="/wiki/Other_Relic">Other relic</a> (50%)', 'Other Relic(50%)' ] ) {
+        const separate = fixture( null, { html: card( '<ul><li id="outer-item"><a href="/wiki/Test_Blade">Test Blade</a><ul><li id="separate-item">' + nestedItem + '</li></ul></li></ul>' ) } );
+        await turn();await turn();separate.render( [ row(), row( { item: 'Other Relic', itemTitle: 'Other Relic' } ) ] );separate.render( [ row(), row( { item: 'Other Relic', itemTitle: 'Other Relic' } ) ] );
+        assert.equal( separate.root.querySelector( '#outer-item > .eql-drop-observed' ).textContent, ' (20%)', 'A linked or conservative plain nested item owns its rate; it cannot suppress the outer item’s percentage.' );
+        assert.equal( separate.root.querySelector( '#separate-item .eql-drop-observed' ), null );
+        assert.equal( separate.root.querySelector( '.eql-drop-observed-item' ), null );separate.close();
+    }
+    const adjacent = fixture( null, { html: card( '<ul><li>Test Blade<span class="dcommon">(70%)</span></li><li>Adjacent Relic(0%)</li></ul>' ) } );
+    await turn();await turn();adjacent.render( [ row(), row( { item: 'Adjacent Relic', itemTitle: 'Adjacent Relic' } ) ] );
+    assert.deepEqual( [ ...adjacent.root.querySelectorAll( 'li > a' ) ].map( anchor => anchor.textContent ), [ 'Test Blade', 'Adjacent Relic' ] );
+    assert.equal( adjacent.root.querySelector( '.eql-drop-generated' ), null, 'A recognized percentage suffix needs no whitespace and is preserved as the authored rate.' );adjacent.close();
 
     const authored = fixture( () => Promise.reject( new Error( 'offline' ) ), { html: card( '<ul id="authored-list">' +
         '<li id="plain">Test Blade (Common)</li><li id="unknown">Unrecorded Manual Relic (Rare)</li>' +
