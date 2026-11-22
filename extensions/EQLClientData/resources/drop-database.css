@@ -24,8 +24,9 @@
 }
 /* Authored entries win over reciprocal/observed additions; retain their source and hover DOM. */
 .eql-mobpage .eql-drop-suppressed-item { display: none !important; }
-/* Keep authored source data and native hover nodes; suppress inline source-rate noise. */
-.eql-mobpage .eql-drop-clean-item .ddb,
+/* Preserve authored labels and rates; suppress only count-only blocks and inline item cards. */
+.eql-mobpage .eql-drop-clean-item .ddb:not(.eql-drop-manual-content),
+.eql-mobpage .eql-drop-clean-item .eql-drop-inline-stat,
 .eql-mobpage .eql-drop-clean-item > .itemtopbg,
 .eql-mobpage .eql-drop-clean-item > .itembg,
 .eql-mobpage .eql-drop-clean-item > .itembotbg,
