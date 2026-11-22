@@ -6,7 +6,7 @@ namespace EQLClientData;
 
 /** Public counts of explicit corpse reports. Reports are not distinct kills or drop chances. */
 final class DropObservationSummary {
-	public const MIN_REPORTS = 2;
+	public const MIN_REPORTS = 1;
 
 	/**
 	 * @param iterable $records Private accepted rows with eoo_actor and eoo_payload.
@@ -77,7 +77,7 @@ final class DropObservationSummary {
 			if ( $group['reports'] < self::MIN_REPORTS ) { unset( $members[$group['entryId']] ); continue; }
 			$group['contributors'] = count( $group['_actors'] );
 			$group['totalReports'] = $totals[$group['_scope']];
-			// Denominator includes hidden singles, every server and every tier in the scope.
+			// Every eligible report, server and tier in the scope stays in the denominator.
 			// Round once at presentation; rounding here can change the final displayed tenth.
 			$group['reportShare'] = 100.0 * $group['reports'] / $group['totalReports'];
 			unset( $group['_actors'], $group['_scope'] );

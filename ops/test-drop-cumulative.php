@@ -179,6 +179,8 @@ $summary = $repository->getSummary( [ 'item' => 'Legacy blade' ] );
 check( $summary['historyMode'] === 'cumulative' && !$summary['windowed'] && $summary['rows'][0]['reports'] === 100003, 'All-history total retains the earliest valid evidence beyond 100k.' );
 check( $summary['rows'][0]['quantity'] === 100004 && $summary['rows'][0]['contributors'] === 2 && $summary['rows'][0]['totalReports'] === 100005,
 	'Quantities, private distinct actors and singleton-inclusive source denominator are exact across servers/tiers.' );
+check( (int)$db->selectField( 'eql_drop_entries', 'den_reports', [ 'den_item' => 'Hidden singleton' ], __METHOD__ ) === 1,
+	'The existing cumulative schema already stores one-report entries; changing publication needs no data rebuild.' );
 check( $db->pdo->query( 'SELECT COUNT(*) FROM eql_eoz_observations' )->fetchColumn() == $rawProof + 1 && $db->pdo->query( 'SELECT eoo_payload,eoo_hash FROM eql_eoz_observations WHERE eoo_id=1' )->fetch( \PDO::FETCH_ASSOC ) === $rawFirst,
 	'Backfill preserves raw legacy payload bytes and hashes.' );
 // A different connection commits a missing LOWER raw ID after the scan cursor has passed it.
@@ -206,7 +208,7 @@ check( count( $history['rows'] ) === 1 && $history['rows'][0]['characterName'] =
 $new = raw( $db, 200001 );$db->startAtomic( __METHOD__, $db::ATOMIC_CANCELABLE );Store::accepted( $db, [ $new ] );$db->endAtomic( __METHOD__ );
 check( $repository->getDetail( $entry, $token, $deepOffset, 25 ) === $history, 'New ingestion cannot change the count or membership of an open revision-bound history.' );
 $rawReads = count( array_filter( $db->selects, static fn ( $select ) => in_array( 'eql_eoz_observations', $select['tables'], true ) ) );
-$page = $repository->getSummary( [ 'q' => 'LEGACY', 'limit' => 1 ] );$at = microtime( true );$repository->getDetail( $entry, $page['snapshot'], 0, 25 );$firstMs = ( microtime( true ) - $at ) * 1000;
+$page = $repository->getSummary( [ 'q' => 'LEGACY', 'item' => 'Legacy blade', 'limit' => 1 ] );$at = microtime( true );$repository->getDetail( $entry, $page['snapshot'], 0, 25 );$firstMs = ( microtime( true ) - $at ) * 1000;
 $pageQueries = static fn () => count( array_filter( $db->selects, static fn ( $select ) => is_array( $select['fields'] ) && in_array( $select['fields'][0], [ 'e.*','dpr_observed' ], true ) ) );
 $beforeEmpty = $pageQueries();
 check( $repository->getSummary( [ 'offset' => PHP_INT_MAX ] )['rows'] === [] && $pageQueries() === $beforeEmpty, 'Out-of-range summary offsets skip the SQL page scan.' );
@@ -216,6 +218,20 @@ foreach ( $cache->values as $manifest ) { check( count( $manifest ) <= 500 && !s
 $json = json_encode( $history );foreach ( [ 'eoo_', 'dpr_', 'actor', 'account', 'synthetic_event', 'sourceToken', 'sessionToken' ] as $private ) { check( !str_contains( $json, $private ), 'Detail privacy excludes ' . $private ); }
 $single = 'drop_' . hash( 'sha256', json_encode( [ 'Legacy zone', 'A legacy guardian', 'Hidden singleton', 'normal' ] ) );
 refuses( fn () => $repository->getDetail( $single, $page['snapshot'] ), 'eqldrops-detail-unavailable' );
+$singlePage = $repository->getSummary( [ 'item' => 'Hidden singleton' ] );
+check( $singlePage['totalRows'] === 1 && $singlePage['rows'][0]['reports'] === 1 && $singlePage['rows'][0]['totalReports'] === $page['rows'][0]['totalReports'] &&
+	abs( $singlePage['rows'][0]['reportShare'] - 100 / $page['rows'][0]['totalReports'] ) < 0.000001, 'Cumulative single-report publication uses the unchanged full source denominator.' );
+$singleHistory = $repository->getDetail( $single, $singlePage['snapshot'] );
+check( $singleHistory['totalRows'] === 1 && count( $singleHistory['rows'] ) === 1 && !$singleHistory['hasMore'] &&
+	array_keys( $singleHistory['rows'][0] ) === [ 'observedAt', 'receivedAt', 'quantity', 'characterName', 'sourceKind' ], 'A singleton snapshot serves exactly one allowlisted history row.' );
+$priorBoundary = $db->selectRow( 'eql_drop_entries', [ 'den_revision', 'den_reports' ], [ 'den_id' => substr( $entry, 5 ) ], __METHOD__ );
+$oldToken = hash( 'sha256', 'synthetic pre-change repeated-entry snapshot' );
+$cache->values[$cache->makeKey( 'eqldrops', Store::VERSION, 'detail', $oldToken )] = [ $entry => [ 'revision' => (int)$priorBoundary->den_revision, 'reports' => (int)$priorBoundary->den_reports ] ];
+check( count( $repository->getDetail( $entry, $oldToken, 0, 1 )['rows'] ) === 1, 'Previously opened cumulative snapshots keep the same cache namespace and bounded history contract.' );
+$again = raw( $db, 200002, [ 'item' => 'Hidden singleton' ] );$db->startAtomic( __METHOD__, $db::ATOMIC_CANCELABLE );Store::accepted( $db, [ $again, $again ] );$db->endAtomic( __METHOD__ );
+$singleNow = $repository->getSummary( [ 'item' => 'Hidden singleton' ] )['rows'][0];
+check( $repository->getDetail( $single, $singlePage['snapshot'] ) === $singleHistory && $singleNow['reports'] === 2 && $singleNow['totalReports'] === $singlePage['rows'][0]['totalReports'] + 1,
+	'A new report and duplicate replay never change an open one-report snapshot or double-count its totals.' );
 $cache->fail = true;check( !$repository->getSummary()['detailsAvailable'], 'Cache write failure leaves cumulative counts available with history disabled.' );$cache->fail = false;$cache->values = [];
 refuses( fn () => $repository->getDetail( $entry, $token ), 'eqldrops-detail-stale' );
 // Real ingestion owns raw event, projection, receipt and counters in one transaction.

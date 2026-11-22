@@ -279,10 +279,12 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   articles or publish drop rates. Standard MediaWiki `action=edit` handles page
   creation/updates. [API, schema and activation contract](CLIENT_API.md); the
   reviewed public `API_Documentation` database page has its own guarded publisher.
-- `Special:DropDatabase` and GET `action=eqldrops` expose repeated explicit-corpse
+- `Special:DropDatabase` and GET `action=eqldrops` expose explicit-corpse
   loot aggregates through `DropDatabaseRepository`/`DropObservationSummary`.
   The conditional `ext.eqlDropDatabase` module adds grey report-share percentages
-  beside exact item-link destinations on NPC pages and appends unlisted items.
+  beside exact item-link destinations on NPC pages and appends unlisted items,
+  starting with one eligible report. The loot table has no share-explanation
+  disclosure; its source selector remains when multiple contexts exist.
   The browser combines server/tier and expands individual submissions with UTC
   observed/received times, quantity and an optional explicitly consented character
   name; private actor/account/event identifiers are never public. Invalid area-rule
@@ -295,10 +297,13 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   backfill. Reads use indexed totals and bounded submission pages; readiness
   keeps the recent received-report fallback until completion. Schema-2 snapshots
   require persistent shared WAN cache for history. No lifetime entry cutoff
-  applies once cumulative readiness is active. Source deployment does not install
+  applies once cumulative readiness is active. Single-report entries already
+  exist in these tables; lowering the publication minimum needs no schema or
+  backfill. Recent-window caches include the minimum, while existing cumulative
+  history snapshots retain their cache namespace. Source deployment does not install
   schema, private maintenance or database documentation; see the separate
   [activation and rollback guide](CUMULATIVE_DROPS.md).
-  See [the metric and history contract](CLIENT_API.md#browsing-observed-loot-14-read-schema-2).
+  See [the metric and history contract](CLIENT_API.md#browsing-observed-loot-15-read-schema-2).
 - Metadata comes from database `VerifiedPages`, `Template:PageEra`, and
   `SpellLevelSliderOverrides`. Revision-aware WANObjectCache entries and
   save/move/delete invalidation keep data fresh. Era results also depend on page

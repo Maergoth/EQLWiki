@@ -31,7 +31,7 @@ final class CumulativeDropReader {
 			// At most one tiny boundary per displayed entry, never one ID per submission.
 			$details[$id] = [ 'revision' => (int)$record->den_revision, 'reports' => (int)$record->den_reports ];
 		}
-		$token = hash( 'sha256', json_encode( [ CumulativeDropStore::VERSION, $filters, $rows, $details ], JSON_THROW_ON_ERROR ) );
+		$token = hash( 'sha256', json_encode( [ CumulativeDropStore::VERSION, DropObservationSummary::MIN_REPORTS, $filters, $rows, $details ], JSON_THROW_ON_ERROR ) );
 		try { $saved = $this->cache->set( $this->key( $token ), $details, self::SNAPSHOT_TTL ); }
 		catch ( \Throwable $error ) { $saved = false; }
 		return [ 'available' => true, 'snapshot' => $token, 'historyMode' => 'cumulative', 'cumulativeStatus' => 'ready',

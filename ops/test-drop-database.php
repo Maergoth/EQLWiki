@@ -122,12 +122,15 @@ namespace {
 	];
 	$records[] = $records[0];
 	$rows = DropObservationSummary::summarize( $records );
-	check( count( $rows ) === 2, 'Publish repeated source/item groups with normal and raid separate.' );
-	$normal = array_values( array_filter( $rows, static fn ( $row ) => $row['instance'] === 'normal' ) );
+	check( count( $rows ) === 3, 'Publish every eligible source/item group, including one report, with normal and raid separate.' );
+	$normal = array_values( array_filter( $rows, static fn ( $row ) => $row['instance'] === 'normal' && $row['item'] === 'Fixture blade' ) );
 	check( count( $normal ) === 1 && !isset( $normal[0]['server'], $normal[0]['tier'] ), 'Combine server and tier dimensions before grouping.' );
 	check( $normal[0]['reports'] === 6 && $normal[0]['quantity'] === 7 && $normal[0]['contributors'] === 2, 'Reports combine tiers and servers; quantities and contributors remain distinct counts.' );
 	check( $normal[0]['totalReports'] === 7 && abs( $normal[0]['reportShare'] - 600 / 7 ) < 0.00001,
-		'Hidden singleton remains in denominator while pseudo-zones are quarantined.' );
+		'Publishing the singleton does not change any report-share denominator; pseudo-zones stay excluded.' );
+	$single = array_values( array_filter( $rows, static fn ( $row ) => $row['item'] === 'Hidden single' ) );
+	check( count( $single ) === 1 && $single[0]['reports'] === 1 && $single[0]['totalReports'] === 7 && abs( $single[0]['reportShare'] - 100 / 7 ) < 0.00001,
+		'A single eligible report is public with its original source denominator.' );
 	check( $normal[0]['item'] === 'Fixture blade', 'Canonical title claims group raw-name aliases exactly.' );
 	$encoded = json_encode( $rows, JSON_THROW_ON_ERROR );
 	foreach ( [ '70001', '70002', 'fixture_event', 'private_source', 'private_session', 'private_player', 'eoo_', 'dropRate' ] as $private ) {
@@ -136,7 +139,7 @@ namespace {
 	$overlap = DropObservationSummary::summarize( [ record( 91 ), record( 91, [], 70002 ) ] );
 	check( $overlap[0]['reports'] === 2 && $overlap[0]['contributors'] === 2, 'Same event key from another account is a report, never proven unique kill.' );
 	$case = DropObservationSummary::summarize( [ record( 92 ), record( 93, [ 'itemTitle' => 'Fixture Blade' ] ) ] );
-	check( $case === [], 'Do not fuzzy-merge internal title case.' );
+	check( count( $case ) === 2 && array_column( $case, 'reports' ) === [ 1, 1 ], 'Publish distinct singleton spellings without fuzzy-merging internal title case.' );
 	$firstLetter = DropObservationSummary::summarize( [ record( 94 ), record( 95, [ 'npcTitle' => 'a fixture guardian', 'zoneTitle' => 'Fixture_zone' ] ) ] );
 	check( $firstLetter[0]['reports'] === 2 && $firstLetter[0]['npcTitle'] === 'A fixture guardian', 'Wiki first-letter and underscore normalization groups exact canonical titles.' );
 	$combined = DropObservationSummary::summarize( [ record( 96 ), record( 97, [ 'server' => 'Other server', 'tier' => 7 ] ) ] );
@@ -153,10 +156,14 @@ namespace {
 
 	$db = new DropFixtureDB( $records );
 	$cache = new WANObjectCache();
+	$oldKey = $cache->makeKey( 'eqldrops', 'summary2-details1', DropDatabaseRepository::WINDOW_LIMIT );
+	$cache->values[$oldKey] = [ 'available' => true, 'snapshot' => str_repeat( 'b', 64 ), 'windowed' => false, 'rows' => [], 'members' => [] ];
 	$repository = new DropDatabaseRepository( new DropFixtureProvider( $db ), $cache );
 	$result = $repository->getSummary( [ 'limit' => 1 ] );
-	check( $result['available'] && !$result['windowed'] && $result['totalRows'] === 2 && $result['hasMore'] && count( $result['rows'] ) === 1,
+	check( $result['available'] && !$result['windowed'] && $result['totalRows'] === 3 && $result['hasMore'] && count( $result['rows'] ) === 1,
 		'Filter and paginate the public projection.' );
+	check( $db->reads === 1 && isset( $cache->values[$cache->makeKey( 'eqldrops', 'summary2-details1', DropDatabaseRepository::WINDOW_LIMIT, 1 )] ),
+		'Admission-aware cache keys bypass an existing five-minute minimum-two projection immediately.' );
 	check( $result['rows'][0]['totalReports'] === 7, 'Filtering and paging cannot renormalize the denominator.' );
 	$next = $repository->getSummary( [ 'q' => 'FIXTURE BLADE', 'offset' => 1, 'limit' => 1 ] );
 	check( count( $next['rows'] ) === 1 && $next['totalRows'] === 2 && $db->reads === 1, 'Literal search is case insensitive and all filters share the cached projection.' );
@@ -182,7 +189,11 @@ namespace {
 	unavailable( static fn () => $repository->getDetail( $entryId, str_repeat( 'a', 64 ) ), 'eqldrops-detail-stale' );
 	unavailable( static fn () => $repository->getDetail( 'drop_' . str_repeat( '0', 64 ), $token ), 'eqldrops-detail-unavailable' );
 	$singleId = 'drop_' . hash( 'sha256', json_encode( [ 'Fixture zone', 'A fixture guardian', 'Hidden single', 'normal' ], JSON_THROW_ON_ERROR ) );
-	unavailable( static fn () => $repository->getDetail( $singleId, $token ), 'eqldrops-detail-unavailable' );
+	$singleDetail = $repository->getDetail( $singleId, $token );
+	check( $singleDetail['totalRows'] === 1 && count( $singleDetail['rows'] ) === 1 && !$singleDetail['hasMore'] && $singleDetail['rows'][0]['quantity'] === 1,
+		'A public singleton expands to its one real accepted report.' );
+	check( array_keys( $singleDetail['rows'][0] ) === [ 'observedAt', 'receivedAt', 'quantity', 'characterName', 'sourceKind' ], 'Singleton history retains the same public privacy allowlist.' );
+	unavailable( static fn () => $repository->getDetail( $entryId, $cache->values[$oldKey]['snapshot'] ), 'eqldrops-detail-stale' );
 	$named = DropObservationSummary::detail( record( 201, [ 'characterName' => 'Fixture Adventurer' ] ), $entryId );
 	check( $named['characterName'] === 'Fixture Adventurer', 'Only an explicitly supplied, validated public character name appears.' );
 	check( DropObservationSummary::detail( record( 202, [ 'characterName' => 'C:\\private\\log.txt' ] ), $entryId ) === null, 'Path-like attribution cannot become public detail.' );
@@ -209,6 +220,7 @@ namespace {
 	check( $main->data['eqldrops']['metric'] === 'loot-report-share' && str_contains( $main->data['eqldrops']['coverage'], 'not a drop chance' ),
 		'API documents the metric and unknown coverage alongside the rows.' );
 	check( $main->data['eqldrops']['schemaVersion'] === 2 && !isset( $api->getAllowedParams()['server'] ), 'Schema two combines server and tier dimensions.' );
+	check( $main->data['eqldrops']['minimumReports'] === 1, 'The public API advertises first-report publication without changing its metric.' );
 	$api->params = [ 'detail' => $entryId, 'snapshot' => $token, 'limit' => 2, 'offset' => 0 ];
 	$api->execute();
 	check( isset( $main->data['eqldrops']['detail']['rows'] ) && !isset( $main->data['eqldrops']['rows'] ), 'API detail has its own bounded response shape.' );
