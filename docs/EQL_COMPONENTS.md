@@ -278,9 +278,15 @@ version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations).
   through `searchSummary()`; the HTTP API's `getSummary()` filters keep exact
   identities. A collapsed integration guide documents the existing authenticated
   `eozobservations` upload with a synthetic example and current-wiki endpoint,
-  without another importer or write API. The browser has no effect on article
-  loot lists: the separate
-  NPC overlay and display cleanup remain on staging only. See
+  without another importer or write API. On EQLImmersive main-namespace NPC pages,
+  `Hooks::onBeforePageDisplay` loads the registered `ext.eqlDropDatabase` module.
+  It adds one grey percentage beside exact item-link destinations and appends
+  unmatched items from their first eligible report. Authored plain names or
+  ordinary wikilinks override generated rows while preserving labels, rarity
+  and hover source; generated `Mote of …` rows are hidden only on this display.
+  Stored evidence, API entries and report denominators remain unchanged. Normal
+  source deployment activates the module, without another setting, schema or
+  template publication. See
   [the metric and history contract](CLIENT_API.md#browsing-observed-loot-15-read-schema-2).
   Optional cumulative totals
   use `CumulativeDropStore`/`CumulativeDropReader` and five separately installed

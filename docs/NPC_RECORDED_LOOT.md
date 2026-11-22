@@ -25,6 +25,30 @@ unparsed qualifiers still require review.
 Only public authored fields establish relationships; generic prose, comments,
 protected examples and unused wrapper arguments do not establish drops.
 
+## Simple manual entries on NPC pages
+
+Use one item per bullet or simple line in `known_loot` / `common_loot`, for example:
+
+```wikitext
+* Test Blade (Common)
+* [[Canonical Blade|My label]] (Rare)
+```
+
+New entries need no HTML spans, `.ddb` percentages or item transclusions. The
+observed-loot overlay links safe whole plain names and prefers the
+destination of an explicit same-wiki item link. It keeps authored labels, rarity
+and notes, and hides matching generated duplicates instead of adding another
+item. Recognized rarity suffixes are Common, Uncommon, Rare, Very Rare, Ultra
+Rare, Unique and Always. Complex prose/qualifiers are left intact, not partially
+matched into an item identity. Plain names remain readable without JavaScript.
+
+This is display enrichment, not a new source extractor: an ordinary wikilink
+still establishes the native reciprocal relationship described above, while a
+plain name alone does not. Linking a plain name does not claim that its page
+exists. The overlay also filters generated `Mote of …` rows; explicitly authored
+Motes remain. No stored event, authored source, API/database entry or percentage
+denominator is deleted or changed by this display filter.
+
 ## Layout and duplicate handling
 
 NPC additions go inside the existing `Namedmobpage` loot fields. The existing
