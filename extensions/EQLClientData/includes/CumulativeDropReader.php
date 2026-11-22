@@ -7,10 +7,16 @@ final class CumulativeDropReader {
 	public const SNAPSHOT_TTL = 300;
 	public function __construct( private readonly \WANObjectCache $cache ) {}
 
-	public function summary( $db, array $filters ): array {
+	public function summary( $db, array $filters, array $contains = [] ): array {
 		$conditions = [ 'e.den_reports >= ' . DropObservationSummary::MIN_REPORTS ];
 		foreach ( [ 'zone', 'npc', 'item', 'instance' ] as $field ) {
 			if ( $filters[$field] !== '' ) { $conditions['e.den_' . $field] = $filters[$field]; }
+		}
+		foreach ( [ 'zone', 'npc', 'item' ] as $field ) {
+			if ( !isset( $contains[$field] ) ) { continue; }
+			// Stored names are VARBINARY; LOWER(binary) alone would not fold UTF-8 text.
+			$conditions[] = 'LOWER(CONVERT(e.den_' . $field . ' USING utf8mb4)) COLLATE utf8mb4_bin ' .
+				$db->buildLike( $db->anyString(), mb_strtolower( $contains[$field], 'UTF-8' ), $db->anyString() );
 		}
 		if ( $filters['q'] !== '' ) {
 			$conditions[] = 'e.den_search ' . $db->buildLike( $db->anyString(), mb_strtolower( $filters['q'], 'UTF-8' ), $db->anyString() );
@@ -31,7 +37,9 @@ final class CumulativeDropReader {
 			// At most one tiny boundary per displayed entry, never one ID per submission.
 			$details[$id] = [ 'revision' => (int)$record->den_revision, 'reports' => (int)$record->den_reports ];
 		}
-		$token = hash( 'sha256', json_encode( [ CumulativeDropStore::VERSION, DropObservationSummary::MIN_REPORTS, $filters, $rows, $details ], JSON_THROW_ON_ERROR ) );
+		$identity = [ CumulativeDropStore::VERSION, DropObservationSummary::MIN_REPORTS, $filters, $rows, $details ];
+		if ( $contains ) { $identity[] = $contains; }
+		$token = hash( 'sha256', json_encode( $identity, JSON_THROW_ON_ERROR ) );
 		try { $saved = $this->cache->set( $this->key( $token ), $details, self::SNAPSHOT_TTL ); }
 		catch ( \Throwable $error ) { $saved = false; }
 		return [ 'available' => true, 'snapshot' => $token, 'historyMode' => 'cumulative', 'cumulativeStatus' => 'ready',

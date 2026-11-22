@@ -22,6 +22,8 @@
     align-items: baseline;
     gap: 0.3rem 0.8rem;
 }
+/* Authored entries win over reciprocal/observed additions; retain their source and hover DOM. */
+.eql-mobpage .eql-drop-suppressed-item { display: none !important; }
 /* Keep authored source data and native hover nodes; suppress inline source-rate noise. */
 .eql-mobpage .eql-drop-clean-item .ddb,
 .eql-mobpage .eql-drop-clean-item > .itemtopbg,

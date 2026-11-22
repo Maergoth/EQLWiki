@@ -8,11 +8,12 @@ const source = fs.readFileSync( path.join( __dirname, '../extensions/EQLClientDa
 const css = fs.readFileSync( path.join( __dirname, '../extensions/EQLClientData/resources/drop-database.css' ), 'utf8' );
 const row = ( extra = {} ) => ( { zone: 'Mist Valley', zoneTitle: 'Mist Valley', npc: 'A test creature', npcTitle: 'A test creature', item: 'Test Blade', itemTitle: 'Test Blade', instance: 'unknown', reports: 4, totalReports: 20, reportShare: 20, ...extra } );
 const turn = () => new Promise( resolve => setImmediate( resolve ) );
-function fixture( get ) {
+function fixture( get, options = {} ) {
     const dom = new JSDOM( '<head><style>' + css + '</style></head><body><div class="eql-mobpage"><div class="eql-mobpage-hero-loot"><h2>Known Loot</h2><ul><li id="manual"><span class="hbdiv"><a href="/wiki/Test_Blade" title="Displayed alias">My manual label</a><span class="hb"><div class="itemtopbg">Tooltip title</div><div class="itembg"><div class="itemdata">WT:0.5 Class:ALL<div class="ils-slider-container">Rank slider</div></div></div></span></span> <span class="drare">(Common)</span> <span class="ddb">[1] 4x55%(10%)</span></li><li id="no-report"><a href="/wiki/Other_Item">Other item</a><span class="ddb">[9] 40%</span><div class="itembg">Unwanted inline stats</div></li><li id="case"><a href="/wiki/Test_blade">Case-distinct item</a></li><li id="query"><a href="/index.php?title=Query_Item&amp;action=edit&amp;redlink=1">A redlink label</a> (Rare)</li></ul></div><div class="eql-mobpage-common-loot"><ul><li id="common"><a href="/wiki/Common_Item">Common item</a> (notes)</li></ul></div></div></body>', { url: 'https://wiki.example/wiki/A_test_creature', runScripts: 'outside-only' } );
     const window = dom.window, document = window.document, calls = [], hooks = [];
+    if ( options.html ) { document.body.innerHTML = options.html; }
     const config = { wgPageName: 'A_test_creature', wgArticlePath: '/wiki/$1', wgIsArticle: true, wgAction: 'view' };
-    window.mw = { config: { get: key => config[ key ] }, util: { getUrl: title => '/wiki/' + encodeURIComponent( title.replace( / /g, '_' ) ) }, hook: () => ( { add: fn => hooks.push( fn ) } ), Api: function () { this.get = ( params, options ) => { calls.push( { params, options } );return get ? get() : Promise.resolve( { eqldrops: { rows: [] } } ); }; } };
+    window.mw = { config: { get: key => config[ key ] }, util: { getUrl: options.getUrl || ( title => '/wiki/' + encodeURIComponent( title.replace( / /g, '_' ) ) ) }, hook: () => ( { add: fn => hooks.push( fn ) } ), Api: function () { this.get = ( params, options ) => { calls.push( { params, options } );return get ? get() : Promise.resolve( { eqldrops: { rows: [] } } ); }; } };
     window.eval( source );document.dispatchEvent( new window.Event( 'DOMContentLoaded' ) );
     const root = document.querySelector( '.eql-mobpage' );
     return { dom, window, document, root, calls, hooks, render: rows => window.EQLDropDatabase.render( root, rows ), close: () => window.close() };
@@ -108,5 +109,95 @@ function fixture( get ) {
     assert.equal( offline.root.querySelectorAll( '.eql-drop-generated' ).length, 0 );offline.close();
     const syncFailure = fixture( () => { throw new Error( 'transport unavailable' ); } );await turn();await turn();
     assert.equal( syncFailure.root.querySelectorAll( '.eql-drop-generated' ).length, 0 );syncFailure.close();
-    console.log( 'Drop overlay passed: single-report matches/appends, idempotent compact percentages, destination/rarity/case matching, zone/instance selector without disclosure or empty controls, hidden authored rates/inline stats, preserved hover source, safe text and bounded silent failure.' );
+
+    const card = content => '<div class="eql-mobpage"><div class="eql-mobpage-loot"><h2>Known Loot</h2>' + content + '</div></div>';
+    const authored = fixture( () => Promise.reject( new Error( 'offline' ) ), { html: card( '<ul id="authored-list">' +
+        '<li id="plain">Test Blade (Common)</li><li id="unknown">Unrecorded Manual Relic (Rare)</li>' +
+        '<li id="alias"><a href="/wiki/Canonical_Relic">My chosen alias</a> (Unique)</li>' +
+        '<li id="manual-mote">Mote of Fire</li><li id="qualified">Test Blade (quest only)</li>' +
+        '<li id="url-name">https://unsafe.example/Test Blade</li><li id="unsafe-link"><a href="javascript:bad()">Unsafe Relic</a></li>' +
+        '<li id="external-link"><a href="https://unsafe.example/Test_Blade">Test Blade</a></li></ul>' +
+        '<ul class="eql-recorded-loot"><li id="reciprocal-duplicate" class="eql-recorded-loot-item"><span class="ih"><a href="/wiki/Test_Blade">Generated source label</a></span><span class="hb">Native hover data</span></li>' +
+        '<li id="reciprocal-mote" class="eql-recorded-loot-item"><a href="/wiki/Mote_of_Frost">Winter crystal alias</a></li>' +
+        '<li id="reciprocal-mote-alias" class="eql-recorded-loot-item"><a href="/wiki/Winter_crystal_alias">Winter crystal alias</a></li>' +
+        '<li id="reciprocal-raw-mote" class="eql-recorded-loot-item"><a href="/wiki/Canonical_Hidden_Relic">Canonical hidden relic</a></li>' +
+        '<li id="reciprocal-manual-mote" class="eql-recorded-loot-item"><a href="/wiki/Mote_of_Fire">Generated fire mote</a></li>' +
+        '<li id="reciprocal-only" class="eql-recorded-loot-item"><a href="/wiki/Unobserved_Reciprocal_Relic">Unobserved reciprocal relic</a></li></ul>' ) } );
+    await turn();await turn();
+    const plain = authored.root.querySelector( '#plain' ), unknownManual = authored.root.querySelector( '#unknown' );
+    assert.equal( plain.querySelector( 'a' ).getAttribute( 'href' ), 'https://wiki.example/wiki/Test_Blade', 'An ordinary literal item name links before the observation API succeeds.' );
+    assert.equal( plain.textContent, 'Test Blade (Common)' );
+    assert.equal( unknownManual.querySelector( 'a' ).textContent, 'Unrecorded Manual Relic', 'Unknown authored items remain usable literal wiki targets without an observation.' );
+    assert.equal( unknownManual.textContent, 'Unrecorded Manual Relic (Rare)' );
+    assert.equal( authored.window.getComputedStyle( authored.root.querySelector( '#reciprocal-duplicate' ) ).display, 'none', 'A plain authored name supersedes a generated reciprocal duplicate even while offline.' );
+    assert.equal( authored.root.querySelector( '#reciprocal-duplicate .hb' ).textContent, 'Native hover data', 'Suppression retains reciprocal source/hover nodes.' );
+    assert.equal( authored.window.getComputedStyle( authored.root.querySelector( '#reciprocal-mote' ) ).display, 'none', 'A generated Mote is filtered by link destination, independently of its displayed alias.' );
+    assert.equal( authored.window.getComputedStyle( authored.root.querySelector( '#reciprocal-manual-mote' ) ).display, 'none' );
+    assert.notEqual( authored.window.getComputedStyle( authored.root.querySelector( '#manual-mote' ) ).display, 'none', 'An explicitly authored Mote remains authoritative.' );
+    assert.notEqual( authored.window.getComputedStyle( authored.root.querySelector( '#reciprocal-only' ) ).display, 'none' );
+    assert.equal( authored.root.querySelector( '#qualified a' ), null, 'Arbitrary parenthetical qualifiers do not become a partial plain-name match.' );
+    assert.equal( authored.root.querySelector( '#url-name a' ), null, 'A URL is never treated as a plain item name.' );
+    const evidence = [ row(), row( { item: 'New Observed Relic', itemTitle: 'New Observed Relic', reports: 1 } ),
+        row( { item: 'Mote of Frost', itemTitle: 'Mote of Frost', reports: 13 } ),
+        row( { item: 'Mote of Fire', itemTitle: 'Mote of Fire', reports: 2 } ),
+        row( { item: 'Winter crystal alias', itemTitle: 'Mote_of_Winter', reports: 1 } ),
+        row( { item: 'Mote of Tides', itemTitle: 'Canonical Hidden Relic', reports: 1 } ),
+        row( { item: 'Canonical Relic', itemTitle: 'Canonical Relic', reports: 1 } ),
+        row( { item: 'Unsafe Relic', itemTitle: 'Unsafe Relic', reports: 1 } ) ];
+    const beforeRows = JSON.stringify( evidence );authored.render( evidence );
+    assert.equal( plain.querySelector( '.eql-drop-observed' ).textContent, ' (20%)', 'Hiding Motes never renormalizes a non-Mote report percentage.' );
+    assert.match( plain.querySelector( '.eql-drop-observed' ).title, /out of 20 recorded loot events/ );
+    assert.equal( authored.root.querySelector( '#manual-mote .eql-drop-observed' ).textContent, ' (10%)', 'An explicitly authored Mote can retain its observed annotation.' );
+    assert.equal( authored.root.querySelector( '#alias a' ).textContent, 'My chosen alias' );
+    assert.equal( authored.root.querySelector( '#alias' ).textContent, 'My chosen alias (5%) (Unique)', 'Ordinary wiki-link destinations take precedence over their labels and preserve rarity notes.' );
+    assert.equal( authored.root.querySelector( '#qualified .eql-drop-observed' ), null );
+    assert.equal( authored.root.querySelector( '#external-link .eql-drop-observed' ), null );
+    assert.equal( authored.root.querySelector( '#unsafe-link .eql-drop-observed' ), null );
+    for ( const id of [ 'reciprocal-mote-alias', 'reciprocal-raw-mote' ] ) {
+        assert.equal( authored.window.getComputedStyle( authored.root.querySelector( '#' + id ) ).display, 'none', 'A reciprocal row is still generated when API raw/canonical evidence identifies its alias as a Mote.' );
+        assert.equal( authored.root.querySelector( '#' + id + ' .eql-drop-observed' ), null );
+    }
+    assert.deepEqual( [ ...authored.root.querySelectorAll( '.eql-drop-observed-item' ) ].map( item => item.querySelector( 'a' ).textContent ), [ 'New Observed Relic', 'Unsafe Relic' ], 'Only safe unmatched non-Mote observations are appended.' );
+    assert.equal( JSON.stringify( evidence ), beforeRows, 'Display filtering never edits API evidence or denominators.' );
+    authored.render( evidence );authored.render( evidence );
+    assert.equal( plain.querySelectorAll( 'a' ).length, 1 );assert.equal( plain.querySelectorAll( '.eql-drop-observed' ).length, 1 );
+    assert.equal( authored.root.querySelectorAll( '.eql-drop-observed-item' ).length, 2 );
+    const addedManual = authored.document.createElement( 'li' );addedManual.textContent = 'New Observed Relic (Uncommon)';authored.root.querySelector( '#authored-list' ).appendChild( addedManual );
+    authored.render( evidence );
+    assert.equal( addedManual.textContent, 'New Observed Relic (5%) (Uncommon)' );
+    assert.equal( authored.root.querySelectorAll( '.eql-drop-observed-item' ).length, 1, 'Adding a normal authored name replaces its automatic entry on re-render.' );
+    plain.remove();authored.render( evidence );
+    assert.notEqual( authored.window.getComputedStyle( authored.root.querySelector( '#reciprocal-duplicate' ) ).display, 'none', 'Removing a manual override reveals the retained reciprocal fallback.' );
+    assert.equal( authored.root.querySelectorAll( '#reciprocal-duplicate .eql-drop-observed' ).length, 1 );
+    authored.close();
+
+    const paragraphs = fixture( null, { html: card( '<p>Plain Ring (Rare)\n<a href="/wiki/Linked_Relic">Authored link label</a> (Common)<br>Unknown Manual Gem</p>' ) } );
+    await turn();await turn();
+    assert.equal( paragraphs.root.querySelector( 'p' ), null );
+    assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-manual-list > li' ).length, 3, 'Bare one-per-line names and ordinary links use the native loot-list layout.' );
+    assert.deepEqual( [ ...paragraphs.root.querySelectorAll( 'li > a' ) ].map( anchor => anchor.textContent ), [ 'Plain Ring', 'Authored link label', 'Unknown Manual Gem' ] );
+    paragraphs.render( [ row( { item: 'Plain Ring', itemTitle: 'Plain Ring', reports: 1 } ), row( { item: 'Linked Relic', itemTitle: 'Linked Relic', reports: 1 } ) ] );
+    paragraphs.render( [ row( { item: 'Plain Ring', itemTitle: 'Plain Ring', reports: 1 } ), row( { item: 'Linked Relic', itemTitle: 'Linked Relic', reports: 1 } ) ] );
+    assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-manual-list' ).length, 1 );
+    assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-observed-item' ).length, 0 );
+    assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-observed' ).length, 2 );paragraphs.close();
+
+    const prose = fixture( null, { html: card( '<p id="loot-prose">Always drops two pieces of armor</p><ul><li id="loot-qualifier">Drops from low-level humanoids</li><li id="literal-drop">Drop of Rain (Rare)</li></ul>' ) } );await turn();await turn();
+    assert.equal( prose.root.querySelector( '#loot-prose' ).tagName, 'P', 'Known quantity/loot prose is not converted into a literal-item list.' );
+    assert.equal( prose.root.querySelector( '#loot-prose' ).textContent, 'Always drops two pieces of armor' );
+    assert.equal( prose.root.querySelector( '#loot-prose a' ), null );assert.equal( prose.root.querySelector( '#loot-qualifier a' ), null );
+    assert.equal( prose.root.querySelector( '#literal-drop a' ).textContent, 'Drop of Rain', 'A literal item containing Drop is not confused with a loot instruction.' );prose.close();
+
+    const aliases = fixture( null, { html: card( '<ul><li id="literal-alias">Reported Relic (Rare)</li></ul>' ) } );await turn();await turn();
+    aliases.render( [ row( { item: 'Reported Relic', itemTitle: 'Canonical Relic', reports: 1 } ) ] );
+    assert.equal( aliases.root.querySelectorAll( '#literal-alias .eql-drop-observed' ).length, 1, 'A whole reported name can match one unambiguous canonical item.' );
+    aliases.render( [ row( { item: 'Reported Relic', itemTitle: 'Canonical Relic', reports: 1 } ), row( { item: 'Reported Relic', itemTitle: 'Other Canonical Relic', reports: 1 } ) ] );
+    assert.equal( aliases.root.querySelector( '#literal-alias .eql-drop-observed' ), null, 'Ambiguous raw aliases never merge distinct canonical items.' );aliases.close();
+
+    const unsafeUrl = fixture( null, { html: card( '<ul><li id="safe-literal">Test Blade (Rare)</li></ul>' ), getUrl: () => 'https://unsafe.example/item' } );await turn();await turn();
+    unsafeUrl.render( [ row() ] );unsafeUrl.render( [ row() ] );
+    assert.equal( unsafeUrl.root.querySelectorAll( 'a' ).length, 0, 'A malformed or off-origin URL builder never creates a link.' );
+    assert.equal( unsafeUrl.root.querySelector( '#safe-literal' ).textContent, 'Test Blade (20%) (Rare)', 'An unsafe URL leaves an exact authored literal readable and prevents a duplicate automatic row.' );
+    assert.equal( unsafeUrl.root.querySelectorAll( '.eql-drop-observed-item' ).length, 0 );unsafeUrl.close();
+    console.log( 'Drop overlay passed: plain bullets/newlines and linked aliases, manual overrides/reciprocal deduplication, Mote display exclusions with unchanged denominators, safe offline links, dynamic re-rendering, compact single-report percentages and bounded silent failure.' );
 } )().catch( error => { console.error( error );process.exitCode = 1; } );
