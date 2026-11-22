@@ -5,6 +5,7 @@
     var mounted = new WeakSet(), selectedSources = new WeakMap(), requests = Object.create( null );
     var ROOTS = '.eql-mobpage';
     const MIN_NPC_PERCENTAGE_REPORTS = 10;
+    var RATE_EXCLUSIONS = '.eql-drop-generated, .eql-recorded-loot-item, .hb, .itemtopbg, .itembg, .itembotbg, .itemdata, .ils-slider-container, .ils-stat';
 
     function text( value ) { return typeof value === 'string' ? value.slice( 0, 230 ) : ''; }
     function titleKey( value ) {
@@ -55,9 +56,18 @@
     function manualLists( root ) {
         return root.querySelectorAll( '.eql-drop-manual, .eql-mobpage-hero-loot ul, .eql-mobpage-loot ul, .eql-mobpage-common-loot ul' );
     }
+    function percentageText( value ) { return /\d+(?:\.\d+)?\s*%/.test( value ); }
+    function annotationText( node, anchor ) {
+        if ( node === anchor || node.nodeType === 1 && ( node.matches( RATE_EXCLUSIONS ) || /^(?:UL|OL)$/.test( node.tagName ) ) ) { return ' '; }
+        if ( node.nodeType === 3 ) { return node.textContent; }
+        return Array.prototype.map.call( node.childNodes, function ( child ) { return annotationText( child, anchor ); } ).join( '' );
+    }
     function plainItem( value ) {
-        var label = value.trim(), rarity = /\s+\((?:common|uncommon|rare|very rare|ultra rare|unique|always)\)$/i.exec( label );
-        if ( rarity ) { label = label.slice( 0, rarity.index ).trim(); }
+        var label = value.trim(), suffix;
+        while ( ( suffix = /\s+\(([^()]*)\)$/.exec( label ) ) &&
+            ( /^(?:common|uncommon|rare|very rare|ultra rare|unique|always)$/i.test( suffix[ 1 ] ) || percentageText( suffix[ 1 ] ) ) ) {
+            label = label.slice( 0, suffix.index ).trim();
+        }
         var title = label.replace( /[ \t]+/g, ' ' );
         // One whole literal title, never a partial match inside prose, URLs, markup or arbitrary notes.
         if ( !title || title.length > 230 || !/^[\p{L}\p{N}][\p{L}\p{N}\p{M} '’".+&-]*$/u.test( title ) ||
@@ -68,12 +78,12 @@
     function plainMarkup( node ) {
         return Array.prototype.every.call( node.childNodes, function ( child ) {
             return child.nodeType === 3 || child.nodeType === 8 || child.nodeType === 1 &&
-                child.tagName === 'SPAN' && child.classList.contains( 'drare' ) && !child.children.length;
+                child.tagName === 'SPAN' && !child.matches( RATE_EXCLUSIONS ) && plainMarkup( child );
         } );
     }
     function primaryAnchor( li ) {
         return Array.prototype.find.call( li.querySelectorAll( 'a[href]' ), function ( candidate ) {
-            if ( candidate.closest( '.hb, .ddb, .drare' ) || !anchorTitle( candidate ) ) { return false; }
+            if ( candidate.closest( 'li' ) !== li || candidate.closest( '.hb, .ddb, .drare' ) || !anchorTitle( candidate ) ) { return false; }
             var before = document.createRange();before.selectNodeContents( li );before.setEndBefore( candidate );
             return !before.cloneContents().textContent.trim();
         } );
@@ -90,7 +100,7 @@
                         } );
                     } else if ( node.nodeType === 1 && node.tagName === 'BR' ) { lines.push( [] ); }
                     else if ( node.nodeType === 1 && ( node.tagName === 'A' || node.tagName === 'SPAN' &&
-                        node.classList.contains( 'drare' ) && !node.children.length ) && !/[\r\n]/.test( node.textContent ) ) {
+                        !node.matches( RATE_EXCLUSIONS ) && plainMarkup( node ) ) && !/[\r\n]/.test( node.textContent ) ) {
                         lines[ lines.length - 1 ].push( node );
                     } else { safe = false; }
                 } );
@@ -130,7 +140,17 @@
         }
         if ( !title ) { return null; }
         li.classList.add( 'eql-drop-clean-item' );
-        return { li: li, anchor: anchor, key: titleKey( title ), recorded: li.classList.contains( 'eql-recorded-loot-item' ) };
+        var recorded = li.classList.contains( 'eql-recorded-loot-item' );
+        var manualRate = !recorded && percentageText( annotationText( li, anchor ) );
+        Array.prototype.forEach.call( li.querySelectorAll( '.ddb' ), function ( node ) {
+            node.classList.toggle( 'eql-drop-manual-rate', !recorded && node.closest( 'li' ) === li &&
+                !node.parentElement.closest( RATE_EXCLUSIONS ) && percentageText( annotationText( node, anchor ) ) );
+        } );
+        Array.prototype.forEach.call( li.querySelectorAll( '.itemtopbg, .itembg, .itembotbg, .ils-slider-container' ), function ( node ) {
+            node.classList.toggle( 'eql-drop-inline-stat', node.closest( 'li' ) === li && !node.closest( '.hb' ) &&
+                Boolean( node.closest( '.ddb.eql-drop-manual-rate' ) ) );
+        } );
+        return { li: li, anchor: anchor, key: titleKey( title ), recorded: recorded, manualRate: manualRate };
     }
     function moteName( value ) { return /^mote of(?:\s|$)/i.test( titleKey( value ).replace( /\s+/g, ' ' ) ); }
     function moteRow( row ) { return moteName( row.itemTitle ) || moteName( row.item ); }
@@ -268,6 +288,7 @@
             if ( target.length ) {
                 if ( row.reports < MIN_NPC_PERCENTAGE_REPORTS ) { return; }
                 target.forEach( function ( entry ) {
+                    if ( entry.manualRate ) { return; }
                     var after = entry.anchor.closest( 'span.ih' ) || entry.anchor;
                     if ( !entry.li.contains( after ) ) { after = entry.anchor; }
                     while ( after.nextSibling && after.nextSibling.nodeType === 1 &&

@@ -9,7 +9,7 @@ const css = fs.readFileSync( path.join( __dirname, '../extensions/EQLClientData/
 const row = ( extra = {} ) => ( { zone: 'Mist Valley', zoneTitle: 'Mist Valley', npc: 'A test creature', npcTitle: 'A test creature', item: 'Test Blade', itemTitle: 'Test Blade', instance: 'unknown', reports: 40, totalReports: 200, reportShare: 20, ...extra } );
 const turn = () => new Promise( resolve => setImmediate( resolve ) );
 function fixture( get, options = {} ) {
-    const dom = new JSDOM( '<head><style>' + css + '</style></head><body><div class="eql-mobpage"><div class="eql-mobpage-hero-loot"><h2>Known Loot</h2><ul><li id="manual"><span class="hbdiv"><a href="/wiki/Test_Blade" title="Displayed alias">My manual label</a><span class="hb"><div class="itemtopbg">Tooltip title</div><div class="itembg"><div class="itemdata">WT:0.5 Class:ALL<div class="ils-slider-container">Rank slider</div></div></div></span></span> <span class="drare">(Common)</span> <span class="ddb">[1] 4x55%(10%)</span></li><li id="no-report"><a href="/wiki/Other_Item">Other item</a><span class="ddb">[9] 40%</span><div class="itembg">Unwanted inline stats</div></li><li id="case"><a href="/wiki/Test_blade">Case-distinct item</a></li><li id="query"><a href="/index.php?title=Query_Item&amp;action=edit&amp;redlink=1">A redlink label</a> (Rare)</li></ul></div><div class="eql-mobpage-common-loot"><ul><li id="common"><a href="/wiki/Common_Item">Common item</a> (notes)</li></ul></div></div></body>', { url: 'https://wiki.example/wiki/A_test_creature', runScripts: 'outside-only' } );
+    const dom = new JSDOM( '<head><style>' + css + '</style></head><body><div class="eql-mobpage"><div class="eql-mobpage-hero-loot"><h2>Known Loot</h2><ul><li id="manual"><span class="hbdiv"><a href="/wiki/Test_Blade" title="Displayed alias">My manual label</a><span class="hb"><div class="itemtopbg">Tooltip title</div><div class="itembg"><div class="itemdata">WT:0.5 Class:ALL<div class="ils-slider-container">Rank slider</div></div></div></span></span> <span class="drare">(Common)</span> <span class="ddb">[1] 4x</span></li><li id="no-report"><a href="/wiki/Other_Item">Other item</a><span class="ddb">[9] 40%</span><div class="itembg">Unwanted inline stats</div></li><li id="case"><a href="/wiki/Test_blade">Case-distinct item</a></li><li id="query"><a href="/index.php?title=Query_Item&amp;action=edit&amp;redlink=1">A redlink label</a> (Rare)</li></ul></div><div class="eql-mobpage-common-loot"><ul><li id="common"><a href="/wiki/Common_Item">Common item</a> (notes)</li></ul></div></div></body>', { url: 'https://wiki.example/wiki/A_test_creature', runScripts: 'outside-only' } );
     const window = dom.window, document = window.document, calls = [], hooks = [];
     if ( options.html ) { document.body.innerHTML = options.html; }
     const config = { wgPageName: 'A_test_creature', wgArticlePath: '/wiki/$1', wgIsArticle: true, wgAction: 'view' };
@@ -37,7 +37,7 @@ function fixture( get, options = {} ) {
     assert.match( selector().selectedOptions[ 0 ].textContent, /Mist Valley.*instance unknown/ );
     assert.match( manual.querySelector( '.eql-drop-observed' ).title, /reported 40 times out of 200 recorded loot events/ );
     assert.doesNotMatch( manual.querySelector( '.eql-drop-observed' ).title, /tier|server|contributor|5 items/i );
-    assert.equal( f.window.getComputedStyle( authoredRates ).display, 'none', 'Authored source/count/percentage clutter stays out of the visible loot list.' );
+    assert.equal( f.window.getComputedStyle( authoredRates ).display, 'none', 'Count-only source blocks stay out of the visible loot list.' );
     assert.equal( authoredRates.textContent, sourceRates, 'The underlying authored percentages remain untouched.' );
     assert.equal( hover.innerHTML, hoverHtml, 'All native tooltip artwork/stats/slider source nodes remain intact.' );
     assert.equal( f.window.getComputedStyle( hover ).display, 'none' );
@@ -111,6 +111,55 @@ function fixture( get, options = {} ) {
     assert.equal( syncFailure.root.querySelectorAll( '.eql-drop-generated' ).length, 0 );syncFailure.close();
 
     const card = content => '<div class="eql-mobpage"><div class="eql-mobpage-loot"><h2>Known Loot</h2>' + content + '</div></div>';
+    for ( const annotation of [
+        '<span class="dcommon">(72.3%)</span>', '(70%)', '<span class="drare">(~0–1.5%)</span>',
+        '<span>Approximately <span>72</span><span>.3%</span> in this zone</span>',
+        '<span class="ddb">[1] 4x55%(10%) <span>or ~2–3%</span></span>',
+        '<div class="ddb">(72.3%)<div><div class="itembg">Inline haste 40%</div></div></div>'
+    ] ) {
+        const rated = fixture( () => Promise.reject( new Error( 'offline' ) ), { html: card( '<ul><li id="rated"><span class="hbdiv"><a href="/wiki/Test_Blade">Authored item label</a><span class="hb"><div class="itembg">Haste 90%</div></span></span> ' + annotation + ' <span class="drare">(Common)</span></li></ul>' ) } );
+        await turn();await turn();
+        const li = rated.root.querySelector( '#rated' ), sourceNodes = [ ...li.childNodes ], original = li.textContent;
+        const rateBlock = li.querySelector( '.ddb' );
+        if ( rateBlock ) { assert.notEqual( rated.window.getComputedStyle( rateBlock ).display, 'none', 'An explicit legacy .ddb rate stays visible even while the API is unavailable.' ); }
+        const inlineCard = li.querySelector( '.ddb .itembg' );
+        if ( inlineCard ) { assert.equal( rated.window.getComputedStyle( inlineCard ).display, 'none', 'Restoring an authored rate block never reveals its nested inline item stat cards.' ); }
+        for ( const reports of [ 1, 9, 10, 40 ] ) {
+            rated.render( [ row( { reports } ) ] );rated.render( [ row( { reports } ) ] );
+            assert.equal( li.querySelector( '.eql-drop-observed' ), null, 'Any authored rate wins over the generated percentage, above and below its sample floor.' );
+            assert.equal( rated.root.querySelector( '.eql-drop-observed-item' ), null, 'A manually rated row does not gain a duplicate automatic item.' );
+            assert.equal( li.textContent, original, 'Literal ranges, approximations and multiple legacy rates are never reinterpreted or rewritten.' );
+            assert.deepEqual( [ ...li.childNodes ], sourceNodes, 'The authored annotation and native hover DOM keep their identity.' );
+            assert.notEqual( rated.window.getComputedStyle( li.querySelector( '.drare' ) ).display, 'none', 'Real rarity notes remain visible.' );
+            assert.equal( rated.window.getComputedStyle( li.querySelector( '.hb' ) ).display, 'none', 'Manual-rate priority never expands the native hover card inline.' );
+        }
+        rated.close();
+    }
+    const literalRates = fixture( null, { html: card( '<p>Test Blade (70%) (Common)<br>Unknown Rate Relic <span class="ddb">(~<span>0</span>%)</span></p>' ) } );
+    await turn();await turn();
+    const literalBefore = literalRates.root.textContent;
+    literalRates.render( [ row(), row( { item: 'Unknown Rate Relic', itemTitle: 'Unknown Rate Relic' } ) ] );
+    literalRates.render( [ row(), row( { item: 'Unknown Rate Relic', itemTitle: 'Unknown Rate Relic' } ) ] );
+    assert.deepEqual( [ ...literalRates.root.querySelectorAll( 'li > a' ) ].map( anchor => anchor.textContent ), [ 'Test Blade', 'Unknown Rate Relic' ], 'Simple whole item names accept trailing literal percentage/rarity annotations without special markup.' );
+    assert.equal( literalRates.root.textContent, literalBefore );assert.equal( literalRates.root.querySelector( '.eql-drop-generated' ), null );
+    assert.notEqual( literalRates.window.getComputedStyle( literalRates.root.querySelector( '.ddb' ) ).display, 'none' );literalRates.close();
+
+    const notRates = fixture( null, { html: card( '<ul><li id="not-rated"><span class="hbdiv"><a href="/wiki/Test_Blade">100% Authored Blade</a><span class="hb"><span class="ddb">Tooltip drop 90%</span><div class="itembg"><div class="itemdata">Haste 60%</div></div></span></span> <span class="drare">(Common)</span><span class="ddb">[4] 20x</span><div class="itembg">Haste 40%</div><span class="ils-stat">Accuracy 30%</span><div class="ils-slider-container">Rank 20%</div><ul><li><a href="/wiki/Nested_Relic">Nested relic</a> (50%)</li></ul></li><li id="nested-owner"><ul><li><a href="/wiki/Other_Nested_Relic">Other nested relic</a> (25%)</li></ul></li></ul>' ) } );
+    await turn();await turn();notRates.render( [ row(), row( { item: 'Other Nested Relic', itemTitle: 'Other Nested Relic' } ) ] );
+    const notRated = notRates.root.querySelector( '#not-rated' );
+    assert.equal( notRated.querySelector( '.hbdiv > .eql-drop-observed' ).textContent, ' (20%)', 'Item-label, tooltip, weapon/stat, slider and nested-list percentages never count as this item’s authored rate.' );
+    assert.equal( notRates.root.querySelector( '#nested-owner' ).classList.contains( 'eql-drop-clean-item' ), false, 'A parent list row never steals its nested item’s identity.' );
+    assert.equal( notRates.window.getComputedStyle( notRated.querySelector( ':scope > .ddb' ) ).display, 'none', 'Count-only blocks retain their existing cleanup.' );
+    assert.equal( notRates.window.getComputedStyle( notRated.querySelector( '.hb .ddb' ) ).display, 'none', 'A tooltip rate is never flagged as an authored inline annotation.' );
+    const changeable = notRates.document.createElement( 'span' );changeable.className = 'ddb';changeable.textContent = '(72.3%)';notRated.appendChild( changeable );
+    notRates.render( [ row() ] );assert.equal( notRated.querySelector( '.hbdiv > .eql-drop-observed' ), null );
+    assert.notEqual( notRates.window.getComputedStyle( changeable ).display, 'none' );
+    changeable.textContent = '[5] 10x';notRates.render( [ row() ] );notRates.render( [ row() ] );
+    assert.equal( changeable.classList.contains( 'eql-drop-manual-rate' ), false, 'Removing an authored rate clears its visibility exemption on the next render.' );
+    assert.equal( notRates.window.getComputedStyle( changeable ).display, 'none' );
+    assert.equal( notRated.querySelectorAll( '.hbdiv > .eql-drop-observed' ).length, 1, 'Removing a manual rate restores exactly one eligible computed badge.' );
+    notRates.close();
+
     const authored = fixture( () => Promise.reject( new Error( 'offline' ) ), { html: card( '<ul id="authored-list">' +
         '<li id="plain">Test Blade (Common)</li><li id="unknown">Unrecorded Manual Relic (Rare)</li>' +
         '<li id="alias"><a href="/wiki/Canonical_Relic">My chosen alias</a> (Unique)</li>' +
@@ -261,5 +310,5 @@ function fixture( get, options = {} ) {
     assert.equal( cached.root.querySelector( '#manual a' ).textContent, 'My manual label' );
     assert.equal( cached.root.querySelector( '.eql-drop-observed-item a' ).textContent, 'Old Cached Relic' );
     assert.equal( oldReply.rows[ 0 ].reportShare, 100 );assert.equal( oldReply.rows[ 1 ].reportShare, 100, 'The full database/API percentage remains intact.' );cached.close();
-    console.log( 'Drop overlay passed: item names from report one, NPC-only percentage floor at ten, full low-sample denominators, cached reply safety, source/manual/Mote preservation and idempotent safe rendering.' );
+    console.log( 'Drop overlay passed: first-report names, NPC-only ten-report percentage floor, exact authored-rate priority, tooltip/stat isolation, full denominators, source/manual/Mote preservation and idempotent safe rendering.' );
 } )().catch( error => { console.error( error );process.exitCode = 1; } );

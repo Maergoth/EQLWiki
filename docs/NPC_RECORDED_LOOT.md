@@ -49,12 +49,20 @@ exists. The overlay also filters generated `Mote of …` rows; explicitly author
 Motes remain. No stored event, authored source, API/database entry or percentage
 denominator is deleted or changed by this display filter.
 
-Observed items appear from their first eligible report. Only the NPC percentage
-waits for ten reports of that item in the same zone/NPC/instance. Below that
-floor, the item name and authored rarity remain visible without an observed
-percentage. Every eligible item report still contributes to the denominator;
-the database and API keep their percentages for all public entries. This is a
-display floor, not a confidence interval or evidence of distinct kills.
+An explicit authored loot rate always wins: its text stays as written and the
+overlay adds no percentage for that item, even below ten observed reports. This
+applies to ordinary text and rate annotations in any CSS class, including
+`.dcommon`, `.drare` and `.ddb`. Legacy blocks with several percentages remain
+whole; the display never guesses which number means drop chance. Native hover
+data stays available while inline item stat cards remain hidden.
+
+Observed items appear from their first eligible report. Where no authored rate
+exists, only the automatic NPC percentage waits for ten reports of that item in
+the same zone/NPC/instance. Below that floor, the item name and authored rarity
+remain visible without an observed percentage. Every eligible item report still
+contributes to the denominator. The database and API keep their percentages for
+all public entries. This is a display floor, not a confidence interval or
+evidence of distinct kills.
 
 ## Layout and duplicate handling
 

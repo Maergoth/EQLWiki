@@ -283,7 +283,9 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   loot aggregates through `DropDatabaseRepository`/`DropObservationSummary`.
   The conditional `ext.eqlDropDatabase` module appends unlisted NPC loot from its
   first eligible report. Grey percentages beside matching or appended items
-  require ten reports of that item in the same zone/NPC/instance. Database/API
+  require ten reports of that item in the same zone/NPC/instance and no explicit
+  authored loot rate. Authored rate annotations stay as written and always
+  override an automatic percentage, including below ten reports. Database/API
   percentages remain available from one report, and all eligible reports remain
   in every source denominator. This is a display floor, not statistical confidence
   or distinct kills. The loot table has no share-explanation
@@ -297,8 +299,10 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   A collapsed integration guide on the browser page documents the existing
   authenticated `eozobservations` event upload with a synthetic example and
   current-wiki endpoint, without another importer or write API.
-  NPC presentation shows item name, an eligible percentage and rarity,
-  preserving source/hover data while hiding duplicate authored rate annotations.
+  NPC presentation shows item name, rarity and either an authored rate or an
+  eligible automatic percentage, preserving source/hover data while hiding
+  inline item stat cards. Multi-percent legacy rate blocks remain literal;
+  no number is selected or reinterpreted.
   Plain names or ordinary wikilinks suffice for manual list entries; manual
   rows replace matching generated rows. Generated `Mote of …` entries are hidden
   only in the NPC display, retaining stored records and percentage denominators.
