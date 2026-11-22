@@ -53,6 +53,10 @@ function fixture( get ) {
     assert.equal( appended, manual.parentNode.lastElementChild );
     assert.equal( f.root.querySelectorAll( 'script,img' ).length, 0, 'Untrusted evidence remains text.' );
     assert.equal( f.root.querySelector( '.eql-drop-info' ).open, false, 'Explanatory text stays in an optional collapsed disclosure.' );
+    assert.equal( f.root.querySelector( '.eql-drop-info > summary' ).textContent, 'Share of reported drops', 'The visible label states the reported-drop denominator.' );
+    f.render( [ row( { reports: 19, totalReports: 125, reportShare: 15.2 } ) ] );
+    assert.equal( manual.querySelector( '.eql-drop-observed' ).textContent, ' (15.2%)', 'Clarifying the label preserves the existing numeric share and compact badge.' );
+    f.render( rows );
     const count = f.root.querySelectorAll( '.eql-drop-observed' ).length;
     f.render( rows );assert.equal( f.root.querySelectorAll( '.eql-drop-observed' ).length, count, 'Refreshing the rendered evidence does not duplicate annotations.' );
     selector().value = [ ...selector().options ].find( option => /Raid/.test( option.textContent ) ).value;

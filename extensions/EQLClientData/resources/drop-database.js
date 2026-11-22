@@ -149,7 +149,7 @@
             label.appendChild( selector );controls.appendChild( label );
         }
         var info = element( 'details', 'eql-drop-info' );
-        info.appendChild( element( 'summary', '', 'About the percentages' ) );
+        info.appendChild( element( 'summary', '', 'Share of reported drops' ) );
         info.appendChild( element( 'p', 'eql-drop-legend',
             'Grey percentages show share of reported loot from ' + scopeLabel( groups[ selected ].row ) +
             ', not drop chance per kill. Each item needs at least two recorded loot events. Missing loot and overlapping reports can affect the figures.' ) );
