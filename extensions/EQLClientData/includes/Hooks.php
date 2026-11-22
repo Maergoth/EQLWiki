@@ -47,6 +47,11 @@ final class Hooks implements
 			'wgEQLClientDataEnabled' => true
 		];
 
+		if ( str_contains( $out->getHTML(), 'eql-mobpage' ) && $out->getTitle()
+			&& $out->getTitle()->getNamespace() === NS_MAIN ) {
+			$out->addModules( 'ext.eqlDropDatabase' );
+		}
+
 		if ( (bool)$this->config->get( 'EQLClientDataEnableEra' ) ) {
 			$eraConfig = $this->repository->getEraConfig();
 

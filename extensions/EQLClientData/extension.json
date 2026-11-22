@@ -55,6 +55,13 @@
       "localBasePath": "",
       "remoteExtPath": "EQLClientData"
     },
+    "ext.eqlDropDatabase": {
+      "scripts": [ "resources/drop-database.js" ],
+      "styles": [ "resources/drop-database.css" ],
+      "dependencies": [ "mediawiki.api", "mediawiki.util" ],
+      "localBasePath": "",
+      "remoteExtPath": "EQLClientData"
+    },
     "ext.eqlDropDatabase.styles": {
       "styles": [ "resources/drop-database.css" ],
       "localBasePath": "",
