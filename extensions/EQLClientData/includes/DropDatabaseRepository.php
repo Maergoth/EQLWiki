@@ -24,13 +24,25 @@ final class DropDatabaseRepository {
 
 	/** Exact source filters plus a literal case-insensitive text search; paginate after grouping. */
 	public function getSummary( array $filters = [] ): array {
-		$filters = self::filters( $filters );
+		return $this->summary( self::filters( $filters ) );
+	}
+
+	/** Browser fields search within each subject; API identity filters stay exact. */
+	public function searchSummary( array $filters = [] ): array {
+		$filters = self::filters( $filters );$contains = [];
+		foreach ( [ 'zone', 'npc', 'item' ] as $field ) {
+			if ( $filters[$field] !== '' ) { $contains[$field] = $filters[$field];$filters[$field] = ''; }
+		}
+		return $this->summary( $filters, $contains );
+	}
+
+	private function summary( array $filters, array $contains = [] ): array {
 		$db = $this->dbProvider->getPrimaryDatabase();
 		$cumulative = CumulativeDropStore::state( $db );
-		if ( $cumulative && $cumulative->dps_ready ) { return ( new CumulativeDropReader( $this->cache ) )->summary( $db, $filters ); }
+		if ( $cumulative && $cumulative->dps_ready ) { return ( new CumulativeDropReader( $this->cache ) )->summary( $db, $filters, $contains ); }
 		$snapshot = $this->snapshot();
 		if ( !$snapshot['available'] ) { return self::unavailable( $filters ); }
-		$rows = array_values( array_filter( $snapshot['rows'], static fn ( array $row ): bool => self::matches( $row, $filters ) ) );
+		$rows = array_values( array_filter( $snapshot['rows'], static fn ( array $row ): bool => self::matches( $row, $filters, $contains ) ) );
 		$total = count( $rows );
 		return [
 			'available' => true, 'snapshot' => $snapshot['snapshot'], 'historyMode' => 'recent-window',
@@ -134,10 +146,14 @@ final class DropDatabaseRepository {
 		return $filters;
 	}
 
-	private static function matches( array $row, array $filters ): bool {
+	private static function matches( array $row, array $filters, array $contains = [] ): bool {
 		foreach ( [ 'zone', 'npc', 'item', 'instance' ] as $name ) {
 			if ( $filters[$name] !== '' && $row[$name] !== $filters[$name] &&
 				( $row[$name . 'Title'] ?? null ) !== $filters[$name] ) { return false; }
+		}
+		foreach ( $contains as $field => $needle ) {
+			if ( mb_stripos( $row[$field], $needle, 0, 'UTF-8' ) === false &&
+				mb_stripos( $row[$field . 'Title'] ?? '', $needle, 0, 'UTF-8' ) === false ) { return false; }
 		}
 		return $filters['q'] === '' || mb_stripos( implode( ' ', [ $row['zone'], $row['npc'], $row['item'] ] ), $filters['q'], 0, 'UTF-8' ) !== false;
 	}

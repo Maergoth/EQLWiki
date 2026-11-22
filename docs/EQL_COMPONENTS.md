@@ -274,7 +274,12 @@ version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations).
   submissions. History exposes observed/received UTC times, quantity and optional
   consented character names, never private wiki account/event identifiers. Old
   observations remain unnamed. Percentages mean share of reported loot, not
-  per-kill chance. The browser has no effect on article loot lists: the separate
+  per-kill chance. Browser subject inputs use case-insensitive contains search
+  through `searchSummary()`; the HTTP API's `getSummary()` filters keep exact
+  identities. A collapsed integration guide documents the existing authenticated
+  `eozobservations` upload with a synthetic example and current-wiki endpoint,
+  without another importer or write API. The browser has no effect on article
+  loot lists: the separate
   NPC overlay and display cleanup remain on staging only. See
   [the metric and history contract](CLIENT_API.md#browsing-observed-loot-15-read-schema-2).
   Optional cumulative totals
