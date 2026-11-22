@@ -36,7 +36,7 @@
     }
     function validRow( row ) {
         return row && typeof row === 'object' &&
-            Number.isSafeInteger( row.reports ) && row.reports >= 2 &&
+            Number.isSafeInteger( row.reports ) && row.reports >= 1 &&
             Number.isSafeInteger( row.totalReports ) && row.totalReports >= row.reports &&
             [ 'normal', 'raid', 'unknown' ].indexOf( row.instance ) !== -1 &&
             ( text( row.item ) || cleanTitle( row.itemTitle ) );
@@ -133,8 +133,8 @@
             var candidate = contexts.find( function ( context ) { return context.row.instance === preferred; } );
             selected = ( candidate || contexts[ 0 ] ).key;selectedSources.set( root, selected );
         }
-        var controls = element( 'div', 'eql-drop-generated eql-drop-observations' );
         if ( contexts.length > 1 ) {
+            var controls = element( 'div', 'eql-drop-generated eql-drop-observations' );
             var label = element( 'label', 'eql-drop-source-label', 'Source ' );
             var selector = element( 'select', 'eql-drop-source-select' );
             selector.setAttribute( 'aria-label', 'Observation source: zone and instance' );
@@ -147,18 +147,10 @@
                 var replacement = root.querySelector( '.eql-drop-source-select' );if ( replacement ) { replacement.focus(); }
             } );
             label.appendChild( selector );controls.appendChild( label );
+            var heading = panel.querySelector( 'h2, h3' );
+            if ( heading && heading.parentNode === panel ) { heading.after( controls ); }
+            else { panel.insertBefore( controls, panel.firstChild ); }
         }
-        var info = element( 'details', 'eql-drop-info' );
-        info.appendChild( element( 'summary', '', 'Share of reported drops' ) );
-        info.appendChild( element( 'p', 'eql-drop-legend',
-            'Grey percentages show share of reported loot from ' + scopeLabel( groups[ selected ].row ) +
-            ', not drop chance per kill. Each item needs at least two recorded loot events. Missing loot and overlapping reports can affect the figures.' ) );
-        var detail = element( 'a', 'eql-drop-database-link', 'Browse the drop database' );
-        detail.href = mw.util.getUrl( 'Special:DropDatabase' );
-        info.appendChild( detail );controls.appendChild( info );
-        var heading = panel.querySelector( 'h2, h3' );
-        if ( heading && heading.parentNode === panel ) { heading.after( controls ); }
-        else { panel.insertBefore( controls, panel.firstChild ); }
         var selectedRows = groups[ selected ].rows;
         var appendList = panel.querySelector( 'ul:not(.eql-drop-generated-list)' );
         selectedRows.forEach( function ( row ) {

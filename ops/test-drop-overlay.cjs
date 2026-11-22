@@ -31,6 +31,7 @@ function fixture( get ) {
     assert.equal( manual.querySelector( '.eql-drop-observed' ).textContent, ' (20%)', 'The literal beside-item badge stays compact.' );
     assert.equal( label.nextSibling, manual.querySelector( '.eql-drop-observed' ), 'The badge appears immediately beside the native transcluded link, before (Common).' );
     const selector = () => f.root.querySelector( '.eql-drop-source-select' );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-observations' ).length, 1, 'Multiple sources keep one source-control wrapper.' );
     assert.equal( selector().options.length, 3, 'Zone/instance contexts remain separate selectable sources.' );
     assert.match( selector().selectedOptions[ 0 ].textContent, /Mist Valley.*instance unknown/ );
     assert.match( manual.querySelector( '.eql-drop-observed' ).title, /reported 4 times out of 20 recorded loot events/ );
@@ -52,10 +53,10 @@ function fixture( get ) {
     assert.equal( appended.parentNode, manual.parentNode, 'Unmatched evidence appends to the same existing Known Loot list.' );
     assert.equal( appended, manual.parentNode.lastElementChild );
     assert.equal( f.root.querySelectorAll( 'script,img' ).length, 0, 'Untrusted evidence remains text.' );
-    assert.equal( f.root.querySelector( '.eql-drop-info' ).open, false, 'Explanatory text stays in an optional collapsed disclosure.' );
-    assert.equal( f.root.querySelector( '.eql-drop-info > summary' ).textContent, 'Share of reported drops', 'The visible label states the reported-drop denominator.' );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-info, .eql-drop-legend, .eql-drop-database-link' ).length, 0, 'The disclosure, explanation and database link are absent even when the source selector is shown.' );
+    assert.doesNotMatch( f.root.textContent, /Share of reported drops|Browse the drop database/ );
     f.render( [ row( { reports: 19, totalReports: 125, reportShare: 15.2 } ) ] );
-    assert.equal( manual.querySelector( '.eql-drop-observed' ).textContent, ' (15.2%)', 'Clarifying the label preserves the existing numeric share and compact badge.' );
+    assert.equal( manual.querySelector( '.eql-drop-observed' ).textContent, ' (15.2%)', 'Removing the disclosure preserves the existing numeric share and compact badge.' );
     f.render( rows );
     const count = f.root.querySelectorAll( '.eql-drop-observed' ).length;
     f.render( rows );assert.equal( f.root.querySelectorAll( '.eql-drop-observed' ).length, count, 'Refreshing the rendered evidence does not duplicate annotations.' );
@@ -71,11 +72,27 @@ function fixture( get ) {
     f.render( [ row(), row() ] );
     assert.deepEqual( [ ...manual.querySelectorAll( '.eql-drop-observed' ) ].map( node => node.textContent ), [ ' (20%)' ], 'One item never receives duplicate displayed percentages.' );
     assert.equal( selector(), null, 'A single source does not add a redundant selector.' );
+    assert.equal( f.root.querySelector( '.eql-drop-observations' ), null, 'A single source adds no empty control wrapper or its margins.' );
     f.render( [ row( { itemTitle: null } ) ] );
     assert.equal( manual.querySelectorAll( '.eql-drop-observed' ).length, 1, 'An exact raw item name matches a link destination when no canonical title was supplied.' );
     assert.equal( f.root.querySelectorAll( '.eql-drop-observed-item' ).length, 0 );
-    f.render( [ row( { reports: 1 } ), row( { totalReports: 0 } ), row( { npcTitle: 'Other NPC' } ) ] );
-    assert.equal( f.root.querySelectorAll( '.eql-drop-generated' ).length, 0, 'Insufficient, malformed and other-NPC rows cannot annotate the article.' );
+    const singletonRows = [ row( { reports: 1, totalReports: 4 } ), row( { item: 'Single Report Ring', itemTitle: 'Single Report Ring', reports: 1, totalReports: 4 } ) ];
+    f.render( singletonRows );
+    assert.equal( manual.querySelector( '.eql-drop-observed' ).textContent, ' (25%)', 'One accepted report annotates the exact authored item destination using its full source denominator.' );
+    assert.equal( label.textContent, 'My manual label' );assert.equal( rarity.textContent, '(Common)' );
+    const singleAppend = f.root.querySelector( '.eql-drop-observed-item' );
+    assert.equal( singleAppend.querySelector( 'a' ).getAttribute( 'href' ), 'https://wiki.example/wiki/Single_Report_Ring' );
+    assert.equal( singleAppend.querySelector( '.eql-drop-observed' ).textContent, ' (25%)', 'One unmatched accepted report appends the item with its compact percentage.' );
+    assert.equal( singleAppend.parentNode, manual.parentNode );
+    assert.equal( f.window.getComputedStyle( singleAppend ).color, 'rgb(174, 182, 193)', 'An unmatched singleton retains the muted observation styling.' );
+    f.render( [ ...singletonRows, ...singletonRows ] );f.render( singletonRows );
+    assert.equal( manual.querySelectorAll( '.eql-drop-observed' ).length, 1, 'Re-rendering and duplicate API rows never duplicate a singleton badge.' );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-observed-item' ).length, 1, 'Re-rendering and duplicate API rows append a singleton only once.' );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-observed' ).length, 2 );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-info, .eql-drop-legend, .eql-drop-database-link, .eql-drop-observations' ).length, 0, 'A single source leaves only the beside-item percentages, with no disclosure/link or empty controls.' );
+    f.render( [ row( { reports: 0 } ), row( { reports: -1 } ), row( { reports: 1.5 } ), row( { reports: '1' } ),
+        row( { reports: 1, totalReports: 0 } ), row( { reports: 1, totalReports: 0.5 } ), row( { npcTitle: 'Other NPC' } ) ] );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-generated' ).length, 0, 'Zero, negative, fractional, malformed and other-NPC rows cannot annotate the article.' );
     f.close();
     const normal = fixture();await turn();await turn();normal.root.dataset.dropInstance = 'normal';
     normal.render( [ row(), row( { instance: 'normal', reports: 2 } ), row( { instance: 'raid', reports: 3 } ) ] );
@@ -91,5 +108,5 @@ function fixture( get ) {
     assert.equal( offline.root.querySelectorAll( '.eql-drop-generated' ).length, 0 );offline.close();
     const syncFailure = fixture( () => { throw new Error( 'transport unavailable' ); } );await turn();await turn();
     assert.equal( syncFailure.root.querySelectorAll( '.eql-drop-generated' ).length, 0 );syncFailure.close();
-    console.log( 'Drop overlay passed: destination/rarity/case matching, one compact percent, zone/instance selector, collapsed context, native appended rows, hidden authored rates/inline stats, preserved hover source, safe text and bounded silent failure.' );
+    console.log( 'Drop overlay passed: single-report matches/appends, idempotent compact percentages, destination/rarity/case matching, zone/instance selector without disclosure or empty controls, hidden authored rates/inline stats, preserved hover source, safe text and bounded silent failure.' );
 } )().catch( error => { console.error( error );process.exitCode = 1; } );

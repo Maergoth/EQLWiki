@@ -1,7 +1,7 @@
 {
   "@metadata": { "authors": [ "EQLWiki" ] },
   "dropdatabase": "Drop database",
-  "apihelp-eqldrops-summary": "Read repeated corpse-loot report aggregates. Percentages describe reported loot, not drop chance. Private event and contributor identifiers are never returned.",
+  "apihelp-eqldrops-summary": "Read corpse-loot report aggregates from the first eligible report. Percentages describe reported loot, not drop chance. Private event and contributor identifiers are never returned.",
   "apihelp-eqldrops-param-zone": "Exact reported zone or zone title.",
   "apihelp-eqldrops-param-npc": "Exact reported NPC or NPC title.",
   "apihelp-eqldrops-param-item": "Exact reported item or item title.",

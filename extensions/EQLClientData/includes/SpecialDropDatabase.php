@@ -35,7 +35,7 @@ final class SpecialDropDatabase extends SpecialPage {
         $out->addHTML( Html::rawElement( 'details', [ 'class' => 'eql-drop-about' ],
             Html::element( 'summary', [], 'About these observations' ) .
             Html::element( 'p', [], 'Observed % is the item’s share of reported loot for the same zone, NPC and instance, across servers and tiers. It is not a per-kill drop chance: unlooted items, zero-drop kills and overlapping reports are not fully known.' ) .
-            Html::element( 'p', [], 'Times reported counts loot events; a single event may contain several copies. Quantity appears inside the submission history. Only entries with at least two reports appear. Results refresh within five minutes.' ) ) );
+            Html::element( 'p', [], 'Times reported counts loot events; a single event may contain several copies. Quantity appears inside the submission history. Entries appear after their first eligible report. Results refresh within five minutes.' ) ) );
         $out->addHTML( $this->form( $filters ) );
         try {
             $summary = $this->repository->getSummary( $filters );
@@ -56,7 +56,7 @@ final class SpecialDropDatabase extends SpecialPage {
         $total = (int)$summary['totalRows'];
         $out->addHTML( Html::element( 'p', [ 'role' => 'status' ], number_format( $total ) . ' matching entries' ) );
         if ( !$summary['rows'] ) {
-            $out->addHTML( Html::element( 'p', [], 'No repeated corpse-loot reports match these filters yet. Try clearing a filter.' ) );
+            $out->addHTML( Html::element( 'p', [], 'No corpse-loot reports match these filters yet. Try clearing a filter.' ) );
         } else {
             $out->addHTML( $this->table( $summary['rows'], $summary['snapshot'], $summary['detailsAvailable'] ?? true ) );
         }
@@ -88,7 +88,7 @@ final class SpecialDropDatabase extends SpecialPage {
     }
 
     private function table( array $rows, string $snapshot, bool $detailsAvailable = true ): string {
-        $html = '<div class="eql-drop-table-scroll"><table class="wikitable eql-drop-table"><caption>Repeated observed loot</caption><thead><tr>';
+        $html = '<div class="eql-drop-table-scroll"><table class="wikitable eql-drop-table"><caption>Observed loot</caption><thead><tr>';
         foreach ( [ 'Zone', 'NPC', 'Item', 'Instance', 'Times reported', '% of reported drops', 'Submissions' ] as $label ) {
             $html .= Html::element( 'th', [ 'scope' => 'col' ], $label );
         }

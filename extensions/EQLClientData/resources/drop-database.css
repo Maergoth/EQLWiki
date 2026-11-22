@@ -22,9 +22,6 @@
     align-items: baseline;
     gap: 0.3rem 0.8rem;
 }
-.eql-drop-info { font-size: 0.85em; }
-.eql-drop-info summary { cursor: pointer; color: #aeb6c1; }
-.eql-drop-info[open] { flex-basis: 100%; }
 /* Keep authored source data and native hover nodes; suppress inline source-rate noise. */
 .eql-mobpage .eql-drop-clean-item .ddb,
 .eql-mobpage .eql-drop-clean-item > .itemtopbg,
@@ -71,12 +68,6 @@
     margin: 0.4rem 0;
     font-size: 1em;
 }
-.eql-drop-legend {
-    color: #aeb6c1;
-    font-size: 0.88em;
-    max-width: 65em;
-    line-height: 1.5;
-}
 .eql-drop-observed-group {
     margin-top: 0.9rem;
 }
@@ -88,9 +79,6 @@
 .eql-drop-manual li {
     break-inside: avoid;
     overflow-wrap: anywhere;
-}
-.eql-drop-database-link {
-    font-size: 0.9em;
 }
 .eql-drop-database {
     min-width: 0;

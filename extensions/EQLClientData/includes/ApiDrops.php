@@ -41,7 +41,7 @@ final class ApiDrops extends ApiBase {
 		$this->getResult()->addValue( null, $this->getModuleName(), [
 			'schemaVersion' => 2,
 			'metric' => 'loot-report-share',
-			'denominator' => 'Eligible explicit-corpse loot reports for the same zone, NPC and instance in the declared historyMode; combines every server and tier and includes reports below the display threshold. Capability-message pseudo-zones are excluded.',
+			'denominator' => 'Every eligible explicit-corpse loot report for the same zone, NPC and instance in the declared historyMode; combines every server and tier. Capability-message pseudo-zones are excluded.',
 			'coverage' => 'Unknown; reports are not distinct kills and reportShare is not a drop chance.',
 			'minimumReports' => DropObservationSummary::MIN_REPORTS,
 			'cacheSeconds' => DropDatabaseRepository::CACHE_SECONDS
