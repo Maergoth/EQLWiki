@@ -289,8 +289,16 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   observed/received times, quantity and an optional explicitly consented character
   name; private actor/account/event identifiers are never public. Invalid area-rule
   sentences are filtered as zone claims without changing stored data.
+  Browser subject inputs use case-insensitive contains search through
+  `searchSummary()`; the HTTP API's `getSummary()` filters keep exact identities.
+  A collapsed integration guide on the browser page documents the existing
+  authenticated `eozobservations` event upload with a synthetic example and
+  current-wiki endpoint, without another importer or write API.
   NPC presentation remains test-only: item name, one percentage and rarity,
   preserving source/hover data while hiding duplicate authored rate annotations.
+  Plain names or ordinary wikilinks suffice for manual list entries; manual
+  rows replace matching generated rows. Generated `Mote of …` entries are hidden
+  only in the NPC display, retaining stored records and percentage denominators.
   These percentages are not per-kill drop chances. Optional cumulative totals
   use `CumulativeDropStore`/`CumulativeDropReader` and five separately installed
   derived tables, with same-transaction ingestion and resumable reconciled legacy

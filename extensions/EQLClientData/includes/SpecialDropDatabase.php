@@ -36,9 +36,10 @@ final class SpecialDropDatabase extends SpecialPage {
             Html::element( 'summary', [], 'About these observations' ) .
             Html::element( 'p', [], 'Observed % is the item’s share of reported loot for the same zone, NPC and instance, across servers and tiers. It is not a per-kill drop chance: unlooted items, zero-drop kills and overlapping reports are not fully known.' ) .
             Html::element( 'p', [], 'Times reported counts loot events; a single event may contain several copies. Quantity appears inside the submission history. Entries appear after their first eligible report. Results refresh within five minutes.' ) ) );
+        $out->addHTML( $this->integrationGuide() );
         $out->addHTML( $this->form( $filters ) );
         try {
-            $summary = $this->repository->getSummary( $filters );
+            $summary = $this->repository->searchSummary( $filters );
         } catch ( \Throwable $error ) {
             $out->addHTML( Html::element( 'p', [ 'role' => 'status' ], 'The drop database is temporarily unavailable. Please try again later.' ) . '</div>' );
             return;
@@ -71,11 +72,41 @@ final class SpecialDropDatabase extends SpecialPage {
         $out->addHTML( '</div>' );
     }
 
+    /** Documentation only: this disclosure never submits observations. */
+    private function integrationGuide(): string {
+        $endpoint = wfExpandUrl( wfScript( 'api' ), PROTO_CANONICAL );
+        $code = static fn ( string $text ): string => Html::element( 'code', [], $text );
+        $documentation = Title::newFromText( 'API Documentation#Private kill/loot observations: schema 1' );
+        $example = [ 'schemaVersion' => 1, 'batchId' => 'example-batch-0001', 'clientVersion' => 'ExampleTracker/1.0',
+            'events' => [ [ 'id' => 'example-event-0001', 'kind' => 'loot', 'observedAt' => '2026-01-01T12:00:00.000Z',
+                'server' => 'Example server', 'zone' => 'Example zone', 'npc' => 'An example skeleton',
+                'item' => 'Example item', 'quantity' => 1, 'instance' => 'unknown', 'sourceKind' => 'explicit-corpse' ] ] ];
+        $html = Html::element( 'summary', [], 'Share observations from another tool' );
+        $html .= Html::element( 'p', [], 'Convert your own recorded events to schema 1. Send real observations, not invented events expanded from aggregate counts or claimed drop chances. Use explicit-corpse only when recorded corpse evidence identifies the NPC.' );
+        $html .= Html::rawElement( 'p', [], 'Use ' . $code( 'POST ' . $endpoint ) . ' with ' . $code( 'action=eozobservations' ) .
+            '. Use a named, unblocked wiki account with confirmed email and the observation submission right. Authenticate through normal wiki login or a scoped bot password with the ' . $code( 'eozobservations' ) . ' grant. Obtain a CSRF token in that same session. The wiki derives contributor identity from the authenticated account.' );
+        $html .= Html::rawElement( 'p', [], 'First POST ' . $code( 'operation=status' ) . ' with your CSRF token and account assertions; require ' .
+            $code( 'enabled:true' ) . ' and ' . $code( 'available:true' ) . '. Then submit form fields ' .
+            $code( 'operation=submit' ) . ', ' . $code( 'batch' ) . ' (the JSON below), ' . $code( 'token' ) . ', ' .
+            $code( 'assert=user' ) . ', ' . $code( 'assertuser=Your canonical account name' ) . ', ' . $code( 'format=json' ) . ' and ' . $code( 'formatversion=2' ) . '.' );
+        $html .= Html::element( 'p', [], 'Synthetic example — replace these values with your actual recorded event:' );
+        $html .= Html::element( 'pre', [], json_encode( $example, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) );
+        $html .= Html::element( 'p', [], 'Send 1–' . ObservationPayload::MAX_EVENTS . ' events per batch, at most ' . number_format( ObservationPayload::MAX_BYTES ) .
+            ' UTF-8 bytes (256 KiB) total and ' . number_format( ObservationPayload::MAX_EVENT_BYTES ) . ' bytes per normalized event. Keep batch/event IDs and payloads stable for retries; mark only accepted or duplicate IDs delivered. Retain failures locally and back off using the status limits.' );
+        $html .= Html::rawElement( 'p', [],
+            Html::element( 'a', [ 'href' => $documentation->getLocalURL() ], 'Full API documentation' ) . ' · ' .
+            Html::element( 'a', [ 'href' => $endpoint . '?action=help&modules=eozobservations' ], 'Upload module parameters' ) . ' · ' .
+            Html::element( 'a', [ 'href' => 'https://github.com/Maergoth/EQLWiki/blob/main/docs/CLIENT_API.md#observation-schema-1-and-backlog-delivery' ], 'Event schema and delivery guide' ) . ' · ' .
+            Html::element( 'a', [ 'href' => 'https://github.com/Maergoth/EQLWiki/blob/main/extensions/EQLClientData/sql/mysql/observations.sql' ], 'Storage schema reference' ) );
+        return Html::rawElement( 'details', [ 'class' => 'eql-drop-integration' ], $html );
+    }
+
     private function form( array $filters ): string {
         $html = Html::openElement( 'form', [ 'method' => 'get', 'action' => $this->getPageTitle()->getLocalURL(), 'class' => 'eql-drop-filters' ] );
         $html .= Html::element( 'input', [ 'type' => 'hidden', 'name' => 'title', 'value' => $this->getPageTitle()->getPrefixedText() ] );
         foreach ( [ 'q' => 'Search', 'zone' => 'Zone', 'npc' => 'NPC', 'item' => 'Item' ] as $key => $label ) {
-            $html .= Html::rawElement( 'label', [], Html::element( 'span', [], $label ) . Html::element( 'input', [ 'name' => $key, 'value' => $filters[$key], 'type' => 'search', 'maxlength' => DropDatabaseRepository::FILTER_MAX_CHARS ] ) );
+            $html .= Html::rawElement( 'label', [], Html::element( 'span', [], $label ) . Html::element( 'input', [ 'name' => $key, 'value' => $filters[$key], 'type' => 'search',
+                'placeholder' => $key === 'q' ? 'Zone, NPC or item' : 'Any part of name', 'maxlength' => DropDatabaseRepository::FILTER_MAX_CHARS ] ) );
         }
         $options = '';
         foreach ( [ '' => 'All instances', 'normal' => 'Normal', 'raid' => 'Raid', 'unknown' => 'Unknown' ] as $value => $label ) {

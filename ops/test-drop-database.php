@@ -237,5 +237,31 @@ namespace {
 	check( isset( $api->getAllowedParams()['q'] ), 'Document the supported text-search parameter.' );
 	check( $api->getAllowedParams()['zone'][\Wikimedia\ParamValidator\TypeDef\StringDef::PARAM_MAX_CHARS] === 256,
 		'API filter definition accommodates first-letter normalization expansion without changing ingestion limits.' );
+	$searchRecords = [];
+	foreach ( [ 'Water Flask', 'Äther Flask', 'Flask_100% Essence', 'FlaskX100Y Essence', "Flask's secret" ] as $index => $name ) {
+		$searchRecords[] = record( 300 + $index, [ 'item' => $name, 'itemTitle' => null ] );
+	}
+	$searchRecords[] = record( 305, [ 'item' => 'Plain tonic', 'itemTitle' => null, 'zone' => 'Flask Cavern', 'zoneTitle' => null ] );
+	$searchRepository = new DropDatabaseRepository( new DropFixtureProvider( new DropFixtureDB( $searchRecords ) ), new WANObjectCache() );
+	foreach ( [ 'Flask', 'flask', 'fLaSk' ] as $needle ) {
+		check( $searchRepository->searchSummary( [ 'item' => $needle ] )['totalRows'] === 5, 'Browser Item search is a case-insensitive substring within item names only.' );
+	}
+	check( $searchRepository->getSummary( [ 'item' => 'flask' ] )['rows'] === [] && $searchRepository->getSummary( [ 'item' => 'water flask' ] )['rows'] === [] &&
+		$searchRepository->getSummary( [ 'item' => 'Water Flask' ] )['totalRows'] === 1, 'Public API item identities retain exact ordinary title equality.' );
+	check( $searchRepository->searchSummary( [ 'q' => 'flask' ] )['totalRows'] === 6, 'General search can match context; the Item field cannot.' );
+	$water = $searchRepository->searchSummary( [ 'zone' => 'FIXTURE', 'npc' => 'GUARDIAN', 'item' => 'water', 'instance' => 'normal' ] );
+	check( $water['totalRows'] === 1 && $water['rows'][0]['totalReports'] === 5 && $water['rows'][0]['reportShare'] === 20.0, 'Browser subject filters combine with AND without changing the source denominator.' );
+	foreach ( [ '_100%' => 0, '100%' => 1, "'s" => 1, 'äTHER' => 1, 'ather' => 0, "' OR 1=1 --" => 0, str_repeat( 'é', 256 ) => 0 ] as $needle => $expected ) {
+		check( $searchRepository->searchSummary( [ 'item' => $needle ] )['totalRows'] === $expected, 'Recent literal search: ' . json_encode( $needle ) );
+	}
+	check( $searchRepository->searchSummary( [ 'item' => 'flask', 'q' => 'secret' ] )['totalRows'] === 1, 'General and per-field search remain conjunctive.' );
+	$searchPage = $searchRepository->searchSummary( [ 'item' => 'flask', 'offset' => 2, 'limit' => 2 ] );
+	check( count( $searchPage['rows'] ) === 2 && $searchPage['totalRows'] === 5 && $searchPage['hasMore'], 'Filtered browser pagination keeps matching totals.' );
+	invalid( static fn () => $searchRepository->searchSummary( [ 'item' => str_repeat( 'é', 257 ) ] ) );
+	invalid( static fn () => $searchRepository->searchSummary( [ 'item' => "\xc3" ] ) );
+	$searchApiMain = new \MediaWiki\Api\ApiMain();$searchApi = new ApiDrops( $searchApiMain, 'eqldrops', $searchRepository );
+	$searchApi->params = [ 'item' => 'flask' ];$searchApi->execute();
+	check( $searchApiMain->data['eqldrops']['rows'] === [] && !isset( $searchApi->getAllowedParams()['itemContains'] ), 'HTTP API still routes exact filters and exposes no browser-internal contains parameter.' );
+	$searchApi->params = [ 'itemContains' => 'flask' ];invalid( static fn () => $searchApi->execute() );
 	echo "Drop database: $checks synthetic checks passed.\n";
 }

@@ -39,7 +39,10 @@ class WANObjectCache {
 class SQLFixture {
 	public const ATOMIC_CANCELABLE = 'cancelable';public array $selects = [];public bool $recordSelects = false;public ?string $failInsert = null;
 	private array $levels = [];private array $prepared = [];
-	public function __construct( public \PDO $pdo, public bool $mysql = false ) { $pdo->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION ); }
+	public function __construct( public \PDO $pdo, public bool $mysql = false ) {
+		$pdo->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
+		if ( !$mysql ) { $pdo->sqliteCreateFunction( 'LOWER', static fn ( $value ) => mb_strtolower( (string)$value, 'UTF-8' ), 1 ); }
+	}
 	public function tableExists( $table, $caller ): bool {
 		return $this->mysql ? (bool)$this->pdo->query( 'SHOW TABLES LIKE ' . $this->addQuotes( $table ) )->fetchColumn()
 			: (bool)$this->pdo->query( "SELECT name FROM sqlite_master WHERE type='table' AND name=" . $this->addQuotes( $table ) )->fetchColumn();
@@ -52,7 +55,11 @@ class SQLFixture {
 	}
 	private function where( array $conditions ): string {
 		$parts = [];foreach ( $conditions as $key => $value ) {
-			if ( is_int( $key ) ) { $parts[] = $value; }
+			if ( is_int( $key ) ) {
+				// Native MySQL fixtures execute the original UTF-8 conversion/collation.
+				if ( !$this->mysql ) { $value = preg_replace( '/^LOWER\(CONVERT\((e\.den_(?:zone|npc|item)) USING utf8mb4\)\) COLLATE utf8mb4_bin/', 'LOWER($1)', $value, 1 ); }
+				$parts[] = $value;
+			}
 			elseif ( $value === null ) { $parts[] = $key . ' IS NULL'; }
 			elseif ( is_array( $value ) ) { $parts[] = $key . ' IN (' . implode( ',', array_map( fn ( $x ) => $this->addQuotes( $x ), $value ) ) . ')'; }
 			else { $parts[] = $key . '=' . $this->addQuotes( $value ); }
@@ -253,6 +260,27 @@ foreach ( [ 'zone', 'npc', 'item', 'all' ] as $index => $field ) {
 	$row = $repository->getSummary( $filter )['rows'][0];
 	check( $row['reports'] === 2 && strlen( $row[$field === 'all' ? 'zone' : $field] ) === 922, 'Normalized Unicode identity is preserved without truncation in ' . $field );
 }
+$searchRecords = [];
+foreach ( [ 'Water Flask', 'Äther Flask', 'Flask_100% Essence', 'FlaskX100Y Essence', "Flask's secret", 'Plain tonic' ] as $index => $name ) {
+	$searchRecords[] = raw( $db, 700000 + $index, [ 'zone' => $index === 5 ? 'Flask Cavern' : 'Search Vale', 'npc' => 'a search guardian', 'item' => $name ] );
+}
+$db->startAtomic( __METHOD__, $db::ATOMIC_CANCELABLE );Store::accepted( $db, $searchRecords );$db->endAtomic( __METHOD__ );
+foreach ( [ 'Flask', 'flask', 'fLaSk' ] as $needle ) {
+	check( $repository->searchSummary( [ 'item' => $needle ] )['totalRows'] === 5, 'Cumulative browser item contains is case-insensitive and scoped to the item.' );
+}
+check( $repository->getSummary( [ 'item' => 'flask' ] )['rows'] === [] && $repository->getSummary( [ 'item' => 'water flask' ] )['rows'] === [] &&
+	$repository->getSummary( [ 'item' => 'Water Flask' ] )['totalRows'] === 1, 'Cumulative public API exact title matching remains unchanged.' );
+check( $repository->searchSummary( [ 'q' => 'flask' ] )['totalRows'] === 6, 'General search can find a matching zone without widening Item search.' );
+$water = $repository->searchSummary( [ 'zone' => 'SEARCH', 'npc' => 'GUARDIAN', 'item' => 'water', 'instance' => 'normal' ] );
+check( $water['totalRows'] === 1 && $water['rows'][0]['totalReports'] === 5 && $water['rows'][0]['reportShare'] === 20.0, 'Cumulative UI filters combine with AND and preserve the full report denominator.' );
+foreach ( [ '_100%' => 0, '100%' => 1, "'s" => 1, 'äTHER' => 1, 'ather' => 0, "' OR 1=1 --" => 0, str_repeat( 'é', 256 ) => 0 ] as $needle => $expected ) {
+	check( $repository->searchSummary( [ 'item' => $needle ] )['totalRows'] === $expected, 'SQL literal search: ' . json_encode( $needle ) );
+}
+check( $repository->searchSummary( [ 'item' => 'flask', 'q' => 'secret' ] )['totalRows'] === 1, 'Cumulative general and field-specific searches are conjunctive.' );
+$searchPage = $repository->searchSummary( [ 'item' => 'flask', 'offset' => 2, 'limit' => 2 ] );
+check( count( $searchPage['rows'] ) === 2 && $searchPage['totalRows'] === 5 && $searchPage['hasMore'], 'Cumulative contains search retains bounded pagination and matching totals.' );
+$searchDetail = $repository->getDetail( $water['rows'][0]['entryId'], $water['snapshot'] );
+check( $searchDetail['totalRows'] === 1 && count( $searchDetail['rows'] ) === 1, 'A browser-search snapshot supports the ordinary one-report history contract.' );
 $beforeDeactivate = $db->pdo->query( 'SELECT SUM(den_reports) FROM eql_drop_entries' )->fetchColumn();
 Store::deactivate( $db );check( Store::state( $db )->dps_ready == 0 && $db->pdo->query( 'SELECT SUM(den_reports) FROM eql_drop_entries' )->fetchColumn() == $beforeDeactivate,
 	'Deactivation changes only readiness and preserves every count.' );

@@ -20,18 +20,18 @@
         value = text( value );
         return value && !/[\[\]{}<>|#~:]/.test( value ) && !/^\./.test( value ) ? value : '';
     }
+    function wikiUrl( title ) {
+        try {
+            var url = new URL( mw.util.getUrl( title ), window.location.href );
+            return url.origin === window.location.origin && /^https?:$/.test( url.protocol ) ? url.href : '';
+        } catch ( error ) { return ''; }
+    }
     function link( row ) {
         var title = cleanTitle( row.itemTitle ), label = text( row.item ) || title;
         if ( !title ) { return element( 'span', '', label ); }
-        var node = element( 'a', '', label );
-        try {
-            var url = new URL( mw.util.getUrl( title ), window.location.href );
-            if ( url.origin !== window.location.origin || !/^https?:$/.test( url.protocol ) ) {
-                return element( 'span', '', label );
-            }
-            node.href = url.href;
-            node.title = title;
-        } catch ( error ) { return element( 'span', '', label ); }
+        var href = wikiUrl( title );
+        if ( !href ) { return element( 'span', '', label ); }
+        var node = element( 'a', '', label );node.href = href;node.title = title;
         var hover = element( 'span', 'ih' );hover.appendChild( node );return hover;
     }
     function validRow( row ) {
@@ -54,22 +54,120 @@
     function manualLists( root ) {
         return root.querySelectorAll( '.eql-drop-manual, .eql-mobpage-hero-loot ul, .eql-mobpage-loot ul, .eql-mobpage-common-loot ul' );
     }
-    function manualItems( lists ) {
-        var items = Object.create( null );
-        Array.prototype.forEach.call( lists, function ( list ) {
-            Array.prototype.forEach.call( list.children, function ( li ) {
-                if ( li.tagName !== 'LI' || li.classList.contains( 'eql-drop-generated' ) ) { return; }
-                var anchor = Array.prototype.find.call( li.querySelectorAll( 'a[href]' ), function ( candidate ) {
-                    return Boolean( anchorTitle( candidate ) );
+    function plainItem( value ) {
+        var label = value.trim(), rarity = /\s+\((?:common|uncommon|rare|very rare|ultra rare|unique|always)\)$/i.exec( label );
+        if ( rarity ) { label = label.slice( 0, rarity.index ).trim(); }
+        var title = label.replace( /[ \t]+/g, ' ' );
+        // One whole literal title, never a partial match inside prose, URLs, markup or arbitrary notes.
+        if ( !title || title.length > 230 || !/^[\p{L}\p{N}][\p{L}\p{N}\p{M} '’".+&-]*$/u.test( title ) ||
+            /[.!?;]$/.test( title ) || /^(?:none|unknown|n\/a)$/i.test( title ) ||
+            /^(?:(?:always|usually|often|sometimes|rarely|commonly|only|also)\s+drops?\b|(?:may|can|will)\s+drop\b|drops\s+(?!of\b)|drop\s+from\b|(?:common|rare|known|unique)\s+loot\b|(?:some|several|various|all|any)\s+(?:items?|drops?|loot|mobs?|monsters?|creatures?|humanoids?)\b|low[ -]level\s+(?:mobs?|monsters?|creatures?|humanoids?)\b|(?:see|notes?)\s+(?:also|below|above|that|the)\b|\d+\s+(?:pieces?|items?|copies?)\b)/i.test( title ) ) { return null; }
+        return { label: label, title: title, start: value.indexOf( label ) };
+    }
+    function plainMarkup( node ) {
+        return Array.prototype.every.call( node.childNodes, function ( child ) {
+            return child.nodeType === 3 || child.nodeType === 8 || child.nodeType === 1 &&
+                child.tagName === 'SPAN' && child.classList.contains( 'drare' ) && !child.children.length;
+        } );
+    }
+    function primaryAnchor( li ) {
+        return Array.prototype.find.call( li.querySelectorAll( 'a[href]' ), function ( candidate ) {
+            if ( candidate.closest( '.hb, .ddb, .drare' ) || !anchorTitle( candidate ) ) { return false; }
+            var before = document.createRange();before.selectNodeContents( li );before.setEndBefore( candidate );
+            return !before.cloneContents().textContent.trim();
+        } );
+    }
+    function normalizePlainBlocks( root ) {
+        Array.prototype.forEach.call( root.querySelectorAll( '.eql-mobpage-hero-loot, .eql-mobpage-loot, .eql-mobpage-common-loot' ), function ( panel ) {
+            Array.prototype.forEach.call( Array.prototype.slice.call( panel.childNodes ), function ( block ) {
+                if ( block.nodeType !== 3 && !( block.nodeType === 1 && block.tagName === 'P' ) ) { return; }
+                var lines = [ [] ], safe = true, nodes = block.nodeType === 3 ? [ block ] : block.childNodes;
+                Array.prototype.forEach.call( nodes, function ( node ) {
+                    if ( node.nodeType === 3 ) {
+                        node.textContent.split( /\r?\n/ ).forEach( function ( part, index ) {
+                            if ( index ) { lines.push( [] ); }lines[ lines.length - 1 ].push( part );
+                        } );
+                    } else if ( node.nodeType === 1 && node.tagName === 'BR' ) { lines.push( [] ); }
+                    else if ( node.nodeType === 1 && ( node.tagName === 'A' || node.tagName === 'SPAN' &&
+                        node.classList.contains( 'drare' ) && !node.children.length ) && !/[\r\n]/.test( node.textContent ) ) {
+                        lines[ lines.length - 1 ].push( node );
+                    } else { safe = false; }
                 } );
-                var key = anchor && titleKey( anchorTitle( anchor ) );
-                if ( key ) {
-                    li.classList.add( 'eql-drop-clean-item' );
-                    if ( !items[ key ] ) { items[ key ] = []; }items[ key ].push( { li: li, anchor: anchor } );
-                }
+                if ( !safe ) { return; }
+                lines = lines.filter( function ( parts ) { return parts.some( function ( part ) { return ( typeof part === 'string' ? part : part.textContent ).trim(); } ); } );
+                if ( !lines.length || !lines.every( function ( parts ) {
+                    var test = element( 'li' );parts.forEach( function ( part ) { test.appendChild( typeof part === 'string' ? document.createTextNode( part ) : part.cloneNode( true ) ); } );
+                    return Boolean( primaryAnchor( test ) || !test.querySelector( 'a' ) && plainMarkup( test ) && plainItem( test.textContent ) );
+                } ) ) { return; }
+                var list = element( 'ul', 'eql-drop-manual-list' );
+                lines.forEach( function ( parts ) {
+                    var li = element( 'li' );parts.forEach( function ( part ) { li.appendChild( typeof part === 'string' ? document.createTextNode( part ) : part ); } );list.appendChild( li );
+                } );
+                block.replaceWith( list );
             } );
         } );
+    }
+    function manualEntry( li ) {
+        var anchor = primaryAnchor( li ), title = anchor && anchorTitle( anchor );
+        if ( !title ) {
+            var previous = li.querySelector( '.eql-drop-manual-name' );
+            if ( previous ) { anchor = previous;title = cleanTitle( previous.dataset.dropTitle ); }
+            else {
+                if ( li.querySelector( 'a' ) || !plainMarkup( li ) ) { return null; }
+                var parsed = plainItem( li.textContent );if ( !parsed ) { return null; }
+                var walker = document.createTreeWalker( li, 4 ), offset = 0, range = document.createRange(), node, start = false;
+                while ( ( node = walker.nextNode() ) ) {
+                    var end = offset + node.textContent.length;
+                    if ( !start && parsed.start < end ) { range.setStart( node, parsed.start - offset );start = true; }
+                    if ( start && parsed.start + parsed.label.length <= end ) { range.setEnd( node, parsed.start + parsed.label.length - offset );break; }
+                    offset = end;
+                }
+                var href = wikiUrl( parsed.title );anchor = element( href ? 'a' : 'span', 'eql-drop-manual-name' );
+                if ( href ) { anchor.href = href;anchor.title = parsed.title; }anchor.dataset.dropTitle = parsed.title;
+                anchor.appendChild( range.extractContents() );range.insertNode( anchor );title = parsed.title;
+            }
+        }
+        if ( !title ) { return null; }
+        li.classList.add( 'eql-drop-clean-item' );
+        return { li: li, anchor: anchor, key: titleKey( title ), recorded: li.classList.contains( 'eql-recorded-loot-item' ) };
+    }
+    function moteName( value ) { return /^mote of(?:\s|$)/i.test( titleKey( value ).replace( /\s+/g, ' ' ) ); }
+    function moteRow( row ) { return moteName( row.itemTitle ) || moteName( row.item ); }
+    function manualItems( root ) {
+        normalizePlainBlocks( root );
+        var items = Object.create( null ), recorded = [];
+        Array.prototype.forEach.call( manualLists( root ), function ( list ) {
+            if ( list.closest( '.hb, .itembg, .itemtopbg, .itembotbg' ) ) { return; }
+            Array.prototype.forEach.call( list.children, function ( li ) {
+                if ( li.tagName !== 'LI' || li.classList.contains( 'eql-drop-generated' ) ) { return; }
+                var entry = manualEntry( li );if ( !entry ) { return; }
+                if ( entry.recorded ) { recorded.push( entry );return; }
+                if ( !items[ entry.key ] ) { items[ entry.key ] = []; }items[ entry.key ].push( entry );
+            } );
+        } );
+        recorded.forEach( function ( entry ) {
+            var suppressed = moteName( entry.key ) || Boolean( items[ entry.key ] );
+            entry.li.classList.toggle( 'eql-drop-suppressed-item', suppressed );
+            if ( !suppressed ) { items[ entry.key ] = [ entry ]; }
+        } );
         return items;
+    }
+    function rawAliases( rows ) {
+        var aliases = Object.create( null );
+        rows.forEach( function ( row ) {
+            var raw = titleKey( cleanTitle( row.item ) ), canonical = titleKey( cleanTitle( row.itemTitle || row.item ) );
+            if ( raw ) { aliases[ raw ] = aliases[ raw ] === undefined || aliases[ raw ] === canonical ? canonical : false; }
+        } );return aliases;
+    }
+    function manualTarget( row, manual, aliases ) {
+        var canonical = titleKey( cleanTitle( row.itemTitle || row.item ) ), raw = titleKey( cleanTitle( row.item ) );
+        var entries = ( manual[ canonical ] || [] ).slice();
+        if ( raw !== canonical && aliases[ raw ] === canonical ) { entries = entries.concat( manual[ raw ] || [] ); }
+        var authored = entries.filter( function ( entry ) { return !entry.recorded; } );
+        if ( authored.length ) {
+            entries.forEach( function ( entry ) { if ( entry.recorded ) { entry.li.classList.add( 'eql-drop-suppressed-item' ); } } );return authored;
+        }
+        return entries.filter( function ( entry ) { return !entry.li.classList.contains( 'eql-drop-suppressed-item' ); } );
     }
     function anchorTitle( anchor ) {
         try {
@@ -110,11 +208,22 @@
     }
     function render( root, rows ) {
         Array.prototype.forEach.call( root.querySelectorAll( '.eql-drop-generated' ), function ( node ) { node.remove(); } );
-        var manual = manualItems( manualLists( root ) );
+        var manual = manualItems( root );
         var npc = titleKey( root.dataset.dropNpc || mw.config.get( 'wgPageName' ) );
         rows = Array.isArray( rows ) ? rows.filter( function ( row ) {
             return validRow( row ) && ( !npc || titleKey( row.npcTitle || row.npc ) === npc );
         } ).slice( 0, 500 ) : [];
+        var aliases = rawAliases( rows );
+        rows = rows.filter( function ( row ) {
+            if ( !moteRow( row ) ) { return true; }
+            var authored = manualTarget( row, manual, aliases ).some( function ( entry ) { return !entry.recorded; } );
+            [ row.itemTitle, row.item ].forEach( function ( value ) {
+                ( manual[ titleKey( cleanTitle( value ) ) ] || [] ).forEach( function ( entry ) {
+                    if ( entry.recorded ) { entry.li.classList.add( 'eql-drop-suppressed-item' ); }
+                } );
+            } );
+            return authored;
+        } );
         if ( !rows.length ) { return; }
         var groups = Object.create( null ), seen = Object.create( null );
         var panel = root.querySelector( '.eql-mobpage-hero-loot, .eql-mobpage-loot' ) || root;
@@ -154,8 +263,8 @@
         var selectedRows = groups[ selected ].rows;
         var appendList = panel.querySelector( 'ul:not(.eql-drop-generated-list)' );
         selectedRows.forEach( function ( row ) {
-            var target = cleanTitle( row.itemTitle || row.item ) && manual[ titleKey( row.itemTitle || row.item ) ];
-            if ( target ) {
+            var target = manualTarget( row, manual, aliases );
+            if ( target.length ) {
                 target.forEach( function ( entry ) {
                     var after = entry.anchor.closest( 'span.ih' ) || entry.anchor;
                     if ( !entry.li.contains( after ) ) { after = entry.anchor; }
@@ -175,7 +284,7 @@
     function load( root ) {
         if ( mounted.has( root ) ) { return; }
         mounted.add( root );
-        manualItems( manualLists( root ) );
+        manualItems( root );
         var npc = titleKey( root.dataset.dropNpc || mw.config.get( 'wgPageName' ) );
         if ( !npc || !mw.config.get( 'wgIsArticle' ) || mw.config.get( 'wgAction' ) !== 'view' ) { return; }
         if ( !requests[ npc ] ) {

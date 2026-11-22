@@ -33,6 +33,21 @@ password/remember-me requests. This is not a successful real-account login test.
 Scoped bot passwords can request the separate `eozobservations` grant; this grants
 only the observation right, never article editing or elevated wiki permissions.
 
+## Sharing from another local tool
+
+`Special:DropDatabase` includes a collapsed **Share observations from another
+tool** guide. It shows the current wiki's API endpoint, a copyable synthetic
+schema-1 event batch, request limits, authentication/retry steps and links to the
+full public documentation and tracked event/storage schemas. It does not submit
+the example or introduce another upload endpoint.
+
+Other tools convert their own recorded events to the existing
+`action=eozobservations` contract below. Aggregate counts cannot be expanded into
+invented events or treated as per-kill drop chances. Named-account attribution,
+confirmed-email/block rules, CSRF, assertions and stable event/batch identities
+apply to normal login and scoped bot passwords alike. The wiki derives the
+contributor identity; clients do not send actor/account fields.
+
 ## Observation schema 1 and backlog delivery
 
 Form parameters: `action=eozobservations`, `operation=status|submit`, CSRF
@@ -112,12 +127,19 @@ for retry semantics. Multiple accounts can report the same real encounter.
 ## Browsing observed loot (1.5, read schema 2)
 
 `Special:DropDatabase` browses existing accepted observations without changing
-articles or installing tables. Its filters cover zone, NPC, item,
-instance and literal free-text search, with 50 aggregate entries per page.
+articles or installing tables. Its Zone, NPC and Item fields match any part of
+the respective name, ignoring case; for example, Item `flask` matches `Water
+Flask`. Filled fields combine with AND. General Search spans zone/NPC/item,
+Instance stays exact, and results have 50 aggregate entries per page.
 The read-only GET API `action=eqldrops&format=json` exposes the same projection,
 with optional `zone`, `npc`, `item`, `instance`, `q`, `offset` and
 `limit` (1–500). Source filters use exact reported/canonical title identities.
 These title claims are not an editorial verification of the reports.
+The browser uses the repository's separate `searchSummary()` path. The public
+API continues using exact `getSummary()` identity filters for overlay contexts;
+no contains parameter is added to the HTTP API. Both read modes preserve the
+same full source denominator and snapshot/history rules. Search text treats
+`%`, `_` and quotes literally rather than as query syntax.
 
 Only explicit-corpse loot with a zone, NPC and item qualifies. Provider wording
 can describe merchants; recent-kill/target inference and unknown sources are
@@ -197,12 +219,27 @@ usable. No database-page JavaScript/template publication is needed. **NPC
 presentation remains test-only until separately approved.** Production browser
 promotion must exclude the NPC Hook/module activation.
 
+Authors can use one plain item name or ordinary wikilink per bullet/line, with
+optional rarity such as `* Test Blade (Common)` or
+`* [[Canonical Blade|My label]] (Rare)`. Special spans, `.ddb` annotations and
+item transclusions are unnecessary. The test overlay matches whole plain names
+or explicit link destinations, preserves authored labels/rarity/notes and lets
+manual entries replace matching generated rows. Plain-name linking and display
+deduplication do not create an editorial relationship or prove page existence;
+ordinary wikilinks retain the native reciprocal-source contract. Generated
+`Mote of …` rows are hidden only on the NPC display. Authored Motes, stored
+events, API/database entries and report-share denominators remain unchanged.
+
 Checks: `php ops/test-drop-cumulative.php` exercises more than 100,000 legacy
 records, exact cumulative counters, resumable/late-ID backfill, atomic ingestion,
 Unicode title expansion, privacy and revision-bound paging. The optional fixed
 loopback MariaDB fixture checks actual InnoDB DDL and repeatable-read behavior;
 it is separate from a real wiki or host activation. `php ops/test-drop-database.php` exercises synthetic aggregates,
 privacy, thresholds, denominators, pagination, caching and bounded reads.
+`php ops/test-drop-integration.php` validates the rendered collapsed guide and
+its synthetic JSON against the actual event validator. Browser field-search
+fixtures cover mixed case, Unicode and literal wildcard/quote handling while
+checking that exact API filters and report denominators stay unchanged.
 `node ops/test-drop-browser.cjs` checks lazy expansion, timestamps, optional names,
 pagination and failures. `node ops/test-drop-overlay.cjs` (jsdom) exercises actual renderer matching,
 notes, append behavior, source scopes and failures. These do not establish live
