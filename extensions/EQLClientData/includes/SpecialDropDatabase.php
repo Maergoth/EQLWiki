@@ -89,7 +89,7 @@ final class SpecialDropDatabase extends SpecialPage {
 
     private function table( array $rows, string $snapshot, bool $detailsAvailable = true ): string {
         $html = '<div class="eql-drop-table-scroll"><table class="wikitable eql-drop-table"><caption>Repeated observed loot</caption><thead><tr>';
-        foreach ( [ 'Zone', 'NPC', 'Item', 'Instance', 'Times reported', 'Observed %', 'Submissions' ] as $label ) {
+        foreach ( [ 'Zone', 'NPC', 'Item', 'Instance', 'Times reported', '% of reported drops', 'Submissions' ] as $label ) {
             $html .= Html::element( 'th', [ 'scope' => 'col' ], $label );
         }
         $html .= '</tr></thead><tbody>';
