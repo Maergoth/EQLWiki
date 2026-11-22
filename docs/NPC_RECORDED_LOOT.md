@@ -25,7 +25,7 @@ unparsed qualifiers still require review.
 Only public authored fields establish relationships; generic prose, comments,
 protected examples and unused wrapper arguments do not establish drops.
 
-## Simple manual entries on test NPC pages
+## Simple manual entries on NPC pages
 
 Use one item per bullet or simple line in `known_loot` / `common_loot`, for example:
 
@@ -35,7 +35,7 @@ Use one item per bullet or simple line in `known_loot` / `common_loot`, for exam
 ```
 
 New entries need no HTML spans, `.ddb` percentages or item transclusions. The
-test-only observed-loot overlay links safe whole plain names and prefers the
+observed-loot overlay links safe whole plain names and prefers the
 destination of an explicit same-wiki item link. It keeps authored labels, rarity
 and notes, and hides matching generated duplicates instead of adding another
 item. Recognized rarity suffixes are Common, Uncommon, Rare, Very Rare, Ultra
@@ -48,6 +48,21 @@ plain name alone does not. Linking a plain name does not claim that its page
 exists. The overlay also filters generated `Mote of …` rows; explicitly authored
 Motes remain. No stored event, authored source, API/database entry or percentage
 denominator is deleted or changed by this display filter.
+
+An explicit authored loot rate always wins: its text stays as written and the
+overlay adds no percentage for that item, even below ten observed reports. This
+applies to ordinary text and rate annotations in any CSS class, including
+`.dcommon`, `.drare` and `.ddb`. Legacy blocks with several percentages remain
+whole; the display never guesses which number means drop chance. Native hover
+data stays available while inline item stat cards remain hidden.
+
+Observed items appear from their first eligible report. Where no authored rate
+exists, only the automatic NPC percentage waits for ten reports of that item in
+the same zone/NPC/instance. Below that floor, the item name and authored rarity
+remain visible without an observed percentage. Every eligible item report still
+contributes to the denominator. The database and API keep their percentages for
+all public entries. This is a display floor, not a confidence interval or
+evidence of distinct kills.
 
 ## Layout and duplicate handling
 

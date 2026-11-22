@@ -281,9 +281,14 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   reviewed public `API_Documentation` database page has its own guarded publisher.
 - `Special:DropDatabase` and GET `action=eqldrops` expose explicit-corpse
   loot aggregates through `DropDatabaseRepository`/`DropObservationSummary`.
-  The conditional `ext.eqlDropDatabase` module adds grey report-share percentages
-  beside exact item-link destinations on NPC pages and appends unlisted items,
-  starting with one eligible report. The loot table has no share-explanation
+  The conditional `ext.eqlDropDatabase` module appends unlisted NPC loot from its
+  first eligible report. Grey percentages beside matching or appended items
+  require ten reports of that item in the same zone/NPC/instance and no explicit
+  authored loot rate. Authored rate annotations stay as written and always
+  override an automatic percentage, including below ten reports. Database/API
+  percentages remain available from one report, and all eligible reports remain
+  in every source denominator. This is a display floor, not statistical confidence
+  or distinct kills. The loot table has no share-explanation
   disclosure; its source selector remains when multiple contexts exist.
   The browser combines server/tier and expands individual submissions with UTC
   observed/received times, quantity and an optional explicitly consented character
@@ -294,8 +299,10 @@ character attribution). Start with `extension.json`, `includes/Hooks.php`,
   A collapsed integration guide on the browser page documents the existing
   authenticated `eozobservations` event upload with a synthetic example and
   current-wiki endpoint, without another importer or write API.
-  NPC presentation remains test-only: item name, one percentage and rarity,
-  preserving source/hover data while hiding duplicate authored rate annotations.
+  NPC presentation shows item name, rarity and either an authored rate or an
+  eligible automatic percentage, preserving source/hover data while hiding
+  inline item stat cards. Multi-percent legacy rate blocks remain literal;
+  no number is selected or reinterpreted.
   Plain names or ordinary wikilinks suffice for manual list entries; manual
   rows replace matching generated rows. Generated `Mote of …` entries are hidden
   only in the NPC display, retaining stored records and percentage denominators.
