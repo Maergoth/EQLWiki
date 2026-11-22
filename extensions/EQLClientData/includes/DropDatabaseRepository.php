@@ -75,7 +75,8 @@ final class DropDatabaseRepository {
 		if ( !$db->tableExists( 'eql_eoz_observations', __METHOD__ ) ) {
 			return [ 'available' => false ];
 		}
-		$key = $this->cache->makeKey( 'eqldrops', 'summary2-details1', self::WINDOW_LIMIT );
+		// Admission policy belongs in the read cache, not the stored cumulative format.
+		$key = $this->cache->makeKey( 'eqldrops', 'summary2-details1', self::WINDOW_LIMIT, DropObservationSummary::MIN_REPORTS );
 		return $this->cache->getWithSetCallback( $key, self::CACHE_SECONDS,
 			function ( $oldValue, &$ttl, array &$setOpts ) use ( $db ): array {
 				// Keyset chunks bound raw payload memory and share one descending snapshot.
@@ -105,7 +106,7 @@ final class DropDatabaseRepository {
 					}
 				};
 				$projection = DropObservationSummary::project( $bounded() );
-				$token = hash( 'sha256', json_encode( [ 'schema2-details1', $projection ], JSON_THROW_ON_ERROR ) );
+				$token = hash( 'sha256', json_encode( [ 'schema2-details1', DropObservationSummary::MIN_REPORTS, $projection ], JSON_THROW_ON_ERROR ) );
 				return [ 'available' => true, 'snapshot' => $token, 'windowed' => $windowed ] + $projection;
 			} );
 	}
