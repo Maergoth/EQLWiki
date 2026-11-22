@@ -280,8 +280,14 @@ version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations).
   `eozobservations` upload with a synthetic example and current-wiki endpoint,
   without another importer or write API. On EQLImmersive main-namespace NPC pages,
   `Hooks::onBeforePageDisplay` loads the registered `ext.eqlDropDatabase` module.
-  It adds one grey percentage beside exact item-link destinations and appends
-  unmatched items from their first eligible report. Authored plain names or
+  It appends unmatched items from their first eligible report. A grey percentage
+  beside an exact matching or appended item requires ten reports of that item
+  in the same zone/NPC/instance and no explicit authored loot rate. Authored
+  rates stay as written and always override an automatic percentage, including
+  below ten reports; multi-percent legacy blocks are never reinterpreted.
+  Database/API percentages remain available from one report, and all eligible
+  reports remain in the source denominator. This is a display floor, not
+  statistical confidence or distinct kills. Authored plain names or
   ordinary wikilinks override generated rows while preserving labels, rarity
   and hover source; generated `Mote of …` rows are hidden only on this display.
   Stored evidence, API entries and report denominators remain unchanged. Normal
