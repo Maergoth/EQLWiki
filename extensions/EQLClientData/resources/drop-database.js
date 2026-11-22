@@ -37,19 +37,8 @@
     function validRow( row ) {
         return row && typeof row === 'object' &&
             Number.isSafeInteger( row.reports ) && row.reports >= 2 &&
-            Number.isSafeInteger( row.totalReports ) && row.totalReports >= row.reports &&
             [ 'normal', 'raid', 'unknown' ].indexOf( row.instance ) !== -1 &&
             ( text( row.item ) || cleanTitle( row.itemTitle ) );
-    }
-    function badge( row ) {
-        var percent = ( row.reports / row.totalReports * 100 ).toFixed( 1 ).replace( /\.0$/, '' );
-        var node = element( 'span', 'eql-drop-generated eql-drop-observed',
-            ' (' + percent + '%)' );
-        node.title = percent + '% share of reported loot; reported ' + row.reports + ' times out of ' + row.totalReports +
-            ' recorded loot events; ' + scopeLabel( row ) + '. This is not a drop chance per kill.';
-        node.setAttribute( 'aria-label', node.title );
-        node.tabIndex = 0;
-        return node;
     }
     function manualLists( root ) {
         return root.querySelectorAll( '.eql-drop-manual, .eql-mobpage-hero-loot ul, .eql-mobpage-loot ul, .eql-mobpage-common-loot ul' );
@@ -149,10 +138,10 @@
             label.appendChild( selector );controls.appendChild( label );
         }
         var info = element( 'details', 'eql-drop-info' );
-        info.appendChild( element( 'summary', '', 'About the percentages' ) );
+        info.appendChild( element( 'summary', '', 'Per-kill rates unavailable' ) );
         info.appendChild( element( 'p', 'eql-drop-legend',
-            'Grey percentages show share of reported loot from ' + scopeLabel( groups[ selected ].row ) +
-            ', not drop chance per kill. Each item needs at least two recorded loot events. Missing loot and overlapping reports can affect the figures.' ) );
+            'Complete kill and loot coverage, including empty corpses, is required to show per-kill drop chances. ' +
+            'Grey items have at least two loot reports from ' + scopeLabel( groups[ selected ].row ) + '.' ) );
         var detail = element( 'a', 'eql-drop-database-link', 'Browse the drop database' );
         detail.href = mw.util.getUrl( 'Special:DropDatabase' );
         info.appendChild( detail );controls.appendChild( info );
@@ -163,21 +152,13 @@
         var appendList = panel.querySelector( 'ul:not(.eql-drop-generated-list)' );
         selectedRows.forEach( function ( row ) {
             var target = cleanTitle( row.itemTitle || row.item ) && manual[ titleKey( row.itemTitle || row.item ) ];
-            if ( target ) {
-                target.forEach( function ( entry ) {
-                    var after = entry.anchor.closest( 'span.ih' ) || entry.anchor;
-                    if ( !entry.li.contains( after ) ) { after = entry.anchor; }
-                    while ( after.nextSibling && after.nextSibling.nodeType === 1 &&
-                        after.nextSibling.classList.contains( 'eql-drop-observed' ) ) { after = after.nextSibling; }
-                    after.after( badge( row ) );
-                } );return;
-            }
+            if ( target ) { return; }
             if ( !appendList ) {
                 appendList = element( 'ul', 'eql-drop-generated eql-drop-generated-list' );panel.appendChild( appendList );
             }
             var item = element( 'li', 'eql-drop-observed-item' );
             item.classList.add( 'eql-drop-generated' );
-            item.appendChild( link( row ) );item.appendChild( badge( row ) );appendList.appendChild( item );
+            item.appendChild( link( row ) );appendList.appendChild( item );
         } );
     }
     function load( root ) {

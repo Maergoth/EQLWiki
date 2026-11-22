@@ -2,10 +2,12 @@
 
 EQLClientData 1.5.0's `CumulativeDropStore` maintains all-history source/item counts and a private
 submission index. It has no lifetime contribution or entry limit. The existing
-schema-2 `eqldrops` response, browser columns, grey report-share metric and
-test-only NPC module remain compatible. These are loot-report shares, not
-per-kill drop chances; coverage, overlapping encounters and unlooted items remain
-unknown. Server and tier combine before counting. Invalid capability-message
+schema-2 `eqldrops` response and test-only NPC module remain compatible. The
+legacy API's report-share metric counts loot events, not per-kill drop chances;
+coverage, overlapping encounters and unlooted items remain unknown. The browser
+shows `—` for Observed chance, and the NPC module adds no percentage or report-count
+badges until qualified kill/loot coverage is available. Existing counts, item
+names and submission history remain usable. Server and tier combine before counting. Invalid capability-message
 zones and inferred/provider sources remain excluded, including legacy rows.
 
 ## Transaction and read contracts

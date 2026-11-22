@@ -32,9 +32,9 @@ final class SpecialDropDatabase extends SpecialPage {
         $filters['limit'] = 50;
         $out->addHTML( Html::openElement( 'div', [ 'class' => 'eql-drop-database' ] ) );
         $out->addHTML( Html::element( 'p', [], 'Browse observed corpse loot. Expand an entry to see its individual submissions.' ) );
+        $out->addHTML( Html::element( 'p', [], 'Per-kill drop chances are unavailable until complete kill and loot coverage, including empty corpses, can be verified.' ) );
         $out->addHTML( Html::rawElement( 'details', [ 'class' => 'eql-drop-about' ],
             Html::element( 'summary', [], 'About these observations' ) .
-            Html::element( 'p', [], 'Observed % is the item’s share of reported loot for the same zone, NPC and instance, across servers and tiers. It is not a per-kill drop chance: unlooted items, zero-drop kills and overlapping reports are not fully known.' ) .
             Html::element( 'p', [], 'Times reported counts loot events; a single event may contain several copies. Quantity appears inside the submission history. Only entries with at least two reports appear. Results refresh within five minutes.' ) ) );
         $out->addHTML( $this->form( $filters ) );
         try {
@@ -89,7 +89,7 @@ final class SpecialDropDatabase extends SpecialPage {
 
     private function table( array $rows, string $snapshot, bool $detailsAvailable = true ): string {
         $html = '<div class="eql-drop-table-scroll"><table class="wikitable eql-drop-table"><caption>Repeated observed loot</caption><thead><tr>';
-        foreach ( [ 'Zone', 'NPC', 'Item', 'Instance', 'Times reported', 'Observed %', 'Submissions' ] as $label ) {
+        foreach ( [ 'Zone', 'NPC', 'Item', 'Instance', 'Times reported', 'Observed chance', 'Submissions' ] as $label ) {
             $html .= Html::element( 'th', [ 'scope' => 'col' ], $label );
         }
         $html .= '</tr></thead><tbody>';
@@ -102,9 +102,10 @@ final class SpecialDropDatabase extends SpecialPage {
                     ? $this->getLinkRenderer()->makeLink( $title, $label ) : Html::element( 'span', [], $label );
                 $html .= Html::rawElement( 'td', [], $link );
             }
-            foreach ( [ ucfirst( $row['instance'] ), number_format( $row['reports'] ), number_format( $row['reportShare'], 1 ) . '%' ] as $value ) {
+            foreach ( [ ucfirst( $row['instance'] ), number_format( $row['reports'] ) ] as $value ) {
                 $html .= Html::element( 'td', [], $value );
             }
+            $html .= Html::element( 'td', [ 'aria-label' => 'Unavailable' ], '—' );
             if ( !$detailsAvailable ) {
                 $html .= Html::element( 'td', [], 'Submission history is temporarily unavailable.' ) . '</tr>';
                 continue;

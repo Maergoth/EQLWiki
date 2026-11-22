@@ -5,6 +5,32 @@ declare( strict_types = 1 );
 namespace Wikimedia\Rdbms { interface IConnectionProvider {} }
 namespace Wikimedia\ParamValidator { class ParamValidator { public const PARAM_TYPE = 'type'; public const PARAM_DEFAULT = 'default'; } }
 namespace Wikimedia\ParamValidator\TypeDef { class IntegerDef { public const PARAM_MIN = 'min'; public const PARAM_MAX = 'max'; } class StringDef { public const PARAM_MAX_CHARS = 'maxchars'; } }
+namespace MediaWiki\Html {
+	class Html {
+		public static function element( $tag, $attrs = [], $text = '' ): string { return self::rawElement( $tag, $attrs, htmlspecialchars( (string)$text, ENT_QUOTES ) ); }
+		public static function rawElement( $tag, $attrs, $html ): string {
+			$attributes = '';foreach ( $attrs as $key => $value ) { $attributes .= ' ' . $key . '="' . htmlspecialchars( (string)$value, ENT_QUOTES ) . '"'; }
+			return '<' . $tag . $attributes . '>' . $html . '</' . $tag . '>';
+		}
+	}
+}
+namespace MediaWiki\Title {
+	class Title {
+		public function __construct( public string $text ) {}
+		public static function newFromText( $text ): self { return new self( $text ); }
+		public function getNamespace(): int { return 0; }
+		public function getLocalURL( array $query ): string { return '/Special:DropDatabase?' . http_build_query( $query ); }
+	}
+}
+namespace MediaWiki\SpecialPage {
+	class SpecialPage {
+		public function __construct( $name ) {}
+		public function getPageTitle(): \MediaWiki\Title\Title { return new \MediaWiki\Title\Title( 'Special:DropDatabase' ); }
+		public function getLinkRenderer() { return new class {
+			public function makeLink( $title, $label ): string { return \MediaWiki\Html\Html::element( 'a', [ 'href' => '/wiki/' . rawurlencode( $title->text ) ], $label ); }
+		}; }
+	}
+}
 namespace MediaWiki\Api {
 	class ApiMain {
 		public array $data = [];
@@ -35,6 +61,8 @@ namespace {
 	require __DIR__ . '/../extensions/EQLClientData/includes/CumulativeDropReader.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/DropDatabaseRepository.php';
 	require __DIR__ . '/../extensions/EQLClientData/includes/ApiDrops.php';
+	require __DIR__ . '/../extensions/EQLClientData/includes/SpecialDropDatabase.php';
+	define( 'NS_MAIN', 0 );
 
 	$checks = 0;
 	function check( bool $condition, string $label ): void {
@@ -149,7 +177,7 @@ namespace {
 	};
 	$rounding = DropObservationSummary::summarize( $roundingRecords() );
 	check( number_format( $rounding[0]['reportShare'], 1 ) === '44.2',
-		'273/617 displays 44.2% in both database and overlay; intermediate rounding must not produce 44.3%.' );
+		'Legacy API share keeps rounding precision without being presented as per-kill chance.' );
 
 	$db = new DropFixtureDB( $records );
 	$cache = new WANObjectCache();
@@ -225,5 +253,20 @@ namespace {
 	check( isset( $api->getAllowedParams()['q'] ), 'Document the supported text-search parameter.' );
 	check( $api->getAllowedParams()['zone'][\Wikimedia\ParamValidator\TypeDef\StringDef::PARAM_MAX_CHARS] === 256,
 		'API filter definition accommodates first-letter normalization expansion without changing ingestion limits.' );
+	$special = new \EQLClientData\SpecialDropDatabase( $repository );
+	$table = new \ReflectionMethod( $special, 'table' );
+	$display = $normal[0];$display['reportShare'] = 15.2;
+	$html = $table->invoke( $special, [ $display ], $token );
+	check( str_contains( $html, '>Observed chance</th>' ) && str_contains( $html, 'aria-label="Unavailable">—</td>' ),
+		'Actual Special page renderer keeps the chance column explicitly unavailable.' );
+	check( !str_contains( html_entity_decode( strip_tags( $html ) ), '%' ), 'A legacy15.2% loot share never appears as an observed chance.' );
+	check( str_contains( $html, '>Fixture blade</a>' ) && str_contains( $html, '>6</td>' ) && str_contains( $html, '>View submissions</summary>' ),
+		'Item links, report counts and expandable submission history remain in the rendered table.' );
+	check( str_contains( $html, 'entry=' . $display['entryId'] ) && str_contains( $html, 'snapshot=' . $token ), 'Native history links retain the exact entry and snapshot.' );
+	unset( $display['reportShare'], $display['totalReports'] );
+	check( $table->invoke( $special, [ $display ], $token ) === $html, 'Presentation never reads the legacy loot-share fields.' );
+	$specialSource = file_get_contents( __DIR__ . '/../extensions/EQLClientData/includes/SpecialDropDatabase.php' );
+	check( substr_count( $specialSource, 'Per-kill drop chances are unavailable until complete kill and loot coverage, including empty corpses, can be verified.' ) === 1,
+		'One visible page explanation covers unavailable qualified per-kill coverage.' );
 	echo "Drop database: $checks synthetic checks passed.\n";
 }
