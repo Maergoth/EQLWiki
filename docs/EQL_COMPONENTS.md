@@ -269,7 +269,8 @@ version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations).
   creation/updates. [API, schema and activation contract](CLIENT_API.md); the
   reviewed public `API_Documentation` database page has its own guarded publisher.
 - Version 1.5 provides `Special:DropDatabase` and read-only `action=eqldrops` with
-  combined server/tier aggregates, invalid area-message filtering and expandable
+  combined server/tier aggregates from the first eligible report, invalid
+  area-message filtering and expandable
   submissions. History exposes observed/received UTC times, quantity and optional
   consented character names, never private wiki account/event identifiers. Old
   observations remain unnamed. Percentages mean share of reported loot, not
@@ -282,7 +283,10 @@ version 1.1.2 at the prior live audit; 1.2.0 source adds optional observations).
   backfill. Reads use indexed totals and bounded submission pages; readiness
   keeps the recent received-report fallback until completion. Schema-2 snapshots
   require persistent shared WAN cache for history. No lifetime entry cutoff
-  applies once cumulative readiness is active. Source deployment does not install
+  applies once cumulative readiness is active. Single-report entries already
+  exist in these tables; lowering the publication minimum needs no schema or
+  backfill. Recent-window caches include the minimum, while existing cumulative
+  history snapshots retain their cache namespace. Source deployment does not install
   schema, private maintenance or database documentation; see the separate
   [activation and rollback guide](CUMULATIVE_DROPS.md).
 - Metadata comes from database `VerifiedPages`, `Template:PageEra`, and
