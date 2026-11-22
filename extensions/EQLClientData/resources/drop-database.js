@@ -4,6 +4,7 @@
 
     var mounted = new WeakSet(), selectedSources = new WeakMap(), requests = Object.create( null );
     var ROOTS = '.eql-mobpage';
+    const MIN_NPC_PERCENTAGE_REPORTS = 10;
 
     function text( value ) { return typeof value === 'string' ? value.slice( 0, 230 ) : ''; }
     function titleKey( value ) {
@@ -265,6 +266,7 @@
         selectedRows.forEach( function ( row ) {
             var target = manualTarget( row, manual, aliases );
             if ( target.length ) {
+                if ( row.reports < MIN_NPC_PERCENTAGE_REPORTS ) { return; }
                 target.forEach( function ( entry ) {
                     var after = entry.anchor.closest( 'span.ih' ) || entry.anchor;
                     if ( !entry.li.contains( after ) ) { after = entry.anchor; }
@@ -278,7 +280,9 @@
             }
             var item = element( 'li', 'eql-drop-observed-item' );
             item.classList.add( 'eql-drop-generated' );
-            item.appendChild( link( row ) );item.appendChild( badge( row ) );appendList.appendChild( item );
+            item.appendChild( link( row ) );
+            if ( row.reports >= MIN_NPC_PERCENTAGE_REPORTS ) { item.appendChild( badge( row ) ); }
+            appendList.appendChild( item );
         } );
     }
     function load( root ) {

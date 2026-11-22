@@ -3,7 +3,7 @@
 EQLClientData 1.5.0's `CumulativeDropStore` maintains all-history source/item counts and a private
 submission index. It has no lifetime contribution or entry limit. The existing
 schema-2 `eqldrops` response, browser columns, grey report-share metric and
-test-only NPC module remain compatible. These are loot-report shares, not
+NPC display module remain compatible. These are loot-report shares, not
 per-kill drop chances; coverage, overlapping encounters and unlooted items remain
 unknown. Server and tier combine before counting. Invalid capability-message
 zones and inferred/provider sources remain excluded, including legacy rows.
@@ -12,7 +12,13 @@ Entries and bounded submission history publish from their first eligible report.
 Existing cumulative tables already contain single-report entries and every
 eligible report in their scope totals, so this publication change needs no DDL,
 backfill or raw-data changes. Percentages retain the same full reported-loot
-denominator. Recent-window read caches include the publication minimum to avoid
+denominator. The database and API keep numeric percentages for every public
+entry. Only the NPC display waits for ten reports of that item in the same
+zone/NPC/instance before showing a percentage; the item itself remains visible
+from its first report. This display floor does not change counts, history,
+stored projections or snapshots, and does not establish statistical confidence
+or distinct kill coverage. Recent-window read caches include the publication
+minimum to avoid
 reusing minimum-two results; new snapshot tokens include it too. Existing
 cumulative detail snapshots retain their namespace and count/revision boundaries
 until normal expiry. A recent-window policy refresh may require a stale-token

@@ -6,7 +6,7 @@ const path = require( 'node:path' );
 const { JSDOM } = require( 'jsdom' );
 const source = fs.readFileSync( path.join( __dirname, '../extensions/EQLClientData/resources/drop-database.js' ), 'utf8' );
 const css = fs.readFileSync( path.join( __dirname, '../extensions/EQLClientData/resources/drop-database.css' ), 'utf8' );
-const row = ( extra = {} ) => ( { zone: 'Mist Valley', zoneTitle: 'Mist Valley', npc: 'A test creature', npcTitle: 'A test creature', item: 'Test Blade', itemTitle: 'Test Blade', instance: 'unknown', reports: 4, totalReports: 20, reportShare: 20, ...extra } );
+const row = ( extra = {} ) => ( { zone: 'Mist Valley', zoneTitle: 'Mist Valley', npc: 'A test creature', npcTitle: 'A test creature', item: 'Test Blade', itemTitle: 'Test Blade', instance: 'unknown', reports: 40, totalReports: 200, reportShare: 20, ...extra } );
 const turn = () => new Promise( resolve => setImmediate( resolve ) );
 function fixture( get, options = {} ) {
     const dom = new JSDOM( '<head><style>' + css + '</style></head><body><div class="eql-mobpage"><div class="eql-mobpage-hero-loot"><h2>Known Loot</h2><ul><li id="manual"><span class="hbdiv"><a href="/wiki/Test_Blade" title="Displayed alias">My manual label</a><span class="hb"><div class="itemtopbg">Tooltip title</div><div class="itembg"><div class="itemdata">WT:0.5 Class:ALL<div class="ils-slider-container">Rank slider</div></div></div></span></span> <span class="drare">(Common)</span> <span class="ddb">[1] 4x55%(10%)</span></li><li id="no-report"><a href="/wiki/Other_Item">Other item</a><span class="ddb">[9] 40%</span><div class="itembg">Unwanted inline stats</div></li><li id="case"><a href="/wiki/Test_blade">Case-distinct item</a></li><li id="query"><a href="/index.php?title=Query_Item&amp;action=edit&amp;redlink=1">A redlink label</a> (Rare)</li></ul></div><div class="eql-mobpage-common-loot"><ul><li id="common"><a href="/wiki/Common_Item">Common item</a> (notes)</li></ul></div></div></body>', { url: 'https://wiki.example/wiki/A_test_creature', runScripts: 'outside-only' } );
@@ -23,7 +23,7 @@ function fixture( get, options = {} ) {
     const manual = f.document.querySelector( '#manual' ), label = manual.querySelector( 'a' );
     const originalNodes = [ ...manual.childNodes ], hover = manual.querySelector( '.hb' ), rarity = manual.querySelector( '.drare' ), authoredRates = manual.querySelector( '.ddb' );
     const hoverHtml = hover.innerHTML, sourceRates = authoredRates.textContent;
-    const rows = [ row(), row( { item: 'New & unseen <item>', itemTitle: null, reports: 2 } ), row( { instance: 'raid', reports: 2, totalReports: 5 } ), row( { zone: 'Other Valley', zoneTitle: 'Other Valley', reports: 3 } ), row( { item: 'Query Item', itemTitle: 'Query Item' } ), row( { item: 'Common Item', itemTitle: 'Common Item' } ) ];
+    const rows = [ row(), row( { item: 'New & unseen <item>', itemTitle: null, reports: 2 } ), row( { instance: 'raid', reports: 20, totalReports: 50 } ), row( { zone: 'Other Valley', zoneTitle: 'Other Valley', reports: 30 } ), row( { item: 'Query Item', itemTitle: 'Query Item' } ), row( { item: 'Common Item', itemTitle: 'Common Item' } ) ];
     f.render( rows );
     assert.equal( label.textContent, 'My manual label', 'The authored label stays byte-for-byte unchanged.' );
     assert.equal( label.getAttribute( 'title' ), 'Displayed alias', 'Matching uses the href destination, not display/tooltip text.' );
@@ -35,7 +35,7 @@ function fixture( get, options = {} ) {
     assert.equal( f.root.querySelectorAll( '.eql-drop-observations' ).length, 1, 'Multiple sources keep one source-control wrapper.' );
     assert.equal( selector().options.length, 3, 'Zone/instance contexts remain separate selectable sources.' );
     assert.match( selector().selectedOptions[ 0 ].textContent, /Mist Valley.*instance unknown/ );
-    assert.match( manual.querySelector( '.eql-drop-observed' ).title, /reported 4 times out of 20 recorded loot events/ );
+    assert.match( manual.querySelector( '.eql-drop-observed' ).title, /reported 40 times out of 200 recorded loot events/ );
     assert.doesNotMatch( manual.querySelector( '.eql-drop-observed' ).title, /tier|server|contributor|5 items/i );
     assert.equal( f.window.getComputedStyle( authoredRates ).display, 'none', 'Authored source/count/percentage clutter stays out of the visible loot list.' );
     assert.equal( authoredRates.textContent, sourceRates, 'The underlying authored percentages remain untouched.' );
@@ -79,24 +79,24 @@ function fixture( get, options = {} ) {
     assert.equal( f.root.querySelectorAll( '.eql-drop-observed-item' ).length, 0 );
     const singletonRows = [ row( { reports: 1, totalReports: 4 } ), row( { item: 'Single Report Ring', itemTitle: 'Single Report Ring', reports: 1, totalReports: 4 } ) ];
     f.render( singletonRows );
-    assert.equal( manual.querySelector( '.eql-drop-observed' ).textContent, ' (25%)', 'One accepted report annotates the exact authored item destination using its full source denominator.' );
+    assert.equal( manual.querySelector( '.eql-drop-observed' ), null, 'One accepted report keeps the authored item visible without an early percentage.' );
     assert.equal( label.textContent, 'My manual label' );assert.equal( rarity.textContent, '(Common)' );
     const singleAppend = f.root.querySelector( '.eql-drop-observed-item' );
     assert.equal( singleAppend.querySelector( 'a' ).getAttribute( 'href' ), 'https://wiki.example/wiki/Single_Report_Ring' );
-    assert.equal( singleAppend.querySelector( '.eql-drop-observed' ).textContent, ' (25%)', 'One unmatched accepted report appends the item with its compact percentage.' );
+    assert.equal( singleAppend.querySelector( '.eql-drop-observed' ), null, 'One unmatched accepted report appends the item without an early percentage.' );
     assert.equal( singleAppend.parentNode, manual.parentNode );
     assert.equal( f.window.getComputedStyle( singleAppend ).color, 'rgb(174, 182, 193)', 'An unmatched singleton retains the muted observation styling.' );
     f.render( [ ...singletonRows, ...singletonRows ] );f.render( singletonRows );
-    assert.equal( manual.querySelectorAll( '.eql-drop-observed' ).length, 1, 'Re-rendering and duplicate API rows never duplicate a singleton badge.' );
+    assert.equal( manual.querySelectorAll( '.eql-drop-observed' ).length, 0, 'Re-rendering and duplicate API rows never expose a singleton percentage.' );
     assert.equal( f.root.querySelectorAll( '.eql-drop-observed-item' ).length, 1, 'Re-rendering and duplicate API rows append a singleton only once.' );
-    assert.equal( f.root.querySelectorAll( '.eql-drop-observed' ).length, 2 );
-    assert.equal( f.root.querySelectorAll( '.eql-drop-info, .eql-drop-legend, .eql-drop-database-link, .eql-drop-observations' ).length, 0, 'A single source leaves only the beside-item percentages, with no disclosure/link or empty controls.' );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-observed' ).length, 0 );
+    assert.equal( f.root.querySelectorAll( '.eql-drop-info, .eql-drop-legend, .eql-drop-database-link, .eql-drop-observations' ).length, 0, 'A single source leaves the item names without disclosure/link or empty controls.' );
     f.render( [ row( { reports: 0 } ), row( { reports: -1 } ), row( { reports: 1.5 } ), row( { reports: '1' } ),
         row( { reports: 1, totalReports: 0 } ), row( { reports: 1, totalReports: 0.5 } ), row( { npcTitle: 'Other NPC' } ) ] );
     assert.equal( f.root.querySelectorAll( '.eql-drop-generated' ).length, 0, 'Zero, negative, fractional, malformed and other-NPC rows cannot annotate the article.' );
     f.close();
     const normal = fixture();await turn();await turn();normal.root.dataset.dropInstance = 'normal';
-    normal.render( [ row(), row( { instance: 'normal', reports: 2 } ), row( { instance: 'raid', reports: 3 } ) ] );
+    normal.render( [ row(), row( { instance: 'normal', reports: 20 } ), row( { instance: 'raid', reports: 30 } ) ] );
     assert.match( normal.root.querySelector( '.eql-drop-source-select' ).selectedOptions[ 0 ].textContent, /Normal/ );
     assert.equal( normal.root.querySelector( '#manual .eql-drop-observed' ).textContent, ' (10%)', 'An explicitly scoped card prefers its matching source even if another scope has more reports.' );normal.close();
     const live = fixture( () => Promise.resolve( { eqldrops: { rows: [ row() ] } } ) );await turn();await turn();
@@ -139,14 +139,14 @@ function fixture( get, options = {} ) {
     assert.equal( authored.root.querySelector( '#url-name a' ), null, 'A URL is never treated as a plain item name.' );
     const evidence = [ row(), row( { item: 'New Observed Relic', itemTitle: 'New Observed Relic', reports: 1 } ),
         row( { item: 'Mote of Frost', itemTitle: 'Mote of Frost', reports: 13 } ),
-        row( { item: 'Mote of Fire', itemTitle: 'Mote of Fire', reports: 2 } ),
+        row( { item: 'Mote of Fire', itemTitle: 'Mote of Fire', reports: 20 } ),
         row( { item: 'Winter crystal alias', itemTitle: 'Mote_of_Winter', reports: 1 } ),
         row( { item: 'Mote of Tides', itemTitle: 'Canonical Hidden Relic', reports: 1 } ),
-        row( { item: 'Canonical Relic', itemTitle: 'Canonical Relic', reports: 1 } ),
+        row( { item: 'Canonical Relic', itemTitle: 'Canonical Relic', reports: 10 } ),
         row( { item: 'Unsafe Relic', itemTitle: 'Unsafe Relic', reports: 1 } ) ];
     const beforeRows = JSON.stringify( evidence );authored.render( evidence );
     assert.equal( plain.querySelector( '.eql-drop-observed' ).textContent, ' (20%)', 'Hiding Motes never renormalizes a non-Mote report percentage.' );
-    assert.match( plain.querySelector( '.eql-drop-observed' ).title, /out of 20 recorded loot events/ );
+    assert.match( plain.querySelector( '.eql-drop-observed' ).title, /out of 200 recorded loot events/ );
     assert.equal( authored.root.querySelector( '#manual-mote .eql-drop-observed' ).textContent, ' (10%)', 'An explicitly authored Mote can retain its observed annotation.' );
     assert.equal( authored.root.querySelector( '#alias a' ).textContent, 'My chosen alias' );
     assert.equal( authored.root.querySelector( '#alias' ).textContent, 'My chosen alias (5%) (Unique)', 'Ordinary wiki-link destinations take precedence over their labels and preserve rarity notes.' );
@@ -164,7 +164,7 @@ function fixture( get, options = {} ) {
     assert.equal( authored.root.querySelectorAll( '.eql-drop-observed-item' ).length, 2 );
     const addedManual = authored.document.createElement( 'li' );addedManual.textContent = 'New Observed Relic (Uncommon)';authored.root.querySelector( '#authored-list' ).appendChild( addedManual );
     authored.render( evidence );
-    assert.equal( addedManual.textContent, 'New Observed Relic (5%) (Uncommon)' );
+    assert.equal( addedManual.textContent, 'New Observed Relic (Uncommon)', 'A low-sample authored override keeps its rarity without a percentage.' );
     assert.equal( authored.root.querySelectorAll( '.eql-drop-observed-item' ).length, 1, 'Adding a normal authored name replaces its automatic entry on re-render.' );
     plain.remove();authored.render( evidence );
     assert.notEqual( authored.window.getComputedStyle( authored.root.querySelector( '#reciprocal-duplicate' ) ).display, 'none', 'Removing a manual override reveals the retained reciprocal fallback.' );
@@ -176,8 +176,8 @@ function fixture( get, options = {} ) {
     assert.equal( paragraphs.root.querySelector( 'p' ), null );
     assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-manual-list > li' ).length, 3, 'Bare one-per-line names and ordinary links use the native loot-list layout.' );
     assert.deepEqual( [ ...paragraphs.root.querySelectorAll( 'li > a' ) ].map( anchor => anchor.textContent ), [ 'Plain Ring', 'Authored link label', 'Unknown Manual Gem' ] );
-    paragraphs.render( [ row( { item: 'Plain Ring', itemTitle: 'Plain Ring', reports: 1 } ), row( { item: 'Linked Relic', itemTitle: 'Linked Relic', reports: 1 } ) ] );
-    paragraphs.render( [ row( { item: 'Plain Ring', itemTitle: 'Plain Ring', reports: 1 } ), row( { item: 'Linked Relic', itemTitle: 'Linked Relic', reports: 1 } ) ] );
+    paragraphs.render( [ row( { item: 'Plain Ring', itemTitle: 'Plain Ring', reports: 10 } ), row( { item: 'Linked Relic', itemTitle: 'Linked Relic', reports: 10 } ) ] );
+    paragraphs.render( [ row( { item: 'Plain Ring', itemTitle: 'Plain Ring', reports: 10 } ), row( { item: 'Linked Relic', itemTitle: 'Linked Relic', reports: 10 } ) ] );
     assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-manual-list' ).length, 1 );
     assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-observed-item' ).length, 0 );
     assert.equal( paragraphs.root.querySelectorAll( '.eql-drop-observed' ).length, 2 );paragraphs.close();
@@ -189,9 +189,9 @@ function fixture( get, options = {} ) {
     assert.equal( prose.root.querySelector( '#literal-drop a' ).textContent, 'Drop of Rain', 'A literal item containing Drop is not confused with a loot instruction.' );prose.close();
 
     const aliases = fixture( null, { html: card( '<ul><li id="literal-alias">Reported Relic (Rare)</li></ul>' ) } );await turn();await turn();
-    aliases.render( [ row( { item: 'Reported Relic', itemTitle: 'Canonical Relic', reports: 1 } ) ] );
+    aliases.render( [ row( { item: 'Reported Relic', itemTitle: 'Canonical Relic', reports: 10 } ) ] );
     assert.equal( aliases.root.querySelectorAll( '#literal-alias .eql-drop-observed' ).length, 1, 'A whole reported name can match one unambiguous canonical item.' );
-    aliases.render( [ row( { item: 'Reported Relic', itemTitle: 'Canonical Relic', reports: 1 } ), row( { item: 'Reported Relic', itemTitle: 'Other Canonical Relic', reports: 1 } ) ] );
+    aliases.render( [ row( { item: 'Reported Relic', itemTitle: 'Canonical Relic', reports: 10 } ), row( { item: 'Reported Relic', itemTitle: 'Other Canonical Relic', reports: 10 } ) ] );
     assert.equal( aliases.root.querySelector( '#literal-alias .eql-drop-observed' ), null, 'Ambiguous raw aliases never merge distinct canonical items.' );aliases.close();
 
     const unsafeUrl = fixture( null, { html: card( '<ul><li id="safe-literal">Test Blade (Rare)</li></ul>' ), getUrl: () => 'https://unsafe.example/item' } );await turn();await turn();
@@ -199,5 +199,67 @@ function fixture( get, options = {} ) {
     assert.equal( unsafeUrl.root.querySelectorAll( 'a' ).length, 0, 'A malformed or off-origin URL builder never creates a link.' );
     assert.equal( unsafeUrl.root.querySelector( '#safe-literal' ).textContent, 'Test Blade (20%) (Rare)', 'An unsafe URL leaves an exact authored literal readable and prevents a duplicate automatic row.' );
     assert.equal( unsafeUrl.root.querySelectorAll( '.eql-drop-observed-item' ).length, 0 );unsafeUrl.close();
-    console.log( 'Drop overlay passed: plain bullets/newlines and linked aliases, manual overrides/reciprocal deduplication, Mote display exclusions with unchanged denominators, safe offline links, dynamic re-rendering, compact single-report percentages and bounded silent failure.' );
+
+    const boundary = fixture();await turn();await turn();
+    const boundaryManual = boundary.root.querySelector( '#manual' );
+    for ( const reports of [ 1, 9, 10, 9, 1 ] ) {
+        const samples = [ row( { reports, totalReports: 100, reportShare: reports, quantity: 1000 } ),
+            row( { item: 'Boundary Ring', itemTitle: 'Boundary Ring', reports, totalReports: 100, reportShare: reports, quantity: 1000 } ) ];
+        const unchanged = JSON.stringify( samples );boundary.render( samples );boundary.render( samples );
+        const generated = boundary.root.querySelector( '.eql-drop-observed-item' );
+        assert.equal( boundaryManual.querySelector( 'a' ).textContent, 'My manual label' );
+        assert.equal( boundaryManual.querySelector( '.drare' ).textContent, '(Common)' );
+        assert.equal( boundary.root.querySelectorAll( '.eql-drop-observed-item' ).length, 1, 'Every positive sample count keeps one unmatched item visible after re-render.' );
+        assert.equal( generated.querySelector( 'a' ).textContent, 'Boundary Ring' );
+        assert.equal( boundary.window.getComputedStyle( generated ).color, 'rgb(174, 182, 193)' );
+        assert.equal( boundary.root.querySelectorAll( '.eql-drop-observed' ).length, reports >= 10 ? 2 : 0, 'Both authored and generated item percentages require their own ten reports, including after a lower-count refresh.' );
+        if ( reports >= 10 ) {
+            assert.equal( boundaryManual.querySelector( '.eql-drop-observed' ).textContent, ' (10%)' );
+            assert.equal( generated.querySelector( '.eql-drop-observed' ).textContent, ' (10%)' );
+        }
+        assert.equal( JSON.stringify( samples ), unchanged, 'The NPC presentation floor never mutates numeric API shares or counts.' );
+        assert.equal( boundary.root.querySelector( '#no-report a' ).textContent, 'Other item', 'Unobserved authored items stay visible.' );
+    }
+    const denominatorRows = [ row( { reports: 10, totalReports: 20, reportShare: 50 } ),
+        row( { item: 'Nine Report Ring', itemTitle: 'Nine Report Ring', reports: 9, totalReports: 20, reportShare: 45 } ),
+        row( { item: 'One Report Gem', itemTitle: 'One Report Gem', reports: 1, totalReports: 20, reportShare: 5 } ) ];
+    boundary.render( denominatorRows );
+    assert.equal( boundaryManual.querySelector( '.eql-drop-observed' ).textContent, ' (50%)', 'The qualifying item keeps all low-sample items in its denominator: ten out of twenty, not ten out of ten.' );
+    assert.equal( boundary.root.querySelectorAll( '.eql-drop-observed-item' ).length, 2 );
+    assert.equal( boundary.root.querySelectorAll( '.eql-drop-observed-item .eql-drop-observed' ).length, 0 );
+    boundary.render( [ row( { reports: 9, totalReports: 9, reportShare: 100 } ),
+        row( { zone: 'Other Valley', zoneTitle: 'Other Valley', reports: 9, totalReports: 9, reportShare: 100 } ) ] );
+    const sourceSelector = boundary.root.querySelector( '.eql-drop-source-select' );
+    assert.equal( sourceSelector.options.length, 2 );assert.equal( boundaryManual.querySelector( '.eql-drop-observed' ), null );
+    sourceSelector.value = [ ...sourceSelector.options ].find( option => /Other Valley/.test( option.textContent ) ).value;
+    sourceSelector.dispatchEvent( new boundary.window.Event( 'change' ) );
+    assert.equal( boundaryManual.querySelector( '.eql-drop-observed' ), null, 'Counts from different zone/instance contexts never combine to unlock a percentage.' );
+    boundary.render( [ row( { reports: 9, totalReports: 20, reportShare: 45 } ),
+        row( { item: 'Popular Valley Relic', itemTitle: 'Popular Valley Relic', reports: 11, totalReports: 20, reportShare: 55 } ),
+        row( { zone: 'Other Valley', zoneTitle: 'Other Valley', reports: 10, totalReports: 20, reportShare: 50 } ),
+        row( { zone: 'Other Valley', zoneTitle: 'Other Valley', item: 'Nine Report Ring', itemTitle: 'Nine Report Ring', reports: 9, totalReports: 20, reportShare: 45 } ),
+        row( { zone: 'Other Valley', zoneTitle: 'Other Valley', item: 'One Report Gem', itemTitle: 'One Report Gem', reports: 1, totalReports: 20, reportShare: 5 } ) ] );
+    let switcher = boundary.root.querySelector( '.eql-drop-source-select' );
+    switcher.value = [ ...switcher.options ].find( option => /Mist Valley/.test( option.textContent ) ).value;switcher.dispatchEvent( new boundary.window.Event( 'change' ) );
+    assert.equal( boundaryManual.querySelector( '.eql-drop-observed' ), null, 'The selected nine-report source hides this item’s percentage even when another source qualifies.' );
+    switcher = boundary.root.querySelector( '.eql-drop-source-select' );
+    switcher.value = [ ...switcher.options ].find( option => /Other Valley/.test( option.textContent ) ).value;switcher.dispatchEvent( new boundary.window.Event( 'change' ) );
+    assert.equal( boundaryManual.querySelector( '.eql-drop-observed' ).textContent, ' (50%)', 'Switching to this item’s ten-report source uses its full denominator including the nine/one-report items.' );
+    assert.equal( boundary.root.querySelectorAll( '.eql-drop-observed-item' ).length, 2 );
+    assert.equal( boundary.root.querySelectorAll( '.eql-drop-observed-item .eql-drop-observed' ).length, 0 );
+    boundary.render( [ row( { reports: 1, totalReports: 100, reportShare: 1 } ), row( { item: 'Popular Relic', itemTitle: 'Popular Relic', reports: 99, totalReports: 100, reportShare: 99 } ) ] );
+    assert.equal( boundaryManual.querySelector( '.eql-drop-observed' ), null, 'A large source total or another item reaching the floor cannot unlock a one-report item.' );
+    assert.equal( boundary.root.querySelector( '.eql-drop-observed-item .eql-drop-observed' ).textContent, ' (99%)' );
+    boundary.render( [ row( { reports: '10' } ), row( { reports: 9.5 } ), row( { reports: NaN } ), row( { reports: Infinity } ),
+        row( { reports: 10, totalReports: 9 } ), row( { reports: 10, totalReports: '100' } ), row( { reports: 10, totalReports: NaN } ), row( { reports: 10, totalReports: Infinity } ) ] );
+    assert.equal( boundary.root.querySelectorAll( '.eql-drop-generated' ).length, 0, 'Malformed counts cannot bypass the floor or produce invalid percentages.' );boundary.close();
+
+    const oldReply = { minimumReports: 1, rows: [ row( { reports: 1, totalReports: 1, reportShare: 100 } ),
+        row( { item: 'Old Cached Relic', itemTitle: 'Old Cached Relic', reports: 9, totalReports: 9, reportShare: 100 } ) ] };
+    const cached = fixture( () => Promise.resolve( { eqldrops: oldReply } ) );await turn();await turn();
+    assert.equal( cached.root.querySelectorAll( '.eql-drop-observed' ).length, 0, 'Old cached API responses with numeric percentages and no new metadata still obey the fixed local floor.' );
+    assert.equal( cached.root.querySelector( '#manual a' ).textContent, 'My manual label' );
+    assert.equal( cached.root.querySelector( '.eql-drop-observed-item a' ).textContent, 'Old Cached Relic' );
+    assert.equal( oldReply.rows[ 0 ].reportShare, 100 );assert.equal( oldReply.rows[ 1 ].reportShare, 100, 'The full database/API percentage remains intact.' );cached.close();
+    console.log( 'Drop overlay passed: item names from report one, NPC-only percentage floor at ten, full low-sample denominators, cached reply safety, source/manual/Mote preservation and idempotent safe rendering.' );
 } )().catch( error => { console.error( error );process.exitCode = 1; } );
