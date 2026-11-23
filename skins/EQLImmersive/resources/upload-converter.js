@@ -75,6 +75,15 @@
 							}
 							var gifenc = require( 'skins.EQLImmersive.gifEncoder' );
 							var pixels = context.getImageData( 0, 0, canvas.width, canvas.height ).data;
+							// Quantization and palette mapping must see the same
+							// one-bit alpha, including semitransparent source edges.
+							for ( var offset = 0; offset < pixels.length; offset += 4 ) {
+								if ( pixels[ offset + 3 ] <= 127 ) {
+									pixels[ offset ] = pixels[ offset + 1 ] = pixels[ offset + 2 ] = pixels[ offset + 3 ] = 0;
+								} else {
+									pixels[ offset + 3 ] = 255;
+								}
+							}
 							var palette = gifenc.quantize( pixels, 256, { format: 'rgba4444', oneBitAlpha: true } );
 							var indexed = gifenc.applyPalette( pixels, palette, 'rgba4444' );
 							var transparent = palette.findIndex( function ( color ) {

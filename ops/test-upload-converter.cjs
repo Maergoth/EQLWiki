@@ -141,8 +141,13 @@ async function fixture( options = {} ) {
 			getImageData: ( x, y, width, height ) => {
 				const data = new window.Uint8ClampedArray( width * height * 4 );
 				for ( let i = 0; i < width * height; i++ ) {
-					data.set( [ i * 31 % 256, i * 67 % 256, i * 97 % 256,
-						i % 3 === 0 ? 0 : 255 ], i * 4 );
+					if ( options.alphaPixels ) {
+						const alpha = options.alphaPixels[ i % options.alphaPixels.length ];
+						data.set( [ alpha === 0 ? 0 : 255, 0, 0, alpha ], i * 4 );
+					} else {
+						data.set( [ i * 31 % 256, i * 67 % 256, i * 97 % 256,
+							i % 3 === 0 ? 0 : 255 ], i * 4 );
+					}
 				}
 				return { data, width, height };
 			}
@@ -294,6 +299,89 @@ function bytes( window, file ) {
 	} );
 }
 
+// Independent first-frame GIF decoding for the alpha regression. Reading the
+// emitted LZW indices and graphic-control extension verifies actual GIF pixels,
+// rather than inspecting the encoder's palette or mocking its output.
+function gifAlphas( data ) {
+	assert.match( Buffer.from( data.slice( 0, 6 ) ).toString(), /^GIF8[79]a$/ );
+	let offset = 13;
+	let transparent = -1;
+	const globalFlags = data[ 10 ];
+	if ( globalFlags & 128 ) {
+		offset += 3 * ( 1 << ( ( globalFlags & 7 ) + 1 ) );
+	}
+	function subBlocks() {
+		const block = [];
+		while ( data[ offset ] ) {
+			const length = data[ offset++ ];
+			block.push( ...data.slice( offset, offset + length ) );
+			offset += length;
+		}
+		offset++;
+		return block;
+	}
+	while ( offset < data.length ) {
+		const separator = data[ offset++ ];
+		if ( separator === 33 ) {
+			const label = data[ offset++ ];
+			const extension = subBlocks();
+			if ( label === 249 ) {
+				transparent = extension[ 0 ] & 1 ? extension[ 3 ] : -1;
+			}
+			continue;
+		}
+		assert.equal( separator, 44, 'GIF contains a first image frame' );
+		const width = data[ offset + 4 ] + 256 * data[ offset + 5 ];
+		const height = data[ offset + 6 ] + 256 * data[ offset + 7 ];
+		const imageFlags = data[ offset + 8 ];
+		assert.equal( imageFlags & 64, 0, 'Test decoder expects the encoder noninterlaced frame' );
+		offset += 9;
+		if ( imageFlags & 128 ) {
+			offset += 3 * ( 1 << ( ( imageFlags & 7 ) + 1 ) );
+		}
+		const minimumSize = data[ offset++ ];
+		const compressed = subBlocks();
+		const clear = 1 << minimumSize;
+		const end = clear + 1;
+		let dictionary, next, codeSize, previous;
+		let bit = 0;
+		const indices = [];
+		function reset() {
+			dictionary = Array.from( { length: clear }, ( _, i ) => [ i ] );
+			next = end + 1;
+			codeSize = minimumSize + 1;
+			previous = null;
+		}
+		reset();
+		while ( bit + codeSize <= compressed.length * 8 ) {
+			let code = 0;
+			for ( let i = 0; i < codeSize; i++, bit++ ) {
+				code |= ( ( compressed[ bit >> 3 ] >> ( bit & 7 ) ) & 1 ) << i;
+			}
+			if ( code === clear ) {
+				reset();
+				continue;
+			}
+			if ( code === end ) {
+				break;
+			}
+			const entry = dictionary[ code ] || ( code === next && previous ? previous.concat( previous[ 0 ] ) : null );
+			assert.ok( entry, 'GIF contains valid LZW indices' );
+			indices.push( ...entry );
+			if ( previous && next < 4096 ) {
+				dictionary[ next++ ] = previous.concat( entry[ 0 ] );
+				if ( next === 1 << codeSize && codeSize < 12 ) {
+					codeSize++;
+				}
+			}
+			previous = entry;
+		}
+		assert.equal( indices.length, width * height, 'Decoded GIF has a complete frame' );
+		return indices.map( index => index === transparent ? 0 : 255 );
+	}
+	assert.fail( 'GIF has no image frame' );
+}
+
 async function main() {
 	await withFixture( {}, async test => {
 		const original = test.select();
@@ -412,6 +500,15 @@ async function main() {
 		test.submit();
 		await test.failed();
 		assert.equal( test.input.files[ 0 ], original, 'GIF dependency failure preserves source and supports retry' );
+	} );
+	await withFixture( { alphaPixels: [ 100, 127, 128, 255, 0 ] }, async test => {
+		test.select( 'image/png' );
+		test.destination.value = 'alpha_threshold.gif';
+		test.submit();
+		await test.submitted();
+		const output = await bytes( test.window, test.accepted[ 0 ].file );
+		assert.deepEqual( gifAlphas( output ).slice( 0, 5 ), [ 0, 0, 255, 255, 0 ],
+			'Actual GIF pixels keep alpha 100/127 transparent and alpha 128/255 opaque beside transparent black' );
 	} );
 	await withFixture( { outputType: 'image/png' }, async test => {
 		const original = test.select();
