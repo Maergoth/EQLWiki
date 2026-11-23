@@ -865,13 +865,30 @@ that variable existing.
 ## Smaller features, host jobs, and historical tools
 
 - `upload-purge.js` adds `eqlReturnTo`/`eqlAlsoPurge` to NPC upload links.
-  Despite its old header, `upload-converter.js` currently tracks purge/return
-  state (15-minute sessionStorage expiry); it does not re-encode image pixels.
-  It binds the native `#mw-upload-form`, passively observes the `formdata` destination,
-  preserves warning/stash retries and guards account-bound session storage.
-  It never assigns filenames or file bytes and preserves existing matching and
-  conversion handlers. This is best-effort supplementary navigation/cache
-  handling, not upload authorization; the server uses the committed File title.
+  `upload-converter.js` prepares local files on the native `#mw-upload-form`
+  before submission, using the current `wpDestFile` extension. It decodes and
+  re-encodes PNG destinations (including PNG-to-PNG repair), and converts other
+  browser-decodable images to JPEG/WebP when their detected bytes differ from
+  the destination format. A lazy, bundled MIT-licensed gifenc 1.0.3 package
+  also encodes cross-format GIF destinations with up to 256 colors and one-bit
+  transparency. Matching JPEG/WebP/GIF bytes remain unchanged. Cross-format
+  animated inputs become a static image. JPEG uses the historical black
+  transparency backdrop. Inputs must be decodable by the current browser;
+  unreadable formats get a retryable error rather than a mislabeled upload.
+  Failed reads/encodes or changed source, destination, or account stop the
+  attempt with a visible retry message. Normal resubmission preserves the upload
+  button, other fields, destination title, and MediaWiki's server validation;
+  disabled local sources, URL uploads, stash confirmations and cancellation
+  retain their native paths. The module also tracks purge/return state with
+  guarded account-bound session storage and a 15-minute expiry, passively
+  observes final `formdata`, and preserves warning/stash return context.
+  This navigation/cache context never authorizes uploads; the server uses the
+  committed File title. Prefilled destinations retain their requested name;
+  ordinary uploads keep native source-name autofill and extension filtering.
+  The converter runs from the skin's Git module and needs
+  no database-page publication. Its predecessor was removed when
+  [Common.js revision 149515](https://eqlwiki.com/index.php?title=MediaWiki:Common.js&diff=149515&oldid=149510)
+  blanked that page; do not restore the old Common.js wholesale.
 - `spellblade-indicator.js` uses rendered cast/reuse values to mark eligible
   spell rows, excluding Bard songs and zero-cast spells. Keep tooltip field
   semantics aligned with the templates.
