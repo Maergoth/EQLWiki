@@ -111,8 +111,8 @@ async function fixture( options = {} ) {
 	};
 	window.Image = class {
 		constructor() {
-			this.width = this.naturalWidth = 24;
-			this.height = this.naturalHeight = 16;
+			this.width = this.naturalWidth = options.width || 24;
+			this.height = this.naturalHeight = options.height || 16;
 		}
 		set src( url ) {
 			decoded.push( urls.get( url ) );
@@ -140,14 +140,21 @@ async function fixture( options = {} ) {
 			fillStyle: '',
 			getImageData: ( x, y, width, height ) => {
 				const data = new window.Uint8ClampedArray( width * height * 4 );
+				let random = 42;
 				for ( let i = 0; i < width * height; i++ ) {
-					if ( options.alphaPixels ) {
+					if ( options.rareTransparency ) {
+						random = ( Math.imul( random, 1664525 ) + 1013904223 ) >>> 0;
+						data.set( [ random & 255, ( random >>> 8 ) & 255, ( random >>> 16 ) & 255, 255 ], i * 4 );
+					} else if ( options.alphaPixels ) {
 						const alpha = options.alphaPixels[ i % options.alphaPixels.length ];
 						data.set( [ alpha === 0 ? 0 : 255, 0, 0, alpha ], i * 4 );
 					} else {
 						data.set( [ i * 31 % 256, i * 67 % 256, i * 97 % 256,
 							i % 3 === 0 ? 0 : 255 ], i * 4 );
 					}
+				}
+				if ( options.rareTransparency ) {
+					data.fill( 0, 0, 4 );
 				}
 				return { data, width, height };
 			}
@@ -509,6 +516,23 @@ async function main() {
 		const output = await bytes( test.window, test.accepted[ 0 ].file );
 		assert.deepEqual( gifAlphas( output ).slice( 0, 5 ), [ 0, 0, 255, 255, 0 ],
 			'Actual GIF pixels keep alpha 100/127 transparent and alpha 128/255 opaque beside transparent black' );
+	} );
+	await withFixture( { width: 32, height: 32, rareTransparency: true }, async test => {
+		test.select( 'image/png' );
+		test.destination.value = 'rare_transparency.gif';
+		test.submit();
+		await test.submitted();
+		const alphas = gifAlphas( await bytes( test.window, test.accepted[ 0 ].file ) );
+		assert.equal( alphas[ 0 ], 0, 'Palette reduction reserves even a single transparent pixel among more than256 colors' );
+		assert.ok( alphas.slice( 1 ).every( alpha => alpha === 255 ), 'Opaque pixels remain opaque under palette pressure' );
+	} );
+	await withFixture( { alphaPixels: [ 0 ] }, async test => {
+		test.select( 'image/png' );
+		test.destination.value = 'entirely_transparent.gif';
+		test.submit();
+		await test.submitted();
+		const alphas = gifAlphas( await bytes( test.window, test.accepted[ 0 ].file ) );
+		assert.ok( alphas.every( alpha => alpha === 0 ), 'An entirely transparent image emits a valid transparent GIF' );
 	} );
 	await withFixture( { outputType: 'image/png' }, async test => {
 		const original = test.select();

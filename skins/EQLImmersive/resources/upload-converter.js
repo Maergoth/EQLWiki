@@ -75,20 +75,30 @@
 							}
 							var gifenc = require( 'skins.EQLImmersive.gifEncoder' );
 							var pixels = context.getImageData( 0, 0, canvas.width, canvas.height ).data;
+							var hasTransparency = false;
 							// Quantization and palette mapping must see the same
 							// one-bit alpha, including semitransparent source edges.
 							for ( var offset = 0; offset < pixels.length; offset += 4 ) {
 								if ( pixels[ offset + 3 ] <= 127 ) {
 									pixels[ offset ] = pixels[ offset + 1 ] = pixels[ offset + 2 ] = pixels[ offset + 3 ] = 0;
+									hasTransparency = true;
 								} else {
 									pixels[ offset + 3 ] = 255;
 								}
 							}
-							var palette = gifenc.quantize( pixels, 256, { format: 'rgba4444', oneBitAlpha: true } );
-							var indexed = gifenc.applyPalette( pixels, palette, 'rgba4444' );
-							var transparent = palette.findIndex( function ( color ) {
-								return color[ 3 ] === 0;
-							} );
+							// Reserve transparency independently so quantization cannot
+							// merge a rare transparent pixel into an opaque color.
+							var palette = gifenc.quantize( pixels, hasTransparency ? 255 : 256, { format: 'rgb565' } );
+							var indexed = gifenc.applyPalette( pixels, palette, 'rgb565' );
+							var transparent = hasTransparency ? palette.length : -1;
+							if ( hasTransparency ) {
+								palette.push( [ 0, 0, 0 ] );
+								for ( var pixel = 0; pixel < indexed.length; pixel++ ) {
+									if ( pixels[ pixel * 4 + 3 ] === 0 ) {
+										indexed[ pixel ] = transparent;
+									}
+								}
+							}
 							var gif = gifenc.GIFEncoder();
 							gif.writeFrame( indexed, canvas.width, canvas.height, {
 								palette: palette, transparent: transparent !== -1, transparentIndex: transparent
