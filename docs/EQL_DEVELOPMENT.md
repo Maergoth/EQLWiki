@@ -191,7 +191,8 @@ layout and native keyboard behavior still need a browser check.
 | Itembox damage bonus | `php maintenance/run.php ./ops/test-itembox.php` | Configured local wiki with ParserFunctions string functions and Variables; supplies the reviewed template in memory, parses synthetic cards, and saves no pages. Covers handedness, level-50 rounding, delay cap, explicit/zero overrides, Backstab, excluded items, and per-card isolation |
 | Interactive Character sheets | `php maintenance/run.php ./ops/test-character-sheet.php`, `node ops/test-character-sheet.cjs` and `node ops/build-character-sheet-templates.cjs --check` | Configured local wiki for unsaved two-template parser checks, observed modifiers/unknowns and distinct accuracy fields; jsdom for collapsed/keyboard/dynamic behavior. No page/account/upload writes; [separate publication contract](CHARACTER_SHEETS.md) |
 | Character-image ownership | `php ops/test-character-screenshot-ownership.php`; configured native wiki: `php maintenance/run.php ./ops/test-character-screenshot.php` | Synthetic owner/foreign/anonymous/maintenance, ambiguous names, upload/stash/revert/move authorization and bounded completion lifecycle; native unsaved title/parser checks preserve totals and media dependencies. No actual upload or account/page creation; normal reads may populate native caches. |
-| Upload return compatibility | `node ops/test-upload-return.cjs` | jsdom with native upload form plus header search, passive final FormData destinations, warning/stash retries, cancellation and guarded account-bound storage. FileList/File objects, names, types and destination fields remain unchanged. This is protocol coverage, not execution of an unlocated external converter. |
+| Upload image conversion | `node ops/test-upload-converter.cjs` | jsdom with real FileReader and GIF encoder, mocked image decode/canvas/FileList, and core upload source selection; destination-driven PNG/JPEG/WebP/GIF conversion, PNG repair, broad input formats, matching JPEG/WebP/GIF preservation, native filename autofill, submitter and field preservation, failure/retry, cancellation, duplicate initialization and async source/destination/account changes. Browser pixel conversion and server acceptance require separate checks. |
+| Upload return compatibility | `node ops/test-upload-return.cjs` | jsdom with native upload form plus header search, passive final FormData destinations, warning/stash retries, cancellation and guarded account-bound storage. This isolates passive tracking; it does not run image conversion or upload files. |
 | Dependency job runner | `python3 ops/test-jobrunner.py` and `bash -n ops/host-bin/eqlwiki-run-jobs.sh` | Synthetic commands/native-result shapes, failure/timeout/privacy/state checks; Linux CI additionally exercises real kernel locking and process-tree deadlines. No real wiki jobs execute. The private host wrapper requires separate guarded installation. |
 | Client observations | `php ops/test-eoz-observations.php`, PHP/JSON lint | Pure payload and transactional repository/API doubles: attribution, CSRF/POST declaration, dedup/conflicts, quotas/rollback. No schema installation or real account login; [activation is separate](CLIENT_API.md) |
 | Observed drop database and NPC display | `php ops/test-drop-cumulative.php`, `php ops/test-drop-database.php`, `php ops/test-drop-integration.php`, `node ops/test-drop-browser.cjs`, `node ops/test-drop-overlay.cjs` (jsdom), PHP/JS/JSON lint | More than 100,000 synthetic legacy rows, transactional cumulative counters, repeatable-read/late-ID reconciliation (optional isolated MariaDB), first-report publication/history, denominator stability, cache-policy rollover, snapshots and privacy. Search fixtures distinguish case-insensitive browser subject contains from exact API identities and test Unicode/literal wildcard/quote handling. The collapsed guide's example passes the real upload validator. NPC fixtures check the per-item/source ten-report percentage boundary, first-report item visibility, full denominators, authored-rate precedence, manual matching, Mote filtering and source re-rendering. Database/API percentages stay numeric below ten. Verify actual NPC pages after deployment/reload, including an authored rate, a below-floor item and an eligible automatic percentage. Schema/backfill remains separately reviewed maintenance; these UI changes need neither operation. [Activation and limits](CUMULATIVE_DROPS.md) |
@@ -244,6 +245,20 @@ for storage and refresh behavior. Zone Viewer changes need supported browsers an
 local game files; use its
 [build guide](../extensions/EQLZoneViewer/build/README.md) and
 [validation notes](../extensions/EQLZoneViewer/docs/VALIDATION_1.15.0.txt).
+
+For uploads, use a synthetic JPEG with a preset PNG destination such as
+`npc_upload_fixture.png`. Check the submitted file's PNG signature and decoded
+dimensions, the unchanged destination/description, and the `wpUpload` or
+`wpUploadIgnoreWarning` button in multipart form data. Also check PNG repair,
+matching JPEG/WebP/GIF preservation, cross-format GIF output, a browser-readable
+BMP/SVG input, an edited destination, cancellation while
+preparing, a failed decode followed by retry, and return/purge after native
+warning/stash confirmation. Browser fixtures can capture the final FormData or
+post to a disposable localhost receiver without writing wiki uploads. An
+authenticated staging upload still needs a deliberately chosen disposable file;
+fixture conversion does not prove live server acceptance. Deployment publishes
+the skin module directly; no Common.js edit or private host-script install is
+needed. Leave MediaWiki's MIME and upload authorization checks enabled.
 
 For Itembox, use a synthetic primary-capable 2H Blunt weapon with DMG 45 and
 Atk Delay 52: the generated bonus should be `34 @ lvl 50`. A 1H weapon with

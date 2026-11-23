@@ -249,6 +249,11 @@
                 "resources/spellblade-lucy.css"
             ]
         },
+        "skins.EQLImmersive.gifEncoder": {
+            "packageFiles": [
+                "resources/vendor/gifenc/gifenc.js"
+            ]
+        },
         "skins.EQLImmersive.base": {
             "scripts": [
                 "resources/main.js",
