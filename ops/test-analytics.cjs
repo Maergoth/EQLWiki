@@ -8,28 +8,34 @@ const { JSDOM } = require( 'jsdom' );
 const source = fs.readFileSync( path.join( __dirname, '../skins/EQLImmersive/resources/analytics.js' ), 'utf8' );
 const id = 'G-1234567890';
 const config = { measurementId: id, origin: 'https://eqlwiki.com',
-    pageLocation: 'https://eqlwiki.com/Synthetic_article', pageTitle: 'Synthetic article' };
+    pageLocation: 'https://eqlwiki.com/Synthetic_article', pageTitle: 'Synthetic article',
+    pageNamespace: 0, consentPublisher: 'pub-1234567890123456' };
 const cases = [];
 const test = ( name, run ) => cases.push( { name, run } );
 
 function visit( options = {} ) {
     const dom = new JSDOM( '<!doctype html><html><head><title>Private browser context</title></head><body></body></html>', {
         url: options.url || 'https://eqlwiki.com/Synthetic_article?search=private&token=secret#private',
-        referrer: 'https://other.example/private?token=secret', runScripts: 'outside-only'
+        referrer: options.referrer || 'https://other.example/private?token=secret', runScripts: 'outside-only'
     } );
     const w = dom.window;
     if ( options.gpc ) { Object.defineProperty( w.navigator, 'globalPrivacyControl', { value: true } ); }
     const values = { wgEQLAnalytics: options.config === undefined ? config : options.config,
         wgEQLAdSense: options.provider === undefined ? { environment: 'production', client: 'ca-pub-1234567890123456' } : options.provider,
-        wgUserId: 0, wgUserName: null, wgUserIsTemp: false };
+        wgUserId: options.named ? 42 : 0, wgUserName: options.named ? 'Private account' : null, wgUserIsTemp: false };
     let hookValue = options.enabled, hooks = [], status = options.status === undefined ? 1 : options.status;
     let tcfListener, modeReady = false;
     const callbacks = [];
     const fire = enabled => { hookValue = enabled; hooks.forEach( hook => hook( enabled ) ); };
     w.mw = { config: { get: key => values[ key ] }, hook: name => {
-        assert.equal( name, 'eql.ads.state' );
+        assert.equal( name, 'eql.analytics.state', 'Analytics must never subscribe to Ads preferences.' );
         return { add( callback ) { hooks.push( callback ); if ( hookValue !== undefined ) { callback( hookValue ); } }, fire };
     } };
+    if ( options.existingCmp ) {
+        const script = w.document.createElement( 'script' );
+        script.src = 'https://fundingchoicesmessages.google.com/i/' + config.consentPublisher + '?ers=1';
+        w.document.head.appendChild( script );
+    }
     w.googlefc = {
         callbackQueue: { push( item ) {
             callbacks.push( item );
@@ -82,12 +88,17 @@ function visit( options = {} ) {
     }
     if ( options.earlyRuntime ) {
         const appendChild = w.document.head.appendChild.bind( w.document.head );
-        w.document.head.appendChild = element => { const result = appendChild( element ); bootstrap(); return result; };
+        w.document.head.appendChild = element => {
+            const result = appendChild( element );
+            if ( element.src && element.src.includes( 'googletagmanager.com/gtag/' ) ) { bootstrap(); }
+            return result;
+        };
     }
     w.eval( source );
-    const scripts = () => [ ...w.document.querySelectorAll( 'script[src]' ) ];
+    const scripts = () => [ ...w.document.querySelectorAll( 'script[src]' ) ].filter( script => script.src.includes( 'googletagmanager.com/gtag/' ) );
+    const cmpScripts = () => [ ...w.document.querySelectorAll( 'script[src]' ) ].filter( script => script.src.includes( 'fundingchoicesmessages.google.com/' ) );
     return {
-        w, values, fire, scripts, callbacks, bootstrap, requests, cookieWrites, bootSnapshots,
+        w, values, fire, scripts, cmpScripts, callbacks, bootstrap, requests, cookieWrites, bootSnapshots,
         ignoredConfigs: () => ignoredConfigs,
         commands: () => Array.from( w.eqlAnalyticsDataLayer || [], command => Array.from( command ) ),
         disabled: () => w[ 'ga-disable-' + id ],
@@ -104,16 +115,17 @@ function visit( options = {} ) {
     };
 }
 
-test( 'Off and missing effective preference never register CMP or request Analytics', () => {
+test( 'Separate analytics opt-out and missing preference never register CMP or request Analytics', () => {
     for ( const enabled of [ undefined, false, 'true', 1 ] ) {
         const page = visit( { enabled } ); page.ready(); page.focus();
-        assert.equal( page.callbacks.length, 0 ); assert.equal( page.scripts().length, 0 );
+        assert.equal( page.callbacks.length, 0 ); assert.equal( page.scripts().length, 0 ); assert.equal( page.cmpScripts().length, 0 );
         assert.equal( page.commands().length, 0 ); assert.equal( page.disabled(), true ); page.close();
     }
 } );
-test( 'Missing, malformed, staging, preview and private canonical config fail closed', () => {
-    const invalid = [ { config: null }, { provider: null }, { gpc: true },
-        { provider: { environment: 'staging' } }, { provider: { environment: 'production', preview: true } },
+test( 'Missing, malformed, nonproduction and private canonical config fail closed', () => {
+    const invalid = [ { config: null }, { gpc: true },
+        ...[ '', 'pub-1234567890123456\n', 'ca-pub-1234567890123456', true ].map( consentPublisher => ( { config: { ...config, consentPublisher } } ) ),
+        ...[ -1, 1, 2, 4, undefined, '0' ].map( pageNamespace => ( { config: { ...config, pageNamespace } } ) ),
         { url: 'https://test.eqlwiki.com/Synthetic_article' }, { url: 'https://other.example/Synthetic_article' },
         ...[ '', 'UA-1234567890', 'G-1234567890\n', 'G-too-short', true ].map( measurementId => ( { config: { ...config, measurementId } } ) ),
         ...[ 'https://other.example/Article', 'http://eqlwiki.com/Article',
@@ -125,9 +137,72 @@ test( 'Missing, malformed, staging, preview and private canonical config fail cl
     for ( const options of invalid ) {
         const page = visit( { enabled: true, ...options } ); page.ready();
         assert.equal( page.scripts().length, 0, JSON.stringify( options ) );
+        assert.equal( page.cmpScripts().length, 0 );
         assert.equal( page.commands().length, 0 ); page.close();
     }
 } );
+test( 'Ads absence, Ads X/default-Off and unavailable ad preferences do not prevent permitted measurement', () => {
+    for ( const named of [ false, true ] ) {
+        for ( const provider of [ null, { environment: 'production', format: '' }, { preview: true } ] ) {
+            const page = visit( { enabled: true, named, provider } );
+            page.ready(); page.load();
+            assert.equal( page.disabled(), false );
+            assert.equal( page.commands().filter( c => c[ 0 ] === 'event' && c[ 1 ] === 'page_view' ).length, 1 );
+            assert.equal( page.w.document.querySelectorAll( 'script[src*="adsbygoogle"]' ).length, 0 );
+            assert.ok( !JSON.stringify( page.commands() ).includes( 'Private account' ) );
+            page.close();
+        }
+    }
+} );
+
+test( 'Standalone consent loads once without ad scripts and respects an existing Google runtime', () => {
+    for ( const existingCmp of [ false, true ] ) {
+        const page = visit( { enabled: true, provider: null, existingCmp } );
+        page.fire( true ); page.focus();
+        assert.equal( page.cmpScripts().length, 1 );
+        assert.equal( page.cmpScripts()[ 0 ].src, 'https://fundingchoicesmessages.google.com/i/pub-1234567890123456?ers=1' );
+        if ( !existingCmp ) {
+            assert.equal( page.cmpScripts()[ 0 ].referrerPolicy, 'strict-origin' );
+            assert.ok( page.w.frames.googlefcPresent );
+        }
+        assert.equal( page.scripts().length, 0, 'Loading the CMP is not consent.' );
+        page.ready(); page.load();
+        assert.equal( page.cmpScripts().length, 1 ); assert.equal( page.scripts().length, 1 );
+        page.close();
+    }
+    const failed = visit( { enabled: true } );
+    failed.cmpScripts()[ 0 ].dispatchEvent( new failed.w.Event( 'error' ) );
+    failed.ready(); failed.fire( true ); failed.focus();
+    assert.equal( failed.disabled(), true ); assert.equal( failed.scripts().length, 0 ); failed.close();
+} );
+
+test( 'Public Category and Help canonical pages strip visitor queries without admitting private namespaces', () => {
+    for ( const [ pageNamespace, prefix ] of [ [ 14, 'Category:' ], [ 12, 'Help:' ] ] ) {
+        const publicConfig = { ...config, pageNamespace, pageTitle: prefix + 'Synthetic', pageLocation: 'https://eqlwiki.com/' + prefix + 'Synthetic' };
+        const page = visit( { enabled: true, config: publicConfig, url: publicConfig.pageLocation + '?token=private#private' } );
+        page.ready(); page.load();
+        const view = page.commands().find( c => c[ 0 ] === 'event' );
+        assert.equal( view[ 2 ].page_location, publicConfig.pageLocation );
+        assert.ok( !JSON.stringify( page.commands() ).includes( 'private' ) ); page.close();
+        const mismatch = visit( { enabled: true, config: { ...publicConfig, pageLocation: 'https://eqlwiki.com/User:Private_account' } } );
+        mismatch.ready(); assert.equal( mismatch.cmpScripts().length, 0 ); assert.equal( mismatch.scripts().length, 0 ); mismatch.close();
+    }
+} );
+
+test( 'Acquisition includes only external referrer origin, never private paths or internal navigation', () => {
+    for ( const [ referrer, expected ] of [
+        [ 'https://search.example/private?q=private#private', 'https://search.example/' ],
+        [ 'https://eqlwiki.com/User:Private_account?token=private', '' ],
+        [ 'https://test.eqlwiki.com/private', '' ],
+        [ 'https://reader:private@external.example/path', '' ]
+    ] ) {
+        const page = visit( { enabled: true, referrer } ); page.ready(); page.load();
+        assert.equal( page.commands().find( c => c[ 0 ] === 'set' )[ 1 ].page_referrer, expected );
+        assert.equal( page.commands().find( c => c[ 0 ] === 'event' )[ 2 ].page_referrer, expected );
+        assert.ok( !JSON.stringify( page.commands() ).includes( 'private' ) ); page.close();
+    }
+} );
+
 test( 'Missing, unknown, denied and unconfigured consent make no GA request or command', () => {
     for ( const status of [ undefined, null, 0, 2, 4, 99, '1' ] ) {
         const page = visit( { enabled: true } ); page.status( status );
@@ -150,7 +225,7 @@ test( 'Granted and explicitly inapplicable consent load once with sanitized meas
         assert.equal( configs.length, 1 ); assert.equal( configs[ 0 ][ 1 ], id );
         assert.equal( configs[ 0 ][ 2 ].page_location, config.pageLocation );
         assert.equal( configs[ 0 ][ 2 ].page_title, config.pageTitle );
-        assert.equal( configs[ 0 ][ 2 ].page_referrer, '' );
+        assert.equal( configs[ 0 ][ 2 ].page_referrer, 'https://other.example/' );
         assert.equal( configs[ 0 ][ 2 ].allow_google_signals, false );
         assert.equal( configs[ 0 ][ 2 ].allow_ad_personalization_signals, false );
         assert.equal( configs[ 0 ][ 2 ].cookie_domain, 'none' );
@@ -163,7 +238,7 @@ test( 'Granted and explicitly inapplicable consent load once with sanitized meas
         assert.equal( views.length, 1 ); assert.equal( views[ 0 ][ 2 ].send_to, id );
         assert.equal( views[ 0 ][ 2 ].page_location, config.pageLocation );
         assert.equal( views[ 0 ][ 2 ].page_title, config.pageTitle );
-        assert.equal( views[ 0 ][ 2 ].page_referrer, '' );
+        assert.equal( views[ 0 ][ 2 ].page_referrer, 'https://other.example/' );
         const defaults = page.commands().find( x => x[ 0 ] === 'consent' );
         assert.deepEqual( Object.keys( defaults[ 2 ] ), [ 'analytics_storage' ], 'The CMP retains ownership of all advertising consent fields.' );
         assert.equal( page.w.dataLayer, undefined, 'Analytics does not populate the shared dataLayer.' );
@@ -178,7 +253,7 @@ test( 'Early destination bootstrap cannot send defaults, write cookies or duplic
         assert.ok( commands.findIndex( c => c[ 0 ] === 'set' ) < commands.findIndex( c => c[ 0 ] === 'js' ) );
         const safe = commands.find( c => c[ 0 ] === 'set' )[ 1 ];
         assert.equal( safe.send_page_view, false ); assert.equal( safe.page_location, config.pageLocation );
-        assert.equal( safe.page_title, config.pageTitle ); assert.equal( safe.page_referrer, '' );
+        assert.equal( safe.page_title, config.pageTitle ); assert.equal( safe.page_referrer, 'https://other.example/' );
         assert.equal( safe.allow_google_signals, false ); assert.equal( safe.allow_ad_personalization_signals, false );
         assert.equal( safe.cookie_domain, 'none' ); assert.equal( safe.cookie_expires, 2592000 ); assert.equal( safe.cookie_update, false );
         assert.equal( safe.cookie_prefix, 'eql' );
@@ -188,7 +263,7 @@ test( 'Early destination bootstrap cannot send defaults, write cookies or duplic
         page.load(); page.load(); page.focus(); page.hide( true ); page.show();
         assert.equal( page.requests.length, 1 ); assert.equal( page.requests[ 0 ].event, 'page_view' );
         assert.equal( page.requests[ 0 ].page_location, config.pageLocation ); assert.equal( page.requests[ 0 ].page_title, config.pageTitle );
-        assert.equal( page.requests[ 0 ].page_referrer, '' ); assert.equal( page.requests[ 0 ].allow_ad_personalization_signals, false );
+        assert.equal( page.requests[ 0 ].page_referrer, 'https://other.example/' ); assert.equal( page.requests[ 0 ].allow_ad_personalization_signals, false );
         assert.equal( page.requests[ 0 ].allow_google_signals, false );
         assert.deepEqual( page.cookieWrites, [ { name: 'eql_ga', domain: 'none', expires: 2592000, update: false } ] );
         assert.equal( page.ignoredConfigs(), ignoreDuplicateConfig ? 1 : 0 );
@@ -210,7 +285,7 @@ test( 'Off, revocation and departure during early bootstrap leave no event or co
     assert.equal( synchronous.cookieWrites.length, 0 ); synchronous.close();
 } );
 
-test( 'Preference gate works when the Analytics module loads before or after ads.js', () => {
+test( 'Independent preference gate works before or after analytics preferences initialize', () => {
     for ( const enabled of [ undefined, true ] ) {
         const page = visit( { enabled } ); page.fire( true ); page.ready(); page.load();
         assert.equal( page.scripts().length, 1 ); assert.equal( page.disabled(), false ); page.close();

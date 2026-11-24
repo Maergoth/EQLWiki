@@ -8,6 +8,7 @@ use MediaWiki\Hook\SkinBuildSidebarHook;
 use MediaWiki\Hook\SkinTemplateNavigation__UniversalHook;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Permissions\PermissionManager;
+use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\SpecialPage\SpecialPage;
 use SkinTemplate;
 
@@ -49,6 +50,7 @@ class Hooks implements
 		$this->addConditionalResourceModules( $out, $skin );
 		$this->addTalkActivityModule( $out, $skin );
 		$this->addAdvertising( $out );
+		$this->addAnalytics( $out );
 	}
 
 	private function addAdvertising( $out ): void {
@@ -74,14 +76,32 @@ class Hooks implements
 		$config = Ads::configurationForOutput( $out, $publicRead );
 		if ( $config !== null ) {
 			$out->addJsConfigVars( 'wgEQLAdSense', $config );
-			// The helper may arrive after this caller during a file-by-file release.
-			if ( class_exists( Analytics::class ) ) {
-				$analytics = Analytics::configurationForOutput( $out, $config, $publicRead );
-				if ( $analytics !== null ) {
-					$out->addJsConfigVars( 'wgEQLAnalytics', $analytics );
-					$out->addModules( [ 'skins.EQLImmersive.analytics' ] );
-				}
-			}
+		}
+	}
+
+	private function addAnalytics( $out ): void {
+		// Skip safely until the matching helper arrives in a file-by-file release.
+		if ( !method_exists( Analytics::class, 'independentConfigurationForOutput' ) ) { return; }
+		$preferences = Analytics::preferencesForOutput( $out );
+		if ( $preferences === null ) { return; }
+		$out->addJsConfigVars( 'wgEQLAnalyticsPreferences', $preferences );
+		$out->addModules( [ 'skins.EQLImmersive.analyticsPreferences' ] );
+		$title = $out->getTitle();
+		if ( !$title || !in_array( $title->getNamespace(), [ NS_MAIN, NS_CATEGORY, NS_HELP ], true )
+		) { return; }
+		$services = MediaWikiServices::getInstance();
+		$publicRead = $services->getPermissionManager()->userCan(
+			'read', $services->getUserFactory()->newAnonymous(), $title
+		);
+		if ( $publicRead ) {
+			$revisionId = $out->getRevisionId();
+			$revision = $revisionId ? $services->getRevisionLookup()->getRevisionById( $revisionId ) : null;
+			$publicRead = $revision && $revision->audienceCan( RevisionRecord::DELETED_TEXT, RevisionRecord::FOR_PUBLIC );
+		}
+		$analytics = Analytics::independentConfigurationForOutput( $out, $publicRead );
+		if ( $analytics !== null ) {
+			$out->addJsConfigVars( 'wgEQLAnalytics', $analytics );
+			$out->addModules( [ 'skins.EQLImmersive.analytics' ] );
 		}
 	}
 
