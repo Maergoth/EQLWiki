@@ -52,12 +52,13 @@ function visit( options = {} ) {
     const defaults = { page_location: w.location.href, page_title: w.document.title,
         page_referrer: w.document.referrer, send_page_view: true,
         allow_google_signals: true, allow_ad_personalization_signals: true,
-        cookie_domain: 'auto', cookie_expires: 63072000, cookie_update: true };
+        cookie_prefix: '', cookie_domain: 'auto', cookie_expires: 63072000, cookie_update: true };
     const runtimeFields = () => ( { ...defaults, ...globals, ...destination } );
     function send( event, fields = {} ) {
         if ( w[ 'ga-disable-' + id ] ) { return; }
         const values = { ...runtimeFields(), ...fields };
-        cookieWrites.push( { domain: values.cookie_domain, expires: values.cookie_expires, update: values.cookie_update } );
+        cookieWrites.push( { name: values.cookie_prefix + '_ga', domain: values.cookie_domain,
+            expires: values.cookie_expires, update: values.cookie_update } );
         requests.push( { event, ...values } );
     }
     function processCommand( command ) {
@@ -153,6 +154,7 @@ test( 'Granted and explicitly inapplicable consent load once with sanitized meas
         assert.equal( configs[ 0 ][ 2 ].allow_google_signals, false );
         assert.equal( configs[ 0 ][ 2 ].allow_ad_personalization_signals, false );
         assert.equal( configs[ 0 ][ 2 ].cookie_domain, 'none' );
+        assert.equal( configs[ 0 ][ 2 ].cookie_prefix, 'eql' );
         assert.equal( configs[ 0 ][ 2 ].cookie_expires, 2592000 );
         assert.equal( configs[ 0 ][ 2 ].cookie_update, false );
         assert.equal( configs[ 0 ][ 2 ].send_page_view, false );
@@ -179,6 +181,7 @@ test( 'Early destination bootstrap cannot send defaults, write cookies or duplic
         assert.equal( safe.page_title, config.pageTitle ); assert.equal( safe.page_referrer, '' );
         assert.equal( safe.allow_google_signals, false ); assert.equal( safe.allow_ad_personalization_signals, false );
         assert.equal( safe.cookie_domain, 'none' ); assert.equal( safe.cookie_expires, 2592000 ); assert.equal( safe.cookie_update, false );
+        assert.equal( safe.cookie_prefix, 'eql' );
         page.ready(); page.fire( true ); page.focus();
         assert.equal( page.disabled(), true, 'Repeated permission callbacks must not lift the bootstrap kill switch.' );
         assert.equal( page.requests.length, 0 ); assert.equal( page.cookieWrites.length, 0 );
@@ -187,7 +190,7 @@ test( 'Early destination bootstrap cannot send defaults, write cookies or duplic
         assert.equal( page.requests[ 0 ].page_location, config.pageLocation ); assert.equal( page.requests[ 0 ].page_title, config.pageTitle );
         assert.equal( page.requests[ 0 ].page_referrer, '' ); assert.equal( page.requests[ 0 ].allow_ad_personalization_signals, false );
         assert.equal( page.requests[ 0 ].allow_google_signals, false );
-        assert.deepEqual( page.cookieWrites, [ { domain: 'none', expires: 2592000, update: false } ] );
+        assert.deepEqual( page.cookieWrites, [ { name: 'eql_ga', domain: 'none', expires: 2592000, update: false } ] );
         assert.equal( page.ignoredConfigs(), ignoreDuplicateConfig ? 1 : 0 );
         assert.ok( !JSON.stringify( page.requests ).includes( 'private' ) ); page.close();
     }
@@ -252,6 +255,16 @@ test( 'First consent waits for the initial prompt completion in either callback 
         page.close();
     }
 } );
+test( 'Initial UNKNOWN readiness does not mistake its first consent prompt for a reopening', () => {
+    for ( const deferTcf of [ true, false ] ) {
+        const page = visit( { enabled: true, deferTcf, status: 0 } ); page.apiReady(); page.ready();
+        assert.equal( page.scripts().length, 0 ); page.consentEvent( 'cmpuishown' );
+        page.status( 1 ); page.consentEvent( 'useractioncomplete' ); page.ready();
+        assert.equal( page.scripts().length, 1 ); page.load(); assert.equal( page.disabled(), false );
+        page.consentEvent( 'cmpuishown' ); page.ready(); assert.equal( page.disabled(), true ); page.close();
+    }
+} );
+
 test( 'A delayed initial TCF snapshot is not mistaken for consent withdrawal', () => {
     for ( const initialTcfStatus of [ 'tcloaded', 'useractioncomplete' ] ) {
         const page = visit( { enabled: true, deferTcf: true } ); page.apiReady(); page.ready();

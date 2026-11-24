@@ -66,7 +66,7 @@
 		var parameters = {
 			page_location: canonical.href, page_title: settings.pageTitle, page_referrer: '',
 			allow_google_signals: false, allow_ad_personalization_signals: false,
-			send_page_view: false, cookie_domain: 'none', cookie_path: '/',
+			send_page_view: false, cookie_prefix: 'eql', cookie_domain: 'none', cookie_path: '/',
 			cookie_expires: 2592000, cookie_update: false, cookie_flags: 'SameSite=Lax;Secure'
 		};
 		tag( 'consent', 'default', { analytics_storage: 'granted' } );
@@ -112,7 +112,9 @@
 					if ( !success || !data || data.cmpStatus === 'error' ) { stop( true ); return; }
 					if ( data.eventStatus === 'cmpuishown' ) {
 						consentPromptOpen = true;
-						stop( requested || consentReady );
+						// An initial UNKNOWN snapshot can be ready before its first
+						// prompt. Readiness alone is not a prior consent decision.
+						stop( requested || ( !firstSnapshot && consentPermits() ) );
 						return;
 					}
 					// Once requested, any new consent interaction stops measurement for

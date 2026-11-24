@@ -90,9 +90,12 @@ and property-level user-provided data settings; verify both layers. A newly
 created tag/container may enable those capabilities independently. The skin
 does not enable them or send user-provided data.
 
-GA cookies use a host-only scope and a fixed 30-day lifetime
+GA cookies use the stable `cookie_prefix: 'eql'`, producing `eql_ga` and
+`eql_ga_<stream suffix>`, with a host-only scope and a fixed 30-day lifetime
 (`cookie_expires: 2592000`, `cookie_update: false`), distinct from the Ads
-preference's 24 hours. Configure the GA4 property for two-month user/event data
+preference's 24 hours. The prefix prevents reuse of existing generic Analytics
+cookies. Older cookies can remain until browser expiry or removal; this
+integration does not renew or delete them. Configure the GA4 property for two-month user/event data
 retention and disable reset on new activity. This account setting does not impose
 the same deletion schedule on standard aggregate reports; see
 [Google's retention rules](https://support.google.com/analytics/answer/7667196).
