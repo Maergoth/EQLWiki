@@ -72,8 +72,9 @@ Major custom skin behavior:
   has independent blank settings and accepts no manual/Multiplex staging format.
   Approval, consent and protected-content crawler access remain separate from
   loader setup. Only this ad option is saved on an explicit named-user gesture;
-  unrelated account state is unchanged. The separate analytics module below
-  consumes the effective ad state; ad configuration alone does not enable it. Root
+  unrelated account state is unchanged. The separate analytics module below has
+  its own browser preference, configuration and consent gate; Ads X does not
+  disable it, and ad configuration alone does not enable it. Root
   [`ads.txt`](../ads.txt) supplies the owner's public Google seller record. The
   reviewed [`ops/privacy-policy.wiki`](../ops/privacy-policy.wiki) supplies authored
   source for the public [privacy and cookie policy](https://eqlwiki.com/EQLWiki:Privacy_policy),
@@ -86,26 +87,34 @@ Major custom skin behavior:
   The [ads guide](ADS.md) covers preview, privacy messaging, future footer acceptance,
   activation and traffic limits.
 
-- `includes/Analytics.php` and `resources/analytics.js` provide optional GA4
-  engagement measurement for eligible public production articles only. A valid
-  `EQLAnalyticsMeasurementId`, real production ad configuration, effective Ads
-  enabled state from the `eql.ads.state` hook, and known permitted analytics
-  consent are all required. `wgEQLAnalytics` contains only the issued measurement
-  ID, exact origin and canonical public article location/title. Safe defaults and
-  automatic-pageview suppression precede remote bootstrap; one explicit view
-  follows the load-time permission recheck. X, named-account
-  default-Off, unknown/denied/unconfigured consent, Global Privacy Control,
-  previews and nonproduction
-  origins do not load GA. Withdrawal disables collection for the current
-  document. No wiki user identifiers, query strings or referrer addresses are
-  sent; Google Signals and analytics advertising personalization stay disabled.
-  Host-only `eql`-prefixed GA cookies are independent of the 24-hour Ads choice
-  and avoid reusing generic Analytics cookies. The browser identifier expires
-  after 30 days without renewal; Google's session cookie can renew with activity.
-  This measures a consenting ads-enabled sample, not all site engagement.
-  Property creation, consent settings, two-month retention without activity
-  reset, the private production ID and live privacy publication are separate
-  operations. See [analytics ownership, checks and release](ANALYTICS.md).
+- `includes/Analytics.php`, `resources/analytics-preferences.js` and
+  `resources/analytics.js` provide independent optional GA4 audience measurement.
+  Valid `EQLAnalyticsMeasurementId` and `EQLAnalyticsConsentPublisher` settings
+  enable first-party **Analytics settings** controls on the exact production
+  host, including the tag-free privacy policy. Measurement admission separately
+  requires current public/indexable main, category or Help content, anonymous
+  read access and public revision text. Missing, private, suppressed, noindex,
+  User/Talk/Special, authentication, edit/old-revision, forum and staging pages
+  are excluded. Signed-in and logged-out visitors can be measured with any Ads
+  choice, including X. `eql.analytics.state` supplies the browser-only preference:
+  enabled by default, with a one-year host-only Secure/SameSite=Lax
+  `eql_analytics_opt_out=1` cookie for opt-out and no account save. The standalone
+  Google consent tag loads independently of advertising. Only known `GRANTED` or
+  `NOT_APPLICABLE` Analytics consent permits GA; opt-out, unknown/denied/unconfigured
+  consent and Global Privacy Control veto it. `wgEQLAnalytics` contains the issued
+  measurement ID and consent publisher, exact origin, namespace and canonical
+  public page location/title. Safe defaults and automatic-pageview suppression
+  precede remote bootstrap; one explicit view follows the permission recheck.
+  Withdrawal stops collection for the document. No wiki identifiers, query
+  strings or fragments are sent; external referrers are reduced to their origin.
+  Google Signals, user-provided data, personalization and enhanced measurement
+  remain disabled. Host-only `eql`-prefixed GA cookies avoid generic Analytics
+  cookie reuse: the browser identifier expires after 30 days without renewal,
+  while Google's session cookie can renew with activity. Reports cover permitted,
+  unblocked measured traffic, not every human visit. Property/consent setup,
+  two-month retention without activity reset, private production settings and
+  live privacy publication remain separate operations. See
+  [analytics ownership, checks and release](ANALYTICS.md).
 
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings
