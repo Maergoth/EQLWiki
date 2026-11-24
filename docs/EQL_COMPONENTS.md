@@ -67,13 +67,32 @@ Major custom skin behavior:
   Blank production settings and local clones keep the control hidden with no
   ad-option API reads. Off readers retain the control.
   Auto ads and Auto optimize
-  stay Off. Only the ad choice is saved by this feature; no analytics is added.
+  stay Off. Only the ad choice is saved by this feature. The separate analytics
+  module below consumes its effective state; ad configuration alone does not
+  enable analytics.
   The [ads guide](ADS.md) covers configuration, preference failures, consent and
   rollback. [`ads.txt`](../ads.txt) is the public seller record.
   [`ops/privacy-policy.wiki`](../ops/privacy-policy.wiki) is authored policy source;
   publishing its database page and News requires separate current-revision,
   private-backup and edit-conflict checks. Git deployment does not publish those
   pages or update Google's account-side consent settings.
+
+- `includes/Analytics.php` and `resources/analytics.js` provide optional GA4
+  engagement measurement for eligible public production articles only. A valid
+  `EQLAnalyticsMeasurementId`, real production ad configuration, effective Ads
+  enabled state from the `eql.ads.state` hook, and known permitted analytics
+  consent are all required. `wgEQLAnalytics` contains only the issued measurement
+  ID, exact origin and canonical public article location/title. X, named-account
+  default-Off, unknown/denied/unconfigured consent, Global Privacy Control,
+  previews and nonproduction
+  origins do not load GA. Withdrawal disables collection for the current
+  document. No wiki user identifiers, query strings or referrer addresses are
+  sent; Google Signals and analytics advertising personalization stay disabled.
+  Fixed 30-day host-only GA cookies are independent of the 24-hour Ads choice.
+  This measures a consenting ads-enabled sample, not all site engagement.
+  Property creation, consent settings, two-month retention without activity
+  reset, the private production ID and live privacy publication are separate
+  operations. See [analytics ownership, checks and release](ANALYTICS.md).
 
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings

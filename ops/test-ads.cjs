@@ -105,7 +105,7 @@ function visit( options = {} ) {
     const name = options.name === undefined ? ( user ? 'Fixture Reader' : null ) : options.name;
     let accountOption = options.option;
     let identity = { id: user, name };
-    const reads = [], saves = [], notifications = [], cacheWrites = [];
+    const reads = [], saves = [], notifications = [], cacheWrites = [], analyticsStates = [];
     let activeSaves = 0, maximumSaves = 0;
     const userinfo = () => ( { query: { userinfo: { ...identity, options: accountOption === undefined ? {} : { [ OPTION ]: accountOption } } } } );
     function get( parameters ) {
@@ -139,6 +139,7 @@ function visit( options = {} ) {
         wgEQLAdSense: options.config === undefined ? config : options.config,
         wgEQLAdPreferences: options.preferences };
     w.mw = {
+        hook: name => ( { fire( enabled ) { assert.equal( name, 'eql.ads.state' ); analyticsStates.push( enabled ); } } ),
         config: { get: key => values[ key ] }, Api: function () { return { get, saveOption }; },
         user: { options: { set: ( option, value ) => cacheWrites.push( { option, value } ) } },
         notify: ( message, settings ) => notifications.push( { message, settings } )
@@ -156,7 +157,7 @@ function visit( options = {} ) {
     const control = w.document.getElementById( 'eql-ads-toggle' );
     const toggle = control.querySelector( '[value="anchor"]' );
     return {
-        w, toggle, control, reads, saves, notifications, cacheWrites, cookieWrites, session, local, storageCalls,
+        w, toggle, control, reads, saves, notifications, cacheWrites, cookieWrites, session, local, storageCalls, analyticsStates,
         choose( next ) { const input = control.querySelector( '[value="' + ( next === true ? 'anchor' : next === false ? 'off' : next ) + '"]' ); input.checked = true; input.dispatchEvent( new w.Event( 'change' ) ); },
         selected: () => control.querySelector( ':checked' ).value,
         scripts: () => [ ...w.document.querySelectorAll( 'script[src]' ) ],
@@ -1279,6 +1280,22 @@ test( 'Size observation pauses off-page and rechecks pending chrome after BFCach
     page.adSize( ad, 300, 600 ); await settle();
     assert.equal( host.classList.contains( 'eql-ad-awaiting-result' ), false );
     assert.equal( page.w.adsbygoogle.length, 1 ); assert.equal( page.cookieWrites.length, 0 ); page.close();
+} );
+
+test( 'Analytics receives only verified effective provider state, including immediate Off and failures', async () => {
+    const on = visit(); await settle(); assert.equal( on.analyticsStates.at( -1 ), true );
+    on.choose( 'off' ); assert.equal( on.analyticsStates.at( -1 ), false ); on.close();
+    const pending = visit( { user: 42, option: 'anchor', deferReads: true, deferSaves: true } );
+    assert.equal( pending.analyticsStates.at( -1 ), false ); await settle();
+    pending.reads[ 0 ].resolve(); await settle(); assert.equal( pending.analyticsStates.at( -1 ), true );
+    pending.choose( 'off' ); assert.equal( pending.analyticsStates.at( -1 ), false ); await settle();
+    pending.saves[ 0 ].reject( new Error( 'Synthetic save failure' ) ); await settle();
+    assert.equal( pending.analyticsStates.at( -1 ), false ); pending.close();
+    const blocked = visit( { providerError: true } ); await settle();
+    assert.equal( blocked.analyticsStates.at( -1 ), false ); blocked.close();
+    const excluded = visit( { config: null, preferences: { environment: 'production', format: 'anchor' } } ); await settle();
+    assert.ok( excluded.analyticsStates.every( state => state === false ) ); excluded.close();
+    const preview = visit( staging ); await settle(); assert.ok( preview.analyticsStates.every( state => state === false ) ); preview.close();
 } );
 
 ( async () => {

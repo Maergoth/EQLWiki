@@ -49,6 +49,7 @@ jobs:
           php ops/test-item-seo.php
           php ops/test-ajax-hover.php
           php ops/test-ads-config.php
+          php ops/test-analytics-config.php
           php ops/test-navigation-crawl.php
           php ops/test-item-reader-copy.php
           php ops/test-site-identity.php
@@ -74,6 +75,7 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-store.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-todo-ui.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-ads.cjs
+          NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-analytics.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-drop-overlay.cjs
           NODE_PATH="$RUNNER_TEMP/eql-player-dom/node_modules" node ops/test-drop-browser.cjs
           node --check extensions/EQLClientData/resources/drop-database.js
