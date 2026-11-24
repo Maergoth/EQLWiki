@@ -43,10 +43,51 @@ function visit( options = {} ) {
         assert.equal( method, 'addEventListener' ); assert.equal( version, 0 ); tcfListener = callback;
         if ( !options.deferTcf ) { callback( { cmpStatus: 'loaded', eventStatus: options.initialTcfStatus || 'tcloaded' }, true ); }
     };
+    // Model a current Google tag: its destination may auto-initialize on js,
+    // before script.load, and then ignore duplicate on-page config commands.
+    // No provider code executes and every simulated network/cookie write is local.
+    const requests = [], cookieWrites = [], bootSnapshots = [];
+    let runtimeStarted = false, destination, ignoredConfigs = 0;
+    const globals = {};
+    const defaults = { page_location: w.location.href, page_title: w.document.title,
+        page_referrer: w.document.referrer, send_page_view: true,
+        allow_google_signals: true, allow_ad_personalization_signals: true,
+        cookie_domain: 'auto', cookie_expires: 63072000, cookie_update: true };
+    const runtimeFields = () => ( { ...defaults, ...globals, ...destination } );
+    function send( event, fields = {} ) {
+        if ( w[ 'ga-disable-' + id ] ) { return; }
+        const values = { ...runtimeFields(), ...fields };
+        cookieWrites.push( { domain: values.cookie_domain, expires: values.cookie_expires, update: values.cookie_update } );
+        requests.push( { event, ...values } );
+    }
+    function processCommand( command ) {
+        const [ kind, value, parameters ] = Array.from( command );
+        if ( kind === 'set' ) { Object.assign( globals, value ); }
+        if ( kind === 'js' || kind === 'config' ) {
+            if ( kind === 'config' && options.revokeDuringConfig ) { fire( false ); }
+            if ( kind === 'config' && destination && options.ignoreDuplicateConfig !== false ) { ignoredConfigs++; return; }
+            destination = kind === 'config' ? { ...parameters } : {};
+            if ( runtimeFields().send_page_view !== false ) { send( 'page_view' ); }
+        }
+        if ( kind === 'event' ) { send( value, parameters ); }
+    }
+    function bootstrap() {
+        assert.equal( runtimeStarted, false ); runtimeStarted = true;
+        const queue = w.eqlAnalyticsDataLayer;
+        bootSnapshots.push( { disabled: w[ 'ga-disable-' + id ], commands: Array.from( queue, command => Array.from( command ) ) } );
+        const queued = Array.from( queue );
+        queue.push = function ( command ) { const length = Array.prototype.push.call( this, command ); processCommand( command ); return length; };
+        queued.forEach( processCommand );
+    }
+    if ( options.earlyRuntime ) {
+        const appendChild = w.document.head.appendChild.bind( w.document.head );
+        w.document.head.appendChild = element => { const result = appendChild( element ); bootstrap(); return result; };
+    }
     w.eval( source );
     const scripts = () => [ ...w.document.querySelectorAll( 'script[src]' ) ];
     return {
-        w, values, fire, scripts, callbacks,
+        w, values, fire, scripts, callbacks, bootstrap, requests, cookieWrites, bootSnapshots,
+        ignoredConfigs: () => ignoredConfigs,
         commands: () => Array.from( w.eqlAnalyticsDataLayer || [], command => Array.from( command ) ),
         disabled: () => w[ 'ga-disable-' + id ],
         ready() { modeReady = true; callbacks.forEach( item => item.CONSENT_MODE_DATA_READY?.() ); },
@@ -114,13 +155,58 @@ test( 'Granted and explicitly inapplicable consent load once with sanitized meas
         assert.equal( configs[ 0 ][ 2 ].cookie_domain, 'none' );
         assert.equal( configs[ 0 ][ 2 ].cookie_expires, 2592000 );
         assert.equal( configs[ 0 ][ 2 ].cookie_update, false );
+        assert.equal( configs[ 0 ][ 2 ].send_page_view, false );
         assert.equal( configs[ 0 ][ 2 ].user_id, undefined );
+        const views = page.commands().filter( x => x[ 0 ] === 'event' && x[ 1 ] === 'page_view' );
+        assert.equal( views.length, 1 ); assert.equal( views[ 0 ][ 2 ].send_to, id );
+        assert.equal( views[ 0 ][ 2 ].page_location, config.pageLocation );
+        assert.equal( views[ 0 ][ 2 ].page_title, config.pageTitle );
+        assert.equal( views[ 0 ][ 2 ].page_referrer, '' );
         const defaults = page.commands().find( x => x[ 0 ] === 'consent' );
         assert.deepEqual( Object.keys( defaults[ 2 ] ), [ 'analytics_storage' ], 'The CMP retains ownership of all advertising consent fields.' );
         assert.equal( page.w.dataLayer, undefined, 'Analytics does not populate the shared dataLayer.' );
         assert.equal( page.disabled(), false ); page.close();
     }
 } );
+test( 'Early destination bootstrap cannot send defaults, write cookies or duplicate the explicit sanitized pageview', () => {
+    for ( const ignoreDuplicateConfig of [ true, false ] ) {
+        const page = visit( { enabled: true, earlyRuntime: true, ignoreDuplicateConfig } ); page.ready();
+        assert.equal( page.bootSnapshots.length, 1 ); assert.equal( page.bootSnapshots[ 0 ].disabled, true );
+        const commands = page.bootSnapshots[ 0 ].commands;
+        assert.ok( commands.findIndex( c => c[ 0 ] === 'set' ) < commands.findIndex( c => c[ 0 ] === 'js' ) );
+        const safe = commands.find( c => c[ 0 ] === 'set' )[ 1 ];
+        assert.equal( safe.send_page_view, false ); assert.equal( safe.page_location, config.pageLocation );
+        assert.equal( safe.page_title, config.pageTitle ); assert.equal( safe.page_referrer, '' );
+        assert.equal( safe.allow_google_signals, false ); assert.equal( safe.allow_ad_personalization_signals, false );
+        assert.equal( safe.cookie_domain, 'none' ); assert.equal( safe.cookie_expires, 2592000 ); assert.equal( safe.cookie_update, false );
+        page.ready(); page.fire( true ); page.focus();
+        assert.equal( page.disabled(), true, 'Repeated permission callbacks must not lift the bootstrap kill switch.' );
+        assert.equal( page.requests.length, 0 ); assert.equal( page.cookieWrites.length, 0 );
+        page.load(); page.load(); page.focus(); page.hide( true ); page.show();
+        assert.equal( page.requests.length, 1 ); assert.equal( page.requests[ 0 ].event, 'page_view' );
+        assert.equal( page.requests[ 0 ].page_location, config.pageLocation ); assert.equal( page.requests[ 0 ].page_title, config.pageTitle );
+        assert.equal( page.requests[ 0 ].page_referrer, '' ); assert.equal( page.requests[ 0 ].allow_ad_personalization_signals, false );
+        assert.equal( page.requests[ 0 ].allow_google_signals, false );
+        assert.deepEqual( page.cookieWrites, [ { domain: 'none', expires: 2592000, update: false } ] );
+        assert.equal( page.ignoredConfigs(), ignoreDuplicateConfig ? 1 : 0 );
+        assert.ok( !JSON.stringify( page.requests ).includes( 'private' ) ); page.close();
+    }
+} );
+
+test( 'Off, revocation and departure during early bootstrap leave no event or cookie write', () => {
+    for ( const revoke of [ page => page.fire( false ), page => { page.status( 2 ); page.focus(); },
+        page => page.consentEvent( 'cmpuishown' ), page => page.hide() ] ) {
+        const page = visit( { enabled: true, earlyRuntime: true } ); page.apiReady(); page.ready();
+        revoke( page ); page.load(); page.fire( true ); page.ready(); page.focus();
+        assert.equal( page.disabled(), true ); assert.equal( page.requests.length, 0 ); assert.equal( page.cookieWrites.length, 0 );
+        assert.equal( page.commands().filter( c => c[ 0 ] === 'event' ).length, 0 ); page.close();
+    }
+    const synchronous = visit( { enabled: true, earlyRuntime: true, revokeDuringConfig: true } );
+    synchronous.ready(); synchronous.load();
+    assert.equal( synchronous.disabled(), true ); assert.equal( synchronous.requests.length, 0 );
+    assert.equal( synchronous.cookieWrites.length, 0 ); synchronous.close();
+} );
+
 test( 'Preference gate works when the Analytics module loads before or after ads.js', () => {
     for ( const enabled of [ undefined, true ] ) {
         const page = visit( { enabled } ); page.fire( true ); page.ready(); page.load();
