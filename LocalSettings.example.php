@@ -138,6 +138,12 @@ $wgDefaultSkin = "eqlimmersive";
 wfLoadSkin( 'EQLImmersive' );
 wfLoadSkin( 'Vector' );
 
+# Optional production audience measurement, independent of the Ads preference.
+# Leave both blank until the separate Analytics/CMP setup and privacy publication.
+# See docs/ANALYTICS.md. Never enable these settings on staging or local copies.
+$wgEQLAnalyticsMeasurementId = '';
+$wgEQLAnalyticsConsentPublisher = '';
+
 # Optional AdSense bottom anchor. Leave both empty until separate production
 # approval and anchor-only Auto ads setup. The only supported format is 'anchor'.
 # Anonymous readers default On; named accounts default Off until they save On.

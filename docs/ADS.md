@@ -8,7 +8,10 @@ visible focus/selection states and descriptive tooltips. On configured wiki
 environments the selector stays available wherever this skin renders its footer,
 including category, talk, special/account and edit/history pages. Choosing a mode
 there saves the same preference for later eligible article visits; it does not
-load Google, show a preview or reload an editor.
+load advertising code, show a preview or reload an editor. Independent audience
+measurement can run on eligible public categories and Help pages, including with
+Ads X; its separate **Analytics settings** control and consent gate are described
+in [the analytics guide](ANALYTICS.md).
 
 **Fresh logged-out readers in Multiplex mode default to Right (2) in landscape
 and Bottom (1) in portrait or square windows.** Both grids scroll normally. The
@@ -60,7 +63,7 @@ into a stale saved On. Close that tab to end an already loaded provider; Google'
 already requested creative remains intact until navigation. Retry or reload after resolving a
 save failure to establish a retained preference.
 
-`resources/ads.js` owns the preference and Google loader. The server publishes
+`resources/ads.js` owns the ad preference and Google advertising loader. The server publishes
 `wgEQLAdPreferences` separately from page-specific `wgEQLAdSense`: preference
 availability does not grant permission to serve an ad. Both require the expected
 exact environment origin. Staging can expose preferences for its preview mode;
@@ -274,11 +277,13 @@ It covers site operation, public contributions, browser storage, separate
 anonymous/account ad preferences, conditional Google advertising, consent choices
 and privacy requests. The current authored source preserves the public trial's
 X/1/2 layouts, fixed 24-hour anonymous choices and signed-in default-Off behavior.
-It also describes the separately configured optional GA4 sample, analytics
-consent gate, 30-day analytics cookies (fixed browser identifier expiry, renewable
-session state) and two-month user/event retention.
-Merge that additional disclosure into the current live revision before analytics
-activation. Disclosure publication does not activate either provider, change
+It also describes independent optional GA4 measurement for public articles,
+categories and Help pages, including signed-in and Ads Off readers; its separate
+browser opt-out, Google consent gate, external referring-site origin, 30-day
+Analytics cookies (fixed browser identifier expiry, renewable session state) and
+two-month user/event retention. The Analytics opt-out lasts one year and is not
+an account preference. Merge this disclosure into the current live revision before
+broadening Analytics collection. Disclosure publication does not activate either provider, change
 consent controls or publish an announcement. A staging source deployment does
 not update the live policy.
 
@@ -316,10 +321,14 @@ promote this test-only page to `main`.
 
 Google requires disclosure pages to contain neither consent-requiring scripts nor
 the consent-message tag; see its [privacy policy URL instructions](https://support.google.com/adsense/answer/10961370).
+The policy's **Analytics settings** footer/dialog is first-party preference code
+only; it must remain usable without loading Google.
 Prepare the three-choice message with consent optimization off, then verify its
 actual display and revocation control when serving is available. A message assigned
 to the root domain also [applies to its subsites](https://support.google.com/adsense/answer/14113511);
-the staging-only Google loader remains the deployment boundary. Publishing a
+the independent environment and page gates still determine where provider code
+loads. The production Analytics integration uses the issued standalone messaging
+tag without loading ads, so Ads X does not suppress its consent message. Publishing a
 message does not establish site approval, ad fill or legal compliance.
 
 ## Future production activation
@@ -354,7 +363,7 @@ above Donate/Ads does not establish that Google's anchor will leave those contro
 uncovered. Verify supported-format placement and footer usability before owner
 acceptance of production activation; local end padding alone cannot guarantee it.
 No custom fixed-position styling is applied to Google's ads. Remove or route any
-independently installed loader through the same effective-preference gate before activation; the
+independently installed advertising loader through the same effective-preference gate before activation; the
 selector cannot stop code another extension, database script, tag manager or proxy
 independently injects.
 
@@ -380,14 +389,19 @@ not establish a reliable anonymous human count or wiki login state. Search
 Console reports Google search clicks/impressions, not all site visits, internal
 pageviews or ad impressions. Its search impressions are not advertising views.
 
-The separate [optional GA4 integration](ANALYTICS.md) measures pageviews and
-engagement only for eligible public production articles with Ads enabled and a
-permitted analytics-consent state. It preserves X as an analytics veto and sends
-no wiki account identifiers. It requires its own valid production measurement ID,
-account-side setup and reviewed privacy publication; the ad loader alone does not
-enable it. This sample excludes Off readers, declined consent, API/resource
-requests, test traffic and staging. Unknown automation and measurement blockers
-still make human counts estimates. GA4 cannot reconstruct earlier reading time.
+The separate [optional GA4 integration](ANALYTICS.md) measures pageviews,
+acquisition and engagement for eligible public production articles, categories
+and Help pages, whether the reader is signed in or out and including Ads X.
+Its browser-only **Analytics settings** choice, Global Privacy Control and known
+permitted analytics consent govern collection independently of ads. It sends no
+wiki account identifiers and limits external referrers to their origin. Its own
+valid production measurement ID and consent publisher, account-side setup and
+reviewed privacy publication are required; the ad loader alone does not enable it.
+This sample excludes opted-out or declined readers, blocked measurement,
+API/resource requests, excluded pages, test traffic and staging. Unknown automation
+and measurement blockers still make human counts estimates. GA4 cannot reconstruct
+earlier reading time; reports from the earlier Ads-enabled-only cohort are not
+directly comparable with the broader measured audience.
 
 Only views whose effective Ads preference is Bottom or Right can earn revenue. Forecast from
 anonymous human article pageviews, the fraction with Ads on, the fraction delivering

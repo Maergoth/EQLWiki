@@ -2,10 +2,11 @@
 ( function () {
 	'use strict';
 	var settings = mw.config.get( 'wgEQLAnalytics' );
-	var provider = mw.config.get( 'wgEQLAdSense' );
-	if ( !settings || !provider || provider.preview === true || provider.environment !== 'production' ||
+	if ( !settings ||
 		navigator.globalPrivacyControl === true ||
 		settings.origin !== 'https://eqlwiki.com' || window.location.origin !== settings.origin ||
+		typeof settings.consentPublisher !== 'string' || settings.consentPublisher.length !== 20 || !/^pub-[0-9]{16}$/.test( settings.consentPublisher ) ||
+		[ 0, 12, 14 ].indexOf( settings.pageNamespace ) === -1 ||
 		typeof settings.measurementId !== 'string' || !/^G-[A-Z0-9]{6,20}$/.test( settings.measurementId ) ||
 		settings.measurementId.trim() !== settings.measurementId || typeof mw.hook !== 'function' ) { return; }
 	var canonical;
@@ -13,14 +14,27 @@
 		canonical = new URL( settings.pageLocation );
 		if ( canonical.origin !== settings.origin || canonical.username || canonical.password ||
 			canonical.search || canonical.hash || /%(?:3f|23|0a|0d)/i.test( canonical.pathname ) ||
-			canonical.pathname.indexOf( ':' ) !== -1 || /%3a/i.test( canonical.pathname ) ||
 			/^\/(?:index|api|load)\.php(?:\/|$)/i.test( canonical.pathname ) ||
 			/^\/bb(?:\/|$)/i.test( canonical.pathname ) ||
 			typeof settings.pageTitle !== 'string' || !settings.pageTitle ) { return; }
+		var publicPath = decodeURIComponent( canonical.pathname );
+		var prefix = settings.pageNamespace === 12 ? '/Help:' : settings.pageNamespace === 14 ? '/Category:' : '';
+		if ( prefix ? publicPath.indexOf( prefix ) !== 0 : publicPath.indexOf( ':' ) !== -1 ) { return; }
 	} catch ( error ) { return; }
+	// Acquisition needs the referring site, never the referring person's path,
+	// query, credentials or fragment. Internal navigation is not a new source.
+	var referrer = '';
+	try {
+		var referringPage = new URL( document.referrer );
+		if ( [ 'https:', 'http:' ].indexOf( referringPage.protocol ) !== -1 &&
+			!referringPage.username && !referringPage.password &&
+			referringPage.hostname !== 'eqlwiki.com' && !referringPage.hostname.endsWith( '.eqlwiki.com' ) ) {
+			referrer = referringPage.origin + '/';
+		}
+	} catch ( error ) { /* Direct visits have no referring site. */ }
 	var id = settings.measurementId;
 	var disableKey = 'ga-disable-' + id;
-	var adsEnabled = false, consentReady = false, registered = false, tcfRegistered = false;
+	var analyticsEnabled = false, consentReady = false, registered = false, tcfRegistered = false, cmpRequested = false;
 	var consentPromptOpen = false, awaitingTcfSnapshot = false, tcfSnapshotSeen = false;
 	var requested = false, configured = false, stopped = false, active = true;
 	var userId = mw.config.get( 'wgUserId' ), userName = mw.config.get( 'wgUserName' );
@@ -49,7 +63,7 @@
 	}
 	function permitted() {
 		if ( !sameIdentity() || navigator.globalPrivacyControl === true ) { stop( true ); }
-		return active && adsEnabled && !stopped && !consentPromptOpen && !awaitingTcfSnapshot && sameIdentity() && consentPermits();
+		return active && analyticsEnabled && !stopped && !consentPromptOpen && !awaitingTcfSnapshot && sameIdentity() && consentPermits();
 	}
 	function reconcile() {
 		if ( !permitted() ) { stop( requested && consentReady && !consentPermits() ); return; }
@@ -64,7 +78,7 @@
 		window.eqlAnalyticsDataLayer = window.eqlAnalyticsDataLayer || [];
 		function tag() { window.eqlAnalyticsDataLayer.push( arguments ); }
 		var parameters = {
-			page_location: canonical.href, page_title: settings.pageTitle, page_referrer: '',
+			page_location: canonical.href, page_title: settings.pageTitle, page_referrer: referrer,
 			allow_google_signals: false, allow_ad_personalization_signals: false,
 			send_page_view: false, cookie_prefix: 'eql', cookie_domain: 'none', cookie_path: '/',
 			cookie_expires: 2592000, cookie_update: false, cookie_flags: 'SameSite=Lax;Secure'
@@ -89,7 +103,7 @@
 			// A single manual view avoids both early and duplicate auto-pageviews.
 			tag( 'event', 'page_view', {
 				send_to: id,
-				page_location: canonical.href, page_title: settings.pageTitle, page_referrer: '',
+				page_location: canonical.href, page_title: settings.pageTitle, page_referrer: referrer,
 				allow_google_signals: false, allow_ad_personalization_signals: false
 			} );
 		}, { once: true } );
@@ -137,11 +151,39 @@
 			}
 		} );
 	}
-	mw.hook( 'eql.ads.state' ).add( function ( enabled ) {
-		adsEnabled = enabled === true;
-		if ( !adsEnabled ) { stop( false ); return; }
+	function loadConsent() {
+		if ( cmpRequested || stopped || !analyticsEnabled || navigator.globalPrivacyControl === true ) { return; }
+		cmpRequested = true;
+		// Reuse an existing Privacy & messaging runtime, including one loaded by
+		// AdSense. Its documented presence frame also prevents AdSense loading it twice.
+		if ( consentReady || window.frames.googlefcPresent || Array.prototype.some.call( document.scripts, function ( script ) {
+			return script.src.indexOf( 'https://fundingchoicesmessages.google.com/' ) === 0;
+		} ) ) { return; }
+		function signalPresent() {
+			if ( window.frames.googlefcPresent ) { return; }
+			var frame = document.createElement( 'iframe' );
+			frame.name = 'googlefcPresent';
+			frame.title = 'Consent manager presence';
+			frame.style.cssText = 'width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;display:none';
+			document.body.appendChild( frame );
+		}
+		if ( document.body ) { signalPresent(); } else {
+			document.addEventListener( 'DOMContentLoaded', signalPresent, { once: true } );
+		}
+		// Account-issued standalone messaging tag, without adsbygoogle or the
+		// optional ad-blocking error-protection/recovery message.
+		var script = document.createElement( 'script' );
+		script.async = true;
+		script.referrerPolicy = 'strict-origin';
+		script.src = 'https://fundingchoicesmessages.google.com/i/' + settings.consentPublisher + '?ers=1';
+		script.addEventListener( 'error', function () { stop( true ); }, { once: true } );
+		document.head.appendChild( script );
+	}
+	mw.hook( 'eql.analytics.state' ).add( function ( enabled ) {
+		analyticsEnabled = enabled === true;
+		if ( !analyticsEnabled ) { stop( requested || cmpRequested ); return; }
 		if ( !sameIdentity() ) { stop( true ); return; }
-		registerConsent(); reconcile();
+		registerConsent(); loadConsent(); reconcile();
 	} );
 	window.addEventListener( 'pagehide', function () {
 		// Allow an already-consented GA tag to finish its normal unload engagement
