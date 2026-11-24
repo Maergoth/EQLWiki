@@ -71,8 +71,9 @@ Major custom skin behavior:
   Historical display and native-anchor configurations remain separate. Production
   has independent blank settings and accepts no manual/Multiplex staging format.
   Approval, consent and protected-content crawler access remain separate from
-  loader setup. Only this ad option is saved on an explicit named-user gesture; no
-  analytics collection or unrelated account state is changed. Root
+  loader setup. Only this ad option is saved on an explicit named-user gesture;
+  unrelated account state is unchanged. The separate analytics module below
+  consumes the effective ad state; ad configuration alone does not enable it. Root
   [`ads.txt`](../ads.txt) supplies the owner's public Google seller record. The
   reviewed [`ops/privacy-policy.wiki`](../ops/privacy-policy.wiki) supplies authored
   source for the public [privacy and cookie policy](https://eqlwiki.com/EQLWiki:Privacy_policy),
@@ -84,6 +85,23 @@ Major custom skin behavior:
   the canonical policy and must not be promoted to production.
   The [ads guide](ADS.md) covers preview, privacy messaging, future footer acceptance,
   activation and traffic limits.
+
+- `includes/Analytics.php` and `resources/analytics.js` provide optional GA4
+  engagement measurement for eligible public production articles only. A valid
+  `EQLAnalyticsMeasurementId`, real production ad configuration, effective Ads
+  enabled state from the `eql.ads.state` hook, and known permitted analytics
+  consent are all required. `wgEQLAnalytics` contains only the issued measurement
+  ID, exact origin and canonical public article location/title. X, named-account
+  default-Off, unknown/denied/unconfigured consent, Global Privacy Control,
+  previews and nonproduction
+  origins do not load GA. Withdrawal disables collection for the current
+  document. No wiki user identifiers, query strings or referrer addresses are
+  sent; Google Signals and analytics advertising personalization stay disabled.
+  Fixed 30-day host-only GA cookies are independent of the 24-hour Ads choice.
+  This measures a consenting ads-enabled sample, not all site engagement.
+  Property creation, consent settings, two-month retention without activity
+  reset, the private production ID and live privacy publication are separate
+  operations. See [analytics ownership, checks and release](ANALYTICS.md).
 
 - [`SeoConfig.php`](../skins/EQLImmersive/includes/SeoConfig.php) enables native
   canonical links and a production-only article sitemap after private settings

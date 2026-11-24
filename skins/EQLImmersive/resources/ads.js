@@ -140,6 +140,15 @@
 		var config = rawConfig && rawConfig.preview !== true && typeof rawConfig.client === 'string' &&
 			/^ca-pub-[0-9]{16}$/.test( rawConfig.client ) && rawConfig.client.length === 23 &&
 			( rawConfig.format === 'anchor' || layouts ) && window.location.origin === providerOrigin ? rawConfig : null;
+		function analyticsState( forcedOff ) {
+			if ( typeof mw.hook === 'function' ) {
+				// The hook remembers the latest state for a later-loaded module. No
+				// preference IDs, usernames or cookie values cross this boundary.
+				mw.hook( 'eql.ads.state' ).fire( !forcedOff && !!config && mode !== 'off' &&
+					requestedMode === mode && !providerFailed && !reloading && !offLatch && identityMatches() );
+			}
+		}
+		analyticsState( true );
 		if ( !config && !preview && !preferences ) { return; }
 		control.hidden = false;
 		if ( manual || manualPreview || ( preferences && ( preferences.format === 'manual-layouts' || multiplexLayout ) ) ) {
@@ -342,6 +351,7 @@
 		function reloadProvider() {
 			if ( requestedMode && !reloading && !offLatch ) {
 				reloading = true;
+				analyticsState( true );
 				try { window.sessionStorage.setItem( scrollKey, JSON.stringify( {
 					page: window.location.pathname + window.location.search, at: Date.now(), x: window.scrollX, y: window.scrollY,
 					anonymousOff: !account && mode === 'off'
@@ -436,15 +446,17 @@
 			if ( mode === 'anchor' && !manual ) { script.dataset.overlays = 'collapsed-bottom'; }
 			script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent( config.client );
 			requestedMode = mode;
+			analyticsState();
 			if ( mode === 'anchor' && !manual ) { followAnchor(); }
 			// A blocked or failed loader must not create an empty panel. Once loaded,
 			// mount a visible measurable unit before pushing its one ad request.
 			script.addEventListener( 'load', function () { providerReady = true; requestUnit(); }, { once: true } );
-			script.addEventListener( 'error', function () { providerFailed = true; }, { once: true } );
+			script.addEventListener( 'error', function () { providerFailed = true; analyticsState( true ); }, { once: true } );
 			document.head.appendChild( script );
 		}
 		function render( next ) {
 			mode = normalize( next ); select( mode );
+			analyticsState();
 			if ( requestedMode && requestedMode !== mode ) { hidePreview(); reloadProvider(); return; }
 			if ( mode !== 'off' ) { load(); } else { hidePreview(); }
 		}
@@ -502,6 +514,7 @@
 			var next = normalize( value );
 			if ( account ) {
 				revision++; queued = { next: next, revision: revision }; offLatch = true; select( next );
+				analyticsState( true );
 				if ( next === 'off' ) { render( 'off' ); }
 				flushAccount(); return;
 			}
@@ -523,7 +536,9 @@
 		if ( closePreview ) {
 			closePreview.addEventListener( 'click', function () { choices[ 0 ].focus(); choose( 'off' ); } );
 		}
-		window.addEventListener( 'pageshow', function ( event ) { if ( !account || event.persisted ) { refresh(); } } );
+		window.addEventListener( 'pageshow', function ( event ) {
+			if ( !account || event.persisted ) { analyticsState( true ); refresh(); }
+		} );
 		window.addEventListener( 'focus', refresh );
 		document.addEventListener( 'visibilitychange', function () { if ( document.visibilityState === 'visible' ) { refresh(); } } );
 		if ( account ) { control.title = 'Loading your saved ad preference…'; refreshAccount(); }

@@ -131,6 +131,7 @@
         "PageSaveComplete": "EQLHomepageCache"
     },
     "config": {
+        "EQLAnalyticsMeasurementId": { "value": "" },
         "EQLAdSenseClient": { "value": "" },
         "EQLAdSenseFormat": { "value": "" },
         "EQLAdSenseStagingClient": { "value": "" },
@@ -141,6 +142,9 @@
         "EQLAdSenseStagingMultiplexBottomSlot": { "value": "" }
     },
     "ResourceModules": {
+        "skins.EQLImmersive.analytics": {
+            "scripts": [ "resources/analytics.js" ]
+        },
         "skins.EQLImmersive.waypoints": {
             "scripts": [ "resources/copy-waypoints.js" ],
             "styles": [ "resources/copy-waypoints.css" ]
