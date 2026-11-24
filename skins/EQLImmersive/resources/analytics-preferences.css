@@ -1,0 +1,79 @@
+/* First-party settings, separate from Google messages and ad layouts. */
+#eql-analytics-settings:not([open]) {
+	display: none;
+}
+
+#eql-analytics-settings {
+	box-sizing: border-box;
+	width: min(34rem, calc(100% - 2rem));
+	max-height: calc(100dvh - 2rem);
+	overflow: auto;
+	padding: 1.5rem;
+	border: 1px solid #89743d;
+	border-radius: 0.5rem;
+	background: #101821;
+	color: #eee9da;
+	font: 1rem/1.5 sans-serif;
+}
+
+#eql-analytics-settings::backdrop {
+	background: rgb(0 0 0 / 65%);
+}
+
+#eql-analytics-settings h2 {
+	margin: 0 0 1rem;
+	color: #e6c46b;
+	font-size: 1.3rem;
+}
+
+#eql-analytics-settings p {
+	margin: 0.75rem 0;
+}
+
+#eql-analytics-settings .eql-analytics-settings-choice {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	margin-block: 1rem;
+	font-weight: 600;
+}
+
+#eql-analytics-settings input[type="checkbox"] {
+	flex: none;
+	width: 1.15rem;
+	height: 1.15rem;
+	accent-color: #e6c46b;
+}
+
+#eql-analytics-settings .eql-analytics-settings-status:empty {
+	display: none;
+}
+
+#eql-analytics-settings .eql-analytics-settings-error {
+	color: #ffb9ab;
+}
+
+#eql-analytics-settings .eql-analytics-settings-actions {
+	display: flex;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-top: 1.25rem;
+}
+
+#eql-analytics-settings button {
+	min-height: 2.5rem;
+	padding: 0.4rem 0.8rem;
+	border: 1px solid #89743d;
+	border-radius: 0.25rem;
+	background: #202c37;
+	color: #eee9da;
+	font: inherit;
+	cursor: pointer;
+}
+
+#eql-analytics-settings :focus-visible,
+#eql-analytics-settings-link:focus-visible {
+	outline: 2px solid #e6c46b;
+	outline-offset: 3px;
+}

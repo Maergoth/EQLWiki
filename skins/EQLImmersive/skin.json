@@ -132,6 +132,7 @@
     },
     "config": {
         "EQLAnalyticsMeasurementId": { "value": "" },
+        "EQLAnalyticsConsentPublisher": { "value": "" },
         "EQLAdSenseClient": { "value": "" },
         "EQLAdSenseFormat": { "value": "" },
         "EQLAdSenseMultiplexSidebarSlot": { "value": "" },
@@ -145,7 +146,12 @@
     },
     "ResourceModules": {
         "skins.EQLImmersive.analytics": {
-            "scripts": [ "resources/analytics.js" ]
+            "scripts": [ "resources/analytics.js" ],
+            "dependencies": [ "skins.EQLImmersive.analyticsPreferences" ]
+        },
+        "skins.EQLImmersive.analyticsPreferences": {
+            "scripts": [ "resources/analytics-preferences.js" ],
+            "styles": [ "resources/analytics-preferences.css" ]
         },
         "skins.EQLImmersive.waypoints": {
             "scripts": [ "resources/copy-waypoints.js" ],

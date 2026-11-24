@@ -138,6 +138,12 @@ $wgDefaultSkin = "eqlimmersive";
 wfLoadSkin( 'EQLImmersive' );
 wfLoadSkin( 'Vector' );
 
+# Optional production audience measurement, independent of the Ads preference.
+# Leave both blank until the separate Analytics/CMP setup and privacy publication.
+# See docs/ANALYTICS.md. Never enable these settings on staging or local copies.
+$wgEQLAnalyticsMeasurementId = '';
+$wgEQLAnalyticsConsentPublisher = '';
+
 # Optional AdSense trial. Leave blank until the reviewed production activation.
 # Format 'multiplex-layouts' requires separately issued Multiplex units; keep
 # shared Auto ads and Auto optimize off. Historical 'anchor' remains supported.
