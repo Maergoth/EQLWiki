@@ -43,6 +43,18 @@ fail closed. No analytics script, pageview or cookieless analytics ping is sent
 while waiting for that decision. An ad blocker that prevents the CMP from
 loading also leaves analytics off.
 
+Before loading the remote tag, the module queues global sanitized page fields,
+privacy flags, cookie restrictions and `send_page_view: false`. The GA disable
+flag remains set throughout bootstrap because Google's destination can initialize
+before the script's `load` event and ignore a later duplicate configuration.
+After loading, the module rechecks permission, configures the destination with
+automatic pageviews still disabled, then enables collection and sends one explicit
+canonical `page_view`. Subsequent normal engagement uses those safe defaults.
+Do not move these defaults into the load callback. See Google's
+[tag setup](https://developers.google.com/tag-platform/gtagjs),
+[configuration precedence](https://developers.google.com/tag-platform/gtagjs/reference)
+and [manual pageviews](https://developers.google.com/analytics/devguides/collection/ga4/views).
+
 Configure analytics consent support in AdSense's European regulations settings;
 this is an account-side action, separate from Git deployment. Preserve the
 existing three-choice message and revocation entrypoint. See Google's
@@ -71,9 +83,19 @@ collection and analytics advertising personalization stay disabled in the
 property. Keep enhanced measurement Off so automatic form, search, link, video,
 download or history-change parameters cannot bypass these exclusions.
 
-GA cookies use a host-only scope and a fixed 30-day lifetime
+Also disable all six options under the Google tag's **Manage automatic event
+detection** and turn **Allow user-provided data capabilities** Off in its tag
+settings. These tag-level settings are separate from GA4's Enhanced measurement
+and property-level user-provided data settings; verify both layers. A newly
+created tag/container may enable those capabilities independently. The skin
+does not enable them or send user-provided data.
+
+GA cookies use the stable `cookie_prefix: 'eql'`, producing `eql_ga` and
+`eql_ga_<stream suffix>`, with a host-only scope and a fixed 30-day lifetime
 (`cookie_expires: 2592000`, `cookie_update: false`), distinct from the Ads
-preference's 24 hours. Configure the GA4 property for two-month user/event data
+preference's 24 hours. The prefix prevents reuse of existing generic Analytics
+cookies. Older cookies can remain until browser expiry or removal; this
+integration does not renew or delete them. Configure the GA4 property for two-month user/event data
 retention and disable reset on new activity. This account setting does not impose
 the same deletion schedule on standard aggregate reports; see
 [Google's retention rules](https://support.google.com/analytics/answer/7667196).
@@ -111,12 +133,17 @@ Run `node ops/test-analytics.cjs`, `php ops/test-analytics-config.php`, the exis
 for changed files. The analytics fixtures cover eligibility/configuration, exact
 origin, consent/state races, Off/default-Off, delayed callbacks, withdrawal,
 single initialization, Global Privacy Control and the outgoing configuration's
-data/cookie restrictions.
+data/cookie restrictions. The bootstrap fixture models a destination starting
+before `load`, ignoring duplicate configuration and trying its default pageview;
+it verifies no early events or cookies, one explicit sanitized view, and Off or
+withdrawal during bootstrap. This local model is not Google's runtime.
 They use synthetic provider responses and do not prove live Google collection.
 
 Before claiming activation, inspect one authorized production visit: a valid
 consented enabled state should send the intended events with sanitized page
-fields; Off and excluded pages should send none. Verify initial unknown/declined
+fields and disabled personalization; inspect the first request as well as later
+engagement and confirm host-only fixed-expiry cookies. Off and excluded pages
+should send none. Verify initial unknown/declined
 consent, a late response after Off, withdrawal, named-user defaults and blocked
 providers. Use synthetic fixtures for repeated scenarios; do not generate real
 ad impressions as a routine test. Confirm the actual property receives data in
