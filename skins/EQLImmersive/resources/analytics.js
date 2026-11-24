@@ -53,7 +53,9 @@
 	}
 	function reconcile() {
 		if ( !permitted() ) { stop( requested && consentReady && !consentPermits() ); return; }
-		window[ disableKey ] = false;
+		// A downloaded tag executes before its load event. Keep its kill switch
+		// engaged until that event rechecks consent and installs our configuration.
+		window[ disableKey ] = !configured;
 		if ( requested ) { return; }
 		requested = true;
 		// Use a dedicated command queue, but Google consent state is shared: only
@@ -61,7 +63,17 @@
 		// No remote loader or cookieless measurement request exists before this gate.
 		window.eqlAnalyticsDataLayer = window.eqlAnalyticsDataLayer || [];
 		function tag() { window.eqlAnalyticsDataLayer.push( arguments ); }
+		var parameters = {
+			page_location: canonical.href, page_title: settings.pageTitle, page_referrer: '',
+			allow_google_signals: false, allow_ad_personalization_signals: false,
+			send_page_view: false, cookie_domain: 'none', cookie_path: '/',
+			cookie_expires: 2592000, cookie_update: false, cookie_flags: 'SameSite=Lax;Secure'
+		};
 		tag( 'consent', 'default', { analytics_storage: 'granted' } );
+		// Google's tag can initialize its configured destination while processing
+		// js, before our load handler. Supply safe defaults before that bootstrap,
+		// including cookie settings and suppression of its automatic pageview.
+		tag( 'set', parameters );
 		tag( 'js', new Date() );
 		var script = document.createElement( 'script' );
 		script.async = true;
@@ -69,12 +81,16 @@
 		script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent( id ) + '&l=eqlAnalyticsDataLayer';
 		script.addEventListener( 'load', function () {
 			if ( configured || !permitted() ) { stop( true ); return; }
+			tag( 'config', id, parameters );
+			if ( !permitted() ) { stop( true ); return; }
 			configured = true;
-			tag( 'config', id, {
+			window[ disableKey ] = false;
+			// Explicit event fields also win over a destination's page defaults.
+			// A single manual view avoids both early and duplicate auto-pageviews.
+			tag( 'event', 'page_view', {
+				send_to: id,
 				page_location: canonical.href, page_title: settings.pageTitle, page_referrer: '',
-				allow_google_signals: false, allow_ad_personalization_signals: false,
-				send_page_view: true, cookie_domain: 'none', cookie_path: '/',
-				cookie_expires: 2592000, cookie_update: false, cookie_flags: 'SameSite=Lax;Secure'
+				allow_google_signals: false, allow_ad_personalization_signals: false
 			} );
 		}, { once: true } );
 		script.addEventListener( 'error', function () { stop( true ); }, { once: true } );
