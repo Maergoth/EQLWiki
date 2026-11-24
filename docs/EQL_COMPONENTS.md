@@ -91,13 +91,16 @@ Major custom skin behavior:
   `EQLAnalyticsMeasurementId`, real production ad configuration, effective Ads
   enabled state from the `eql.ads.state` hook, and known permitted analytics
   consent are all required. `wgEQLAnalytics` contains only the issued measurement
-  ID, exact origin and canonical public article location/title. X, named-account
+  ID, exact origin and canonical public article location/title. Safe defaults and
+  automatic-pageview suppression precede remote bootstrap; one explicit view
+  follows the load-time permission recheck. X, named-account
   default-Off, unknown/denied/unconfigured consent, Global Privacy Control,
   previews and nonproduction
   origins do not load GA. Withdrawal disables collection for the current
   document. No wiki user identifiers, query strings or referrer addresses are
   sent; Google Signals and analytics advertising personalization stay disabled.
-  Fixed 30-day host-only GA cookies are independent of the 24-hour Ads choice.
+  Fixed 30-day host-only `eql`-prefixed GA cookies are independent of the 24-hour
+  Ads choice and avoid reusing generic Analytics cookies.
   This measures a consenting ads-enabled sample, not all site engagement.
   Property creation, consent settings, two-month retention without activity
   reset, the private production ID and live privacy publication are separate
