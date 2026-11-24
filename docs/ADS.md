@@ -272,14 +272,14 @@ if its rewrite list changes.
 source for the public [EQLWiki Privacy and Cookie Policy](https://eqlwiki.com/EQLWiki:Privacy_policy).
 It covers site operation, public contributions, browser storage, separate
 anonymous/account ad preferences, conditional Google advertising, consent choices
-and privacy requests. It explicitly states that advertising is not currently
-enabled on the public wiki. Disclosure publication does not activate ads, change
-consent controls or publish an announcement.
-
-The published policy's prospective anonymous ad preference still describes the
-older browser-session lifetime. The test supplement documents the 24-hour test
-behavior. Review and separately publish that disclosure change before any future
-production ad activation; a staging source deployment does not update the live policy.
+and privacy requests. The current authored source preserves the public trial's
+X/1/2 layouts, fixed 24-hour anonymous choices and signed-in default-Off behavior.
+It also describes the separately configured optional GA4 sample, analytics
+consent gate, fixed 30-day analytics cookies and two-month user/event retention.
+Merge that additional disclosure into the current live revision before analytics
+activation. Disclosure publication does not activate either provider, change
+consent controls or publish an announcement. A staging source deployment does
+not update the live policy.
 
 The policy is a database page. Git deployment does not publish this source.
 For an approved update, read the target's current revision, take a fresh private
@@ -290,8 +290,8 @@ saving, record the resulting revision and verify the source, rendered policy,
 footer link and absence of Google ad/CMP tags and frames on the disclosure page.
 Publish and verify staging independently; a staging database refresh can replace
 its content. Keep original-page backups private rather than committing them as
-policy source. The 9 November 2026 publication used live revision **200533** and
-staging revision **200530**, with fresh private backups and native conflict protection.
+policy source. Record the actual reviewed and saved revisions and verification
+evidence in the private release log; a source commit is not publication evidence.
 
 The forum's [`bb/agreement.txt`](../bb/agreement.txt) has a matching cookie
 disclosure and canonical policy link in its final paragraph. Deploy that reviewed
@@ -379,11 +379,14 @@ not establish a reliable anonymous human count or wiki login state. Search
 Console reports Google search clicks/impressions, not all site visits, internal
 pageviews or ad impressions. Its search impressions are not advertising views.
 
-For future browser measurement, collect pageviews with a logged-out/logged-in
-classification and ad preference, without names or account identifiers. No
-analytics collection is added by this feature. Exclude API/resource requests,
-test traffic and staging. Unknown automation and measurement blockers still
-make human counts estimates.
+The separate [optional GA4 integration](ANALYTICS.md) measures pageviews and
+engagement only for eligible public production articles with Ads enabled and a
+permitted analytics-consent state. It preserves X as an analytics veto and sends
+no wiki account identifiers. It requires its own valid production measurement ID,
+account-side setup and reviewed privacy publication; the ad loader alone does not
+enable it. This sample excludes Off readers, declined consent, API/resource
+requests, test traffic and staging. Unknown automation and measurement blockers
+still make human counts estimates. GA4 cannot reconstruct earlier reading time.
 
 Only views whose effective Ads preference is Bottom or Right can earn revenue. Forecast from
 anonymous human article pageviews, the fraction with Ads on, the fraction delivering
@@ -436,4 +439,7 @@ the synthetic box before separately configuring the staging provider; source
 changes do not activate production ads. Promote only reviewed
 feature commits after owner approval. Production identifiers, AdSense account setup and
 consent configuration are separate activation steps; Git deployment does not
-perform them. No schema migration or database-page synchronization is needed.
+perform them. The separate analytics feature additionally requires its reviewed
+privacy disclosure to be published before activation; see its
+[release and verification contract](ANALYTICS.md#configuration-and-release).
+No schema migration is needed.
