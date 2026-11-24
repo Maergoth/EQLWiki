@@ -90,8 +90,9 @@ Major custom skin behavior:
   origins do not load GA. Withdrawal disables collection for the current
   document. No wiki user identifiers, query strings or referrer addresses are
   sent; Google Signals and analytics advertising personalization stay disabled.
-  Fixed 30-day host-only `eql`-prefixed GA cookies are independent of the 24-hour
-  Ads choice and avoid reusing generic Analytics cookies.
+  Host-only `eql`-prefixed GA cookies are independent of the 24-hour Ads choice
+  and avoid reusing generic Analytics cookies. The browser identifier expires
+  after 30 days without renewal; Google's session cookie can renew with activity.
   This measures a consenting ads-enabled sample, not all site engagement.
   Property creation, consent settings, two-month retention without activity
   reset, the private production ID and live privacy publication are separate
