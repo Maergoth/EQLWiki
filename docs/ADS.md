@@ -275,7 +275,8 @@ anonymous/account ad preferences, conditional Google advertising, consent choice
 and privacy requests. The current authored source preserves the public trial's
 X/1/2 layouts, fixed 24-hour anonymous choices and signed-in default-Off behavior.
 It also describes the separately configured optional GA4 sample, analytics
-consent gate, fixed 30-day analytics cookies and two-month user/event retention.
+consent gate, 30-day analytics cookies (fixed browser identifier expiry, renewable
+session state) and two-month user/event retention.
 Merge that additional disclosure into the current live revision before analytics
 activation. Disclosure publication does not activate either provider, change
 consent controls or publish an announcement. A staging source deployment does
