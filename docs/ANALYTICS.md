@@ -91,11 +91,20 @@ created tag/container may enable those capabilities independently. The skin
 does not enable them or send user-provided data.
 
 GA cookies use the stable `cookie_prefix: 'eql'`, producing `eql_ga` and
-`eql_ga_<stream suffix>`, with a host-only scope and a fixed 30-day lifetime
-(`cookie_expires: 2592000`, `cookie_update: false`), distinct from the Ads
-preference's 24 hours. The prefix prevents reuse of existing generic Analytics
-cookies. Older cookies can remain until browser expiry or removal; this
-integration does not renew or delete them. Configure the GA4 property for two-month user/event data
+`eql_ga_<stream suffix>`, with host-only scope, Secure and SameSite=Lax flags.
+Both receive `cookie_expires: 2592000` and `cookie_update: false`. The browser
+identifier cookie `eql_ga` retains its original 30-day expiry. Google's session
+state cookie `eql_ga_<stream suffix>` can instead renew to 30 days from activity;
+do not describe that provider-managed cookie as having a fixed deadline.
+Production verification on 24 November 2026 observed an unchanged browser-cookie
+expiry while the session-cookie expiry advanced by 50 seconds between visits.
+The synthetic tests check supplied settings, not Google's cookie-update behavior.
+
+These cookies are distinct from the Ads preference's fixed 24 hours. The prefix
+prevents reuse of existing generic Analytics cookies. Older cookies can remain
+until browser expiry or removal; this integration does not renew or delete them.
+Do not intercept or rewrite Google's session cookie to enforce another expiry.
+Configure the GA4 property for two-month user/event data
 retention and disable reset on new activity. This account setting does not impose
 the same deletion schedule on standard aggregate reports; see
 [Google's retention rules](https://support.google.com/analytics/answer/7667196).
@@ -142,7 +151,8 @@ They use synthetic provider responses and do not prove live Google collection.
 Before claiming activation, inspect one authorized production visit: a valid
 consented enabled state should send the intended events with sanitized page
 fields and disabled personalization; inspect the first request as well as later
-engagement and confirm host-only fixed-expiry cookies. Off and excluded pages
+engagement and confirm secure host-only cookies, fixed browser-cookie expiry and
+the provider's session-cookie renewal. Off and excluded pages
 should send none. Verify initial unknown/declined
 consent, a late response after Off, withdrawal, named-user defaults and blocked
 providers. Use synthetic fixtures for repeated scenarios; do not generate real
