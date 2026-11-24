@@ -74,6 +74,14 @@ class Hooks implements
 		$config = Ads::configurationForOutput( $out, $publicRead );
 		if ( $config !== null ) {
 			$out->addJsConfigVars( 'wgEQLAdSense', $config );
+			// The helper may arrive after this caller during a file-by-file release.
+			if ( class_exists( Analytics::class ) ) {
+				$analytics = Analytics::configurationForOutput( $out, $config, $publicRead );
+				if ( $analytics !== null ) {
+					$out->addJsConfigVars( 'wgEQLAnalytics', $analytics );
+					$out->addModules( [ 'skins.EQLImmersive.analytics' ] );
+				}
+			}
 		}
 	}
 
