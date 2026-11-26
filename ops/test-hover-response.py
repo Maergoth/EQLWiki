@@ -26,6 +26,9 @@ namespace MediaWiki\Title {
         }
         public function getDBkey(): string { return str_replace(' ', '_', $this->text); }
         public function getText(): string { return $this->text; }
+        public function getNamespace(): int { return 0; }
+        public function isExternal(): bool { return false; }
+        public function getFragment(): string { return ''; }
     }
 }
 namespace MediaWiki\Parser {
@@ -73,7 +76,11 @@ namespace {
         public function parse($text, $title, $options): object {
             return new class($text) {
                 public function __construct(private string $text) {}
-                public function getContentHolderText(): string { return $this->text; }
+                // A deterministic, visible parse result exercises emission even
+                // when the synthetic category intersections return no rows.
+                public function getContentHolderText(): string {
+                    return '<div class="fixture-parser-output">' . $this->text . '</div>';
+                }
             };
         }
     }
@@ -134,6 +141,10 @@ namespace {
 }
 '''
 
+# Legacy handlers can enable displayed errors after headers have already sent
+# HTTP 200. Such a body must never satisfy an otherwise permissive marker check.
+PHP_DIAGNOSTICS = ('<b>Fatal error</b>', '<b>Parse error</b>', '<b>Warning</b>', '<b>Deprecated</b>')
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -177,7 +188,7 @@ def main():
                     query = urllib.parse.urlencode({'page': page, 'type': kind})
                     with urllib.request.urlopen(origin + '/hover?' + query, timeout=3) as response:
                         body = response.read().decode()
-                        assert response.status == 200 and expected in body, (page, body)
+                        assert response.status == 200 and expected in body and not any(marker in body for marker in PHP_DIAGNOSTICS), (page, body)
                         assert 'text/html' in response.headers.get('Content-Type', ''), page
                         assert response.headers.get_all('X-Robots-Tag') == ['noindex'], page
                         assert '<!DOCTYPE html>' not in body, page
@@ -188,7 +199,7 @@ def main():
                     checks += 1
                 utilities = [
                     ({'kind': 'zone'}, 'Hello!', 'text/html'),
-                    ({'kind': 'zone', 'page': 'Upper_Guk'}, '', 'text/html'),
+                    ({'kind': 'zone', 'page': 'Upper_Guk'}, 'fixture-parser-output', 'text/html'),
                     ({'kind': 'zone', 'page': 'Synthetic Missing'}, 'Invalid zone', 'text/html'),
                     ({'kind': 'quest'}, 'dqil-table', 'text/html'),
                     ({'kind': 'quest', 'dqil_action': 'chunk'}, '"done":true', 'application/json'),
@@ -200,7 +211,7 @@ def main():
                 for params, expected, content_type in utilities:
                     with urllib.request.urlopen(origin + '/utility?' + urllib.parse.urlencode(params), timeout=3) as response:
                         body = response.read().decode()
-                        assert response.status == 200 and expected in body, (params, body)
+                        assert response.status == 200 and expected in body and not any(marker in body for marker in PHP_DIAGNOSTICS), (params, body)
                         assert content_type in response.headers.get('Content-Type', ''), params
                         assert response.headers.get_all('X-Robots-Tag') == ['noindex'], params
                         checks += 3
@@ -208,7 +219,8 @@ def main():
                         params = dict(params, included='1')
                         with urllib.request.urlopen(origin + '/article-inclusion?' + urllib.parse.urlencode(params), timeout=3) as response:
                             assert response.headers.get('X-Robots-Tag') is None, params
-                            assert response.read().decode() == body, params
+                            included_body = response.read().decode()
+                            assert included_body == body, (params, {'standalone': body, 'included': included_body})
                             checks += 2
                 # A subsequent ordinary response in the same worker must not inherit
                 # fragment headers just because the extension has been loaded.
