@@ -42,9 +42,17 @@ namespace {
 
 	class SpecialPage {
 		public static string $type = 'item';
+		public static array $headers = [];
 		public function __construct( string $name ) {}
 		public function getRequest(): object {
 			return new class {
+				public function response(): object {
+					return new class {
+						public function header( string $header, bool $replace = true ): void {
+							SpecialPage::$headers[] = [ $header, $replace ];
+						}
+					};
+				}
 				public function getText( string $name, string $default ): string {
 					return $name === 'type' ? SpecialPage::$type : $default;
 				}
@@ -72,6 +80,7 @@ namespace {
 	function hoverResponse( string $page, string $type = 'item' ): string {
 		global $handler;
 		SpecialPage::$type = $type;
+		SpecialPage::$headers = [];
 		ob_start();
 		try {
 			$handler->execute( $page );
@@ -83,16 +92,21 @@ namespace {
 
 	checkHover( !class_exists( 'Title', false ), 'The fixture must not supply the removed global Title alias.' );
 	checkHover( hoverResponse( '' ) === '<p>AjaxHoverHelper Error 1.</p>', 'Keep the empty-title response.' );
+	checkHover( SpecialPage::$headers[0] === [ 'X-Robots-Tag: noindex', false ], 'Empty requests must send a noindex response header without replacing existing policy.' );
 	checkHover( \MediaWiki\Title\Title::$calls === 0, 'An empty request must stop before title resolution.' );
 	checkHover( hoverResponse( '<invalid>' ) === '<p>AjaxHoverHelper Error 1.</p>', 'Invalid titles must return existing error HTML, without a fatal exception.' );
+	checkHover( SpecialPage::$headers[0] === [ 'X-Robots-Tag: noindex', false ], 'Invalid-title fragments must not become search results.' );
 	checkHover( hoverResponse( 'Missing_Synthetic_Page' ) === '<p>AjaxHoverHelper Error 2.</p>', 'Missing content must resolve the namespaced title and return existing error HTML.' );
+	checkHover( SpecialPage::$headers[0] === [ 'X-Robots-Tag: noindex', false ], 'Missing-content fragments must not become search results.' );
 	checkHover( \MediaWiki\MediaWikiServices::$lastTitle?->text === 'Missing Synthetic Page', 'Keep underscore normalization when passing Title to the page factory.' );
 
 	\MediaWiki\MediaWikiServices::$pages['Synthetic Claymore'] = '{{Itempage|itemname=Synthetic Claymore|lucy_img_ID=603|statsblock=Slot: PRIMARY<br>DMG: 17|focus_effect=Synthetic Focus}}';
 	$item = html_entity_decode( hoverResponse( 'Synthetic_Claymore' ), ENT_QUOTES );
+	checkHover( SpecialPage::$headers === [ [ 'X-Robots-Tag: noindex', false ], [ 'Content-type: text/html; charset=utf-8', true ] ], 'Send item fragment headers independently of disabled OutputPage.' );
 	checkHover( str_contains( $item, '{{Itembox' ) && str_contains( $item, '|itemname    = Synthetic Claymore' ) && str_contains( $item, 'DMG: 17' ) && str_contains( $item, '|focus_effect = Synthetic Focus' ), 'Execute a real item-hover request through title/content lookup and Itembox parsing.' );
 	\MediaWiki\MediaWikiServices::$pages['Synthetic Spell'] = '{{Spellpage|spellname=Synthetic Spell|mana=10|description=Synthetic effect}}';
 	$spell = html_entity_decode( hoverResponse( 'Synthetic_Spell', 'spell' ), ENT_QUOTES );
+	checkHover( SpecialPage::$headers[0] === [ 'X-Robots-Tag: noindex', false ], 'Spell fragments share the HTTP indexing policy.' );
 	checkHover( str_contains( $spell, '{{Spellbox' ) && str_contains( $spell, '| spellname = Synthetic Spell' ) && str_contains( $spell, '| mana = 10' ), 'The same namespaced title lookup must work for spell-hover execution.' );
 	checkHover( $wgOut->disabled === 5, 'Keep bare tooltip responses with normal page output disabled.' );
 
