@@ -21,7 +21,16 @@ Google Search Console evidence.
   production server and canonical origin, unless the default robot policy says
   `noindex`. Its namespace scope is main articles (`0`), excluding account, file
   and interface pages. Staging/local/other hosts have the sitemap disabled.
-  Existing sitemap cache/page-size options are retained.
+  Existing sitemap cache/page-size options are retained. The skin's supported
+  `RestModuleFiles` registration claims the two existing `site/v1` sitemap paths:
+  the index uses MediaWiki's native handler, while `CanonicalSitemapFileHandler`
+  uses the native generator with `skipRedirects()`. Main-namespace redirect aliases
+  are excluded; eligible target articles, namespace/noindex filtering, escaped
+  canonical URLs, page-touched modification times and half-open page-ID ranges
+  remain native. An empty range remains a valid empty sitemap. The filtered cache
+  has its own versioned namespace and includes policy/origin scope, so old native
+  cache entries cannot restore aliases. Disabled/private sites produce no XML,
+  including during conditional-request prechecks. Core/vendor files are unchanged.
 - `/robots.txt` routes to lightweight `robots.php`. Production permits ordinary
   search crawling, opts the named OpenAI/Anthropic crawlers and fetchers out, and
   advertises `https://eqlwiki.com/rest.php/site/v1/sitemap/0`. Staging and
@@ -33,7 +42,15 @@ Google Search Console evidence.
   zone. It uses the `Items` category and a matching title/card, avoiding unrelated
   pages and embedded item previews. It does not assert current-era availability,
   invent rarity, alter item stats, or save revisions. Existing descriptions are
-  retained. See its fixtures for action/revision/permission eligibility.
+  retained. See its fixtures for action/revision/permission eligibility. Additional
+  own-card summaries can include an explicitly listed effect, haste, AC and class;
+  details from embedded foreign item cards are excluded.
+- Standalone item/spell/NPC tooltip and dynamic list/builder responses use an
+  append-only `X-Robots-Tag: noindex` header. `AjaxHoverHelper`, `DynamicZoneList`,
+  `DynamicQuestItemList` and `ClassSlotEquip` own those response boundaries. The
+  dynamic list/builder handlers skip the header when `including()` an article;
+  article transclusion must not inherit a utility response's exclusion. These
+  headers do not block fetching or change tooltip content, status or MIME types.
 - The skin uses MediaWiki's single responsive viewport declaration instead of
   appending a second conflicting tag.
 
@@ -110,6 +127,13 @@ The [November 2026 comparison](SEO_COMPARISON_2026-11.md) includes both sparse
 indexed pages and substantial excluded guides. It does not establish a minimum
 word count or a single cause for Google's exclusions.
 
+The [item-indexing follow-up](SEO_ITEM_INDEXING_2026-11.md) records the later
+Google evidence and measured sitemap/utility gaps. The November 26 sitemap audit
+found 4,545 redirect aliases among 28,576 advertised URLs. Removing those aliases
+improves the canonical discovery list; it does not prove why Google excluded an
+otherwise eligible item article. Google recommends listing the preferred
+[canonical URLs in sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).
+
 `NavigationCrawl.php` preserves native navigation attributes and adds `nofollow`
 to recognized local action, revision and utility links in EQL's page-action menus,
 custom sidebar and native toolbox. Article, Talk, category and content-source
@@ -158,6 +182,26 @@ not prove live Apache/LiteSpeed routing, authentication or database integration.
 The SEO config checks include the named AI opt-outs, ordinary search allowance,
 Discord referral comments, sitemap advertisement and nonproduction deny-all.
 The local PHP router implements `/robots.txt` but does not execute `.htaccess`.
+
+Run `php ops/test-canonical-sitemap.php` for the real native XML generator, REST
+base and route matcher with synthetic database/title/language inputs. It covers
+redirect/noindex/namespace filtering, ID boundaries, XML escaping, disabled and
+private guards, cache separation and preservation of both existing sitemap URLs.
+The registration test fails if upstream adds another `site/v1` core path, which
+must then be reviewed before upgrading. `python ops/test-hover-response.py` checks
+standalone utility headers and transclusion isolation through actual PHP response
+boundaries with synthetic parser/database dependencies.
+
+For a read-only deployed integration check, install the reviewed
+`ops/check-canonical-sitemap.php` privately and run
+`php maintenance/run.php /private/path/check-canonical-sitemap.php --all` from the
+target wiki. It compares actual native eligible URL sets against the custom
+handler minus real redirect aliases, retaining that environment's canonical
+origin. Its process-local configuration overlay and memory cache do not change
+host settings, pages or persistent caches; staging's public sitemap remains
+disabled. This helper is excluded from application releases and must be installed
+separately. Repeat actual HTTP checks after deployment; fixtures do not establish
+Google fetching, sitemap processing, indexing or rankings.
 
 Deploy to staging first. Check a current item article, a guide, and a nonarticle
 page using the normal staging access path. Verify one responsive viewport, one

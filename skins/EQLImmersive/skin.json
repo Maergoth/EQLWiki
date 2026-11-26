@@ -91,6 +91,9 @@
     "AutoloadNamespaces": {
         "EQLImmersive\\": "includes/"
     },
+    "RestModuleFiles": [
+        "rest-sitemap.json"
+    ],
     "SearchMappings": {
         "SearchMySQL": {
             "class": "EQLImmersive\\SearchMySQL"

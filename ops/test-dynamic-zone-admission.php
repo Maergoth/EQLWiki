@@ -17,7 +17,17 @@ namespace MediaWiki\Revision { class RevisionRecord { public const FOR_PUBLIC = 
 namespace MediaWiki\Parser { class ParserOptions { public static function newFromAnon() { return new self(); } } }
 namespace MediaWiki { class MediaWikiServices { public static $fixture; public static function getInstance() { return self::$fixture; } } }
 namespace {
-class SpecialPage { public function __construct( ...$args ) {} }
+class SpecialPage {
+    public static array $headers = [];
+    private bool $included = true;
+    public function __construct( ...$args ) {}
+    public function including( ?bool $value = null ): bool { if ( $value !== null ) { $this->included = $value; } return $this->included; }
+    public function getRequest(): object { return new class {
+        public function response(): object { return new class {
+            public function header( string $header, bool $replace = true ): void { SpecialPage::$headers[] = [ $header, $replace ]; }
+        }; }
+    }; }
+}
 define( 'NS_MAIN', 0 ); define( 'NS_CATEGORY', 14 ); define( 'DB_REPLICA', 1 );
 require __DIR__ . '/../extensions/DynamicZoneList/DynamicZoneList_body.php';
 $n = 0; $check = static function ( $yes, $message ) use ( &$n ) { $n++; if ( !$yes ) { throw new RuntimeException( $message ); } };
@@ -94,5 +104,8 @@ $check( !str_contains( $wgOut->text, 'Invalid zone' ), 'Actual SpecialPage execu
 $check( $db->zoneQueries === [ 'Synthetic_New_Lake', 'Quests', 'Synthetic_New_Lake', 'NPCs', 'Synthetic_New_Lake', 'Items' ], 'Existing category intersections use only the canonical zone and fixed entity categories' );
 $wgOut->text = ''; $queries = count( $db->zoneQueries ); ( new DynamicZoneList() )->execute( 'Synthetic Ordinary Page' );
 $check( str_contains( $wgOut->text, 'Invalid zone' ) && count( $db->zoneQueries ) === $queries, 'Rejected arbitrary pages never fan out to category tables' );
+$check( SpecialPage::$headers === [], 'Transcluded zone lists cannot attach a noindex header to the containing article' );
+$standalone = new DynamicZoneList(); $standalone->including( false ); $standalone->execute( 'Synthetic Ordinary Page' );
+$check( SpecialPage::$headers === [ [ 'X-Robots-Tag: noindex', false ] ], 'A standalone invalid zone receives noindex before its early return without replacing stricter headers' );
 echo "Dynamic zone admission: {$n} source/service checks passed.\n";
 }

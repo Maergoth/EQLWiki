@@ -21,6 +21,12 @@ class ItemSeo {
 		'Archery' => 'an archery weapon',
 		'Throwing' => 'a throwing weapon'
 	];
+	private const CLASSES = [
+		'WAR' => 'Warrior', 'CLR' => 'Cleric', 'PAL' => 'Paladin', 'RNG' => 'Ranger',
+		'SHD' => 'Shadow Knight', 'DRU' => 'Druid', 'MNK' => 'Monk', 'BRD' => 'Bard',
+		'ROG' => 'Rogue', 'SHM' => 'Shaman', 'NEC' => 'Necromancer', 'WIZ' => 'Wizard',
+		'MAG' => 'Magician', 'ENC' => 'Enchanter', 'BST' => 'Beastlord', 'BER' => 'Berserker'
+	];
 
 	public static function addToOutput( $out, bool $publicRead ): void {
 		$title = $out->getTitle();
@@ -115,15 +121,34 @@ class ItemSeo {
 		$skill = self::field( $lines, '/^Skill:\s*(.+?)(?:\s+Atk Delay:.*)?$/i' );
 		$kind = self::SKILLS[$skill] ?? 'an item';
 		$brand = class_exists( SiteIdentity::class ) ? SiteIdentity::PREFERRED_NAME : 'EverQuest Legends Wiki';
-		$text = self::normalize( $title ) . ' is listed in the ' . $brand . ' as ' . $kind . '.';
-		$slot = self::field( $lines, '/^Slot:\s*([A-Z]+(?:\s+[A-Z]+)*)$/' );
-		if ( $slot !== '' ) {
-			$text .= ' Slot: ' . $slot . '.';
+		$text = self::normalize( $title ) . ' is ' . $kind . ' in ' . $brand . '.';
+		// Distinguishing facts come before generic slot/source context so the
+		// bounded description retains an item's effect, haste or armor value.
+		// Links may name an effect, but never supply another field's numbers.
+		$effect = self::effect( self::statLines( $card, true ) );
+		if ( $effect !== '' ) {
+			$text .= ' Effect: ' . $effect . '.';
+		}
+		$haste = self::uniqueField( $lines, 'Haste', '/^([+\-]?\d+(?:\.\d+)?%)$/' );
+		if ( $haste !== '' ) {
+			$text .= ' Haste: ' . $haste . '.';
+		}
+		$armor = self::uniqueField( $lines, 'AC', '/^([+\-]?\d+)$/' );
+		if ( $armor !== '' ) {
+			$text .= ' AC: ' . $armor . '.';
 		}
 		$damage = self::field( $lines, '/^DMG:\s*(\d+(?:\.\d+)?)(?:\s|$)/i' );
 		$delay = self::field( $lines, '/^(?:Skill:.*?\s+)?Atk Delay:\s*(\d+(?:\.\d+)?)(?:\s|$)/i' );
 		if ( isset( self::SKILLS[$skill] ) && $damage !== '' && $delay !== '' ) {
 			$text .= ' Base DMG: ' . $damage . '; delay: ' . $delay . '.';
+		}
+		$classes = self::classes( $lines );
+		if ( $classes !== '' ) {
+			$text .= ' Class: ' . $classes . '.';
+		}
+		$slot = self::field( $lines, '/^Slot:\s*([A-Z]+(?:\s+[A-Z]+)*)$/' );
+		if ( $slot !== '' ) {
+			$text .= ' Slot: ' . $slot . '.';
 		}
 		$zones = self::dropZones( $xpath, $root );
 		if ( $zones !== [] ) {
@@ -170,12 +195,14 @@ class ItemSeo {
 		return self::normalize( $node->textContent );
 	}
 
-	private static function statLines( DOMNode $node ): array {
+	private static function statLines( DOMNode $node, bool $includeLinks = false ): array {
 		$text = '';
 		foreach ( $node->childNodes as $child ) {
 			if ( $child instanceof DOMElement ) {
-				if ( in_array( strtolower( $child->tagName ), [ 'a', 'script', 'style' ], true ) ||
-					preg_match( '/(?:^|\s)(?:itemicon|itemeff)(?:\s|$)/', $child->getAttribute( 'class' ) )
+				if ( in_array( strtolower( $child->tagName ), [ 'script', 'style' ], true ) ||
+					( !$includeLinks && strtolower( $child->tagName ) === 'a' ) ||
+					preg_match( '/(?:^|\s)(?:itemicon|hb|spelldata)(?:\s|$)/', $child->getAttribute( 'class' ) ) ||
+					( !$includeLinks && preg_match( '/(?:^|\s)itemeff(?:\s|$)/', $child->getAttribute( 'class' ) ) )
 				) {
 					continue;
 				}
@@ -183,7 +210,7 @@ class ItemSeo {
 					$text .= "\n";
 					continue;
 				}
-				$text .= implode( "\n", self::statLines( $child ) );
+				$text .= implode( "\n", self::statLines( $child, $includeLinks ) );
 				if ( in_array( strtolower( $child->tagName ), [ 'p', 'div' ], true ) ) {
 					$text .= "\n";
 				}
@@ -201,6 +228,49 @@ class ItemSeo {
 			}
 		}
 		return '';
+	}
+
+	/** Contradictory/repeated fields are not an unambiguous summary fact. */
+	private static function uniqueField( array $lines, string $label, string $pattern ): string {
+		$values = [];
+		foreach ( $lines as $line ) {
+			if ( preg_match( '/^' . preg_quote( $label, '/' ) . ':\s*(.*)$/i', $line, $match ) ) {
+				$values[] = $match[1];
+			}
+		}
+		return count( $values ) === 1 && preg_match( $pattern, $values[0], $match ) ? $match[1] : '';
+	}
+
+	private static function classes( array $lines ): string {
+		$value = self::uniqueField( $lines, 'Class', '/^([A-Z]+(?:\s+[A-Z]+)*)$/' );
+		if ( $value === 'ALL' ) {
+			return 'ALL';
+		}
+		$codes = $value === '' ? [] : explode( ' ', $value );
+		foreach ( $codes as $code ) {
+			if ( !isset( self::CLASSES[$code] ) ) {
+				return '';
+			}
+		}
+		if ( count( array_unique( $codes ) ) !== count( $codes ) ) {
+			return '';
+		}
+		// Long class lists already have a compact, exact representation in the card.
+		return count( $codes ) > 4 ? $value : implode( ', ', array_map( static fn ( $code ) => self::CLASSES[$code], $codes ) );
+	}
+
+	private static function effect( array $lines ): string {
+		$value = self::uniqueField( $lines, 'Effect', '/^([^<>]{1,160})$/u' );
+		if ( $value === '' || preg_match( '/\?|\b(?:unknown|none|need info|not documented)\b/i', $value ) ) {
+			return '';
+		}
+		// Compact only this explicit known format. Keep trigger and stated level;
+		// do not infer proc levels, spell power, availability or focus effects.
+		if ( preg_match( '/^([^():]+)\s+\((Combat|Worn|Any Slot|Must Equip|Expendable|Inventory), Casting Time: [^()]+\)(?: at Level (\d+))?$/u', $value, $match ) ) {
+			return trim( $match[1] ) . ' (' . $match[2] .
+				( isset( $match[3] ) ? ', level ' . $match[3] : '' ) . ')';
+		}
+		return !str_contains( $value, ':' ) && mb_strlen( $value, 'UTF-8' ) <= 100 ? $value : '';
 	}
 
 	/** Only a linked zone paragraph immediately under the item's drop heading. */
