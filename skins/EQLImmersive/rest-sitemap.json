@@ -1,0 +1,33 @@
+{
+	"mwapi": "1.0.0",
+	"moduleId": "site/v1",
+	"info": {
+		"title": "EQLWiki article sitemaps",
+		"version": "1.0.0",
+		"description": "Native sitemap URLs with canonical article entries."
+	},
+	"paths": {
+		"/sitemap/{indexId}": {
+			"get": {
+				"handler": {
+					"class": "MediaWiki\\Rest\\Handler\\SitemapIndexHandler",
+					"services": [
+						"MainConfig", "LanguageConverterFactory", "ContentLanguage",
+						"PermissionManager", "ConnectionProvider"
+					]
+				}
+			}
+		},
+		"/sitemap/{indexId}/page/{fileId}": {
+			"get": {
+				"handler": {
+					"class": "EQLImmersive\\CanonicalSitemapFileHandler",
+					"services": [
+						"MainConfig", "LanguageConverterFactory", "ContentLanguage",
+						"PermissionManager", "ConnectionProvider", "GenderCache", "MainWANObjectCache"
+					]
+				}
+			}
+		}
+	}
+}

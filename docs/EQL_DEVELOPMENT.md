@@ -361,6 +361,17 @@ staging must retain its hostname, access gate, `noindex` policy and disabled
 sitemap. Source fixtures do not establish web-server redirects or live access.
 Include `php ops/test-ajax-hover.php` when checking item previews; its synthetic
 execution test does not replace a live tooltip request.
+`python ops/test-hover-response.py` also exercises actual HTTP header handling
+with synthetic parser/database inputs, including standalone versus transcluded
+list output. Run `php ops/test-canonical-sitemap.php` for the registered native
+REST/generator contract. A separately installed private
+`ops/check-canonical-sitemap.php`, run with
+`php maintenance/run.php /private/path/check-canonical-sitemap.php --all`, can
+compare every sitemap range against real staging rows using process-local
+configuration and cache; it does not enable staging's public sitemap or publish
+pages. Repeat actual article, auxiliary-response and sitemap checks after release.
+The [November item investigation](SEO_ITEM_INDEXING_2026-11.md) distinguishes
+measured defects and deployment verification from Google's inclusion decisions.
 
 - Contributions target `staging`; the owner separately approves `main` releases.
   Promote specific reviewed changes, not the entire staging branch.

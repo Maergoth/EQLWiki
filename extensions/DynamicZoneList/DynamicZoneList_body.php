@@ -570,6 +570,12 @@ function execute( $par )
 {
   global $wgRequest, $wgOut, $wgUser, $wgParser, $wgTitle;
 
+  // The standalone utility is not a zone article. Never attach this HTTP
+  // policy while its output is being transcluded into a normal article.
+  if ( !$this->including() ) {
+    $this->getRequest()->response()->header( 'X-Robots-Tag: noindex', false );
+  }
+
 	$zoneNameList = array(// ANTONICA
                   "Befallen",
                   "Blackburrow",

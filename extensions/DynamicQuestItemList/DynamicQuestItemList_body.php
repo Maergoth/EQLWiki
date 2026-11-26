@@ -804,6 +804,12 @@ class DynamicQuestItemList extends SpecialPage {
 	public function execute( $par ) {
 		global $wgOut;
 
+		// Standalone filters/chunks are utility responses; a transcluding article
+		// retains its own indexing policy. Append to preserve staging headers.
+		if ( !$this->including() ) {
+			$this->getRequest()->response()->header( 'X-Robots-Tag: noindex', false );
+		}
+
 		$request = $this->getRequest();
 		$categoryName = $this->normalizeCategoryName( $par );
 
