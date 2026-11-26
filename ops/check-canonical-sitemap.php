@@ -16,12 +16,6 @@ use MediaWiki\Title\Title;
 use Wikimedia\ObjectCache\HashBagOStuff;
 use Wikimedia\ObjectCache\WANObjectCache;
 
-class EQLCanonicalSitemapSmokeHandler extends CanonicalSitemapFileHandler {
-	public array $smokeParams = [ 'indexId' => 0, 'fileId' => 0 ];
-	public function getValidatedParams() { return $this->smokeParams; }
-	public function getResponseFactory(): ResponseFactory { return new ResponseFactory( [] ); }
-}
-
 class EQLCheckCanonicalSitemap extends Maintenance {
 	private int $checks = 0;
 	public function __construct() {
@@ -80,7 +74,13 @@ class EQLCheckCanonicalSitemap extends Maintenance {
 			foreach ( $rows as $row ) {
 				$aliases[] = Title::makeTitle( $row->page_namespace, $row->page_title )->getCanonicalURL();
 			}
-			$handler = new EQLCanonicalSitemapSmokeHandler( $config, $converter, $lang, $services->getPermissionManager(), $connection, $gender, $cache );
+			// The maintenance runner loads this file before skin registration. Defer
+			// resolving the custom parent until execute(), after MediaWiki setup.
+			$handler = new class( $config, $converter, $lang, $services->getPermissionManager(), $connection, $gender, $cache ) extends CanonicalSitemapFileHandler {
+				public array $smokeParams = [ 'indexId' => 0, 'fileId' => 0 ];
+				public function getValidatedParams() { return $this->smokeParams; }
+				public function getResponseFactory(): ResponseFactory { return new ResponseFactory( [] ); }
+			};
 			$handler->smokeParams['fileId'] = $fileId;
 			$response = $handler->execute();
 			$this->check( $response->getStatusCode() === 200, 'Memory-only enabled handler must return 200.' );

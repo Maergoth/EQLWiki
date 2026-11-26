@@ -179,5 +179,29 @@ namespace {
 	$match = $module->findHandlerMatch( '/sitemap/0/page/1', 'GET' );
 	sitemapCheck( $match['found'] && $match['spec']['class'] === CanonicalSitemapFileHandler::class, 'Real native module matcher selects the canonical child handler.' );
 	sitemapCheck( !$module->findHandlerMatch( '/unrelated', 'GET' )['found'], 'The custom module exposes no unrelated route.' );
+
+	// maintenance/run.php includes the helper before Setup.php registers skin
+	// classes. Use a fresh process so this fixture's explicit require cannot hide
+	// a premature custom-parent resolution in the separately installed helper.
+	$bootstrapProbe = <<<'PHP'
+define( 'MEDIAWIKI', true );
+chdir( $argv[1] );
+require 'includes/AutoLoader.php';
+require 'maintenance/Maintenance.php';
+include 'ops/check-canonical-sitemap.php';
+if ( !class_exists( 'EQLCheckCanonicalSitemap', false ) ||
+	class_exists( 'EQLImmersive\\CanonicalSitemapFileHandler', false ) ) { exit( 1 ); }
+echo "Pre-setup maintenance helper load passed\n";
+PHP;
+	$process = proc_open( [ PHP_BINARY, '-r', $bootstrapProbe, $root ],
+		[ 0 => [ 'pipe', 'r' ], 1 => [ 'pipe', 'w' ], 2 => [ 'pipe', 'w' ] ], $pipes, $root );
+	sitemapCheck( is_resource( $process ), 'Start an isolated maintenance bootstrap probe.' );
+	fclose( $pipes[0] );
+	$stdout = stream_get_contents( $pipes[1] );
+	$stderr = stream_get_contents( $pipes[2] );
+	fclose( $pipes[1] ); fclose( $pipes[2] );
+	$status = proc_close( $process );
+	sitemapCheck( $status === 0 && trim( $stdout ) === 'Pre-setup maintenance helper load passed' && $stderr === '',
+		'Maintenance helper loads before skin registration: ' . $stderr );
 	echo "Canonical sitemap checks passed ($checks assertions; native generator/REST/router with synthetic inputs).\n";
 }
