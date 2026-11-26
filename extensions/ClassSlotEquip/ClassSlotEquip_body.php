@@ -1468,6 +1468,12 @@ class ClassSlotEquip extends SpecialPage {
 	function execute( $par ) {
 		global $wgOut;
 
+		// Cover invalid filters and bare AJAX output as well as the normal list.
+		// Captured output must not change a containing article's HTTP policy.
+		if ( !$this->including() ) {
+			$this->getRequest()->response()->header( 'X-Robots-Tag: noindex', false );
+		}
+
 		$request = $this->getRequest();
 
 		if ( $request->getBool( 'eqlBuilder' ) || $request->getBool( 'eqlTrio' ) ) {

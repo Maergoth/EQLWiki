@@ -136,6 +136,22 @@ Major custom skin behavior:
   [`sync-item-reader-copy.php`](../ops/sync-item-reader-copy.php) helper with
   revision checks and private backups. See the
   [indexed/excluded comparison](SEO_COMPARISON_2026-11.md) for evidence and limits.
+  `rest-sitemap.json` registers the supported `site/v1` module at the existing
+  sitemap URLs, reusing the native index and `CanonicalSitemapFileHandler` with
+  the native generator's redirect exclusion. Native namespace/noindex, URL/XML,
+  ID-range and environment guards remain; filtered policy/origin-scoped cache
+  entries cannot reuse the old aliases. The native-backed synthetic regression
+  is `ops/test-canonical-sitemap.php`; separately installed
+  `ops/check-canonical-sitemap.php` provides a read-only real-DB/memory-cache
+  comparison without enabling staging's public sitemap. The
+  [item-indexing follow-up](SEO_ITEM_INDEXING_2026-11.md) records observed gaps and
+  limits; these changes do not establish Google inclusion or rankings.
+  Standalone `AjaxHoverHelper`, `DynamicZoneList`, `DynamicQuestItemList` and
+  `ClassSlotEquip` utility responses append `X-Robots-Tag: noindex`. Dynamic
+  list/builder transclusions skip that response header so the enclosing article
+  remains indexable. `ops/test-hover-response.py` exercises the HTTP boundaries.
+  Item summaries can also expose an own-card effect, haste, AC and class while
+  rejecting embedded foreign card facts; visible item records remain authoritative.
 
 - `resources/collapsible.css`, loaded by the core skin styles, gives native
   article Expand/Collapse buttons gold text, a state chevron and keyboard focus

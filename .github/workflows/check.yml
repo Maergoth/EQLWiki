@@ -46,8 +46,10 @@ jobs:
         run: |
           python3 ops/test-seo-routing.py
           php ops/test-seo-config.php
+          php ops/test-canonical-sitemap.php
           php ops/test-item-seo.php
           php ops/test-ajax-hover.php
+          python3 ops/test-hover-response.py
           php ops/test-ads-config.php
           php ops/test-analytics-config.php
           php ops/test-navigation-crawl.php

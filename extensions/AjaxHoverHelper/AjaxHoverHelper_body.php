@@ -289,7 +289,13 @@ class AjaxHoverHelper extends SpecialPage {
 
 		$wgOut->disable();
 
-		header( 'Content-type: text/html; charset=utf-8' );
+		// These are UI fragments, not article search results. Disabling OutputPage
+		// also bypasses SpecialPage's normal robots meta tag, so send the policy
+		// at the HTTP boundary. Append to retain a stricter staging policy.
+		$request = $this->getRequest();
+		$response = $request->response();
+		$response->header( 'X-Robots-Tag: noindex', false );
+		$response->header( 'Content-type: text/html; charset=utf-8' );
 
 		$reqName = trim( (string)$par );
 
@@ -314,7 +320,6 @@ class AjaxHoverHelper extends SpecialPage {
 			return;
 		}
 
-		$request = $this->getRequest();
 		$type = strtolower( $request->getText( 'type', '' ) );
 
 		if ( $type === 'spell' || strpos( $templateText, '{{Spellpage' ) !== false || strpos( $templateText, '{{spellpage' ) !== false ) {
